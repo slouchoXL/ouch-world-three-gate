@@ -1,13 +1,22 @@
+// main.module.js
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
+// ---------- DOM refs ----------
 const canvas = document.getElementById('webgl');
 const overlay = document.getElementById('overlay');
 const progressEl = document.getElementById('progress');
-const toggleAnimBtn = document.getElementById('toggleAnim');
-const resetViewBtn = document.getElementById('resetView');
 
+const gate      = document.getElementById('gate');
+const pwdInput  = document.getElementById('password');   // <input type="password" id="password" placeholder="enter secret code">
+const gateMsg   = document.getElementById('gate-msg');   // <div id="gate-msg"></div>
+
+// Optional UI buttons (if present)
+const toggleAnimBtn = document.getElementById('toggleAnim');
+const resetViewBtn  = document.getElementById('resetView');
+
+// ---------- Three.js setup ----------
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -15,7 +24,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0a0a);
+scene.background = new THREE.Color(0x000000);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 200);
 camera.position.set(0,1.5,3);
@@ -25,12 +34,13 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.target.set(0,1.4,0);
 
-const hemi = new THREE.HemisphereLight(0xffffff, 0x202030, 1.0);
-scene.add(hemi);
+// Lights
+scene.add(new THREE.HemisphereLight(0xffffff, 0x202030, 1.0));
 const key = new THREE.DirectionalLight(0xffffff, 1.2);
 key.position.set(3,6,5);
 scene.add(key);
 
+// Ground (subtle)
 const ground = new THREE.Mesh(
   new THREE.CircleGeometry(6,64),
   new THREE.MeshStandardMaterial({ color:0x111111, metalness:0, roughness:1 })
@@ -38,49 +48,62 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
-let mixer, activeAction, allActions=[], clock = new THREE.Clock();
+// ---------- Loading / Model ----------
+let mixer, activeAction, allActions = [];
+const clock = new THREE.Clock();
 
 const manager = new THREE.LoadingManager();
 manager.onProgress = (url, loaded, total) => {
   const pct = Math.round((loaded/total)*100);
   progressEl.textContent = pct + '%';
-  document.querySelector('.loader .bar').style.width = pct + '%';
+  const bar = document.querySelector('.loader .bar');
+  if (bar) bar.style.width = pct + '%';
 };
-manager.onLoad = () => setTimeout(()=> overlay.classList.add('hide'), 200);
+manager.onError = (url) => {
+  const label = document.querySelector('.loader .label');
+  if (label) label.textContent = '404: ' + url;
+  console.error('Loading error:', url);
+};
+manager.onLoad = () => setTimeout(()=> overlay?.classList.add('hide'), 200);
 
 const loader = new GLTFLoader(manager);
 const MODEL_URL = 'assets/metahuman.glb';
 
-loader.load(MODEL_URL,
+loader.load(
+  MODEL_URL,
   (gltf)=>{
     const root = gltf.scene;
-    root.traverse(o=>{ if (o.isMesh) o.frustumCulled=false; });
+    root.traverse(o=>{ if (o.isMesh) o.frustumCulled = false; });
     scene.add(root);
-    frame(root);
+    frameToObject(root);
+
     if (gltf.animations && gltf.animations.length){
       mixer = new THREE.AnimationMixer(root);
       gltf.animations.forEach(clip=>{
-        const action = mixer.clipAction(clip); allActions.push({name:clip.name, action});
+        const action = mixer.clipAction(clip);
+        allActions.push({ name: clip.name, action });
       });
       const idle = allActions.find(a=>/idle|breath|loop/i.test(a.name)) || allActions[0];
-      activeAction = idle.action; activeAction.reset().fadeIn(0.25).play();
+      activeAction = idle?.action;
+      activeAction?.reset().fadeIn(0.25).play();
     }
-    window.addEventListener('pointerdown', tryTriggerAlt);
   },
   (xhr)=>{
     if (xhr.lengthComputable){
       const pct = Math.round((xhr.loaded/xhr.total)*100);
       progressEl.textContent = pct + '%';
-      document.querySelector('.loader .bar').style.width = pct + '%';
+      const bar = document.querySelector('.loader .bar');
+      if (bar) bar.style.width = pct + '%';
     }
   },
-  (err)=>{
+  (err)=> {
     progressEl.textContent = 'Error loading model';
     console.error(err);
   }
 );
 
-function frame(obj){
+// Fit camera to object
+function frameToObject(obj){
   const box = new THREE.Box3().setFromObject(obj);
   const size = new THREE.Vector3(); box.getSize(size);
   const center = new THREE.Vector3(); box.getCenter(center);
@@ -88,80 +111,129 @@ function frame(obj){
   const maxDim = Math.max(size.x, size.y, size.z);
   const dist = maxDim * 1.2 / Math.tan(THREE.MathUtils.degToRad(camera.fov*0.5));
   camera.position.copy(center).add(new THREE.Vector3(0,0.2,1).normalize().multiplyScalar(dist));
-  camera.near = Math.max(0.01, dist/100); camera.far = dist*10 + maxDim; camera.updateProjectionMatrix();
+  camera.near = Math.max(0.01, dist/100);
+  camera.far = dist*10 + maxDim;
+  camera.updateProjectionMatrix();
 }
 
+// Optional alt gesture trigger (wave/salute clip) on success
 function tryTriggerAlt(){
   if (!allActions.length) return;
   const alt = allActions.find(a=>/wave|salute|hello|gesture/i.test(a.name));
-  if (!alt || activeAction===alt.action) return;
-  activeAction.fadeOut(0.15);
-  alt.action.reset().fadeIn(0.15).play();
+  if (!alt) return;
+  if (activeAction) activeAction.fadeOut(0.12);
+  alt.action.reset().fadeIn(0.12).play();
   activeAction = alt.action;
   const dur = alt.action._clip?.duration || 1;
   setTimeout(()=>{
     const idle = allActions.find(a=>/idle|breath|loop/i.test(a.name)) || allActions[0];
-    if (idle && activeAction!==idle.action){ alt.action.fadeOut(0.2); idle.action.reset().fadeIn(0.2).play(); activeAction=idle.action; }
-  }, dur*1000-50);
+    if (idle && activeAction!==idle.action){
+      alt.action.fadeOut(0.2);
+      idle.action.reset().fadeIn(0.2).play();
+      activeAction = idle.action;
+    }
+  }, dur*1000 - 40);
 }
 
-// Gate UI logic
-const gate = document.getElementById('gate');
-const gateForm = document.getElementById('gateForm');
-const gateInput = document.getElementById('gateInput');
-const gateMsg = document.getElementById('gateMsg');
+// ---------- Gate logic (pill input → download button) ----------
+const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
-gateForm.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const password = gateInput.value.trim();
+async function redeem(password){
+  // Hit Netlify function directly (no redirect)
+  const res = await fetch('/.netlify/functions/redeem', {
+    method:'POST',
+    headers:{ 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  });
+  if (!res.ok) throw new Error('Redeem failed: ' + res.status);
+  return res.json(); // { url, title }
+}
+
+async function checkPassword(){
+  const password = (pwdInput?.value || '').trim();
   if (!password) return;
-  gateMsg.textContent = 'Checking…';
 
-  const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  gateMsg.textContent = 'Checking…';
+  gateMsg.style.color = 'var(--text)';
 
   try {
-      const res = await fetch('/.netlify/functions/redeem', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ password })
-    });
-    if (!res.ok) throw new Error('Invalid');
-    const { url, title } = await res.json();
-    tryTriggerAlt();                     // success anim
+    const { url, title } = await redeem(password);
+
+    // success UI
+    tryTriggerAlt();
     gateMsg.textContent = `Unlocked: ${title}`;
-      gateMsg.style.color = 'var(--ok)';   // green accent from CSS
-    const a = document.createElement('a'); a.href = url; a.download = '';
-    document.body.appendChild(a); a.click(); a.remove();
+    gateMsg.style.color = 'var(--success)';
+
+    // morph input → download button
+    morphToDownloadButton(url, title);
+
   } catch (err) {
-    // DEV-only fallback when no backend is running
-    if (isLocal && /^(Love is Fear|Test1)$/.test(password)) {
+    // Local dev convenience when function isn't running
+    if (isLocal && /Failed to fetch|NetworkError|TypeError/i.test(String(err)) && /^(Love is Fear|Test1)$/.test(pwdInput.value.trim())){
+      const title = pwdInput.value.trim();
       tryTriggerAlt();
-      gateMsg.textContent = `Unlocked (DEV): ${password}`;
-      const blob = new Blob([`DEV unlock: ${password}`], { type: 'text/plain' });
+      gateMsg.textContent = `Unlocked (DEV): ${title}`;
+      gateMsg.style.color = 'var(--success)';
+      // create a tiny blob to "download"
+      const blob = new Blob([`DEV unlock: ${title}`], { type:'text/plain' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `${password}.txt`;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
+      morphToDownloadButton(url, title, ()=> URL.revokeObjectURL(url));
       return;
     }
-    gateMsg.textContent = 'Sorry, that password doesn’t work.';
-      gateMsg.style.color = 'var(--warn)';
+
+    // fail UI
+    gateMsg.textContent = 'Sorry, that password does not work.';
+    gateMsg.style.color = 'var(--warning)';
+    console.error(err);
   }
+}
+
+function morphToDownloadButton(url, title, onAfterClick){
+  // Replace the input with a pill button
+  const btn = document.createElement('button');
+  btn.textContent = `Download ${title}`;
+  btn.setAttribute('type', 'button');
+  btn.addEventListener('click', ()=>{
+    // Try programmatic download first
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch {
+      // Fallback for Safari/pop-up rules
+      window.open(url, '_blank', 'noopener');
+    }
+    if (onAfterClick) onAfterClick();
+  });
+
+  // Smooth swap
+  gate.innerHTML = '';
+  gate.appendChild(btn);
+}
+
+// Submit on Enter key
+pwdInput?.addEventListener('keydown', (e)=>{
+  if (e.key === 'Enter') checkPassword();
 });
 
-
-
-window.addEventListener('resize', ()=>{
-  const w = window.innerWidth, h = window.innerHeight;
-  camera.aspect = w/h; camera.updateProjectionMatrix();
-  renderer.setSize(w,h);
-});
-
-toggleAnimBtn.addEventListener('click', ()=>{
+// ---------- Misc UI ----------
+toggleAnimBtn?.addEventListener('click', ()=>{
   if (!activeAction) return;
   activeAction.paused = !activeAction.paused;
 });
-resetViewBtn.addEventListener('click', ()=> controls.reset() );
+resetViewBtn?.addEventListener('click', ()=> controls.reset());
+
+// ---------- Render loop & resize ----------
+window.addEventListener('resize', ()=>{
+  const w = window.innerWidth, h = window.innerHeight;
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w,h);
+});
 
 (function loop(){
   requestAnimationFrame(loop);
@@ -170,3 +242,4 @@ resetViewBtn.addEventListener('click', ()=> controls.reset() );
   controls.update();
   renderer.render(scene, camera);
 })();
+

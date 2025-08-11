@@ -1,5 +1,8 @@
 <!doctype html>
 <html lang="en">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -15,17 +18,12 @@
   </div>
 
   <!-- Gate UI -->
-  <div id="gate" class="gate">
-    <div class="panel">
-      <h1 class="brand">ouch.world</h1>
-      <p id="gatePrompt">The guardian awaits. Whisper the password.</p>
-      <form id="gateForm">
-        <input id="gateInput" autocomplete="off" placeholder="enter password" />
-        <button class="btn">Unlock</button>
-      </form>
-      <p id="gateMsg" class="msg"></p>
-    </div>
+  <div id="gate">
+    <input type="password" id="password" placeholder="enter secret code" />
   </div>
+  <div id="gate-msg"></div>
+
+ 
 
   <canvas id="webgl"></canvas>
   <div class="ui">

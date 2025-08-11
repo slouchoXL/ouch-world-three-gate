@@ -1,4 +1,32 @@
 /* ===== Base ===== */
+
+:root{
+  --bg:#000000;
+  --text:#D3D3D3;
+  --text-hover:#757575;
+
+  /* keep existing accents if you like, or tweak later */
+  --accent:#8AA2FF;
+  --accent-2:#00E1D2;
+
+  /* type scale */
+  --h1:30px;
+  --body:16px;
+
+  /* rounding */
+  --radius-pill:9999px;
+}
+html,body{
+  height:100%; margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+}
+h1{font-size:var(--h1); line-height:1.2; margin:0 0 .6rem}
+p, .body{font-size:var(--body); line-height:1.55; margin:0 0 .75rem}
+a{color:var(--text); text-decoration:none}
+a:hover{color:var(--text-hover)}
+
 * { box-sizing: border-box }
 :root{
   --bg-0:#08090c;
@@ -27,9 +55,34 @@ canvas{display:block; position:fixed; inset:0; z-index:0}
 
 /* ===== Floating control buttons ===== */
 .ui{position:fixed; bottom:1rem; left:1rem; display:flex; gap:.5rem; z-index:20}
-.btn{background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); border:1px solid var(--border); color:var(--text); padding:.55rem .8rem; border-radius:.75rem; cursor:pointer; backdrop-filter: blur(6px); box-shadow:0 6px 20px rgba(0,0,0,.25); transition:transform .08s ease, box-shadow .2s ease, border-color .2s ease}
-.btn:hover{transform:translateY(-1px); box-shadow:0 10px 28px rgba(0,0,0,.35); border-color:#39436c}
-.btn:active{transform:translateY(0)}
+.btn{
+  border-radius:var(--radius-pill);
+  padding:.55rem 1rem;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.06);
+  color:var(--text);
+  cursor:pointer;
+  backdrop-filter: blur(6px);
+  transition:transform .08s ease, background .15s ease, color .15s ease, border-color .15s ease;
+}
+.btn:hover{
+  background:rgba(255,255,255,.10);
+  color:var(--text-hover);
+  border-color:rgba(255,255,255,.28);
+}
+.btn:active{transform:translateY(1px)}
+
+/* optional variants */
+.btn--filled{
+  background:var(--accent);
+  color:#000;
+  border-color:transparent;
+}
+.btn--outline{
+  background:transparent;
+  border-color:rgba(255,255,255,.35);
+}
+
 
 /* ===== Gate panel (floats; scene still interactive) ===== */
 .gate{position:fixed; top:1rem; right:1rem; z-index:30; pointer-events:none}
@@ -46,13 +99,35 @@ canvas{display:block; position:fixed; inset:0; z-index:0}
 }
 @keyframes pop{from{transform:translateY(-4px); opacity:0} to{transform:none; opacity:1}}
 .brand{margin:.2rem 0 1rem; font-size:1rem; letter-spacing:.12em; font-weight:800; color:var(--brand); text-transform:uppercase}
-.gate p{margin:.25rem 0 .6rem; color:var(--muted)}
-.gate input{
-  width:100%; padding:.65rem .8rem; border-radius:.7rem;
-  background:rgba(10,12,18,.9); border:1px solid #2a334e; color:var(--text);
-  outline:none; transition:border-color .2s ease, box-shadow .2s ease;
+.gate{
+    display:flex;
+    justify-content:center;
+    margin:2rem auto;}
+.gate input,
+.gate button {
+  width: 280px;
+  padding: .6rem 1rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  font-size: var(--body);
+  outline: none;
+  text-align:center;
+  cursor: pointer;
+  transition: all .2s ease;
 }
-.gate input:focus{border-color:#3b4a7a; box-shadow:0 0 0 4px rgba(138,162,255,.15)}
+.gate input::placeholder{color: var(--text-hover);
+.gate input:focus{border-color:rgba(255,255,255,.28);}
+.gate button {
+  background: var(--accent);
+  color: #000;
+  border: none;
+}
+
+.gate button:hover {
+  background: var(--accent-2);
+}
 .gate .panel .btn{width:100%; margin-top:.45rem}
 .gate .msg{min-height:1.25em; margin-top:.5rem; color:var(--ok)}
 
