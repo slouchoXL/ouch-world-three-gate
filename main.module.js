@@ -129,6 +129,7 @@ gateForm.addEventListener('submit', async (e)=>{
     const { url, title } = await res.json();
     tryTriggerAlt();                     // success anim
     gateMsg.textContent = `Unlocked: ${title}`;
+      gateMsg.style.color = 'var(--ok)';   // green accent from CSS
     const a = document.createElement('a'); a.href = url; a.download = '';
     document.body.appendChild(a); a.click(); a.remove();
   } catch (err) {
@@ -144,6 +145,7 @@ gateForm.addEventListener('submit', async (e)=>{
       return;
     }
     gateMsg.textContent = 'Sorry, that password doesn’t work.';
+      gateMsg.style.color = 'var(--warn)';
   }
 });
 

@@ -1,34 +1,71 @@
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;background:#0a0a0a;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-canvas{display:block}
-.ui{position:fixed;bottom:1rem;left:1rem;display:flex;gap:.5rem;z-index:10}
-.btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.24);color:#fff;padding:.5rem .75rem;border-radius:.5rem;cursor:pointer;backdrop-filter:blur(4px)}
-.btn:hover{background:rgba(255,255,255,.14)}
-.overlay{position:fixed;inset:0;display:grid;place-items:center;background:#000;z-index:20;transition:opacity .3s;opacity:1}
-.overlay.hide{opacity:0;pointer-events:none}
-.loader{width:min(420px,80vw)}
-.loader .bar{height:6px;background:linear-gradient(90deg,#7cf,#c7f);width:0;border-radius:3px;transition:width .15s}
-.loader .label{margin-top:.5rem;text-align:center;color:#bbb;font-size:.9rem}
-/* Gate UI */
-/* Gate UI — float panel, doesn't cover scene */
-.gate{
-  position:fixed;
-  bottom:1rem;
-  right:1rem;
-  z-index:30;
-  pointer-events:none; /* let scene receive events except the panel */
+/* ===== Base ===== */
+* { box-sizing: border-box }
+:root{
+  --bg-0:#08090c;
+  --bg-1:#0b0e16;
+  --glass:#0e1320cc;
+  --border:#1f2740;
+  --text:#e8ecff;
+  --muted:#a7b0d6;
+  --brand:#8aa2ff;
+  --brand-2:#00e1d2;
+  --ok:#46e6a0;
+  --warn:#ff9a76;
 }
+html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 15% 10%, #10162a 0%, #0b0e16 35%, #090b12 100%), var(--bg-0); color:var(--text); font-family:"Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
+a{color:var(--brand); text-decoration:none}
+
+/* ===== Canvas fills window ===== */
+canvas{display:block; position:fixed; inset:0; z-index:0}
+
+/* ===== Loader overlay ===== */
+.overlay{position:fixed; inset:0; display:grid; place-items:center; background:linear-gradient(180deg, rgba(8,9,12,.6), rgba(8,9,12,.2)); z-index:50; transition:opacity .35s ease; opacity:1}
+.overlay.hide{opacity:0; pointer-events:none}
+.loader{width:min(460px,86vw); padding:16px 18px; border-radius:16px; background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); border:1px solid #2b3452; box-shadow:0 12px 60px rgba(0,0,0,.5); backdrop-filter: blur(8px)}
+.loader .bar{height:8px; width:0; border-radius:8px; background:linear-gradient(90deg, var(--brand), var(--brand-2)); transition: width .2s ease}
+.loader .label{margin-top:.6rem; text-align:center; color:var(--muted); font-size:.95rem}
+
+/* ===== Floating control buttons ===== */
+.ui{position:fixed; bottom:1rem; left:1rem; display:flex; gap:.5rem; z-index:20}
+.btn{background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); border:1px solid var(--border); color:var(--text); padding:.55rem .8rem; border-radius:.75rem; cursor:pointer; backdrop-filter: blur(6px); box-shadow:0 6px 20px rgba(0,0,0,.25); transition:transform .08s ease, box-shadow .2s ease, border-color .2s ease}
+.btn:hover{transform:translateY(-1px); box-shadow:0 10px 28px rgba(0,0,0,.35); border-color:#39436c}
+.btn:active{transform:translateY(0)}
+
+/* ===== Gate panel (floats; scene still interactive) ===== */
+.gate{position:fixed; top:1rem; right:1rem; z-index:30; pointer-events:none}
 .gate .panel{
-  background:#101010;
-  border:1px solid #2a2a2a;
+  pointer-events:auto;
+  width:min(420px, 90vw);
   padding:18px 20px;
-  border-radius:14px;
-  width:min(460px,92vw);
-  box-shadow:0 10px 30px rgba(0,0,0,.4);
-  pointer-events:auto; /* the panel itself is clickable */
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+  border:1px solid var(--border);
+  backdrop-filter: blur(10px) saturate(120%);
+  box-shadow: 0 12px 40px rgba(0,0,0,.35);
+  animation: pop .25s ease-out;
 }
-.gate .panel h1{margin:.2rem 0 1rem 0;font-size:1.1rem;letter-spacing:.08em;color:#9cf;font-weight:600}
-.gate .panel p{margin:.25rem 0 .6rem 0;color:#cfd8ffb3}
-.gate input{width:100%;padding:.6rem .7rem;border-radius:.6rem;border:1px solid #3a3a3a;background:#0c0c0c;color:#fff;margin:.25rem 0 .5rem 0}
-.gate .msg{min-height:1.2em;color:#9cf}
+@keyframes pop{from{transform:translateY(-4px); opacity:0} to{transform:none; opacity:1}}
+.brand{margin:.2rem 0 1rem; font-size:1rem; letter-spacing:.12em; font-weight:800; color:var(--brand); text-transform:uppercase}
+.gate p{margin:.25rem 0 .6rem; color:var(--muted)}
+.gate input{
+  width:100%; padding:.65rem .8rem; border-radius:.7rem;
+  background:rgba(10,12,18,.9); border:1px solid #2a334e; color:var(--text);
+  outline:none; transition:border-color .2s ease, box-shadow .2s ease;
+}
+.gate input:focus{border-color:#3b4a7a; box-shadow:0 0 0 4px rgba(138,162,255,.15)}
+.gate .panel .btn{width:100%; margin-top:.45rem}
+.gate .msg{min-height:1.25em; margin-top:.5rem; color:var(--ok)}
+
+/* ===== Subtle decorator lights (optional) ===== */
+body::before, body::after{
+  content:""; position:fixed; z-index:1; filter:blur(80px); opacity:.25; pointer-events:none;
+}
+body::before{width:340px; height:340px; left:-40px; top:-40px; background:radial-gradient(closest-side, var(--brand), transparent)}
+body::after{width:360px; height:360px; right:-60px; bottom:-60px; background:radial-gradient(closest-side, var(--brand-2), transparent)}
+
+/* ===== Responsive tweaks ===== */
+@media (max-width: 700px){
+  .gate{top:auto; right:auto; bottom:1rem; left:1rem}
+  .ui{bottom:1rem; left:1rem; right:auto}
+}
 
