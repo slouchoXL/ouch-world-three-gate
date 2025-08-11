@@ -174,3 +174,23 @@ canvas{
   #gate-msg{ top:auto; right:auto; left:50%; bottom:3.7rem; transform:translateX(-50%); text-align:center }
   .ui{ left:50%; transform:translateX(-50%) }
 }
+/* Top-left navigation */
+#top-nav {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  gap: 1.5rem;
+  z-index: 40;
+}
+
+#top-nav a {
+  font-size: var(--body); /* same as pill text size */
+  color: var(--text);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+#top-nav a:hover {
+  color: var(--text-hover);
+}
