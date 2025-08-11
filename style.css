@@ -194,3 +194,25 @@ canvas{
 #top-nav a:hover {
   color: var(--text-hover);
 }
+
+/* Top-right pause/play button */
+#toggleAnim {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 40;
+  padding: .6rem 1rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--outline);
+  background: var(--glass);
+  color: var(--text);
+  font-size: var(--body);
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-soft);
+  transition: all 0.2s ease;
+}
+
+#toggleAnim:hover {
+  background: var(--text-hover);
+  color: #fff;
+}
