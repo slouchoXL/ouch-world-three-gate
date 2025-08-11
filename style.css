@@ -114,16 +114,23 @@ canvas{
 .btn:active{ transform: translateY(1px) }
 
 /* ===== Password gate (minimal pill) ===== */
+/* Bottom-centered gate container */
 #gate{
   position:fixed;
-  top:1rem; right:1rem;
+  left:50%;
+  bottom:1rem;
+  transform:translateX(-50%);
   z-index:30;
-  display:flex; align-items:center; justify-content:center;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:.5rem;
 }
 
+/* Pill input and the morphing button share the same base look */
 #gate input,
 #gate button{
-  width: 280px;
+  width: 320px;
   padding: .6rem 1rem;
   border-radius: var(--radius-pill);
   border: 1px solid var(--outline);
@@ -137,24 +144,28 @@ canvas{
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-soft);
 }
+
 #gate input::placeholder{ color: var(--text-hover) }
 #gate input:focus{ border-color: var(--outline-strong) }
 
-#gate button{
-  background: var(--accent);
-  color: #000;
-  border-color: transparent;
-}
-#gate button:hover{ background: var(--accent-2) }
-
-#gate-msg{
-  position:fixed;
-  top:4.4rem; right:1rem;
-  z-index:30;
+/* Status message under the pill, centered */
+#gate #gate-msg{
   font-size:.9rem;
   color:var(--text-hover);
-  text-align:right;
+  text-align:center;
   min-height:1.2em;
+}
+
+/* Download button visual (grey pill w/ white text) + invert on hover */
+#gate button.btn--download{
+  background: var(--text-hover);   /* grey */
+  color: #fff;                     /* white text */
+  border-color: var(--text-hover);
+}
+#gate button.btn--download:hover{
+  background: #fff;                /* invert */
+  color: var(--text-hover);
+  border-color: #fff;
 }
 
 /* Responsive */

@@ -198,8 +198,9 @@ async function checkPassword(){
 
 function morphToDownloadButton(url, title, onAfterClick){
   const btn = document.createElement('button');
-  btn.textContent = `Download ${title}`;
-  btn.setAttribute('type', 'button');
+  btn.className = 'btn--download';
+  btn.textContent = 'Download'; // just "Download" (no title)
+
   btn.addEventListener('click', ()=>{
     try {
       const a = document.createElement('a');
@@ -217,7 +218,13 @@ function morphToDownloadButton(url, title, onAfterClick){
 
   gate.innerHTML = '';
   gate.appendChild(btn);
+  // keep the status message under the button
+  const msg = document.createElement('div');
+  msg.id = 'gate-msg';
+  msg.textContent = gateMsg?.textContent || '';
+  gate.appendChild(msg);
 }
+
 
 pwdInput?.addEventListener('keydown', (e)=>{
   if (e.key === 'Enter') checkPassword();

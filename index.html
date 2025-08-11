@@ -30,9 +30,18 @@
 
   <!-- Password gate -->
   <div id="gate">
-    <input type="password" id="password" placeholder="enter secret code" />
+    <input
+      type="text"
+      id="password"
+      placeholder="enter secret code"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      inputmode="text"
+    />
+    <div id="gate-msg"></div>
   </div>
-  <div id="gate-msg"></div>
+
 
   <!-- Optional UI buttons -->
   <div class="ui">
