@@ -1,9 +1,9 @@
-// main.module.js — CDN-only Three.js, minimal gate morph, MetaHuman loader with placeholder fallback
-import * as THREE from 'https://unpkg.com/three@0.165.0/build/three.module.js';
-import { OrbitControls } from 'https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js';
-import { GLTFLoader } from 'https://unpkg.com/three@0.165.0/examples/jsm/loaders/GLTFLoader.js';
-// If your GLB is Draco-compressed, uncomment these 3 lines:
-// import { DRACOLoader } from 'https://unpkg.com/three@0.165.0/examples/jsm/loaders/DRACOLoader.js';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+// (optional)
+// import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+
 
 // ---------- DOM refs ----------
 const canvas = document.getElementById('webgl');
