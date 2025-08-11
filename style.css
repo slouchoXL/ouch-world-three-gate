@@ -1,0 +1,34 @@
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#0a0a0a;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+canvas{display:block}
+.ui{position:fixed;bottom:1rem;left:1rem;display:flex;gap:.5rem;z-index:10}
+.btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.24);color:#fff;padding:.5rem .75rem;border-radius:.5rem;cursor:pointer;backdrop-filter:blur(4px)}
+.btn:hover{background:rgba(255,255,255,.14)}
+.overlay{position:fixed;inset:0;display:grid;place-items:center;background:#000;z-index:20;transition:opacity .3s;opacity:1}
+.overlay.hide{opacity:0;pointer-events:none}
+.loader{width:min(420px,80vw)}
+.loader .bar{height:6px;background:linear-gradient(90deg,#7cf,#c7f);width:0;border-radius:3px;transition:width .15s}
+.loader .label{margin-top:.5rem;text-align:center;color:#bbb;font-size:.9rem}
+/* Gate UI */
+/* Gate UI — float panel, doesn't cover scene */
+.gate{
+  position:fixed;
+  bottom:1rem;
+  right:1rem;
+  z-index:30;
+  pointer-events:none; /* let scene receive events except the panel */
+}
+.gate .panel{
+  background:#101010;
+  border:1px solid #2a2a2a;
+  padding:18px 20px;
+  border-radius:14px;
+  width:min(460px,92vw);
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+  pointer-events:auto; /* the panel itself is clickable */
+}
+.gate .panel h1{margin:.2rem 0 1rem 0;font-size:1.1rem;letter-spacing:.08em;color:#9cf;font-weight:600}
+.gate .panel p{margin:.25rem 0 .6rem 0;color:#cfd8ffb3}
+.gate input{width:100%;padding:.6rem .7rem;border-radius:.6rem;border:1px solid #3a3a3a;background:#0c0c0c;color:#fff;margin:.25rem 0 .5rem 0}
+.gate .msg{min-height:1.2em;color:#9cf}
+

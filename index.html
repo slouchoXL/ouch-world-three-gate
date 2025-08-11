@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ouch.world • MetaHuman Gate</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="overlay" class="overlay">
+    <div class="loader">
+      <div class="bar"></div>
+      <div class="label">Loading… <span id="progress">0%</span></div>
+    </div>
+  </div>
+
+  <!-- Gate UI -->
+  <div id="gate" class="gate">
+    <div class="panel">
+      <h1 class="brand">ouch.world</h1>
+      <p id="gatePrompt">The guardian awaits. Whisper the password.</p>
+      <form id="gateForm">
+        <input id="gateInput" autocomplete="off" placeholder="enter password" />
+        <button class="btn">Unlock</button>
+      </form>
+      <p id="gateMsg" class="msg"></p>
+    </div>
+  </div>
+
+  <canvas id="webgl"></canvas>
+  <div class="ui">
+    <button id="toggleAnim" class="btn">⏯ Idle</button>
+    <button id="resetView" class="btn">⟳ Reset View</button>
+  </div>
+
+  <!-- Import map for local ES modules -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./libs/three.module.js",
+      "three/examples/jsm/": "./libs/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="main.module.js"></script>
+</body>
+</html>

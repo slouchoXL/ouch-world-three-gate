@@ -1,0 +1,10 @@
+{
+  "name": "ouch-world-three-gate",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.620.0",
+    "@aws-sdk/s3-request-presigner": "^3.620.0"
+  }
+}
