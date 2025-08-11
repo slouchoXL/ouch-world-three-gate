@@ -1,12 +1,9 @@
+// main.module.js — CDN-only Three.js, minimal gate morph, MetaHuman loader with placeholder fallback
 import * as THREE from 'https://unpkg.com/three@0.165.0/build/three.module.js';
 import { OrbitControls } from 'https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.165.0/examples/jsm/loaders/GLTFLoader.js';
-
-const loader = new GLTFLoader();
-
-
-
-
+// If your GLB is Draco-compressed, uncomment these 3 lines:
+// import { DRACOLoader } from 'https://unpkg.com/three@0.165.0/examples/jsm/loaders/DRACOLoader.js';
 
 // ---------- DOM refs ----------
 const canvas = document.getElementById('webgl');
@@ -14,10 +11,9 @@ const overlay = document.getElementById('overlay');
 const progressEl = document.getElementById('progress');
 
 const gate      = document.getElementById('gate');
-const pwdInput  = document.getElementById('password');   // <input type="password" id="password" placeholder="enter secret code">
-const gateMsg   = document.getElementById('gate-msg');   // <div id="gate-msg"></div>
+const pwdInput  = document.getElementById('password');
+const gateMsg   = document.getElementById('gate-msg');
 
-// Optional UI buttons (if present)
 const toggleAnimBtn = document.getElementById('toggleAnim');
 const resetViewBtn  = document.getElementById('resetView');
 
@@ -45,7 +41,7 @@ const key = new THREE.DirectionalLight(0xffffff, 1.2);
 key.position.set(3,6,5);
 scene.add(key);
 
-// Ground (subtle)
+// Ground
 const ground = new THREE.Mesh(
   new THREE.CircleGeometry(6,64),
   new THREE.MeshStandardMaterial({ color:0x111111, metalness:0, roughness:1 })
@@ -72,6 +68,8 @@ manager.onError = (url) => {
 manager.onLoad = () => setTimeout(()=> overlay?.classList.add('hide'), 200);
 
 const loader = new GLTFLoader(manager);
+// const draco = new DRACOLoader(); draco.setDecoderPath('https://unpkg.com/three@0.165.0/examples/jsm/libs/draco/'); loader.setDRACOLoader(draco);
+
 const MODEL_URL = 'assets/metahuman.glb';
 
 loader.load(
@@ -102,8 +100,19 @@ loader.load(
     }
   },
   (err)=> {
-    progressEl.textContent = 'Error loading model';
-    console.error(err);
+    // Fallback placeholder so you still see something if GLB is missing
+    progressEl.textContent = 'Using placeholder model';
+    console.warn('GLB load error, using placeholder:', err);
+    const geo = new THREE.TorusKnotGeometry(0.6, 0.22, 220, 32);
+    const mat = new THREE.MeshStandardMaterial({ color:0x8888ff, roughness:0.2, metalness:0.6 });
+    const knot = new THREE.Mesh(geo, mat);
+    knot.position.y = 1.2;
+    scene.add(knot);
+    frameToObject(knot);
+    // idle rotation
+    const rot = ()=> { knot.rotation.y += 0.01; requestAnimationFrame(rot); };
+    rot();
+    overlay?.classList.add('hide');
   }
 );
 
@@ -144,7 +153,6 @@ function tryTriggerAlt(){
 const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
 async function redeem(password){
-  // Hit Netlify function directly (no redirect)
   const res = await fetch('/.netlify/functions/redeem', {
     method:'POST',
     headers:{ 'Content-Type': 'application/json' },
@@ -164,29 +172,24 @@ async function checkPassword(){
   try {
     const { url, title } = await redeem(password);
 
-    // success UI
     tryTriggerAlt();
     gateMsg.textContent = `Unlocked: ${title}`;
     gateMsg.style.color = 'var(--success)';
 
-    // morph input → download button
     morphToDownloadButton(url, title);
 
   } catch (err) {
-    // Local dev convenience when function isn't running
     if (isLocal && /Failed to fetch|NetworkError|TypeError/i.test(String(err)) && /^(Love is Fear|Test1)$/.test(pwdInput.value.trim())){
       const title = pwdInput.value.trim();
       tryTriggerAlt();
       gateMsg.textContent = `Unlocked (DEV): ${title}`;
       gateMsg.style.color = 'var(--success)';
-      // create a tiny blob to "download"
       const blob = new Blob([`DEV unlock: ${title}`], { type:'text/plain' });
       const url = URL.createObjectURL(blob);
       morphToDownloadButton(url, title, ()=> URL.revokeObjectURL(url));
       return;
     }
 
-    // fail UI
     gateMsg.textContent = 'Sorry, that password does not work.';
     gateMsg.style.color = 'var(--warning)';
     console.error(err);
@@ -194,12 +197,10 @@ async function checkPassword(){
 }
 
 function morphToDownloadButton(url, title, onAfterClick){
-  // Replace the input with a pill button
   const btn = document.createElement('button');
   btn.textContent = `Download ${title}`;
   btn.setAttribute('type', 'button');
   btn.addEventListener('click', ()=>{
-    // Try programmatic download first
     try {
       const a = document.createElement('a');
       a.href = url;
@@ -209,18 +210,15 @@ function morphToDownloadButton(url, title, onAfterClick){
       a.click();
       a.remove();
     } catch {
-      // Fallback for Safari/pop-up rules
       window.open(url, '_blank', 'noopener');
     }
     if (onAfterClick) onAfterClick();
   });
 
-  // Smooth swap
   gate.innerHTML = '';
   gate.appendChild(btn);
 }
 
-// Submit on Enter key
 pwdInput?.addEventListener('keydown', (e)=>{
   if (e.key === 'Enter') checkPassword();
 });
@@ -247,4 +245,3 @@ window.addEventListener('resize', ()=>{
   controls.update();
   renderer.render(scene, camera);
 })();
-

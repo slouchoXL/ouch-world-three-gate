@@ -1,5 +1,5 @@
 /* =========================
-   OUCH.WORLD — site styles
+   OUCH.WORLD — site styles (clean CDN-only build)
    ========================= */
 
 /* Tokens */
@@ -9,7 +9,7 @@
   --text:#D3D3D3;
   --text-hover:#757575;
 
-  /* Optional accents (used for hover/cta if you want) */
+  /* Optional accents */
   --accent:#8AA2FF;
   --accent-2:#00E1D2;
 
@@ -113,9 +113,7 @@ canvas{
 }
 .btn:active{ transform: translateY(1px) }
 
-/* ===== Password gate (minimal pill) =====
-   We keep it super clean: just the pill input.
-   When JS morphs it to a <button>, it inherits pill styles below. */
+/* ===== Password gate (minimal pill) ===== */
 #gate{
   position:fixed;
   top:1rem; right:1rem;
@@ -142,7 +140,6 @@ canvas{
 #gate input::placeholder{ color: var(--text-hover) }
 #gate input:focus{ border-color: var(--outline-strong) }
 
-/* When it becomes a download button, we can give it a tiny accent */
 #gate button{
   background: var(--accent);
   color: #000;
@@ -150,7 +147,6 @@ canvas{
 }
 #gate button:hover{ background: var(--accent-2) }
 
-/* Gate message (optional feedback text area if you show it) */
 #gate-msg{
   position:fixed;
   top:4.4rem; right:1rem;
@@ -161,10 +157,9 @@ canvas{
   min-height:1.2em;
 }
 
-/* Responsive tweaks */
+/* Responsive */
 @media (max-width: 700px){
   #gate{ top:auto; right:auto; left:50%; bottom:1rem; transform:translateX(-50%) }
   #gate-msg{ top:auto; right:auto; left:50%; bottom:3.7rem; transform:translateX(-50%); text-align:center }
   .ui{ left:50%; transform:translateX(-50%) }
 }
-
