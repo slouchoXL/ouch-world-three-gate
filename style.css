@@ -1,146 +1,170 @@
-/* ===== Base ===== */
+/* =========================
+   OUCH.WORLD — site styles
+   ========================= */
 
+/* Tokens */
 :root{
+  /* Colors */
   --bg:#000000;
   --text:#D3D3D3;
   --text-hover:#757575;
 
-  /* keep existing accents if you like, or tweak later */
+  /* Optional accents (used for hover/cta if you want) */
   --accent:#8AA2FF;
   --accent-2:#00E1D2;
 
-  /* type scale */
+  /* Feedback */
+  --success:#46E6A0;
+  --warning:#FF9A76;
+
+  /* Borders / glass */
+  --outline: rgba(255,255,255,.18);
+  --outline-strong: rgba(255,255,255,.28);
+  --glass: rgba(255,255,255,.06);
+
+  /* Type scale */
   --h1:30px;
   --body:16px;
 
-  /* rounding */
+  /* Shape */
   --radius-pill:9999px;
+
+  /* Shadows */
+  --shadow-soft: 0 8px 28px rgba(0,0,0,.25);
 }
+
+/* Base */
+*{ box-sizing:border-box }
 html,body{
-  height:100%; margin:0;
+  height:100%;
+  margin:0;
   background:var(--bg);
   color:var(--text);
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
 }
-h1{font-size:var(--h1); line-height:1.2; margin:0 0 .6rem}
-p, .body{font-size:var(--body); line-height:1.55; margin:0 0 .75rem}
-a{color:var(--text); text-decoration:none}
-a:hover{color:var(--text-hover)}
-
-* { box-sizing: border-box }
-:root{
-  --bg-0:#08090c;
-  --bg-1:#0b0e16;
-  --glass:#0e1320cc;
-  --border:#1f2740;
-  --text:#e8ecff;
-  --muted:#a7b0d6;
-  --brand:#8aa2ff;
-  --brand-2:#00e1d2;
-  --ok:#46e6a0;
-  --warn:#ff9a76;
+a{ color:var(--text); text-decoration:none }
+a:hover{ color:var(--text-hover) }
+h1{
+  font-size:var(--h1);
+  line-height:1.2;
+  margin:0 0 .6rem;
 }
-html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 15% 10%, #10162a 0%, #0b0e16 35%, #090b12 100%), var(--bg-0); color:var(--text); font-family:"Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
-a{color:var(--brand); text-decoration:none}
+p,.body{
+  font-size:var(--body);
+  line-height:1.55;
+  margin:0 0 .75rem;
+}
 
-/* ===== Canvas fills window ===== */
-canvas{display:block; position:fixed; inset:0; z-index:0}
+/* Canvas fills window */
+canvas{
+  display:block;
+  position:fixed;
+  inset:0;
+  z-index:0;
+}
 
-/* ===== Loader overlay ===== */
-.overlay{position:fixed; inset:0; display:grid; place-items:center; background:linear-gradient(180deg, rgba(8,9,12,.6), rgba(8,9,12,.2)); z-index:50; transition:opacity .35s ease; opacity:1}
-.overlay.hide{opacity:0; pointer-events:none}
-.loader{width:min(460px,86vw); padding:16px 18px; border-radius:16px; background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); border:1px solid #2b3452; box-shadow:0 12px 60px rgba(0,0,0,.5); backdrop-filter: blur(8px)}
-.loader .bar{height:8px; width:0; border-radius:8px; background:linear-gradient(90deg, var(--brand), var(--brand-2)); transition: width .2s ease}
-.loader .label{margin-top:.6rem; text-align:center; color:var(--muted); font-size:.95rem}
+/* Loader overlay */
+.overlay{
+  position:fixed; inset:0;
+  display:grid; place-items:center;
+  background:linear-gradient(180deg, rgba(0,0,0,.7), rgba(0,0,0,.3));
+  z-index:50;
+  transition:opacity .35s ease;
+  opacity:1;
+}
+.overlay.hide{ opacity:0; pointer-events:none }
+.loader{
+  width:min(460px,86vw);
+  padding:16px 18px;
+  border-radius:16px;
+  background: var(--glass);
+  border:1px solid var(--outline);
+  box-shadow:var(--shadow-soft);
+  backdrop-filter: blur(8px);
+}
+.loader .bar{
+  height:8px; width:0; border-radius:8px;
+  background:linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width .2s ease;
+}
+.loader .label{
+  margin-top:.6rem; text-align:center; color:var(--text-hover); font-size:.95rem;
+}
 
-/* ===== Floating control buttons ===== */
-.ui{position:fixed; bottom:1rem; left:1rem; display:flex; gap:.5rem; z-index:20}
+/* Small utility buttons (idle/reset) */
+.ui{
+  position:fixed; bottom:1rem; left:1rem; display:flex; gap:.5rem; z-index:20;
+}
 .btn{
   border-radius:var(--radius-pill);
   padding:.55rem 1rem;
-  border:1px solid rgba(255,255,255,.18);
-  background:rgba(255,255,255,.06);
+  border:1px solid var(--outline);
+  background: var(--glass);
   color:var(--text);
   cursor:pointer;
   backdrop-filter: blur(6px);
-  transition:transform .08s ease, background .15s ease, color .15s ease, border-color .15s ease;
+  box-shadow: var(--shadow-soft);
+  transition: transform .08s ease, background .15s ease, color .15s ease, border-color .15s ease;
 }
 .btn:hover{
-  background:rgba(255,255,255,.10);
-  color:var(--text-hover);
-  border-color:rgba(255,255,255,.28);
+  background: rgba(255,255,255,.10);
+  color: var(--text-hover);
+  border-color: var(--outline-strong);
 }
-.btn:active{transform:translateY(1px)}
+.btn:active{ transform: translateY(1px) }
 
-/* optional variants */
-.btn--filled{
-  background:var(--accent);
-  color:#000;
-  border-color:transparent;
-}
-.btn--outline{
-  background:transparent;
-  border-color:rgba(255,255,255,.35);
+/* ===== Password gate (minimal pill) =====
+   We keep it super clean: just the pill input.
+   When JS morphs it to a <button>, it inherits pill styles below. */
+#gate{
+  position:fixed;
+  top:1rem; right:1rem;
+  z-index:30;
+  display:flex; align-items:center; justify-content:center;
 }
 
-
-/* ===== Gate panel (floats; scene still interactive) ===== */
-.gate{position:fixed; top:1rem; right:1rem; z-index:30; pointer-events:none}
-.gate .panel{
-  pointer-events:auto;
-  width:min(420px, 90vw);
-  padding:18px 20px;
-  border-radius:16px;
-  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
-  border:1px solid var(--border);
-  backdrop-filter: blur(10px) saturate(120%);
-  box-shadow: 0 12px 40px rgba(0,0,0,.35);
-  animation: pop .25s ease-out;
-}
-@keyframes pop{from{transform:translateY(-4px); opacity:0} to{transform:none; opacity:1}}
-.brand{margin:.2rem 0 1rem; font-size:1rem; letter-spacing:.12em; font-weight:800; color:var(--brand); text-transform:uppercase}
-.gate{
-    display:flex;
-    justify-content:center;
-    margin:2rem auto;}
-.gate input,
-.gate button {
+#gate input,
+#gate button{
   width: 280px;
   padding: .6rem 1rem;
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(255,255,255,.15);
-  background: rgba(255,255,255,.06);
+  border: 1px solid var(--outline);
+  background: var(--glass);
   color: var(--text);
   font-size: var(--body);
   outline: none;
-  text-align:center;
+  text-align: center;
   cursor: pointer;
   transition: all .2s ease;
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-soft);
 }
-.gate input::placeholder{color: var(--text-hover);
-.gate input:focus{border-color:rgba(255,255,255,.28);}
-.gate button {
+#gate input::placeholder{ color: var(--text-hover) }
+#gate input:focus{ border-color: var(--outline-strong) }
+
+/* When it becomes a download button, we can give it a tiny accent */
+#gate button{
   background: var(--accent);
   color: #000;
-  border: none;
+  border-color: transparent;
+}
+#gate button:hover{ background: var(--accent-2) }
+
+/* Gate message (optional feedback text area if you show it) */
+#gate-msg{
+  position:fixed;
+  top:4.4rem; right:1rem;
+  z-index:30;
+  font-size:.9rem;
+  color:var(--text-hover);
+  text-align:right;
+  min-height:1.2em;
 }
 
-.gate button:hover {
-  background: var(--accent-2);
-}
-.gate .panel .btn{width:100%; margin-top:.45rem}
-.gate .msg{min-height:1.25em; margin-top:.5rem; color:var(--ok)}
-
-/* ===== Subtle decorator lights (optional) ===== */
-body::before, body::after{
-  content:""; position:fixed; z-index:1; filter:blur(80px); opacity:.25; pointer-events:none;
-}
-body::before{width:340px; height:340px; left:-40px; top:-40px; background:radial-gradient(closest-side, var(--brand), transparent)}
-body::after{width:360px; height:360px; right:-60px; bottom:-60px; background:radial-gradient(closest-side, var(--brand-2), transparent)}
-
-/* ===== Responsive tweaks ===== */
+/* Responsive tweaks */
 @media (max-width: 700px){
-  .gate{top:auto; right:auto; bottom:1rem; left:1rem}
-  .ui{bottom:1rem; left:1rem; right:auto}
+  #gate{ top:auto; right:auto; left:50%; bottom:1rem; transform:translateX(-50%) }
+  #gate-msg{ top:auto; right:auto; left:50%; bottom:3.7rem; transform:translateX(-50%); text-align:center }
+  .ui{ left:50%; transform:translateX(-50%) }
 }
 

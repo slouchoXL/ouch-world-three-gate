@@ -1,45 +1,38 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ouch.world • MetaHuman Gate</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OUCH.WORLD</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+  <!-- Loader overlay -->
   <div id="overlay" class="overlay">
     <div class="loader">
       <div class="bar"></div>
-      <div class="label">Loading… <span id="progress">0%</span></div>
+      <div id="progress" class="label">0%</div>
     </div>
   </div>
 
-  <!-- Gate UI -->
+  <!-- Three.js canvas -->
+  <canvas id="webgl"></canvas>
+
+  <!-- Password gate -->
   <div id="gate">
     <input type="password" id="password" placeholder="enter secret code" />
   </div>
   <div id="gate-msg"></div>
 
- 
-
-  <canvas id="webgl"></canvas>
+  <!-- Optional UI buttons -->
   <div class="ui">
-    <button id="toggleAnim" class="btn">⏯ Idle</button>
-    <button id="resetView" class="btn">⟳ Reset View</button>
+    <button id="toggleAnim" class="btn">Pause / Play</button>
+    <button id="resetView" class="btn">Reset View</button>
   </div>
 
-  <!-- Import map for local ES modules -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "./libs/three.module.js",
-      "three/examples/jsm/": "./libs/jsm/"
-    }
-  }
-  </script>
+  <!-- Three.js + your main script -->
   <script type="module" src="main.module.js"></script>
+
 </body>
 </html>
