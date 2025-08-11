@@ -216,3 +216,8 @@ canvas{
   background: var(--text-hover);
   color: #fff;
 }
+
+/* hide UI buttons */
+#toggleAnim,
+#resetView,
+.ui { display: none !important; }
