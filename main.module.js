@@ -174,10 +174,10 @@ const mixers  = new Map(); // i -> AnimationMixer
 const actions = new Map(); // i -> { name: action }
 
 /* ---------- Load GLBs ---------- */
-cd ~/Downloads/ouch-world-three-gate-prefilled
+/*cd ~/Downloads/ouch-world-three-gate-prefilled
 git add .
 git commit -m "Initial commit"
-git push
+git push*/
 
 /* ---------- Nav pill ---------- */
 function buildChips(){
