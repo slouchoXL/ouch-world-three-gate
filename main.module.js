@@ -174,10 +174,53 @@ const mixers  = new Map(); // i -> AnimationMixer
 const actions = new Map(); // i -> { name: action }
 
 /* ---------- Load GLBs ---------- */
-/*cd ~/Downloads/ouch-world-three-gate-prefilled
-git add .
-git commit -m "Initial commit"
-git push*/
+async function ensureLoaded(i){
+  if (cache.has(i))    return cache.get(i);
+  if (inflight.has(i)) return inflight.get(i);
+
+  const p = (async ()=>{
+    const entry = CARDS[i];
+    try {
+      const glb = await gltfLoader.loadAsync(entry.url);
+      const node = glb.scene;
+      node.userData.cardIndex = i; // tag for dedupe
+      node.traverse(o=>{
+        if (o.isMesh){ o.castShadow = false; o.receiveShadow = true; o.frustumCulled = true; }
+      });
+      positionCard(node, i, CARDS.length);
+      scene.add(node);
+      cache.set(i, node);
+
+      // — Animations —
+      if (glb.animations && glb.animations.length){
+        const mixer = new THREE.AnimationMixer(node);
+        mixers.set(i, mixer);
+        const actMap = {};
+        glb.animations.forEach(clip => actMap[clip.name] = mixer.clipAction(clip));
+        actions.set(i, actMap);
+        const idleName = glb.animations.find(c=>/idle|breath|loop/i.test(c.name))?.name
+                      ?? glb.animations[0].name;
+        Object.values(actMap).forEach(a=>{ a.paused = true; a.enabled = true; });
+        actMap[idleName].reset().play();
+      }
+
+      return node;
+    } catch (e){
+      console.warn('Failed to load', entry?.url, e);
+      const node = new THREE.Group();
+      node.userData.cardIndex = i;
+      positionCard(node, i, CARDS.length);
+      scene.add(node);
+      cache.set(i, node);
+      return node;
+    } finally {
+      inflight.delete(i);
+    }
+  })();
+
+  inflight.set(i, p);
+  return p;
+}
 
 /* ---------- Nav pill ---------- */
 function buildChips(){
