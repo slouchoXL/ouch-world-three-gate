@@ -18,6 +18,8 @@ const modal         = document.getElementById('overlay');
 const modalTitle    = document.getElementById('overlay-title');
 const modalBody     = document.getElementById('overlay-body');
 const modalClose    = document.getElementById('overlay-close');
+const cache         = new Map ();
+const inflight      = new Map ();
 
 /* ---------- Three setup ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
@@ -75,8 +77,8 @@ const ringCenterY  = 1.1;
 let current = 0;
 
 /* Fixed camera height/target (no vertical bob) */
-const CAMERA_Y = 4;
-const TARGET_Y = 4;
+const CAMERA_Y = 2;
+const TARGET_Y = 2;
 
 /* ---------- Helpers ---------- */
 function polar(index, total){
@@ -172,39 +174,10 @@ const mixers  = new Map(); // i -> AnimationMixer
 const actions = new Map(); // i -> { name: action }
 
 /* ---------- Load GLBs ---------- */
-async function ensureLoaded(i){
-  if (cache.has(i)) return cache.get(i);
-  const entry = CARDS[i];
-  try {
-    const glb = await gltfLoader.loadAsync(entry.url);
-    const node = glb.scene;
-    node.traverse(o=>{ if (o.isMesh){ o.castShadow=false; o.receiveShadow=true; o.frustumCulled = true; }});
-    positionCard(node, i, CARDS.length);
-    scene.add(node);
-    cache.set(i, node);
-
-    // Animations
-    if (glb.animations && glb.animations.length){
-      const mixer = new THREE.AnimationMixer(node);
-      mixers.set(i, mixer);
-      const actMap = {};
-      glb.animations.forEach(clip=> actMap[clip.name] = mixer.clipAction(clip));
-      actions.set(i, actMap);
-      const idleName = glb.animations.find(c=>/idle|breath|loop/i.test(c.name))?.name ?? glb.animations[0].name;
-      Object.values(actMap).forEach(a=>{ a.paused = true; a.enabled = true; });
-      actMap[idleName].reset().play();
-    }
-
-    return node;
-  } catch (e){
-    console.warn('Failed to load', entry.url, e);
-    const node = new THREE.Group();
-    positionCard(node, i, CARDS.length);
-    scene.add(node);
-    cache.set(i, node);
-    return node;
-  }
-}
+cd ~/Downloads/ouch-world-three-gate-prefilled
+git add .
+git commit -m "Initial commit"
+git push
 
 /* ---------- Nav pill ---------- */
 function buildChips(){
@@ -233,10 +206,24 @@ function faceActiveToCamera(){
 
 /* ---------- Select / place / dim / play ---------- */
 async function selectIndex(i){
+    function dedupeCard(i){
+      let found = false;
+      // remove extra scene children tagged with this index
+      for (let k = scene.children.length - 1; k >= 0; k--){
+        const c = scene.children[k];
+        if (c?.userData?.cardIndex === i){
+          if (!found){ found = true; continue; } // keep the first
+          scene.remove(c);
+        }
+      }
+    }
   current = (i + CARDS.length) % CARDS.length;
+    dedupeCard (current);
   updateChips();
 
   const n = CARDS.length;
+    dedupeCard ((current+1)%n);
+    dedupeCard ((current-1)%n);
   const toLoad = [current, (current+1)%n, (current-1+n)%n];
   await Promise.all(toLoad.map(ensureLoaded));
 
