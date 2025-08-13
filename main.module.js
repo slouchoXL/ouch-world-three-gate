@@ -117,7 +117,7 @@ function computeFit(i){
 }
 
 /* ---------- Cache + dimming ---------- */
-const cache = new Map();
+
 const originalMats = new WeakMap();
 function forEachMat(mat, fn){ Array.isArray(mat) ? mat.forEach(fn) : fn(mat); }
 function setDim(group, dim = true){
