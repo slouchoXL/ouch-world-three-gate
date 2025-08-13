@@ -75,7 +75,7 @@ const ringCenterY  = 1.1;
 let current = 0;
 
 /* Fixed camera height/target (no vertical bob) */
-const CAMERA_Y = 2.5;
+const CAMERA_Y = 3;
 const TARGET_Y = 2.5;
 
 /* ---------- Helpers ---------- */
@@ -310,7 +310,7 @@ function attachTrackpadSwipe(el){
   let cooling = false;
   let idleTimer = null;
 
-  const THRESH       = 1300; // increase if you still get doubles
+  const THRESH       = 130; // increase if you still get doubles
   const GESTURE_IDLE = 180; // ms without wheel to end gesture
   const COOLDOWN_MS  = 340; // one step per gesture
 
