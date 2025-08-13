@@ -310,9 +310,9 @@ function attachTrackpadSwipe(el){
   let cooling = false;
   let idleTimer = null;
 
-  const THRESH       = 110; // increase if you still get doubles
+  const THRESH       = 1300; // increase if you still get doubles
   const GESTURE_IDLE = 180; // ms without wheel to end gesture
-  const COOLDOWN_MS  = 280; // one step per gesture
+  const COOLDOWN_MS  = 340; // one step per gesture
 
   function endGestureSoon(){
     clearTimeout(idleTimer);
