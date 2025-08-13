@@ -20,6 +20,7 @@ const modalBody     = document.getElementById('overlay-body');
 const modalClose    = document.getElementById('overlay-close');
 const cache         = new Map ();
 const inflight      = new Map ();
+let lastWheelTime   = 0;
 
 /* ---------- Three setup ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
@@ -340,9 +341,9 @@ function attachTrackpadSwipe(el){
   let cooling = false;
   let idleTimer = null;
 
-  const THRESH       = 130; // increase if you still get doubles
+  const THRESH       = 200; // increase if you still get doubles
   const GESTURE_IDLE = 180; // ms without wheel to end gesture
-  const COOLDOWN_MS  = 340; // one step per gesture
+  const COOLDOWN_MS  = 450; // one step per gesture
 
   function endGestureSoon(){
     clearTimeout(idleTimer);
