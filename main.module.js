@@ -75,8 +75,8 @@ const ringCenterY  = 1.1;
 let current = 0;
 
 /* Fixed camera height/target (no vertical bob) */
-const CAMERA_Y = 3;
-const TARGET_Y = 2.5;
+const CAMERA_Y = 4;
+const TARGET_Y = 4;
 
 /* ---------- Helpers ---------- */
 function polar(index, total){
@@ -110,7 +110,7 @@ function computeFit(i){
   let maxDim = Math.max(size.x, size.y, size.z);
   let dist = (maxDim * 0.5) / Math.tan(fov * 0.5);
   dist *= 1.35;              // padding
-  dist = Math.max(dist, 3.6); // never too close
+  dist = Math.max(dist, 4); // never too close
   return { center, dist };
 }
 
