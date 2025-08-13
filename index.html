@@ -1,61 +1,55 @@
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
-    "three/examples/jsm/": "https://unpkg.com/three@0.165.0/examples/jsm/"
-  }
-}
-</script>
-<script type="module" src="main.module.js"></script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>OUCH.WORLD</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- Map bare specifiers to CDN URLs -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
 </head>
 <body>
-    <!-- Top-left nav -->
-    <nav id="top-nav">
-      <a href="#subscribe">subscribe</a>
-      <a href="#shop">shop</a>
-    </nav>
-    <button id="toggleAnim" class="btn">Pause / Play</button>
+  <!-- 3D -->
+  <canvas id="webgl" aria-label="OUCH.WORLD 3D scene"></canvas>
 
-  <!-- Loader overlay -->
-  <div id="overlay" class="overlay">
-    <div class="loader">
-      <div class="bar"></div>
-      <div id="progress" class="label">0%</div>
+  <!-- Chips / carousel buttons -->
+  <nav id="carouselNav" class="nav" aria-label="Carousel navigation">
+    <button id="navPrev"  class="nav-btn" aria-label="Previous">←</button>
+    <button id="navCurrent" class="nav-pill" aria-label="Open section"></button>
+    <button id="navNext"  class="nav-btn" aria-label="Next">→</button>
+  </nav>
+
+  <!-- Intro gate (first visit only) -->
+  <div id="intro" class="modal intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+    <div class="modal-card">
+      <h2 id="intro-title">Welcome to OUCH™</h2>
+      <p>
+        Greetings friend, and welcome to the wonderful world of OUCH™.
+        Take a look around — and if you have any questions or just want to chat,
+        I’ll be here and happy to help.
+      </p>
+      <div class="modal-actions">
+        <button id="intro-continue" class="btn">Got it</button>
+      </div>
     </div>
   </div>
 
-  <!-- Three.js canvas -->
-  <canvas id="webgl"></canvas>
-
-  <!-- Password gate -->
-  <div id="gate">
-    <input
-      type="text"
-      id="password"
-      placeholder="enter secret code"
-      autocomplete="off"
-      autocapitalize="off"
-      spellcheck="false"
-      inputmode="text"
-    />
-    <div id="gate-msg"></div>
+  <!-- Centered overlay (reused for all items) -->
+  <div id="overlay" class="modal" role="dialog" aria-modal="true" aria-labelledby="overlay-title" hidden>
+    <div class="modal-card">
+      <button id="overlay-close" class="modal-close" aria-label="Close">×</button>
+      <h2 id="overlay-title"></h2>
+      <div id="overlay-body" class="modal-body"></div>
+    </div>
   </div>
 
-
-  <!-- Optional UI buttons -->
-  <div class="ui">
-   
-    <button id="resetView" class="btn">Reset View</button>
-  </div>
-
-  <!-- Load main script -->
   <script type="module" src="main.module.js"></script>
 </body>
 </html>

@@ -1,223 +1,93 @@
-/* =========================
-   OUCH.WORLD — site styles (clean CDN-only build)
-   ========================= */
-
-/* Tokens */
 :root{
-  /* Colors */
-  --bg:#000000;
-  --text:#D3D3D3;
-  --text-hover:#757575;
-
-  /* Optional accents */
-  --accent:#8AA2FF;
-  --accent-2:#00E1D2;
-
-  /* Feedback */
-  --success:#46E6A0;
-  --warning:#FF9A76;
-
-  /* Borders / glass */
-  --outline: rgba(255,255,255,.18);
-  --outline-strong: rgba(255,255,255,.28);
-  --glass: rgba(255,255,255,.06);
-
-  /* Type scale */
-  --h1:30px;
-  --body:16px;
-
-  /* Shape */
-  --radius-pill:9999px;
-
-  /* Shadows */
-  --shadow-soft: 0 8px 28px rgba(0,0,0,.25);
+  --bg:#000;
+  --text:#d3d3d3;
+  --muted:#757575;
+  --chip:#111;
+  --chip-border:#444;
 }
 
-/* Base */
 *{ box-sizing:border-box }
-html,body{
-  height:100%;
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-}
-a{ color:var(--text); text-decoration:none }
-a:hover{ color:var(--text-hover) }
-h1{
-  font-size:var(--h1);
-  line-height:1.2;
-  margin:0 0 .6rem;
-}
-p,.body{
-  font-size:var(--body);
-  line-height:1.55;
-  margin:0 0 .75rem;
+html,body{ height:100% }
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:ui-sans-serif,system-ui,-apple-system,Inter,Roboto,Arial,sans-serif;
+  overflow:hidden;
 }
 
-/* Canvas fills window */
-canvas{
-  display:block;
-  position:fixed;
-  inset:0;
-  z-index:0;
-}
+/* in style.css */
+html, body { overscroll-behavior-x: none; }
 
-/* Loader overlay */
-.overlay{
-  position:fixed; inset:0;
-  display:grid; place-items:center;
-  background:linear-gradient(180deg, rgba(0,0,0,.7), rgba(0,0,0,.3));
-  z-index:50;
-  transition:opacity .35s ease;
-  opacity:1;
-}
-.overlay.hide{ opacity:0; pointer-events:none }
-.loader{
-  width:min(460px,86vw);
-  padding:16px 18px;
-  border-radius:16px;
-  background: var(--glass);
-  border:1px solid var(--outline);
-  box-shadow:var(--shadow-soft);
-  backdrop-filter: blur(8px);
-}
-.loader .bar{
-  height:8px; width:0; border-radius:8px;
-  background:linear-gradient(90deg, var(--accent), var(--accent-2));
-  transition: width .2s ease;
-}
-.loader .label{
-  margin-top:.6rem; text-align:center; color:var(--text-hover); font-size:.95rem;
-}
+/* Canvas fills screen */
+#webgl{ position:fixed; inset:0; display:block }
 
-/* Small utility buttons (idle/reset) */
-.ui{
-  position:fixed; bottom:1rem; left:1rem; display:flex; gap:.5rem; z-index:20;
+/* Chips (bottom center) */
+.chips{
+  position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+  display:flex; gap:10px; z-index:10; pointer-events:auto;
 }
+.chips button{
+  background:var(--chip); color:var(--text);
+  border:1px solid var(--chip-border); border-radius:9999px;
+  padding:.5rem 1rem; cursor:pointer; transition:transform .15s ease, border-color .15s ease;
+}
+.chips button.active{ transform:scale(1.06); border-color:#888; color:#fff }
+.chips button:disabled{ opacity:.6; cursor:default }
+
+/* Modals (centered) */
+.modal{
+  position:fixed; inset:0; display:grid; place-items:center;
+  background:rgba(0,0,0,.32); backdrop-filter:saturate(.9) blur(2px);
+  z-index:20;
+}
+.modal[hidden]{ display:none }
+
+.modal-card{
+  position:relative;
+  width:min(720px, 92vw);
+  background:rgba(16,16,16,.92);
+  border:1px solid #222; border-radius:14px;
+  padding:20px 18px 18px;
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+  animation:pop .18s ease-out;
+}
+@keyframes pop{ from{ transform:scale(.96); opacity:0 } to{ transform:scale(1); opacity:1 } }
+
+.modal-close{
+  position:absolute; top:10px; right:10px; width:32px; height:32px;
+  border-radius:6px; border:1px solid #333; background:#151515; color:#ddd; cursor:pointer;
+}
+.modal-close:hover{ color:#fff; border-color:#555 }
+
+.modal-body{ margin-top:8px; color:var(--text) }
+.modal-actions{ display:flex; gap:10px; margin-top:14px; justify-content:flex-end }
 .btn{
-  border-radius:var(--radius-pill);
-  padding:.55rem 1rem;
-  border:1px solid var(--outline);
-  background: var(--glass);
-  color:var(--text);
-  cursor:pointer;
-  backdrop-filter: blur(6px);
-  box-shadow: var(--shadow-soft);
-  transition: transform .08s ease, background .15s ease, color .15s ease, border-color .15s ease;
+  background:#2a2a2a; color:#fff; border:1px solid #3a3a3a; border-radius:999px;
+  padding:.5rem 1rem; cursor:pointer;
 }
-.btn:hover{
-  background: rgba(255,255,255,.10);
-  color: var(--text-hover);
-  border-color: var(--outline-strong);
-}
-.btn:active{ transform: translateY(1px) }
+.btn:hover{ background:#3a3a3a }
 
-/* ===== Password gate (minimal pill) ===== */
-/* Bottom-centered gate container */
-#gate{
-  position:fixed;
-  left:50%;
-  bottom:1rem;
-  transform:translateX(-50%);
-  z-index:30;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:.5rem;
+/* Dim scene when any modal open (we toggle a class) */
+.dim-3d{ filter:grayscale(.5) brightness(.8) }
+
+/* Bottom-centered nav: ←  [Current]  → */
+.nav{
+  position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+  display:flex; align-items:center; gap:12px; z-index:10;
 }
 
-/* Pill input and the morphing button share the same base look */
-#gate input,
-#gate button{
-  width: 320px;
-  padding: .6rem 1rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--outline);
-  background: var(--glass);
-  color: var(--text);
-  font-size: var(--body);
-  outline: none;
-  text-align: center;
-  cursor: pointer;
-  transition: all .2s ease;
-  backdrop-filter: blur(6px);
-  box-shadow: var(--shadow-soft);
+.nav-btn{
+  background:var(--chip); color:var(--text);
+  border:1px solid var(--chip-border);
+  border-radius:8px; width:40px; height:40px;
+  font-size:18px; line-height:1; cursor:pointer;
 }
+.nav-btn:hover{ border-color:#777; color:#fff }
 
-#gate input::placeholder{ color: var(--text-hover) }
-#gate input:focus{ border-color: var(--outline-strong) }
-
-/* Status message under the pill, centered */
-#gate #gate-msg{
-  font-size:.9rem;
-  color:var(--text-hover);
-  text-align:center;
-  min-height:1.2em;
+.nav-pill{
+  background:var(--chip); color:#fff;
+  border:1px solid var(--chip-border);
+  border-radius:9999px; padding:.55rem 1.2rem;
+  min-width:180px; text-align:center; cursor:pointer;
+  font-weight:600;
 }
-
-/* Download button visual (grey pill w/ white text) + invert on hover */
-#gate button.btn--download{
-  background: var(--text-hover);   /* grey */
-  color: #fff;                     /* white text */
-  border-color: var(--text-hover);
-}
-#gate button.btn--download:hover{
-  background: #fff;                /* invert */
-  color: var(--text-hover);
-  border-color: #fff;
-}
-
-/* Responsive */
-@media (max-width: 700px){
-  #gate{ top:auto; right:auto; left:50%; bottom:1rem; transform:translateX(-50%) }
-  #gate-msg{ top:auto; right:auto; left:50%; bottom:3.7rem; transform:translateX(-50%); text-align:center }
-  .ui{ left:50%; transform:translateX(-50%) }
-}
-/* Top-left navigation */
-#top-nav {
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  display: flex;
-  gap: 1.5rem;
-  z-index: 40;
-}
-
-#top-nav a {
-  font-size: var(--body); /* same as pill text size */
-  color: var(--text);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-#top-nav a:hover {
-  color: var(--text-hover);
-}
-
-/* Top-right pause/play button */
-#toggleAnim {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  z-index: 40;
-  padding: .6rem 1rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--outline);
-  background: var(--glass);
-  color: var(--text);
-  font-size: var(--body);
-  backdrop-filter: blur(6px);
-  box-shadow: var(--shadow-soft);
-  transition: all 0.2s ease;
-}
-
-#toggleAnim:hover {
-  background: var(--text-hover);
-  color: #fff;
-}
-
-/* hide UI buttons */
-#toggleAnim,
-#resetView,
-.ui { display: none !important; }
+.nav-pill:hover{ border-color:#888 }
