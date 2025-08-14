@@ -62,35 +62,42 @@ const key = new THREE.DirectionalLight(0xffffff, 2.0);
 key.position.set(3,6,5);
 scene.add(key);
 
-// Create a small point/spot light above the model, parented to the card node
+// Strong, always-visible lights parented to each card
 function addTopLight(node) {
-  // Measure height (world bounds), then convert to a reasonable local offset
   node.updateWorldMatrix(true, true);
   const box = new THREE.Box3().setFromObject(node);
   const height = Math.max(0.001, box.max.y - box.min.y);
 
-  // A warm-ish key from above
-  const pt = new THREE.PointLight(0xfff0d8, 0.9, /*distance*/ 4.0, /*decay*/ 2.0);
-  pt.name = 'CardTopLight';
-  pt.position.set(0, height * 0.65 + 0.35, 0);  // ~a bit above the head
-  pt.castShadow = false; // keep cheap; you can enable if you use shadows
+  // Key light from above
+  const key = new THREE.PointLight(0xffe8cc, 2.2, 0, 2.0); // distance=0 => no falloff limit
+  key.name = 'CardTopLight';
+  key.position.set(0, height * 0.7 + 0.35, 0);
+  key.castShadow = false;
 
-  // A subtle rim from behind to help read shapes
-  const rim = new THREE.DirectionalLight(0xffffff, 0.25);
+  // Soft rim from behind
+  const rim = new THREE.DirectionalLight(0xffffff, 0.6);
   rim.name = 'CardRimLight';
-  rim.position.set(0.6, 1.2, -0.8); // relative to node
-  rim.target = node;
+  rim.position.set(0.8, 1.4, -0.9);
 
-  node.add(pt);
+  // (Optional) tiny fill so faces don’t go too dark
+  const fill = new THREE.PointLight(0x88aaff, 0.35, 0, 2.0);
+  fill.name = 'CardFillLight';
+  fill.position.set(0.25, height * 0.45, 0.45);
+
+  node.add(key);
   node.add(rim);
+  node.add(fill);
 }
 
-// Dim/undim any lights under this node (called with the same active/dim logic as materials)
-function setLightLevel(node, active=true) {
-  node.traverse(o=>{
+// Dim/undim lights with the active state
+function setLightLevel(node, active = true) {
+  node.traverse(o => {
     if (!o.isLight) return;
-    if (o.name === 'CardTopLight')  o.intensity = active ? 0.9  : 0.35;
-    if (o.name === 'CardRimLight')  o.intensity = active ? 0.25 : 0.1;
+    switch (o.name) {
+      case 'CardTopLight':  o.intensity = active ? 2.2  : 0.6; break;
+      case 'CardRimLight':  o.intensity = active ? 0.6  : 0.18; break;
+      case 'CardFillLight': o.intensity = active ? 0.35 : 0.12; break;
+    }
   });
 }
 
