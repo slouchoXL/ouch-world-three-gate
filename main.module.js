@@ -133,8 +133,8 @@ const ringCenterY  = 0.0;
 let current = 0;
 
 /* Fixed camera height/target (no vertical bob) */
-const CAMERA_Y = 2;   // lower/higher camera baseline
-const TARGET_Y = 2;
+const CAMERA_Y = 1.6;   // lower/higher camera baseline
+const TARGET_Y = 1.6;
 
 /* ---------- Helpers ---------- */
 function polar(index, total){
