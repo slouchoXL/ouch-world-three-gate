@@ -62,6 +62,38 @@ const key = new THREE.DirectionalLight(0xffffff, 2.0);
 key.position.set(3,6,5);
 scene.add(key);
 
+// Create a small point/spot light above the model, parented to the card node
+function addTopLight(node) {
+  // Measure height (world bounds), then convert to a reasonable local offset
+  node.updateWorldMatrix(true, true);
+  const box = new THREE.Box3().setFromObject(node);
+  const height = Math.max(0.001, box.max.y - box.min.y);
+
+  // A warm-ish key from above
+  const pt = new THREE.PointLight(0xfff0d8, 0.9, /*distance*/ 4.0, /*decay*/ 2.0);
+  pt.name = 'CardTopLight';
+  pt.position.set(0, height * 0.65 + 0.35, 0);  // ~a bit above the head
+  pt.castShadow = false; // keep cheap; you can enable if you use shadows
+
+  // A subtle rim from behind to help read shapes
+  const rim = new THREE.DirectionalLight(0xffffff, 0.25);
+  rim.name = 'CardRimLight';
+  rim.position.set(0.6, 1.2, -0.8); // relative to node
+  rim.target = node;
+
+  node.add(pt);
+  node.add(rim);
+}
+
+// Dim/undim any lights under this node (called with the same active/dim logic as materials)
+function setLightLevel(node, active=true) {
+  node.traverse(o=>{
+    if (!o.isLight) return;
+    if (o.name === 'CardTopLight')  o.intensity = active ? 0.9  : 0.35;
+    if (o.name === 'CardRimLight')  o.intensity = active ? 0.25 : 0.1;
+  });
+}
+
 /* ---------- Floor (zero-asset gradient) ---------- */
 function makeFloorGradient({
   size = 512,
@@ -267,6 +299,7 @@ async function ensureLoaded(i){
       node.userData.cardIndex = i;
       positionCard(node, i, CARDS.length);
       scene.add(node);
+        addTopLight(node);
         placeOnGround(node, 0.0);
       cache.set(i, node);
       return node;
@@ -369,6 +402,7 @@ async function selectIndex(i){
     node.position.set(Math.sin(angle)*r, isActive ? ringCenterY + 0.08 : ringCenterY, Math.cos(angle)*r);
     node.rotation.y = angle; // outward before we face active to camera
     setDim(node, !isActive);
+      setLightLevel(node, /*active:*/ isActive);
   }
 
   // Camera targets (shortest turn), keep fixed Y target
