@@ -1,4 +1,4 @@
-// main.module.js — carousel with solid-dim neighbors, orbital cam, intro, buttons+keys+trackpad swipe
+// main.module.js — OUCH carousel (dim neighbors, smooth cam, intro gate, floor, wheel+mobile swipe)
 
 // Imports via <script type="importmap"> in index.html
 import * as THREE from 'three';
@@ -18,9 +18,6 @@ const modal         = document.getElementById('overlay');
 const modalTitle    = document.getElementById('overlay-title');
 const modalBody     = document.getElementById('overlay-body');
 const modalClose    = document.getElementById('overlay-close');
-const cache         = new Map ();
-const inflight      = new Map ();
-let lastWheelTime   = 0;
 
 /* ---------- Three setup ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
@@ -36,77 +33,58 @@ const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHei
 scene.add(camera);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enabled = false; // lock mouse controls; nav is via buttons/keys/swipe
+controls.enabled = false; // navigation via buttons/keys/swipe only
 
-// Lights + ground
+// Key+fill lights
 scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 1.0));
 const key = new THREE.DirectionalLight(0xffffff, 2.0);
 key.position.set(3,6,5);
 scene.add(key);
 
-
+/* ---------- Floor (zero-asset gradient) ---------- */
 function makeFloorGradient({
   size = 512,
-  base = '#0a0a0a',     // floor color
-  inner = 'rgba(255,0,0,0.55)', // center darkening
-  mid   = 'rgba(0,0,0,0.18)', // mid ring
-  outer = 'rgba(0,0,0,0.00)'  // fade to transparent
+  base = '#0a0a0a',
+  inner = 'rgba(0,0,0,0.55)',
+  mid   = 'rgba(0,0,0,0.18)',
+  outer = 'rgba(0,0,0,0.00)'
 } = {}){
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const g = c.getContext('2d');
 
-  // Base fill
   g.fillStyle = base;
   g.fillRect(0,0,size,size);
 
-  // Radial gradient vignette
-  const cx = size/2, cy = size/2;
-  const r  = size * 0.48;
+  const cx=size/2, cy=size/2, r=size*0.48;
   const grad = g.createRadialGradient(cx, cy, r*0.12, cx, cy, r);
   grad.addColorStop(0.00, inner);
   grad.addColorStop(0.55, mid);
   grad.addColorStop(1.00, outer);
-
   g.globalCompositeOperation = 'multiply';
   g.fillStyle = grad;
   g.beginPath(); g.arc(cx, cy, r, 0, Math.PI*2); g.fill();
 
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
   tex.flipY = false;
+  tex.needsUpdate = true;
   return tex;
 }
 
-// Ground (soft, cheap)
-// --- Remove any previous ground (avoid duplicates) ---
-const oldGround = scene.getObjectByName('Ground');
-if (oldGround) scene.remove(oldGround);
-
-// --- New high-contrast floor so we can see it clearly ---
-const floorTex = makeFloorGradient({
-  base:  '#0a0a0a',
-  inner: 'rgba(0,0,0,0.80)', // strong for visibility; we can dial it back later
-  mid:   'rgba(0,0,0,0.30)',
-  outer: 'rgba(0,0,0,0.00)'
-});
-
+// Remove any previous ground, then add new one
+const prevGround = scene.getObjectByName('Ground');
+if (prevGround) scene.remove(prevGround);
+const floorTex = makeFloorGradient();
 const ground = new THREE.Mesh(
-  new THREE.CircleGeometry(12, 64),  // a bit larger so it fills the view
- ground.material = new THREE.MeshStandardMaterial({
-    color: 0xff0000,     // keep 1.0 so the map shows true color
-    map: floorTex,
-    metalness: 0,
-    roughness: 1
-  })
+  new THREE.CircleGeometry(12, 64),
+  new THREE.MeshStandardMaterial({ color:0xffffff, map: floorTex, metalness:0, roughness:1 })
 );
 ground.name = 'Ground';
 ground.rotation.x = -Math.PI/2;
-ground.position.y = 0.02;   // lift slightly to avoid z-fighting with y=0
+ground.position.y = 0.02;      // lift a hair to avoid z-fighting
+ground.renderOrder = -1000;    // draw first
 scene.add(ground);
-
-console.log('[GROUND] Floor gradient applied:', ground);
 
 /* ---------- Loaders ---------- */
 const gltfLoader  = new GLTFLoader();
@@ -134,8 +112,8 @@ const ringCenterY  = 1.1;
 let current = 0;
 
 /* Fixed camera height/target (no vertical bob) */
-const CAMERA_Y = 2;
-const TARGET_Y = 2;
+const CAMERA_Y = 1.35;   // lower/higher camera baseline
+const TARGET_Y = 1.15;
 
 /* ---------- Helpers ---------- */
 function polar(index, total){
@@ -147,9 +125,7 @@ function positionCard(node, i, n){
   node.position.set(Math.sin(angle)*ringRadius, ringCenterY, Math.cos(angle)*ringRadius);
   node.rotation.y = angle; // outward
 }
-function angleForIndex(i){
-  return (i / CARDS.length) * Math.PI * 2;
-}
+function angleForIndex(i){ return (i / CARDS.length) * Math.PI * 2; }
 function nearestAngle(current, target){
   const TAU = Math.PI * 2;
   let t = target;
@@ -169,16 +145,18 @@ function computeFit(i){
   let maxDim = Math.max(size.x, size.y, size.z);
   let dist = (maxDim * 0.5) / Math.tan(fov * 0.5);
   dist *= 1.35;              // padding
-  dist = Math.max(dist, 4); // never too close
+  dist = Math.max(dist, 3.6); // never too close
   return { center, dist };
 }
 
-// -- Cheap radial floor texture (no downloads) --
+/* ---------- Cache / animations / in-flight ---------- */
+const cache    = new Map(); // i -> THREE.Group
+const inflight = new Map(); // i -> Promise<THREE.Group>
+const mixers   = new Map(); // i -> AnimationMixer
+const actions  = new Map(); // i -> { name: action }
 
-/* ---------- Cache + dimming ---------- */
-
-const originalMats = new WeakMap();
 function forEachMat(mat, fn){ Array.isArray(mat) ? mat.forEach(fn) : fn(mat); }
+const originalMats = new WeakMap();
 function setDim(group, dim = true){
   group.traverse(o=>{
     if (!o.isMesh || !o.material) return;
@@ -201,7 +179,7 @@ function setDim(group, dim = true){
         }
         if (m.transparent) m.transparent = false;
         if (typeof m.opacity === 'number') m.opacity = 1.0;
-        if (m.color) m.color.multiplyScalar(0.55);  // dim strength
+        if (m.color) m.color.multiplyScalar(0.55); // dim strength
         if (typeof m.metalness === 'number') m.metalness = Math.min(m.metalness, 0.2);
         if (typeof m.roughness === 'number') m.roughness = Math.max(m.roughness, 0.8);
         if (m.emissive) m.emissive.multiplyScalar(0.6);
@@ -228,41 +206,31 @@ function setDim(group, dim = true){
   });
 }
 
-/* ---------- Animation state ---------- */
-const mixers  = new Map(); // i -> AnimationMixer
-const actions = new Map(); // i -> { name: action }
-
-/* ---------- Load GLBs ---------- */
 async function ensureLoaded(i){
-  if (cache.has(i))    return cache.get(i);
-  if (inflight.has(i)) return inflight.get(i);
+  if (cache.has(i))     return cache.get(i);
+  if (inflight.has(i))  return inflight.get(i);
 
   const p = (async ()=>{
     const entry = CARDS[i];
     try {
       const glb = await gltfLoader.loadAsync(entry.url);
       const node = glb.scene;
-      node.userData.cardIndex = i; // tag for dedupe
-      node.traverse(o=>{
-        if (o.isMesh){ o.castShadow = false; o.receiveShadow = true; o.frustumCulled = true; }
-      });
+      node.userData.cardIndex = i;
+      node.traverse(o=>{ if (o.isMesh){ o.castShadow=false; o.receiveShadow=true; o.frustumCulled = true; }});
       positionCard(node, i, CARDS.length);
       scene.add(node);
       cache.set(i, node);
 
-      // — Animations —
       if (glb.animations && glb.animations.length){
         const mixer = new THREE.AnimationMixer(node);
         mixers.set(i, mixer);
         const actMap = {};
         glb.animations.forEach(clip => actMap[clip.name] = mixer.clipAction(clip));
         actions.set(i, actMap);
-        const idleName = glb.animations.find(c=>/idle|breath|loop/i.test(c.name))?.name
-                      ?? glb.animations[0].name;
+        const idle = glb.animations.find(c=>/idle|breath|loop/i.test(c.name))?.name ?? glb.animations[0].name;
         Object.values(actMap).forEach(a=>{ a.paused = true; a.enabled = true; });
-        actMap[idleName].reset().play();
+        actMap[idle].reset().play();
       }
-
       return node;
     } catch (e){
       console.warn('Failed to load', entry?.url, e);
@@ -281,15 +249,24 @@ async function ensureLoaded(i){
   return p;
 }
 
+function dedupeCard(i){
+  let keptOne = false;
+  for (let k = scene.children.length - 1; k >= 0; k--){
+    const c = scene.children[k];
+    if (c?.userData?.cardIndex === i){
+      if (!keptOne){ keptOne = true; continue; }
+      scene.remove(c);
+    }
+  }
+}
+
 /* ---------- Nav pill ---------- */
+function updateChips(){ if (navCurrent) navCurrent.textContent = CARDS[current]?.name ?? ''; }
 function buildChips(){
   updateChips();
-  navPrev.addEventListener('click', ()=> canInteract() && selectIndex(current - 1));
-  navNext.addEventListener('click', ()=> canInteract() && selectIndex(current + 1));
-  navCurrent.addEventListener('click', ()=> canInteract() && openOverlay(CARDS[current].overlay));
-}
-function updateChips(){
-  if (navCurrent) navCurrent.textContent = CARDS[current]?.name ?? '';
+  navPrev?.addEventListener('click', ()=> canInteract() && selectIndex(current - 1));
+  navNext?.addEventListener('click', ()=> canInteract() && selectIndex(current + 1));
+  navCurrent?.addEventListener('click', ()=> canInteract() && openOverlay(CARDS[current].overlay));
 }
 
 /* ---------- Camera orbital smoothing ---------- */
@@ -308,38 +285,30 @@ function faceActiveToCamera(){
 
 /* ---------- Select / place / dim / play ---------- */
 async function selectIndex(i){
-    function dedupeCard(i){
-      let found = false;
-      // remove extra scene children tagged with this index
-      for (let k = scene.children.length - 1; k >= 0; k--){
-        const c = scene.children[k];
-        if (c?.userData?.cardIndex === i){
-          if (!found){ found = true; continue; } // keep the first
-          scene.remove(c);
-        }
-      }
-    }
   current = (i + CARDS.length) % CARDS.length;
-    dedupeCard (current);
   updateChips();
 
+  // clean duplicates (if any race)
   const n = CARDS.length;
-    dedupeCard ((current+1)%n);
-    dedupeCard ((current-1)%n);
-  const toLoad = [current, (current+1)%n, (current-1+n)%n];
-  await Promise.all(toLoad.map(ensureLoaded));
+  dedupeCard(current);
+  dedupeCard((current+1)%n);
+  dedupeCard((current-1+n)%n);
 
+  // Ensure active + neighbors are loaded
+  await Promise.all([ current, (current+1)%n, (current-1+n)%n ].map(ensureLoaded));
+
+  // Layout + dimming
   for (let k=0;k<n;k++){
     const node = cache.get(k); if (!node) continue;
     const { angle } = polar(k, n);
     const isActive = (k === current);
     const r = isActive ? activeRadius : ringRadius;
     node.position.set(Math.sin(angle)*r, isActive ? ringCenterY + 0.08 : ringCenterY, Math.cos(angle)*r);
-    node.rotation.y = angle;
+    node.rotation.y = angle; // outward before we face active to camera
     setDim(node, !isActive);
   }
 
-  // Camera targets (shortest turn)
+  // Camera targets (shortest turn), keep fixed Y target
   camAngleTarget = nearestAngle(camAngle, angleForIndex(current));
   const fit = computeFit(current);
   camRadiusTarget = fit.dist;
@@ -393,15 +362,15 @@ window.addEventListener('keydown', (e)=>{
   if (e.key === 'Enter' || e.key === ' ') openOverlay(CARDS[current].overlay);
 });
 
-/* ---------- Trackpad two-finger swipe (horizontal wheel) ---------- */
+/* ---------- Mac trackpad two-finger swipe (wheel) ---------- */
 function attachTrackpadSwipe(el){
   let acc = 0;
   let cooling = false;
   let idleTimer = null;
 
-  const THRESH       = 200; // increase if you still get doubles
-  const GESTURE_IDLE = 180; // ms without wheel to end gesture
-  const COOLDOWN_MS  = 450; // one step per gesture
+  const THRESH       = 140; // raise if still double-fires (110→140→170)
+  const GESTURE_IDLE = 200; // ms without wheel to end gesture
+  const COOLDOWN_MS  = 320; // one step per gesture
 
   function endGestureSoon(){
     clearTimeout(idleTimer);
@@ -410,12 +379,9 @@ function attachTrackpadSwipe(el){
 
   el.addEventListener('wheel', (e)=>{
     if (!canInteract()) return;
-    // mostly horizontal only
-    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return; // mostly horizontal only
+    e.preventDefault();
 
-    e.preventDefault(); // avoid page/history swipe
-
-    // normalize
     const scale = (e.deltaMode === 1) ? 16 : (e.deltaMode === 2) ? window.innerHeight : 1;
     acc += e.deltaX * scale;
     endGestureSoon();
@@ -432,6 +398,56 @@ function attachTrackpadSwipe(el){
       setTimeout(()=> cooling = false, COOLDOWN_MS);
     }
   }, { passive:false });
+}
+
+/* ---------- Mobile swipe (touch only) ---------- */
+function attachMobileSwipe(el){
+  el.style.touchAction = 'pan-y'; // keep vertical page scroll
+
+  const SWIPE_MIN_PX   = 70;   // horizontal distance to count
+  const SWIPE_MAX_TIME = 600;  // ms
+  const SLOPE_LIMIT    = 0.55; // mostly horizontal
+  const COOLDOWN_MS    = 320;  // one step per gesture
+
+  let active = false;
+  let startX = 0, startY = 0, startT = 0, pointerId = null;
+  let cooling = false;
+
+  function onDown(e){
+    if (e.pointerType !== 'touch') return;
+    if (!canInteract() || cooling) return;
+    active = true;
+    pointerId = e.pointerId;
+    startX = e.clientX;
+    startY = e.clientY;
+    startT = performance.now();
+    el.setPointerCapture?.(pointerId);
+  }
+
+  function onUp(e){
+    if (!active || e.pointerType !== 'touch') return;
+    active = false;
+    el.releasePointerCapture?.(pointerId);
+
+    const dt = performance.now() - startT;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    const mostlyHorizontal = Math.abs(dy) / Math.max(1, Math.abs(dx)) < SLOPE_LIMIT;
+    const quickEnough      = dt <= SWIPE_MAX_TIME;
+    const farEnough        = Math.abs(dx) >= SWIPE_MIN_PX;
+
+    if (mostlyHorizontal && quickEnough && farEnough && !cooling){
+      cooling = true;
+      if (dx < 0) selectIndex(current + 1);
+      else        selectIndex(current - 1);
+      setTimeout(()=> cooling = false, COOLDOWN_MS);
+    }
+  }
+
+  el.addEventListener('pointerdown', onDown, { passive: true });
+  el.addEventListener('pointerup',   onUp,   { passive: true });
+  el.addEventListener('pointercancel', ()=>{ active=false; }, { passive:true });
 }
 
 /* ---------- Intro (first visit gate) ---------- */
@@ -451,19 +467,21 @@ function maybeShowIntro(){
 /* ---------- Boot ---------- */
 (async function boot(){
   buildChips();
-  // preload Sloucho + neighbors
+
+  // Preload Sloucho + neighbors
   await ensureLoaded(0);
   const n = CARDS.length;
   [1, n-1].forEach(i => ensureLoaded(i));
 
-  // start focused on Sloucho
+  // Start focused on Sloucho
   current = 0;
   selectIndex(0);
 
-  // swipe via trackpad
+  // Swipe: Mac trackpad + mobile
   attachTrackpadSwipe(renderer.domElement);
+  attachMobileSwipe(renderer.domElement);
 
-  // intro gate
+  // Intro gate
   maybeShowIntro();
 })();
 
@@ -475,18 +493,18 @@ function lerpAngle(a, b, t){
 }
 function loop(){
   requestAnimationFrame(loop);
-  const dt = Math.min(clock.getDelta(), 1/30); // clamp for consistent smoothing
+  const dt = Math.min(clock.getDelta(), 1/30); // clamp for consistency
 
   // smoothing speeds (lower = slower)
-  const angSpeed = 3.0;
-  const radSpeed = 2.2;
-  const ctrSpeed = 2.0;
+  const angSpeed = 2.2;
+  const radSpeed = 2.0;
+  const ctrSpeed = 1.8;
 
   const tAng = 1 - Math.exp(-angSpeed * dt);
   const tRad = 1 - Math.exp(-radSpeed * dt);
   const tCtr = 1 - Math.exp(-ctrSpeed * dt);
 
-  camAngle  = lerpAngle(camAngle, camAngleTarget, tAng);
+  camAngle  = lerpAngle(camAngle,  camAngleTarget,  tAng);
   camRadius = THREE.MathUtils.lerp(camRadius, camRadiusTarget, tRad);
   camCenter.lerp(camCenterTarget, tCtr);
 
