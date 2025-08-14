@@ -103,7 +103,7 @@ const ground = new THREE.Mesh(
 );
 ground.name = 'Ground';
 ground.rotation.x = -Math.PI/2;
-ground.position.y = 0.02;      // lift a hair to avoid z-fighting
+ground.position.y = 0.0;      // lift a hair to avoid z-fighting
 ground.renderOrder = -1000;    // draw first
 scene.add(ground);
 
@@ -129,7 +129,7 @@ const CARDS = [
 /* ---------- Ring layout ---------- */
 const ringRadius   = 2.6;
 const activeRadius = ringRadius * 0.92;
-const ringCenterY  = 1.1;
+const ringCenterY  = 0.0;
 let current = 0;
 
 /* Fixed camera height/target (no vertical bob) */
@@ -227,6 +227,14 @@ function setDim(group, dim = true){
   });
 }
 
+function placeOnGround(node, groundY = 0.0){
+  node.updateWorldMatrix(true, true);
+  const box = new THREE.Box3().setFromObject(node);
+  if (!isFinite(box.min.y) || !isFinite(box.max.y)) return;
+  const delta = groundY - box.min.y;
+  node.position.y += delta + 0.005; // tiny lift to avoid z-fighting
+}
+
 async function ensureLoaded(i){
   if (cache.has(i))     return cache.get(i);
   if (inflight.has(i))  return inflight.get(i);
@@ -259,6 +267,7 @@ async function ensureLoaded(i){
       node.userData.cardIndex = i;
       positionCard(node, i, CARDS.length);
       scene.add(node);
+        placeOnGround(node, 0.0);
       cache.set(i, node);
       return node;
     } finally {
@@ -422,9 +431,9 @@ function attachTrackpadSwipe(el){
   let cooling = false;
   let idleTimer = null;
 
-  const THRESH       = 140; // raise if still double-fires (110→140→170)
+  const THRESH       = 180; // raise if still double-fires (110→140→170)
   const GESTURE_IDLE = 200; // ms without wheel to end gesture
-  const COOLDOWN_MS  = 320; // one step per gesture
+  const COOLDOWN_MS  = 400; // one step per gesture
 
   function endGestureSoon(){
     clearTimeout(idleTimer);
