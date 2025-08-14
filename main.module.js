@@ -18,6 +18,27 @@ const modal         = document.getElementById('overlay');
 const modalTitle    = document.getElementById('overlay-title');
 const modalBody     = document.getElementById('overlay-body');
 const modalClose    = document.getElementById('overlay-close');
+// ---- Picking (click/tap) ----
+const raycaster = new THREE.Raycaster();
+const pointer   = new THREE.Vector2();
+
+function objectToCardIndex(obj){
+  // Walk up parents to find a node tagged by ensureLoaded()
+  while (obj){
+    if (obj.userData && typeof obj.userData.cardIndex === 'number') {
+      return obj.userData.cardIndex;
+    }
+    obj = obj.parent;
+  }
+  return null;
+}
+
+function setPointerFromEvent(e, el){
+  const rect = el.getBoundingClientRect();
+  const x = ( (e.clientX - rect.left) / rect.width ) * 2 - 1;
+  const y = -( (e.clientY - rect.top) / rect.height ) * 2 + 1;
+  pointer.set(x, y);
+}
 
 /* ---------- Three setup ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
@@ -464,6 +485,46 @@ function maybeShowIntro(){
   }, { once:true });
 }
 
+function attachClickPick(el){
+  // Simple tap/click detection (avoid triggering after a swipe)
+  let downPos = null, downTime = 0;
+
+  el.addEventListener('pointerdown', (e)=>{
+    if (!canInteract()) return;
+    downPos = { x: e.clientX, y: e.clientY };
+    downTime = performance.now();
+  }, { passive: true });
+
+  el.addEventListener('pointerup', (e)=>{
+    if (!canInteract()) return;
+
+    const dt = performance.now() - downTime;
+    const dx = (downPos ? Math.abs(e.clientX - downPos.x) : 999);
+    const dy = (downPos ? Math.abs(e.clientY - downPos.y) : 999);
+    // Treat as a tap if quick and not moved much
+    if (dt > 600 || dx > 8 || dy > 8) return;
+
+    // Raycast
+    setPointerFromEvent(e, el);
+    raycaster.setFromCamera(pointer, camera);
+
+    // Intersect against the scene; we only care about meshes
+    const hits = raycaster.intersectObjects(scene.children, true);
+    if (!hits.length) return;
+
+    const idx = objectToCardIndex(hits[0].object);
+    if (idx === null) return;
+
+    if (idx === current){
+      // Active card -> open overlay
+      openOverlay(CARDS[current].overlay);
+    } else {
+      // Neighbor/other card -> navigate to it
+      selectIndex(idx);
+    }
+  }, { passive: true });
+}
+
 /* ---------- Boot ---------- */
 (async function boot(){
   buildChips();
@@ -480,10 +541,14 @@ function maybeShowIntro(){
   // Swipe: Mac trackpad + mobile
   attachTrackpadSwipe(renderer.domElement);
   attachMobileSwipe(renderer.domElement);
+    
+    attachClickPick (renderer.domElement);
 
   // Intro gate
   maybeShowIntro();
 })();
+
+
 
 /* ---------- Render loop ---------- */
 const clock = new THREE.Clock();
