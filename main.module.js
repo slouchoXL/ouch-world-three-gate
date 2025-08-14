@@ -304,6 +304,39 @@ function faceActiveToCamera(){
   node.rotation.y = Math.atan2(dx, dz);
 }
 
+async function loadCenterpiece(url){
+  try {
+    const glb = await gltfLoader.loadAsync(url);   // uses your existing GLTFLoader
+    const node = glb.scene;
+
+    // Mark so clicks/raycast ignore it
+    node.userData.isBackdrop = true;
+
+    // Make it visually recessive
+    node.traverse(o=>{
+      if (o.isMesh) {
+        o.frustumCulled = true;
+        const m = o.material;
+        if (m && (m.isMeshStandardMaterial || m.isMeshPhysicalMaterial)){
+          m.metalness = 0.0;
+          m.roughness = Math.min(1.0, (m.roughness ?? 1) * 1.1);
+          if (m.color) m.color.multiplyScalar(0.7);
+          m.needsUpdate = true;
+        }
+      }
+    });
+
+    node.position.set(0, 0, 0);
+    node.rotation.set(0, 0, 0);
+    node.scale.setScalar(1.0);    // tweak if needed
+    node.renderOrder = -500;      // draw before foreground
+    scene.add(node);
+    return node;
+  } catch (e) {
+    console.warn('Centerpiece failed to load:', e);
+    return null;
+  }
+}
 /* ---------- Select / place / dim / play ---------- */
 async function selectIndex(i){
   current = (i + CARDS.length) % CARDS.length;
@@ -534,6 +567,7 @@ function attachClickPick(el){
   const n = CARDS.length;
   [1, n-1].forEach(i => ensureLoaded(i));
 
+    await loadCenterpiece (assets/ogham.glb);
   // Start focused on Sloucho
   current = 0;
   selectIndex(0);
