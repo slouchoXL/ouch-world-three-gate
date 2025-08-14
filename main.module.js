@@ -309,8 +309,7 @@ async function ensureLoaded(i){
         
         placeOnGround(node, 0.0);
         addTopLight(node);
-        const key = node.getObjectByName('CardTopLight');
-        if (key) key.color.set('#ff0000'); // should tint the active card noticeably
+        
       cache.set(i, node);
       return node;
     } finally {
