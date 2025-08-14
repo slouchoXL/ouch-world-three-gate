@@ -299,8 +299,9 @@ async function ensureLoaded(i){
       node.userData.cardIndex = i;
       positionCard(node, i, CARDS.length);
       scene.add(node);
-        addTopLight(node);
+        
         placeOnGround(node, 0.0);
+        addTopLight(node);
       cache.set(i, node);
       return node;
     } finally {
