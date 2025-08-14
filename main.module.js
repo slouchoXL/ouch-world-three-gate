@@ -44,9 +44,23 @@ const key = new THREE.DirectionalLight(0xffffff, 2.0);
 key.position.set(3,6,5);
 scene.add(key);
 
+// Ground (soft, cheap)
+const floorTex = makeFloorGradient({
+  // tweak these to taste:
+  base:  '#0a0a0a',
+  inner: 'rgba(0,0,0,0.55)',
+  mid:   'rgba(0,0,0,0.18)',
+  outer: 'rgba(0,0,0,0.00)'
+});
+
 const ground = new THREE.Mesh(
   new THREE.CircleGeometry(10, 64),
-  new THREE.MeshStandardMaterial({ color:0x0e0e0e, roughness:1, metalness:0 })
+  new THREE.MeshStandardMaterial({
+    color: 0xffffff,          // we’ll tint via the texture
+    map: floorTex,
+    metalness: 0,
+    roughness: 1
+  })
 );
 ground.rotation.x = -Math.PI/2;
 ground.position.y = -0.001;
@@ -115,6 +129,41 @@ function computeFit(i){
   dist *= 1.35;              // padding
   dist = Math.max(dist, 4); // never too close
   return { center, dist };
+}
+
+// -- Cheap radial floor texture (no downloads) --
+function makeFloorGradient({
+  size = 512,
+  base = '#0a0a0a',     // floor color
+  inner = 'rgba(0,0,0,0.55)', // center darkening
+  mid   = 'rgba(0,0,0,0.18)', // mid ring
+  outer = 'rgba(0,0,0,0.00)'  // fade to transparent
+} = {}){
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+
+  // Base fill
+  g.fillStyle = base;
+  g.fillRect(0,0,size,size);
+
+  // Radial gradient vignette
+  const cx = size/2, cy = size/2;
+  const r  = size * 0.48;
+  const grad = g.createRadialGradient(cx, cy, r*0.12, cx, cy, r);
+  grad.addColorStop(0.00, inner);
+  grad.addColorStop(0.55, mid);
+  grad.addColorStop(1.00, outer);
+
+  g.globalCompositeOperation = 'multiply';
+  g.fillStyle = grad;
+  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI*2); g.fill();
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.flipY = false;
+  return tex;
 }
 
 /* ---------- Cache + dimming ---------- */
