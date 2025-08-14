@@ -567,7 +567,7 @@ function attachClickPick(el){
   const n = CARDS.length;
   [1, n-1].forEach(i => ensureLoaded(i));
 
-    await loadCenterpiece (assets/ogham.glb);
+    await loadCenterpiece ('assets/ogham.glb');
   // Start focused on Sloucho
   current = 0;
   selectIndex(0);
