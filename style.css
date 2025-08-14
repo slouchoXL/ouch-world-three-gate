@@ -14,6 +14,22 @@ body{
   overflow:hidden;
 }
 
+#overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  width: 80vw;   /* 80% of viewport width */
+  height: 80vh;  /* 80% of viewport height */
+  max-width: 1000px; /* optional cap */
+  max-height: 900px; /* optional cap */
+  background: rgba(0,0,0,0.9); /* or whatever your theme is */
+  border-radius: 12px;
+  padding: 2rem;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
 /* in style.css */
 html, body { overscroll-behavior-x: none; }
 
