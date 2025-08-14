@@ -95,7 +95,7 @@ const floorTex = makeFloorGradient({
 const ground = new THREE.Mesh(
   new THREE.CircleGeometry(12, 64),  // a bit larger so it fills the view
   new THREE.MeshStandardMaterial({
-    color: 0xffffff,     // keep 1.0 so the map shows true color
+    color: 0xff0000,     // keep 1.0 so the map shows true color
     map: floorTex,
     metalness: 0,
     roughness: 1
