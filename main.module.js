@@ -44,27 +44,69 @@ const key = new THREE.DirectionalLight(0xffffff, 2.0);
 key.position.set(3,6,5);
 scene.add(key);
 
+
+function makeFloorGradient({
+  size = 512,
+  base = '#0a0a0a',     // floor color
+  inner = 'rgba(0,0,0,0.55)', // center darkening
+  mid   = 'rgba(0,0,0,0.18)', // mid ring
+  outer = 'rgba(0,0,0,0.00)'  // fade to transparent
+} = {}){
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+
+  // Base fill
+  g.fillStyle = base;
+  g.fillRect(0,0,size,size);
+
+  // Radial gradient vignette
+  const cx = size/2, cy = size/2;
+  const r  = size * 0.48;
+  const grad = g.createRadialGradient(cx, cy, r*0.12, cx, cy, r);
+  grad.addColorStop(0.00, inner);
+  grad.addColorStop(0.55, mid);
+  grad.addColorStop(1.00, outer);
+
+  g.globalCompositeOperation = 'multiply';
+  g.fillStyle = grad;
+  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI*2); g.fill();
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.flipY = false;
+  return tex;
+}
+
 // Ground (soft, cheap)
+// --- Remove any previous ground (avoid duplicates) ---
+const oldGround = scene.getObjectByName('Ground');
+if (oldGround) scene.remove(oldGround);
+
+// --- New high-contrast floor so we can see it clearly ---
 const floorTex = makeFloorGradient({
-  // tweak these to taste:
   base:  '#0a0a0a',
-  inner: 'rgba(0,0,0,0.55)',
-  mid:   'rgba(0,0,0,0.18)',
+  inner: 'rgba(0,0,0,0.80)', // strong for visibility; we can dial it back later
+  mid:   'rgba(0,0,0,0.30)',
   outer: 'rgba(0,0,0,0.00)'
 });
 
 const ground = new THREE.Mesh(
-  new THREE.CircleGeometry(10, 64),
+  new THREE.CircleGeometry(12, 64),  // a bit larger so it fills the view
   new THREE.MeshStandardMaterial({
-    color: 0xffffff,          // we’ll tint via the texture
+    color: 0xffffff,     // keep 1.0 so the map shows true color
     map: floorTex,
     metalness: 0,
     roughness: 1
   })
 );
+ground.name = 'Ground';
 ground.rotation.x = -Math.PI/2;
-ground.position.y = -0.001;
+ground.position.y = 0.02;   // lift slightly to avoid z-fighting with y=0
 scene.add(ground);
+
+console.log('[GROUND] Floor gradient applied:', ground);
 
 /* ---------- Loaders ---------- */
 const gltfLoader  = new GLTFLoader();
@@ -132,39 +174,6 @@ function computeFit(i){
 }
 
 // -- Cheap radial floor texture (no downloads) --
-function makeFloorGradient({
-  size = 512,
-  base = '#0a0a0a',     // floor color
-  inner = 'rgba(0,0,0,0.55)', // center darkening
-  mid   = 'rgba(0,0,0,0.18)', // mid ring
-  outer = 'rgba(0,0,0,0.00)'  // fade to transparent
-} = {}){
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const g = c.getContext('2d');
-
-  // Base fill
-  g.fillStyle = base;
-  g.fillRect(0,0,size,size);
-
-  // Radial gradient vignette
-  const cx = size/2, cy = size/2;
-  const r  = size * 0.48;
-  const grad = g.createRadialGradient(cx, cy, r*0.12, cx, cy, r);
-  grad.addColorStop(0.00, inner);
-  grad.addColorStop(0.55, mid);
-  grad.addColorStop(1.00, outer);
-
-  g.globalCompositeOperation = 'multiply';
-  g.fillStyle = grad;
-  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI*2); g.fill();
-
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
-  tex.flipY = false;
-  return tex;
-}
 
 /* ---------- Cache + dimming ---------- */
 
