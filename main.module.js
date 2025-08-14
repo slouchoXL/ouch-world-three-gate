@@ -48,7 +48,7 @@ scene.add(key);
 function makeFloorGradient({
   size = 512,
   base = '#0a0a0a',     // floor color
-  inner = 'rgba(0,0,0,0.55)', // center darkening
+  inner = 'rgba(255,0,0,0.55)', // center darkening
   mid   = 'rgba(0,0,0,0.18)', // mid ring
   outer = 'rgba(0,0,0,0.00)'  // fade to transparent
 } = {}){
