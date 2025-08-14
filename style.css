@@ -43,6 +43,17 @@ html, body { overscroll-behavior-x: none; }
 }
 .modal[hidden]{ display:none }
 
+/* Intro modal sizing (smaller than overlay) */
+#intro .modal-card{
+  width: min(560px, 90vw);   /* smaller fixed-ish card */
+  height: auto;              /* shrink to content */
+  max-height: 80vh;          /* scroll if long */
+  overflow: auto;
+}
+
+/* Optional: center text a bit nicer */
+#intro .modal-card h2{ margin-bottom: 8px; }
+#intro .modal-card p{ color: var(--muted); margin: 0 0 14px; }
 .modal-card{
   position:relative;
   /* Size to 80% of viewport */

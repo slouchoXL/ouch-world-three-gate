@@ -579,6 +579,19 @@ function attachClickPick(el){
    // await loadCenterpiece ('assets/ogham.glb);
   // Start focused on Sloucho
   current = 0;
+    
+    // Prime camera targets before first select
+    const fit0 = computeFit(0);
+    camAngle      = angleForIndex(0);
+    camAngleTarget= camAngle;
+    camRadius     = Math.max(fit0.dist, 6.5); // start further back
+    camRadiusTarget = camRadius;
+    camCenter.set(0, TARGET_Y, 0);
+    camCenterTarget.copy(camCenter);
+
+    // Now layout & dim via normal flow
+    await selectIndex(0);
+    
   selectIndex(0);
 
   // Swipe: Mac trackpad + mobile
