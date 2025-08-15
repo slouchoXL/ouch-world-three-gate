@@ -146,7 +146,7 @@ ground.rotation.x = -Math.PI/2;
 ground.position.y = 0.0;      // lift a hair to avoid z-fighting
 ground.renderOrder = -1000;    // draw first
 scene.add(ground);
-//createOrUpdateBackdropWall();
+createOrUpdateBackdropWall();
 
 
 /* ---------- Loaders ---------- */
