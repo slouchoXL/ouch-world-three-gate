@@ -227,11 +227,13 @@ function getMeshBounds(root){
   return has ? box : null;
 }
 
-function normalizeAndGround(node, targetHeight=1.75, groundY=0.0){
-  const box = getMeshBounds(node);
-  if (!box) return;
-  const height = box.max.y - box.min.y;
-  if (!isFinite(height) || height <= 0) return;
+function normalizeAndGround(node, targetHeight=null, groundY=0.0){
+    const box = getMeshBounds(node);
+    if (!box) return;
+    const dy = groundY - box.min.y;
+    node.position.y += dy + 0.005;
+    node.updateWorldMatrix (true, true);
+}
 
   // Uniformly scale to target height (meters-ish)
   const s = targetHeight / height;
