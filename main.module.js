@@ -368,7 +368,7 @@ let camCenterTarget = camCenter.clone();
 
 // Smoothly face the active card toward the camera,
 // but ramp the speed up only as the camera nears its target.
-function smoothFaceActive(dt){
+/*function smoothFaceActive(dt){
   const node = cache.get(current);
   if (!node) return;
 
@@ -424,7 +424,7 @@ async function loadCenterpiece(url){
     console.warn('Centerpiece failed to load:', e);
     return null;
   }
-}
+}*/
 /* ---------- Select / place / dim / play ---------- */
 async function selectIndex(i){
     current = (i + CARDS.length) % CARDS.length;
@@ -449,6 +449,7 @@ async function selectIndex(i){
         node.rotation.y = angle; // outward before we face active to camera
         setDim(node, !isActive);
         setLightLevel(node, /*active:*/ isActive);
+        lockCardYawToRing();
     }
     
     // Camera targets (shortest turn), keep fixed Y target
@@ -693,6 +694,14 @@ function attachClickPick(el){
   maybeShowIntro();
 })();
 
+function lockCardYawToRing(){
+  const n = CARDS.length;
+  cache.forEach((node, i) => {
+    const { angle } = polar(i, n);
+    node.rotation.y = angle; // always face outward, no re-aiming
+  });
+}
+
 
 
 /* ---------- Render loop ---------- */
@@ -729,8 +738,8 @@ function loop(){
   if (mx) mx.update(dt);
 
   // keep selected facing camera while moving
-    smoothFaceActive (dt);
-
+    //smoothFaceActive (dt);
+    lockCardYawToRing();
   renderer.render(scene, camera);
 }
 loop();
