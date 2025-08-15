@@ -175,41 +175,35 @@ let current = 0;
 const CAMERA_Y = 1.1;   // lower/higher camera baseline
 const TARGET_Y = 1.1;
 
-function addBackdropWall({
-  radius = ringRadius - 0.6,   // slightly *inside* the cards
-  height = 3.2,                // tweak to taste
-  y      = 1.6,                // wall center height (so it sits on ground)
-  thetaStart  = -Math.PI/2,    // start at -90°
-  thetaLength =  Math.PI       // 180° arc
-} = {}){
-  // Open-ended cylinder segment
-  const geo = new THREE.CylinderGeometry(
+// Backdrop wall (semicircle), no external constants required
+function addBackdropWall(opts = {}){
+  const {
+    radius     = ringRadius + 0.5,   // slightly outside the cards
+    height     = 2.6,                 // wall height
+    thetaStart = -Math.PI/2,          // start at -90°
+    thetaLength=  Math.PI             // span 180° (semi-circle)
+  } = opts;
+
+  const geom = new THREE.CylinderGeometry(
     radius, radius, height,
-    64, 1,   /*openEnded=*/true,
+    64, 1, true,           // open-ended
     thetaStart, thetaLength
   );
-
-  // Very light, dark material (no texture)
   const mat = new THREE.MeshStandardMaterial({
-    color: 0x111111,
+    color: 0x0b0b0b,
     roughness: 0.95,
-    metalness: 0.0
+    metalness: 0.0,
+    side: THREE.BackSide
   });
-
-  const wall = new THREE.Mesh(geo, mat);
+  const wall = new THREE.Mesh(geom, mat);
   wall.name = 'BackdropWall';
-  wall.position.set(0, y, 0);
+  wall.position.y = height * 0.5; // sit on ground
   wall.receiveShadow = true;
-  wall.castShadow = false;
-
-  // Push it early in render to avoid weird overlaps with models
-  wall.renderOrder = -800;
-
   scene.add(wall);
   return wall;
 }
 
-// Call it once after ground is added:
+// after you create and add `ground`:
 addBackdropWall();
 
 
