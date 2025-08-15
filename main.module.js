@@ -319,8 +319,7 @@ async function ensureLoaded(i){
         }
         return node;
 
-      }
-      catch (e){
+      } catch (e){
       console.warn('Failed to load', entry?.url, e);
       const node = new THREE.Group();
       node.userData.cardIndex = i;
@@ -428,55 +427,54 @@ async function loadCenterpiece(url){
 }
 /* ---------- Select / place / dim / play ---------- */
 async function selectIndex(i){
-  current = (i + CARDS.length) % CARDS.length;
-  updateChips();
-
-  // clean duplicates (if any race)
-  const n = CARDS.length;
-  dedupeCard(current);
-  dedupeCard((current+1)%n);
-  dedupeCard((current-1+n)%n);
-
-  // Ensure active + neighbors are loaded
-  await Promise.all([ current, (current+1)%n, (current-1+n)%n ].map(ensureLoaded));
-
-  // Layout + dimming
-  for (let k=0;k<n;k++){
-    const node = cache.get(k); if (!node) continue;
-    const { angle } = polar(k, n);
-    const isActive = (k === current);
-    const r = isActive ? activeRadius : ringRadius;
-    node.position.set(Math.sin(angle)*r, isActive ? ringCenterY + 0.08 : ringCenterY, Math.cos(angle)*r);
-    node.rotation.y = angle; // outward before we face active to camera
-    setDim(node, !isActive);
-      setLightLevel(node, /*active:*/ isActive);
-  }
-
-  // Camera targets (shortest turn), keep fixed Y target
-  camAngleTarget = nearestAngle(camAngle, angleForIndex(current));
-  const fit = computeFit(current);
-  camRadiusTarget = fit.dist;
-  camCenterTarget.copy(fit.center);
-
-  // Anim: only active plays
+    current = (i + CARDS.length) % CARDS.length;
+    updateChips();
+    
+    // clean duplicates (if any race)
+    const n = CARDS.length;
+    dedupeCard(current);
+    dedupeCard((current+1)%n);
+    dedupeCard((current-1+n)%n);
+    
+    // Ensure active + neighbors are loaded
+    await Promise.all([ current, (current+1)%n, (current-1+n)%n ].map(ensureLoaded));
+    
+    // Layout + dimming
+    for (let k=0;k<n;k++){
+        const node = cache.get(k); if (!node) continue;
+        const { angle } = polar(k, n);
+        const isActive = (k === current);
+        const r = isActive ? activeRadius : ringRadius;
+        node.position.set(Math.sin(angle)*r, isActive ? ringCenterY + 0.08 : ringCenterY, Math.cos(angle)*r);
+        node.rotation.y = angle; // outward before we face active to camera
+        setDim(node, !isActive);
+        setLightLevel(node, /*active:*/ isActive);
+    }
+    
+    // Camera targets (shortest turn), keep fixed Y target
+    camAngleTarget = nearestAngle(camAngle, angleForIndex(current));
+    const fit = computeFit(current);
+    camRadiusTarget = fit.dist;
+    camCenterTarget.copy(fit.center);
+    
+    // Anim: only active plays
     mixers.forEach((mx, idx)=>{
-      const actMap = actions.get(idx);
-      if (!actMap) return;
-      const isActive = (idx === current);
-      const idleName = Object.keys(actMap).find(n => /idle|breath|loop/i.test(n)) || Object.keys(actMap)[0];
-      const a = actMap[idleName];
-      if (!a) return;
-      if (isActive){
-        a.enabled = true;
-        a.paused = false;
-        a.setLoop(THREE.LoopPingPong, Infinity);
-        a.play();
-      } else {
-        a.paused = true; // keep parked
-      }
+        const actMap = actions.get(idx);
+        if (!actMap) return;
+        const isActive = (idx === current);
+        const idleName = Object.keys(actMap).find(n => /idle|breath|loop/i.test(n)) || Object.keys(actMap)[0];
+        const a = actMap[idleName];
+        if (!a) return;
+        if (isActive){
+            a.enabled = true;
+            a.paused = false;
+            a.setLoop(THREE.LoopPingPong, Infinity);
+            a.play();
+        } else {
+            a.paused = true; // keep parked
+        }
     });
-
-  smoothFaceActive(dt);
+}
 
 
 /* ---------- Overlays ---------- */
@@ -683,7 +681,7 @@ function attachClickPick(el){
     // Now layout & dim via normal flow
     await selectIndex(0);
     
-  selectIndex(0);
+
 
   // Swipe: Mac trackpad + mobile
   attachTrackpadSwipe(renderer.domElement);
@@ -731,7 +729,7 @@ function loop(){
   if (mx) mx.update(dt);
 
   // keep selected facing camera while moving
-  faceActiveToCamera();
+    smoothFaceActive (dt);
 
   renderer.render(scene, camera);
 }
