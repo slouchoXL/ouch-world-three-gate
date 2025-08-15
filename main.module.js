@@ -177,7 +177,7 @@ const CAMERA_Y = 1.1;   // lower/higher camera baseline
 const TARGET_Y = 1.1;
 
 /* ---------- Backdrop wall (big, camera-centered) ---------- */
-/
+
 
 /* ---------- Helpers ---------- */
     function polarSemi(index, total){
