@@ -196,7 +196,6 @@ gltfLoader.setKTX2Loader(ktx2Loader);
 
 /* ---------- Carousel data (update URLs) ---------- */
 const CARDS = [
-    const CARDS = [
       { name:'Sloucho',     url:'assets/sloucho.glb',     overlay:'music'      },
       { name:'Ras',         url:'assets/ras.glb',         overlay:'shop'       },
       { name:'Super Maramu',url:'assets/super-maramu.glb',overlay:'lore'       },
