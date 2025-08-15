@@ -274,6 +274,24 @@ function placeOnGround(node, groundY = 0.0){
   node.position.y += delta + 0.005; // tiny lift to avoid z-fighting
 }
 
+function findIdleClip(clips){
+  return clips.find(c => /idle|breath|loop/i.test(c.name)) || clips[0] || null;
+}
+// Park model in a nice pose without running constantly
+function primeIdlePose(mixer, clips, tSeconds = 0.4){
+  const idle = findIdleClip(clips);
+  if (!idle) return null;
+  const action = mixer.clipAction(idle);
+  action.enabled = true;
+  action.setLoop(THREE.LoopPingPong, Infinity); // prevents end snap later
+  action.clampWhenFinished = true;
+  action.play();
+  action.time = Math.min(tSeconds, idle.duration * 0.25); // small offset is nicer than exact frame 0
+  mixer.update(0);     // apply pose immediately
+  action.paused = true; // hold until card becomes active
+  return action;
+}
+
 async function ensureLoaded(i){
   if (cache.has(i))     return cache.get(i);
   if (inflight.has(i))  return inflight.get(i);
@@ -289,18 +307,20 @@ async function ensureLoaded(i){
       scene.add(node);
       cache.set(i, node);
 
-      if (glb.animations && glb.animations.length){
-        const mixer = new THREE.AnimationMixer(node);
-        mixers.set(i, mixer);
-        const actMap = {};
-        glb.animations.forEach(clip => actMap[clip.name] = mixer.clipAction(clip));
-        actions.set(i, actMap);
-        const idle = glb.animations.find(c=>/idle|breath|loop/i.test(c.name))?.name ?? glb.animations[0].name;
-        Object.values(actMap).forEach(a=>{ a.paused = true; a.enabled = true; });
-        actMap[idle].reset().play();
+        if (glb.animations && glb.animations.length){
+          const mixer = new THREE.AnimationMixer(node);
+          mixers.set(i, mixer);
+          const actMap = {};
+          glb.animations.forEach(clip => actMap[clip.name] = mixer.clipAction(clip));
+          actions.set(i, actMap);
+
+          // NEW: park in an idle-ish pose, paused
+          primeIdlePose(mixer, glb.animations, entry.idleAt ?? 0.4);
+        }
+        return node;
+
       }
-      return node;
-    } catch (e){
+      catch (e){
       console.warn('Failed to load', entry?.url, e);
       const node = new THREE.Group();
       node.userData.cardIndex = i;
@@ -421,12 +441,22 @@ async function selectIndex(i){
   camCenterTarget.copy(fit.center);
 
   // Anim: only active plays
-  mixers.forEach((mx, idx)=>{
-    const actMap = actions.get(idx);
-    if (!actMap) return;
-    const isActive = (idx === current);
-    Object.values(actMap).forEach(a=> a.paused = !isActive);
-  });
+    mixers.forEach((mx, idx)=>{
+      const actMap = actions.get(idx);
+      if (!actMap) return;
+      const isActive = (idx === current);
+      const idleName = Object.keys(actMap).find(n => /idle|breath|loop/i.test(n)) || Object.keys(actMap)[0];
+      const a = actMap[idleName];
+      if (!a) return;
+      if (isActive){
+        a.enabled = true;
+        a.paused = false;
+        a.setLoop(THREE.LoopPingPong, Infinity);
+        a.play();
+      } else {
+        a.paused = true; // keep parked
+      }
+    });
 
   faceActiveToCamera();
 }
