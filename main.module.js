@@ -168,6 +168,7 @@ const CARDS = [
 const ringRadius   = 2.6;
 const activeRadius = ringRadius * 0.92;
 const ringCenterY  = 0.0;
+const START_INDEX = Math.floor(CARDS.length / 2); // center item
 let current = 0;
 
 /* Fixed camera height/target (no vertical bob) */
@@ -177,33 +178,36 @@ const TARGET_Y = 1.1;
 // Backdrop wall (semicircle), no external constants required
 function addBackdropWall(opts = {}){
   const {
-    radius     = ringRadius + 0.5,   // slightly outside the cards
-    height     = 2.6,                 // wall height
-    thetaStart = -Math.PI/2,          // start at -90°
-    thetaLength=  Math.PI             // span 180° (semi-circle)
+    radius      = ringRadius - 0.6,   // <<< inside the cards
+    height      = 2.6,
+    thetaStart  = -Math.PI/2,         // -90°
+    thetaLength =  Math.PI            // 180° (semi-circle)
   } = opts;
 
   const geom = new THREE.CylinderGeometry(
     radius, radius, height,
-    64, 1, true,           // open-ended
+    64, 1, true,                      // open-ended
     thetaStart, thetaLength
   );
+
   const mat = new THREE.MeshStandardMaterial({
-    color: 0x0b0b0b,
+    color: 0x808080,
     roughness: 0.95,
     metalness: 0.0,
-    side: THREE.BackSide
+    side: THREE.FrontSide             // <<< show inner face
   });
+
   const wall = new THREE.Mesh(geom, mat);
   wall.name = 'BackdropWall';
-  wall.position.y = height * 0.5; // sit on ground
-  wall.receiveShadow = true;
+  wall.position.y = height * 0.5;     // sit on the ground
+  wall.renderOrder = -900;            // draw behind cards
+  wall.userData.isBackdrop = true;    // (ignored by our picking helper)
   scene.add(wall);
   return wall;
 }
 
-// after you create and add `ground`:
-addBackdropWall();
+// Call AFTER ringRadius is defined:
+addBackdropWall({ radius: ringRadius - 0.6 });
 
 
 /* ---------- Helpers ---------- */
@@ -743,26 +747,25 @@ function attachClickPick(el){
 (async function boot(){
   buildChips();
 
-  // Preload Sloucho + neighbors
-  await ensureLoaded(0);
-  const n = CARDS.length;
-  [1, n-1].forEach(i => ensureLoaded(i));
+    // Preload center + its neighbors
+    await ensureLoaded(START_INDEX);
+    const n = CARDS.length;
+    [ (START_INDEX+1)%n, (START_INDEX-1+n)%n ].forEach(i => ensureLoaded(i));
 
-   // await loadCenterpiece ('assets/ogham.glb);
-  // Start focused on Sloucho
-  current = 0;
-    
-    // Prime camera targets before first select
-    const fit0 = computeFit(0);
-    camAngle      = angleForIndex(0);
-    camAngleTarget= camAngle;
-    camRadius     = Math.max(fit0.dist, 6.5); // start further back
+    // Start focused on center
+    current = START_INDEX;
+
+    // Prime camera to point at that item before first render
+    const fit0 = computeFit(current);
+    camAngle        = angleForIndex(current);
+    camAngleTarget  = camAngle;
+    camRadius       = Math.max(fit0.dist, 6.5);
     camRadiusTarget = camRadius;
     camCenter.set(0, TARGET_Y, 0);
     camCenterTarget.copy(camCenter);
 
-    // Now layout & dim via normal flow
-    await selectIndex(0);
+    // Layout & dim
+    await selectIndex(current);
     
 
 
