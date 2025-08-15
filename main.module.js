@@ -146,7 +146,7 @@ ground.rotation.x = -Math.PI/2;
 ground.position.y = 0.0;      // lift a hair to avoid z-fighting
 ground.renderOrder = -1000;    // draw first
 scene.add(ground);
-createOrUpdateBackdropWall();
+//createOrUpdateBackdropWall();
 
 
 /* ---------- Loaders ---------- */
@@ -177,51 +177,7 @@ const CAMERA_Y = 1.1;   // lower/higher camera baseline
 const TARGET_Y = 1.1;
 
 /* ---------- Backdrop wall (big, camera-centered) ---------- */
-let backdropWall = null;
-
-function createOrUpdateBackdropWall() {
-  const radiusPad   = 2.2;                     // how far behind the cards
-  const radius      = ringRadius + radiusPad;  // > ringRadius so it’s behind
-  const height      = 6.0;                     // tall enough for any device
-  const thetaLength = Math.PI * 1.2;           // > 180° to cover edges
-  const thetaStart  = -thetaLength * 0.5;      // symmetric around 0
-
-  // Build or rebuild geometry
-  const geom = new THREE.CylinderGeometry(
-    radius, radius, height,
-    64, 1, true,             // open-ended
-    thetaStart, thetaLength
-  );
-
-  if (!backdropWall) {
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x0b0b0b,
-      roughness: 0.96,
-      metalness: 0.0,
-      side: THREE.BackSide,
-      depthWrite: true
-    });
-    backdropWall = new THREE.Mesh(geom, mat);
-    backdropWall.name = 'BackdropWall';
-    backdropWall.position.y = height * 0.5; // sit on ground
-    backdropWall.renderOrder = -900;        // draw before cards
-    backdropWall.receiveShadow = true;
-    scene.add(backdropWall);
-  } else {
-    backdropWall.geometry.dispose();
-    backdropWall.geometry = geom;
-    backdropWall.position.y = height * 0.5;
-  }
-}
-
-// Keep wall centered behind the camera’s look target (so it “hugs” the view)
-function alignBackdropWallToCamera() {
-  if (!backdropWall) return;
-  // Aim the wall so its open side faces the camera target direction
-  // We rotate around Y so the wall’s inside covers the screen behind the cards.
-  backdropWall.rotation.set(0, camAngle, 0); // camAngle is your orbit angle
-}
-
+/
 
 /* ---------- Helpers ---------- */
     function polarSemi(index, total){
@@ -838,7 +794,7 @@ function loop(){
   // keep selected facing camera while moving
     //smoothFaceActive (dt);
     lockCardYawToRing();
-    alignBackdropWallToCamera();
+    //alignBackdropWallToCamera();
   renderer.render(scene, camera);
 }
 loop();
@@ -848,5 +804,5 @@ window.addEventListener('resize', ()=>{
   const w = window.innerWidth, h = window.innerHeight;
   camera.aspect = w/h; camera.updateProjectionMatrix();
   renderer.setSize(w,h);
-  createOrUpdateBackdropWall();   // ensure it still covers the viewport
+  //createOrUpdateBackdropWall();   // ensure it still covers the viewport
 });
