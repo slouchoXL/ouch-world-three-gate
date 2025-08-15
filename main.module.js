@@ -132,42 +132,6 @@ function makeFloorGradient({
   return tex;
 }
 
-function addBackdropWall({
-  radius = ringRadius - 0.6,   // slightly *inside* the cards
-  height = 3.2,                // tweak to taste
-  y      = 1.6,                // wall center height (so it sits on ground)
-  thetaStart  = -Math.PI/2,    // start at -90°
-  thetaLength =  Math.PI       // 180° arc
-} = {}){
-  // Open-ended cylinder segment
-  const geo = new THREE.CylinderGeometry(
-    radius, radius, height,
-    64, 1,   /*openEnded=*/true,
-    thetaStart, thetaLength
-  );
-
-  // Very light, dark material (no texture)
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0x111111,
-    roughness: 0.95,
-    metalness: 0.0
-  });
-
-  const wall = new THREE.Mesh(geo, mat);
-  wall.name = 'BackdropWall';
-  wall.position.set(0, y, 0);
-  wall.receiveShadow = true;
-  wall.castShadow = false;
-
-  // Push it early in render to avoid weird overlaps with models
-  wall.renderOrder = -800;
-
-  scene.add(wall);
-  return wall;
-}
-
-// Call it once after ground is added:
-addBackdropWall();
 
 // Remove any previous ground, then add new one
 const prevGround = scene.getObjectByName('Ground');
@@ -210,6 +174,44 @@ let current = 0;
 /* Fixed camera height/target (no vertical bob) */
 const CAMERA_Y = 1.1;   // lower/higher camera baseline
 const TARGET_Y = 1.1;
+
+function addBackdropWall({
+  radius = ringRadius - 0.6,   // slightly *inside* the cards
+  height = 3.2,                // tweak to taste
+  y      = 1.6,                // wall center height (so it sits on ground)
+  thetaStart  = -Math.PI/2,    // start at -90°
+  thetaLength =  Math.PI       // 180° arc
+} = {}){
+  // Open-ended cylinder segment
+  const geo = new THREE.CylinderGeometry(
+    radius, radius, height,
+    64, 1,   /*openEnded=*/true,
+    thetaStart, thetaLength
+  );
+
+  // Very light, dark material (no texture)
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x111111,
+    roughness: 0.95,
+    metalness: 0.0
+  });
+
+  const wall = new THREE.Mesh(geo, mat);
+  wall.name = 'BackdropWall';
+  wall.position.set(0, y, 0);
+  wall.receiveShadow = true;
+  wall.castShadow = false;
+
+  // Push it early in render to avoid weird overlaps with models
+  wall.renderOrder = -800;
+
+  scene.add(wall);
+  return wall;
+}
+
+// Call it once after ground is added:
+addBackdropWall();
+
 
 /* ---------- Helpers ---------- */
     function polarSemi(index, total){
