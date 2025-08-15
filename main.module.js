@@ -147,7 +147,6 @@ ground.position.y = 0.0;      // lift a hair to avoid z-fighting
 ground.renderOrder = -1000;    // draw first
 scene.add(ground);
 
-addBackdropWall();
 
 /* ---------- Loaders ---------- */
 const gltfLoader  = new GLTFLoader();
