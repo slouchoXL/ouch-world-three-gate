@@ -227,24 +227,26 @@ function getMeshBounds(root){
   return has ? box : null;
 }
 
-function normalizeAndGround(node, targetHeight=null, groundY=0.0){
-    const box = getMeshBounds(node);
-    if (!box) return;
-    const dy = groundY - box.min.y;
-    node.position.y += dy + 0.005;
-    node.updateWorldMatrix (true, true);
-}
+function normalizeAndGround(node, targetHeight = null, groundY = 0.0) {
+  const box = getMeshBounds(node);
+  if (!box) return;
 
-  // Uniformly scale to target height (meters-ish)
-  const s = targetHeight / height;
-  node.scale.multiplyScalar(s);
-  node.updateWorldMatrix(true, true);
+  const height = box.max.y - box.min.y;
 
-  // Re-ground to floor
+  // Scale only if targetHeight is given AND the model is taller than targetHeight
+  if (targetHeight && isFinite(height) && height > targetHeight) {
+    const s = targetHeight / height;
+    node.scale.multiplyScalar(s);
+    node.updateWorldMatrix(true, true);
+  }
+
+  // Recompute bounds after possible scaling
   const box2 = getMeshBounds(node);
   if (!box2) return;
+
+  // Ground it
   const dy = groundY - box2.min.y;
-  node.position.y += dy + 0.005; // tiny lift
+  node.position.y += dy + 0.005; // tiny lift to avoid z-fighting
   node.updateWorldMatrix(true, true);
 }
 
