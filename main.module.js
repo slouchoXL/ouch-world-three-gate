@@ -1,6 +1,5 @@
-// main.module.js — OUCH carousel (dim neighbors, smooth cam, intro gate, floor, wheel+mobile swipe)
+// main.module.js — OUCH carousel (dim neighbors, smooth cam, intro gate, floor, wheel+mobile swipe, primed idle poses)
 
-// Imports via <script type="importmap"> in index.html
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader }   from 'three/addons/loaders/GLTFLoader.js';
@@ -18,25 +17,22 @@ const modal         = document.getElementById('overlay');
 const modalTitle    = document.getElementById('overlay-title');
 const modalBody     = document.getElementById('overlay-body');
 const modalClose    = document.getElementById('overlay-close');
+
 // ---- Picking (click/tap) ----
 const raycaster = new THREE.Raycaster();
 const pointer   = new THREE.Vector2();
 
 function objectToCardIndex(obj){
-  // Walk up parents to find a node tagged by ensureLoaded()
   while (obj){
-    if (obj.userData && typeof obj.userData.cardIndex === 'number') {
-      return obj.userData.cardIndex;
-    }
+    if (obj.userData && typeof obj.userData.cardIndex === 'number') return obj.userData.cardIndex;
     obj = obj.parent;
   }
   return null;
 }
-
 function setPointerFromEvent(e, el){
   const rect = el.getBoundingClientRect();
-  const x = ( (e.clientX - rect.left) / rect.width ) * 2 - 1;
-  const y = -( (e.clientY - rect.top) / rect.height ) * 2 + 1;
+  const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
   pointer.set(x, y);
 }
 
@@ -62,34 +58,26 @@ const key = new THREE.DirectionalLight(0xffffff, 2.0);
 key.position.set(3,6,5);
 scene.add(key);
 
-// Strong, always-visible lights parented to each card
+/* ---------- Per-card lighting ---------- */
 function addTopLight(node) {
   node.updateWorldMatrix(true, true);
   const box = new THREE.Box3().setFromObject(node);
   const height = Math.max(0.001, box.max.y - box.min.y);
 
-  // Key light from above
-  const key = new THREE.PointLight(0xffe8cc, 2.2, 0, 2.0); // distance=0 => no falloff limit
+  const key = new THREE.PointLight(0xffe8cc, 2.2, 0, 2.0);
   key.name = 'CardTopLight';
   key.position.set(0, height * 0.7 + 0.35, 0);
-  key.castShadow = false;
 
-  // Soft rim from behind
   const rim = new THREE.DirectionalLight(0xffffff, 0.6);
   rim.name = 'CardRimLight';
   rim.position.set(0.8, 1.4, -0.9);
 
-  // (Optional) tiny fill so faces don’t go too dark
   const fill = new THREE.PointLight(0x88aaff, 0.35, 0, 2.0);
   fill.name = 'CardFillLight';
   fill.position.set(0.25, height * 0.45, 0.45);
 
-  node.add(key);
-  node.add(rim);
-  node.add(fill);
+  node.add(key, rim, fill);
 }
-
-// Dim/undim lights with the active state
 function setLightLevel(node, active = true) {
   node.traverse(o => {
     if (!o.isLight) return;
@@ -112,10 +100,7 @@ function makeFloorGradient({
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const g = c.getContext('2d');
-
-  g.fillStyle = base;
-  g.fillRect(0,0,size,size);
-
+  g.fillStyle = base; g.fillRect(0,0,size,size);
   const cx=size/2, cy=size/2, r=size*0.48;
   const grad = g.createRadialGradient(cx, cy, r*0.12, cx, cy, r);
   grad.addColorStop(0.00, inner);
@@ -124,15 +109,12 @@ function makeFloorGradient({
   g.globalCompositeOperation = 'multiply';
   g.fillStyle = grad;
   g.beginPath(); g.arc(cx, cy, r, 0, Math.PI*2); g.fill();
-
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.flipY = false;
   tex.needsUpdate = true;
   return tex;
 }
-
-// Remove any previous ground, then add new one
 const prevGround = scene.getObjectByName('Ground');
 if (prevGround) scene.remove(prevGround);
 const floorTex = makeFloorGradient();
@@ -142,8 +124,8 @@ const ground = new THREE.Mesh(
 );
 ground.name = 'Ground';
 ground.rotation.x = -Math.PI/2;
-ground.position.y = 0.0;      // lift a hair to avoid z-fighting
-ground.renderOrder = -1000;    // draw first
+ground.position.y = 0.0;
+ground.renderOrder = -1000;
 scene.add(ground);
 
 /* ---------- Loaders ---------- */
@@ -155,7 +137,7 @@ const ktx2Loader  = new KTX2Loader()
   .detectSupport(renderer);
 gltfLoader.setKTX2Loader(ktx2Loader);
 
-/* ---------- Carousel data (update URLs) ---------- */
+/* ---------- Carousel data ---------- */
 const CARDS = [
   { name:'Sloucho',     url:'assets/sloucho.glb',     overlay:'chat' },
   { name:'Shop',        url:'assets/props-shop.glb',  overlay:'shop' },
@@ -172,7 +154,7 @@ const ringCenterY  = 0.0;
 let current = 0;
 
 /* Fixed camera height/target (no vertical bob) */
-const CAMERA_Y = 1.1;   // lower/higher camera baseline
+const CAMERA_Y = 1.1;
 const TARGET_Y = 1.1;
 
 /* ---------- Helpers ---------- */
@@ -199,14 +181,39 @@ function computeFit(i){
   const box  = new THREE.Box3().setFromObject(node);
   const size = new THREE.Vector3(); box.getSize(size);
   const cen  = new THREE.Vector3(); box.getCenter(cen);
-
   const center = new THREE.Vector3(cen.x, TARGET_Y, cen.z);
   const fov = THREE.MathUtils.degToRad(camera.fov);
   let maxDim = Math.max(size.x, size.y, size.z);
   let dist = (maxDim * 0.5) / Math.tan(fov * 0.5);
-  dist *= 1.35;              // padding
-  dist = Math.max(dist, 4); // never too close
+  dist *= 1.35;
+  dist = Math.max(dist, 4);
   return { center, dist };
+}
+function placeOnGround(node, groundY = 0.0){
+  node.updateWorldMatrix(true, true);
+  const box = new THREE.Box3().setFromObject(node);
+  if (!isFinite(box.min.y) || !isFinite(box.max.y)) return;
+  const delta = groundY - box.min.y;
+  node.position.y += delta + 0.005;
+}
+
+/* ---------- NEW: idle pose helpers ---------- */
+function findIdleClip(clips){
+  return clips.find(c => /idle|breath|loop/i.test(c.name)) || clips[0] || null;
+}
+// Park model in a nice pose without running constantly
+function primeIdlePose(mixer, clips, tSeconds = 0.4){
+  const idle = findIdleClip(clips);
+  if (!idle) return null;
+  const action = mixer.clipAction(idle);
+  action.enabled = true;
+  action.setLoop(THREE.LoopPingPong, Infinity); // prevents end snap later
+  action.clampWhenFinished = true;
+  action.play();
+  action.time = Math.min(tSeconds, idle.duration * 0.25); // small offset is nicer than exact frame 0
+  mixer.update(0);     // apply pose immediately
+  action.paused = true; // hold until card becomes active
+  return action;
 }
 
 /* ---------- Cache / animations / in-flight ---------- */
@@ -239,7 +246,7 @@ function setDim(group, dim = true){
         }
         if (m.transparent) m.transparent = false;
         if (typeof m.opacity === 'number') m.opacity = 1.0;
-        if (m.color) m.color.multiplyScalar(0.55); // dim strength
+        if (m.color) m.color.multiplyScalar(0.55);
         if (typeof m.metalness === 'number') m.metalness = Math.min(m.metalness, 0.2);
         if (typeof m.roughness === 'number') m.roughness = Math.max(m.roughness, 0.8);
         if (m.emissive) m.emissive.multiplyScalar(0.6);
@@ -266,14 +273,6 @@ function setDim(group, dim = true){
   });
 }
 
-function placeOnGround(node, groundY = 0.0){
-  node.updateWorldMatrix(true, true);
-  const box = new THREE.Box3().setFromObject(node);
-  if (!isFinite(box.min.y) || !isFinite(box.max.y)) return;
-  const delta = groundY - box.min.y;
-  node.position.y += delta + 0.005; // tiny lift to avoid z-fighting
-}
-
 async function ensureLoaded(i){
   if (cache.has(i))     return cache.get(i);
   if (inflight.has(i))  return inflight.get(i);
@@ -286,6 +285,11 @@ async function ensureLoaded(i){
       node.userData.cardIndex = i;
       node.traverse(o=>{ if (o.isMesh){ o.castShadow=false; o.receiveShadow=true; o.frustumCulled = true; }});
       positionCard(node, i, CARDS.length);
+
+      // NEW: sit on the ground and add lights for every successful load
+      placeOnGround(node, 0.0);
+      addTopLight(node);
+
       scene.add(node);
       cache.set(i, node);
 
@@ -295,21 +299,20 @@ async function ensureLoaded(i){
         const actMap = {};
         glb.animations.forEach(clip => actMap[clip.name] = mixer.clipAction(clip));
         actions.set(i, actMap);
-        const idle = glb.animations.find(c=>/idle|breath|loop/i.test(c.name))?.name ?? glb.animations[0].name;
-        Object.values(actMap).forEach(a=>{ a.paused = true; a.enabled = true; });
-        actMap[idle].reset().play();
+
+        // NEW: park in an idle-ish pose, paused
+        primeIdlePose(mixer, glb.animations, entry.idleAt ?? 0.4);
       }
       return node;
+
     } catch (e){
       console.warn('Failed to load', entry?.url, e);
       const node = new THREE.Group();
       node.userData.cardIndex = i;
       positionCard(node, i, CARDS.length);
+      placeOnGround(node, 0.0);
+      addTopLight(node);
       scene.add(node);
-        
-        placeOnGround(node, 0.0);
-        addTopLight(node);
-        
       cache.set(i, node);
       return node;
     } finally {
@@ -355,77 +358,50 @@ function faceActiveToCamera(){
   node.rotation.y = Math.atan2(dx, dz);
 }
 
-async function loadCenterpiece(url){
-  try {
-    const glb = await gltfLoader.loadAsync(url);   // uses your existing GLTFLoader
-    const node = glb.scene;
-
-    // Mark so clicks/raycast ignore it
-    node.userData.isBackdrop = true;
-
-    // Make it visually recessive
-    node.traverse(o=>{
-      if (o.isMesh) {
-        o.frustumCulled = true;
-        const m = o.material;
-        if (m && (m.isMeshStandardMaterial || m.isMeshPhysicalMaterial)){
-          m.metalness = 0.0;
-          m.roughness = Math.min(1.0, (m.roughness ?? 1) * 1.1);
-          if (m.color) m.color.multiplyScalar(0.7);
-          m.needsUpdate = true;
-        }
-      }
-    });
-
-    node.position.set(0, 0, 0);
-    node.rotation.set(0, 0, 0);
-    node.scale.setScalar(1.0);    // tweak if needed
-    node.renderOrder = -500;      // draw before foreground
-    scene.add(node);
-    return node;
-  } catch (e) {
-    console.warn('Centerpiece failed to load:', e);
-    return null;
-  }
-}
 /* ---------- Select / place / dim / play ---------- */
 async function selectIndex(i){
   current = (i + CARDS.length) % CARDS.length;
   updateChips();
 
-  // clean duplicates (if any race)
   const n = CARDS.length;
   dedupeCard(current);
   dedupeCard((current+1)%n);
   dedupeCard((current-1+n)%n);
 
-  // Ensure active + neighbors are loaded
   await Promise.all([ current, (current+1)%n, (current-1+n)%n ].map(ensureLoaded));
 
-  // Layout + dimming
   for (let k=0;k<n;k++){
     const node = cache.get(k); if (!node) continue;
     const { angle } = polar(k, n);
     const isActive = (k === current);
     const r = isActive ? activeRadius : ringRadius;
     node.position.set(Math.sin(angle)*r, isActive ? ringCenterY + 0.08 : ringCenterY, Math.cos(angle)*r);
-    node.rotation.y = angle; // outward before we face active to camera
+    node.rotation.y = angle;
     setDim(node, !isActive);
-      setLightLevel(node, /*active:*/ isActive);
+    setLightLevel(node, isActive);
   }
 
-  // Camera targets (shortest turn), keep fixed Y target
   camAngleTarget = nearestAngle(camAngle, angleForIndex(current));
   const fit = computeFit(current);
   camRadiusTarget = fit.dist;
   camCenterTarget.copy(fit.center);
 
-  // Anim: only active plays
+  // NEW: only active card runs; neighbors stay frozen in primed pose
   mixers.forEach((mx, idx)=>{
     const actMap = actions.get(idx);
     if (!actMap) return;
     const isActive = (idx === current);
-    Object.values(actMap).forEach(a=> a.paused = !isActive);
+    const idleName = Object.keys(actMap).find(n => /idle|breath|loop/i.test(n)) || Object.keys(actMap)[0];
+    const a = actMap[idleName];
+    if (!a) return;
+    if (isActive){
+      a.enabled = true;
+      a.paused = false;
+      a.setLoop(THREE.LoopPingPong, Infinity);
+      a.play();
+    } else {
+      a.paused = true; // keep parked
+    }
   });
 
   faceActiveToCamera();
@@ -470,89 +446,43 @@ window.addEventListener('keydown', (e)=>{
 
 /* ---------- Mac trackpad two-finger swipe (wheel) ---------- */
 function attachTrackpadSwipe(el){
-  let acc = 0;
-  let cooling = false;
-  let idleTimer = null;
-
-  const THRESH       = 180; // raise if still double-fires (110→140→170)
-  const GESTURE_IDLE = 200; // ms without wheel to end gesture
-  const COOLDOWN_MS  = 400; // one step per gesture
-
-  function endGestureSoon(){
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(()=>{ acc = 0; }, GESTURE_IDLE);
-  }
-
+  let acc = 0, cooling = false, idleTimer = null;
+  const THRESH = 180, GESTURE_IDLE = 200, COOLDOWN_MS = 400;
+  function endGestureSoon(){ clearTimeout(idleTimer); idleTimer = setTimeout(()=>{ acc = 0; }, GESTURE_IDLE); }
   el.addEventListener('wheel', (e)=>{
     if (!canInteract()) return;
-    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return; // mostly horizontal only
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
     e.preventDefault();
-
     const scale = (e.deltaMode === 1) ? 16 : (e.deltaMode === 2) ? window.innerHeight : 1;
-    acc += e.deltaX * scale;
-    endGestureSoon();
-
+    acc += e.deltaX * scale; endGestureSoon();
     if (cooling) return;
-
-    if (acc >= THRESH){
-      acc = 0; cooling = true;
-      selectIndex(current + 1);
-      setTimeout(()=> cooling = false, COOLDOWN_MS);
-    } else if (acc <= -THRESH){
-      acc = 0; cooling = true;
-      selectIndex(current - 1);
-      setTimeout(()=> cooling = false, COOLDOWN_MS);
-    }
+    if (acc >= THRESH){ acc = 0; cooling = true; selectIndex(current + 1); setTimeout(()=> cooling = false, COOLDOWN_MS); }
+    else if (acc <= -THRESH){ acc = 0; cooling = true; selectIndex(current - 1); setTimeout(()=> cooling = false, COOLDOWN_MS); }
   }, { passive:false });
 }
 
 /* ---------- Mobile swipe (touch only) ---------- */
 function attachMobileSwipe(el){
-  el.style.touchAction = 'pan-y'; // keep vertical page scroll
-
-  const SWIPE_MIN_PX   = 70;   // horizontal distance to count
-  const SWIPE_MAX_TIME = 600;  // ms
-  const SLOPE_LIMIT    = 0.55; // mostly horizontal
-  const COOLDOWN_MS    = 320;  // one step per gesture
-
-  let active = false;
-  let startX = 0, startY = 0, startT = 0, pointerId = null;
-  let cooling = false;
-
+  el.style.touchAction = 'pan-y';
+  const SWIPE_MIN_PX=70, SWIPE_MAX_TIME=600, SLOPE_LIMIT=0.55, COOLDOWN_MS=320;
+  let active=false, startX=0,startY=0,startT=0,pointerId=null, cooling=false;
   function onDown(e){
-    if (e.pointerType !== 'touch') return;
-    if (!canInteract() || cooling) return;
-    active = true;
-    pointerId = e.pointerId;
-    startX = e.clientX;
-    startY = e.clientY;
-    startT = performance.now();
+    if (e.pointerType!=='touch') return;
+    if (!canInteract()||cooling) return;
+    active=true; pointerId=e.pointerId; startX=e.clientX; startY=e.clientY; startT=performance.now();
     el.setPointerCapture?.(pointerId);
   }
-
   function onUp(e){
-    if (!active || e.pointerType !== 'touch') return;
-    active = false;
-    el.releasePointerCapture?.(pointerId);
-
-    const dt = performance.now() - startT;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-
-    const mostlyHorizontal = Math.abs(dy) / Math.max(1, Math.abs(dx)) < SLOPE_LIMIT;
-    const quickEnough      = dt <= SWIPE_MAX_TIME;
-    const farEnough        = Math.abs(dx) >= SWIPE_MIN_PX;
-
-    if (mostlyHorizontal && quickEnough && farEnough && !cooling){
-      cooling = true;
-      if (dx < 0) selectIndex(current + 1);
-      else        selectIndex(current - 1);
-      setTimeout(()=> cooling = false, COOLDOWN_MS);
+    if (!active||e.pointerType!=='touch') return;
+    active=false; el.releasePointerCapture?.(pointerId);
+    const dt=performance.now()-startT, dx=e.clientX-startX, dy=e.clientY-startY;
+    const mostlyH=Math.abs(dy)/Math.max(1,Math.abs(dx))<SLOPE_LIMIT;
+    if (mostlyH && dt<=SWIPE_MAX_TIME && Math.abs(dx)>=SWIPE_MIN_PX && !cooling){
+      cooling=true; (dx<0?selectIndex(current+1):selectIndex(current-1)); setTimeout(()=>cooling=false, COOLDOWN_MS);
     }
   }
-
-  el.addEventListener('pointerdown', onDown, { passive: true });
-  el.addEventListener('pointerup',   onUp,   { passive: true });
+  el.addEventListener('pointerdown', onDown, { passive:true });
+  el.addEventListener('pointerup',   onUp,   { passive:true });
   el.addEventListener('pointercancel', ()=>{ active=false; }, { passive:true });
 }
 
@@ -560,53 +490,36 @@ function attachMobileSwipe(el){
 function maybeShowIntro(){
   const visited = localStorage.getItem('visited_ouch') === 'true';
   if (visited){ intro.hidden = true; return; }
-
   intro.hidden = false; // lock until dismissed
-  selectIndex(0);       // ensure Sloucho selected
-
+  selectIndex(0);
   introContinue?.addEventListener('click', ()=>{
     intro.hidden = true;
     localStorage.setItem('visited_ouch','true');
   }, { once:true });
 }
 
+/* ---------- Click-to-open overlay / navigate ---------- */
 function attachClickPick(el){
-  // Simple tap/click detection (avoid triggering after a swipe)
   let downPos = null, downTime = 0;
-
   el.addEventListener('pointerdown', (e)=>{
     if (!canInteract()) return;
     downPos = { x: e.clientX, y: e.clientY };
     downTime = performance.now();
   }, { passive: true });
-
   el.addEventListener('pointerup', (e)=>{
     if (!canInteract()) return;
-
     const dt = performance.now() - downTime;
-    const dx = (downPos ? Math.abs(e.clientX - downPos.x) : 999);
-    const dy = (downPos ? Math.abs(e.clientY - downPos.y) : 999);
-    // Treat as a tap if quick and not moved much
-    if (dt > 600 || dx > 8 || dy > 8) return;
-
-    // Raycast
+    const dx = downPos ? Math.abs(e.clientX - downPos.x) : 999;
+    const dy = downPos ? Math.abs(e.clientY - downPos.y) : 999;
+    if (dt > 600 || dx > 8 || dy > 8) return; // not a tap
     setPointerFromEvent(e, el);
     raycaster.setFromCamera(pointer, camera);
-
-    // Intersect against the scene; we only care about meshes
     const hits = raycaster.intersectObjects(scene.children, true);
     if (!hits.length) return;
-
     const idx = objectToCardIndex(hits[0].object);
     if (idx === null) return;
-
-    if (idx === current){
-      // Active card -> open overlay
-      openOverlay(CARDS[current].overlay);
-    } else {
-      // Neighbor/other card -> navigate to it
-      selectIndex(idx);
-    }
+    if (idx === current) openOverlay(CARDS[current].overlay);
+    else selectIndex(idx);
   }, { passive: true });
 }
 
@@ -619,35 +532,23 @@ function attachClickPick(el){
   const n = CARDS.length;
   [1, n-1].forEach(i => ensureLoaded(i));
 
-   // await loadCenterpiece ('assets/ogham.glb);
-  // Start focused on Sloucho
-  current = 0;
-    
-    // Prime camera targets before first select
-    const fit0 = computeFit(0);
-    camAngle      = angleForIndex(0);
-    camAngleTarget= camAngle;
-    camRadius     = Math.max(fit0.dist, 6.5); // start further back
-    camRadiusTarget = camRadius;
-    camCenter.set(0, TARGET_Y, 0);
-    camCenterTarget.copy(camCenter);
+  // Prime camera targets before first select
+  const fit0 = computeFit(0);
+  camAngle       = angleForIndex(0);
+  camAngleTarget = camAngle;
+  camRadius      = Math.max(fit0.dist, 6.5);
+  camRadiusTarget= camRadius;
+  camCenter.set(0, TARGET_Y, 0);
+  camCenterTarget.copy(camCenter);
 
-    // Now layout & dim via normal flow
-    await selectIndex(0);
-    
-  selectIndex(0);
+  await selectIndex(0);
 
-  // Swipe: Mac trackpad + mobile
   attachTrackpadSwipe(renderer.domElement);
   attachMobileSwipe(renderer.domElement);
-    
-    attachClickPick (renderer.domElement);
+  attachClickPick (renderer.domElement);
 
-  // Intro gate
   maybeShowIntro();
 })();
-
-
 
 /* ---------- Render loop ---------- */
 const clock = new THREE.Clock();
@@ -657,34 +558,22 @@ function lerpAngle(a, b, t){
 }
 function loop(){
   requestAnimationFrame(loop);
-  const dt = Math.min(clock.getDelta(), 1/30); // clamp for consistency
-
-  // smoothing speeds (lower = slower)
-  const angSpeed = 2.2;
-  const radSpeed = 2.0;
-  const ctrSpeed = 1.8;
-
+  const dt = Math.min(clock.getDelta(), 1/30);
+  const angSpeed = 2.2, radSpeed = 2.0, ctrSpeed = 1.8;
   const tAng = 1 - Math.exp(-angSpeed * dt);
   const tRad = 1 - Math.exp(-radSpeed * dt);
   const tCtr = 1 - Math.exp(-ctrSpeed * dt);
-
   camAngle  = lerpAngle(camAngle,  camAngleTarget,  tAng);
   camRadius = THREE.MathUtils.lerp(camRadius, camRadiusTarget, tRad);
   camCenter.lerp(camCenterTarget, tCtr);
-
   const x = camCenter.x + Math.sin(camAngle) * camRadius;
   const z = camCenter.z + Math.cos(camAngle) * camRadius;
   camera.position.set(x, CAMERA_Y, z);
   controls.target.copy(camCenter);
   camera.lookAt(controls.target);
-
-  // tick active animation
   const mx = mixers.get(current);
   if (mx) mx.update(dt);
-
-  // keep selected facing camera while moving
   faceActiveToCamera();
-
   renderer.render(scene, camera);
 }
 loop();
