@@ -196,17 +196,54 @@ function nearestAngle(current, target){
 function computeFit(i){
   const node = cache.get(i);
   if (!node) return { center: new THREE.Vector3(0, TARGET_Y, 0), dist: ringRadius * 2.0 };
-  const box  = new THREE.Box3().setFromObject(node);
-  const size = new THREE.Vector3(); box.getSize(size);
-  const cen  = new THREE.Vector3(); box.getCenter(cen);
+
+  const box = getMeshBounds(node);
+  if (!box) return { center: new THREE.Vector3(0, TARGET_Y, 0), dist: ringRadius * 2.0 };
+
+  const size = new THREE.Vector3().subVectors(box.max, box.min);
+  const cen  = new THREE.Vector3().addVectors(box.min, box.max).multiplyScalar(0.5);
 
   const center = new THREE.Vector3(cen.x, TARGET_Y, cen.z);
   const fov = THREE.MathUtils.degToRad(camera.fov);
   let maxDim = Math.max(size.x, size.y, size.z);
   let dist = (maxDim * 0.5) / Math.tan(fov * 0.5);
-  dist *= 1.35;              // padding
-  dist = Math.max(dist, 4); // never too close
+  dist *= 1.35;               // padding
+  dist = Math.max(dist, 4.0); // never too close
   return { center, dist };
+}
+
+function getMeshBounds(root){
+  const box = new THREE.Box3();
+  let has = false;
+  root.traverse(o=>{
+    if (o.isMesh && o.geometry){
+      o.updateWorldMatrix(true, false);
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      const bb = o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld);
+      box.union(bb);
+      has = true;
+    }
+  });
+  return has ? box : null;
+}
+
+function normalizeAndGround(node, targetHeight=1.75, groundY=0.0){
+  const box = getMeshBounds(node);
+  if (!box) return;
+  const height = box.max.y - box.min.y;
+  if (!isFinite(height) || height <= 0) return;
+
+  // Uniformly scale to target height (meters-ish)
+  const s = targetHeight / height;
+  node.scale.multiplyScalar(s);
+  node.updateWorldMatrix(true, true);
+
+  // Re-ground to floor
+  const box2 = getMeshBounds(node);
+  if (!box2) return;
+  const dy = groundY - box2.min.y;
+  node.position.y += dy + 0.005; // tiny lift
+  node.updateWorldMatrix(true, true);
 }
 
 /* ---------- Cache / animations / in-flight ---------- */
@@ -303,6 +340,7 @@ async function ensureLoaded(i){
       const node = glb.scene;
       node.userData.cardIndex = i;
       node.traverse(o=>{ if (o.isMesh){ o.castShadow=false; o.receiveShadow=true; o.frustumCulled = true; }});
+        normalizeAndGround(node, /*targetHeight*/ 1.75, /*groundY*/ 0.0);
       positionCard(node, i, CARDS.length);
       scene.add(node);
       cache.set(i, node);
