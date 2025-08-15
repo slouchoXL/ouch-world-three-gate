@@ -132,6 +132,43 @@ function makeFloorGradient({
   return tex;
 }
 
+function addBackdropWall({
+  radius = ringRadius - 0.6,   // slightly *inside* the cards
+  height = 3.2,                // tweak to taste
+  y      = 1.6,                // wall center height (so it sits on ground)
+  thetaStart  = -Math.PI/2,    // start at -90°
+  thetaLength =  Math.PI       // 180° arc
+} = {}){
+  // Open-ended cylinder segment
+  const geo = new THREE.CylinderGeometry(
+    radius, radius, height,
+    64, 1,   /*openEnded=*/true,
+    thetaStart, thetaLength
+  );
+
+  // Very light, dark material (no texture)
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x111111,
+    roughness: 0.95,
+    metalness: 0.0
+  });
+
+  const wall = new THREE.Mesh(geo, mat);
+  wall.name = 'BackdropWall';
+  wall.position.set(0, y, 0);
+  wall.receiveShadow = true;
+  wall.castShadow = false;
+
+  // Push it early in render to avoid weird overlaps with models
+  wall.renderOrder = -800;
+
+  scene.add(wall);
+  return wall;
+}
+
+// Call it once after ground is added:
+addBackdropWall();
+
 // Remove any previous ground, then add new one
 const prevGround = scene.getObjectByName('Ground');
 if (prevGround) scene.remove(prevGround);
@@ -146,6 +183,8 @@ ground.position.y = 0.0;      // lift a hair to avoid z-fighting
 ground.renderOrder = -1000;    // draw first
 scene.add(ground);
 
+addBackdropWall();
+
 /* ---------- Loaders ---------- */
 const gltfLoader  = new GLTFLoader();
 const dracoLoader = new DRACOLoader().setDecoderPath('https://unpkg.com/three@0.165.0/examples/jsm/libs/draco/');
@@ -157,13 +196,11 @@ gltfLoader.setKTX2Loader(ktx2Loader);
 
 /* ---------- Carousel data (update URLs) ---------- */
 const CARDS = [
-  { name:'Sloucho',     url:'assets/sloucho.glb',     overlay:'chat' },
-  { name:'Shop',        url:'assets/props-shop.glb',  overlay:'shop' },
-  { name:'Music',       url:'assets/props-music.glb', overlay:'music' },
-  { name:'Secret Code', url:'assets/props-code.glb',  overlay:'code' },
-  { name:'Subscribe',   url:'assets/props-sub.glb',   overlay:'subscribe' },
-  { name:'Events',      url:'assets/props-events.glb',overlay:'events' },
-];
+    const CARDS = [
+      { name:'Sloucho',     url:'assets/sloucho.glb',     overlay:'music'      },
+      { name:'Ras',         url:'assets/ras.glb',         overlay:'shop'       },
+      { name:'Super Maramu',url:'assets/super-maramu.glb',overlay:'lore'       },
+    ];
 
 /* ---------- Ring layout ---------- */
 const ringRadius   = 2.6;
@@ -176,23 +213,32 @@ const CAMERA_Y = 1.1;   // lower/higher camera baseline
 const TARGET_Y = 1.1;
 
 /* ---------- Helpers ---------- */
-function polar(index, total){
-  const angle = (index / total) * Math.PI * 2;
-  return { angle, x: Math.sin(angle)*ringRadius, z: Math.cos(angle)*ringRadius };
-}
-function positionCard(node, i, n){
-  const { angle } = polar(i, n);
-  node.position.set(Math.sin(angle)*ringRadius, ringCenterY, Math.cos(angle)*ringRadius);
-  node.rotation.y = angle; // outward
-}
-function angleForIndex(i){ return (i / CARDS.length) * Math.PI * 2; }
-function nearestAngle(current, target){
-  const TAU = Math.PI * 2;
-  let t = target;
-  while (t - current >  Math.PI) t -= TAU;
-  while (t - current < -Math.PI) t += TAU;
-  return t;
-}
+    function polarSemi(index, total){
+      // Map 0..(n-1) to -90°..+90°
+      const t = (total === 1) ? 0.5 : index / (total - 1);
+      const angle = (t - 0.5) * Math.PI; // -PI/2 .. +PI/2
+      return { angle, x: Math.sin(angle)*ringRadius, z: Math.cos(angle)*ringRadius };
+    }
+
+    function positionCard(node, i, n){
+      const { angle, x, z } = polarSemi(i, n);
+      node.position.set(x, ringCenterY, z);
+      node.rotation.y = angle; // points "outward" from center; active card will still face camera via smoothFaceActive()
+    }
+    function angleForIndex(i){
+      const n = CARDS.length;
+      const t = (n === 1) ? 0.5 : i / (n - 1);
+      return (t - 0.5) * Math.PI; // -PI/2 .. +PI/2
+    }
+
+    function nearestAngle(current, target){
+      // same as before; keeps shortest turn
+      const TAU = Math.PI * 2;
+      let t = target;
+      while (t - current >  Math.PI) t -= TAU;
+      while (t - current < -Math.PI) t += TAU;
+      return t;
+    }
 function computeFit(i){
   const node = cache.get(i);
   if (!node) return { center: new THREE.Vector3(0, TARGET_Y, 0), dist: ringRadius * 2.0 };
@@ -484,7 +530,7 @@ async function selectIndex(i){
     // Layout + dimming
     for (let k=0;k<n;k++){
         const node = cache.get(k); if (!node) continue;
-        const { angle } = polar(k, n);
+        const { angle } = polarSemi(k, n);
         const isActive = (k === current);
         const r = isActive ? activeRadius : ringRadius;
         node.position.set(Math.sin(angle)*r, isActive ? ringCenterY + 0.08 : ringCenterY, Math.cos(angle)*r);
@@ -739,7 +785,7 @@ function attachClickPick(el){
 function lockCardYawToRing(){
   const n = CARDS.length;
   cache.forEach((node, i) => {
-    const { angle } = polar(i, n);
+    const { angle } = polarSemi(i, n);
     node.rotation.y = angle; // always face outward, no re-aiming
   });
 }
