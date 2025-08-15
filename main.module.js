@@ -367,12 +367,30 @@ let camRadius = ringRadius * 1.9, camRadiusTarget = camRadius;
 let camCenter = new THREE.Vector3(0, TARGET_Y, 0);
 let camCenterTarget = camCenter.clone();
 
-function faceActiveToCamera(){
+// Smoothly face the active card toward the camera,
+// but ramp the speed up only as the camera nears its target.
+function smoothFaceActive(dt){
   const node = cache.get(current);
   if (!node) return;
+
+  // Desired yaw to face camera
   const dx = camera.position.x - node.position.x;
   const dz = camera.position.z - node.position.z;
-  node.rotation.y = Math.atan2(dx, dz);
+  const desiredYaw = Math.atan2(dx, dz);
+
+  // How close is the camera to its target angle?
+  // (0 = far, 1 = very close)
+  const TAU = Math.PI * 2;
+  const angErr = ((camAngleTarget - camAngle + Math.PI) % TAU) - Math.PI; // shortest diff
+  const nearFactor = 1 - Math.min(1, Math.abs(angErr) / 0.6); // starts kicking in within ~34°
+  // base slow speed, then ramp up as the cam nears target
+  const faceSpeed = 0.8 + 2.2 * nearFactor;
+  const t = 1 - Math.exp(-faceSpeed * dt);
+
+  // Lerp current yaw to desired yaw
+  const cur = node.rotation.y;
+  let delta = ((desiredYaw - cur + Math.PI) % TAU) - Math.PI;
+  node.rotation.y = cur + delta * t;
 }
 
 async function loadCenterpiece(url){
@@ -458,8 +476,8 @@ async function selectIndex(i){
       }
     });
 
-  faceActiveToCamera();
-}
+  smoothFaceActive(dt);
+
 
 /* ---------- Overlays ---------- */
 function openOverlay(kind){
