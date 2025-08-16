@@ -84,8 +84,8 @@ body{
 .modal { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.66); }
 .modal[hidden] { display: none; }
 .modal-card {
-  max-width: 98%; margin: 6vh auto; background:#0b0b0b; color:#fff;
-  padding:24px; border-radius:12px; position: relative;
+  max-width: 90%; margin: 6vh auto; background:#0b0b0b; color:#fff;
+  padding:15px; border-radius:12px; position: relative;
 }
 .modal-close {
   position:absolute; top:12px; right:16px; font-size:28px;

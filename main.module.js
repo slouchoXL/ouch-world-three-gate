@@ -18,6 +18,9 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
+// Optional: prevent the “first-frame flash” by starting hidden and fading in after boot
+canvas.style.opacity = '0';
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 
@@ -27,6 +30,15 @@ let screenYBias = -0.3;
 
 const camera = new THREE.PerspectiveCamera(35, window.innerWidth/window.innerHeight, 0.1, 200);
 scene.add(camera);
+
+// --- tiny globals near the top (after camera creation) ---
+let renderStarted = false;
+let camZTarget = 8;
+let camLook = new THREE.Vector3(0, TARGET_Y, 0);
+
+// Put camera in a safe standby pose so if anything renders early it’s not “inside” a model
+camera.position.set(0, CAMERA_Y, 8);
+camera.lookAt(0, TARGET_Y, 0);
 
 // Lights
 scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 1.0));
@@ -42,7 +54,7 @@ scene.add(rowGroup);
 /* ---------- Floor (gradient) ---------- */
 function makeFloorGradient({
   size = 512,
-  base = '#000000',
+  base = '#FFFFFF',
   inner = 'rgba(0,0,0,0.55)',
   mid   = 'rgba(0,0,0,0.18)',
   outer = 'rgba(0,0,0,0.00)'
@@ -178,19 +190,18 @@ function startIdle(mixer, clips){
   const action = mixer.clipAction(idle);
   action.setLoop(THREE.LoopPingPong, Infinity);
   action.clampWhenFinished = true;
-  // small random offset + slight timeScale variance to desync characters
   action.time = Math.random() * (idle.duration * 0.4);
   action.play();
   action.paused = false;
   action.timeScale = 0.9 + Math.random() * 0.2; // 0.9–1.1x
 }
+
 /* ---------- Layout: three columns ---------- */
 const SPACING = 3.2;      // x distance between characters
 const Y_BASE  = 0.0;
 const Z_ROW   = 0.0;
 
 function positionCard(node, i){
-  // i: 0,1,2  -> x: -SPACING, 0, +SPACING
   const x = (i - 1) * SPACING;
   node.position.set(x, Y_BASE, Z_ROW);
   node.rotation.y = 0; // face camera
@@ -258,18 +269,17 @@ async function selectIndex(i){
   await Promise.all([0,1,2].map(ensureLoaded));
   applyActiveStyling();
 
-    // let ALL characters animate their idle (no pausing)
-    mixers.forEach((mx, idx)=>{
-      const actMap = actions.get(idx); if (!actMap) return;
-      const idleName = Object.keys(actMap).find(n => /idle|breath|loop/i.test(n)) || Object.keys(actMap)[0];
-      const a = actMap[idleName]; if (!a) return;
-      a.enabled = true;
-      a.setLoop(THREE.LoopPingPong, Infinity);
-      a.paused = false;
-      if (!a.isRunning()) a.play();
-    });
+  // All characters animate idles
+  mixers.forEach((mx, idx)=>{
+    const actMap = actions.get(idx); if (!actMap) return;
+    const idleName = Object.keys(actMap).find(n => /idle|breath|loop/i.test(n)) || Object.keys(actMap)[0];
+    const a = actMap[idleName]; if (!a) return;
+    a.enabled = true;
+    a.setLoop(THREE.LoopPingPong, Infinity);
+    a.paused = false;
+    if (!a.isRunning()) a.play();
+  });
 
-  // Notify UI
   const slug = CARDS[current]?.slug || null;
   window.dispatchEvent(new CustomEvent('cardchange', { detail:{ index: current, slug } }));
 }
@@ -299,18 +309,18 @@ function closeOverlay(){
 modalClose?.addEventListener('click', closeOverlay);
 window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && !modal.hidden) closeOverlay(); });
 
-/* ---------- Center & Frame ---------- */
+/* ---------- Center, Frame, Layout ---------- */
 function centerRowGroupAtOrigin(){
   const box = getMeshBoundsDeep(rowGroup);
   if (!box) return;
   const center = new THREE.Vector3();
   box.getCenter(center);
-  // keep y as-is; center x/z
   rowGroup.position.x -= center.x;
   rowGroup.position.z -= center.z;
 }
 
-function frameCameraToRow(pad = 1.02){
+// NEW: set camera targets (with optional instant snap on first frame)
+function frameCameraToRow(pad = 1.02, instant = false){
   const box = getMeshBoundsDeep(rowGroup);
   if (!box) return;
 
@@ -328,90 +338,116 @@ function frameCameraToRow(pad = 1.02){
   let dist = Math.max(distW, distH);
   dist = Math.max(dist, 3.5);
 
-  const look = new THREE.Vector3(rowGroup.position.x, TARGET_Y + screenYBias, rowGroup.position.z);
-  camera.position.set(look.x, CAMERA_Y, look.z + dist);
-  camera.lookAt(look);
-}
+  camLook.set(rowGroup.position.x, TARGET_Y + screenYBias, rowGroup.position.z);
+  camZTarget = camLook.z + dist;
 
-// --- Add to main.module.js ---
-function previewIndex(i){
-  // i >= 0: temporarily highlight that index; i < 0: clear preview
-  for (let k = 0; k < CARDS.length; k++){
-    const node = cache.get(k); if (!node) continue;
-    const highlight = (i >= 0) ? (k === i) : (k === current);
-    setDim(node, !highlight);
-    node.position.y = Y_BASE; // keep everyone on ground
+  if (instant || !renderStarted){
+    camera.position.set(camLook.x, CAMERA_Y, camZTarget);
+    camera.lookAt(camLook);
   }
 }
 
-
-function indexForGroupSlug(slug){
-  const i = CARDS.findIndex(c => c.slug === slug);
-  return i >= 0 ? i : 1; // default to middle
-}
-
-// update your export line:
-
 // Position the three models at the centers of three equal screen lanes.
-// inset shrinks how close to the edges those lanes are (0..0.25 is sensible).
 function layoutRowByViewportThirds(inset = 0.08){
-  // We assume the row sits around Z_ROW and the camera looks forward (z+).
   const vFov = THREE.MathUtils.degToRad(camera.fov);
   const aspect = camera.aspect;
   const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
 
-  // Distance from camera to the row's z plane:
   const dist = Math.abs(camera.position.z - Z_ROW);
-  const halfW = Math.tan(hFov * 0.5) * dist;    // world half-width at row depth
+  const halfW = Math.tan(hFov * 0.5) * dist;
   const W = 2 * halfW;
 
-  // Pull in a bit from the edges so they don't hug the bezel
   const usable = W * (1 - inset * 2);
   const leftEdgeX  = -usable / 2;
   const segmentW   = usable / 3;
 
-  // Centers of the three segments in world X
   const targets = [
-    leftEdgeX + segmentW * 0.5,      // left lane center
-    leftEdgeX + segmentW * 1.5,      // middle lane center
-    leftEdgeX + segmentW * 2.5       // right lane center
+    leftEdgeX + segmentW * 0.5,
+    leftEdgeX + segmentW * 1.5,
+    leftEdgeX + segmentW * 2.5
   ];
 
-  // Apply X to each loaded node; keep Y/Z as-is
   [0,1,2].forEach(i=>{
     const n = cache.get(i); if (!n) return;
     n.position.x = targets[i];
   });
 }
 
-/* ---------- Boot ---------- */
-(async function boot(){
-  await Promise.all([0,1,2].map(ensureLoaded)); // load
-  applyActiveStyling();                          // dim neighbors, lift active
-  centerRowGroupAtOrigin();                      // recenter row at x/z = 0
-  frameCameraToRow(1.02);                        // frame (tweak pad to be closer/farther)
-    layoutRowByViewportThirds(0.08);
-  await selectIndex(current);                    // play idle on active
-})();
+// Hover preview (dim others) without changing `current`
+function previewIndex(i){
+  for (let k = 0; k < CARDS.length; k++){
+    const node = cache.get(k); if (!node) continue;
+    const highlight = (i >= 0) ? (k === i) : (k === current);
+    setDim(node, !highlight);
+    node.position.y = Y_BASE;
+  }
+}
 
-/* ---------- Render loop ---------- */
+/* ---------- Boot ---------- */
+async function boot(){
+  await Promise.all([0,1,2].map(ensureLoaded)); // load
+  applyActiveStyling();
+  centerRowGroupAtOrigin();
+  frameCameraToRow(1.02, /*instant*/true); // set cam instantly for first frame
+  layoutRowByViewportThirds(0.08);
+  await selectIndex(current);
+
+  // First visible frame, then fade in and start the loop
+  renderer.render(scene, camera);
+  canvas.style.transition = 'opacity .2s ease';
+  canvas.style.opacity = '1';
+
+  startRenderLoop();
+}
+
+// Start render loop only once (after boot)
+function startRenderLoop(){
+  if (renderStarted) return;
+  renderStarted = true;
+  requestAnimationFrame(loop);
+}
+
+/* ---------- Render loop (smooth camera Z) ---------- */
 const clock = new THREE.Clock();
 function loop(){
   requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), 1/30);
+
   mixers.forEach(mx => mx.update(dt));
+
+  // Ease camera Z toward target to avoid “size jump” on layout/resize
+  const z = THREE.MathUtils.lerp(camera.position.z, camZTarget, 1 - Math.exp(-8 * dt));
+  camera.position.set(camLook.x, CAMERA_Y, z);
+  camera.lookAt(camLook);
+
   renderer.render(scene, camera);
 }
-loop();
 
-/* ---------- Resize ---------- */
+/* ---------- Resize (debounced & thresholded) ---------- */
+let resizeTimer = null;
+let lastW = window.innerWidth, lastH = window.innerHeight;
+
 window.addEventListener('resize', ()=>{
   const w = window.innerWidth, h = window.innerHeight;
-  camera.aspect = w/h; camera.updateProjectionMatrix();
-  renderer.setSize(w,h);
-  frameCameraToRow(1.02);
-    layoutRowByViewportThirds(0.08);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+
+  const dW = Math.abs(w - lastW), dH = Math.abs(h - lastH);
+  const aspectDelta = Math.abs((w/h) - (lastW/lastH));
+
+  if (resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(()=>{
+    if (dW > 40 || dH > 40 || aspectDelta > 0.05){
+      frameCameraToRow(1.02, /*instant*/false);
+      layoutRowByViewportThirds(0.08);
+      lastW = w; lastH = h;
+    }
+  }, 120);
 });
+
+/* ---------- Kick things off ---------- */
+boot();
 
 /* ---------- Exports for ui.js ---------- */
 export { CARDS, selectGroup, getCurrentIndex, selectIndex, openOverlay, previewIndex, indexForGroupSlug };
