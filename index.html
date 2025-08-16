@@ -19,49 +19,26 @@
   <!-- 3D -->
   <canvas id="webgl"></canvas>
 
-  <!-- lanes BEFORE footer+pills -->
-  <div id="lanes" aria-hidden="true">
-    <div class="lane" data-group="listen"></div>
-    <div class="lane" data-group="buy"></div>
-    <div class="lane" data-group="explore"></div>
-  </div>
+  <!-- Hover lanes container (JS will build lanes based on layoutchange) -->
+  <div id="lanes" aria-hidden="true"></div>
 
-  <footer id="siteFooter" class="footer">
-    <button class="footer-icon" data-group="listen">🎧</button>
-    <button class="footer-icon" data-group="buy">💵</button>
-    <button class="footer-icon" data-group="explore">🧩</button>
-  </footer>
+  <!-- Single footer (leave EMPTY; ui.js renders the icons) -->
+  <footer id="siteFooter" class="footer" aria-label="Primary"></footer>
 
+  <!-- Single pills rail (ui.js renders pills + moves its anchor) -->
   <div id="pillsRail" class="pills-rail" aria-live="polite"></div>
 
-  <!-- overlay after is fine -->
+  <!-- Overlay -->
   <div id="overlay" class="modal" hidden>
-      <div class="modal-card">
-          <button id="overlay-close" class="modal-close">x</button>
-          <h2 id="overlay-title"></h2>
-          <div id="overlay-body" class="modal-body"></div>
+    <div class="modal-card">
+      <button id="overlay-close" class="modal-close" aria-label="Close">×</button>
+      <h2 id="overlay-title"></h2>
+      <div id="overlay-body" class="modal-body"></div>
     </div>
   </div>
-  
+
+  <!-- Scripts: main first (emits layoutchange), then ui (listens & renders UI) -->
   <script type="module" src="main.module.js"></script>
   <script type="module" src="ui.js"></script>
-
-  <!-- Footer icons -->
-  <footer id="siteFooter" class="footer" aria-label="Primary"></footer>
-      
-    <button class="footer-icon" data-group="listen"  aria-label="Listen">🎧</button>
-    <button class="footer-icon" data-group="buy"     aria-label="Buy">💵</button>
-    <button class="footer-icon" data-group="explore" aria-label="Explore">🧩</button>
-  </footer>
-
-  <!-- Pills rail: shows subpages for the active group -->
-  <!-- Pills rail: shows subpages for the active group, aligned over its icon -->
-  <div id="pillsRail" class="pills-rail" aria-live="polite">
-    <div class="pill-col" data-group="listen"></div>
-    <div class="pill-col" data-group="buy"></div>
-    <div class="pill-col" data-group="explore"></div>
-  </div>
-
-
 </body>
 </html>

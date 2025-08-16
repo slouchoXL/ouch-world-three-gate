@@ -300,9 +300,9 @@ function visibleIndices(){
   if (layoutMode === '3') return [0,1,2];
 
   if (layoutMode === '2'){
-    if (current === 1) return [0,2];        // if middle is active, show the two outers
-    if (current === 0) return [0,1];        // if left is active, show left+middle
-    return [1,2];                           // if right is active, show middle+right
+   const right = (current + 1) % CARDS.length;        // if middle is active, show the two outers
+   return [ current , right ];        // if left is active, show left+middle
+                            // if right is active, show middle+right
   }
 
   return [ current ]; // '1'
