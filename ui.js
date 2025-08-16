@@ -25,6 +25,9 @@ const overlayTitle  = document.getElementById('overlay-title');
 const overlayBody   = document.getElementById('overlay-body');
 const overlayClose  = document.getElementById('overlay-close');
 const canvas        = document.getElementById('webgl');
+const lanesWrap    = document.querySelector('.hover-lanes');
+const laneEls      = document.querySelectorAll('.hover-lane');
+const footerEl     = document.getElementById('siteFooter'); // you already have `footer`, but keep a local
 
 const indexToGroup = i => CARDS[i]?.slug ?? 'listen';
 const titleMap     = { listen: 'Listen', buy: 'Buy', explore: 'Explore' };
@@ -58,6 +61,11 @@ function highlightFooter(group){
     btn.style.borderColor = on ? '#aaa' : 'var(--chip-border)';
     btn.style.transform   = on ? 'translateY(-1px)' : 'none';
   });
+}
+
+function previewGroup(group){
+  highlightFooter(group);      // visual state on footer
+  renderPills(group, null);    // show that group's pills
 }
 
 /* ---------- Overlay content ---------- */
@@ -127,6 +135,33 @@ footer.addEventListener('click', (e)=>{
   if (!btn) return;
   const group = btn.dataset.group;
   navigateTo(group, null);
+});
+
+// Hovering a footer icon previews that group's pills
+footer.addEventListener('mouseenter', e=>{
+  const btn = e.target.closest('.footer-icon');
+  if (!btn) return;
+  const g = btn.dataset.group;
+  if (g) previewGroup(g);
+}, true);
+
+// When leaving the footer entirely, restore the “active” group
+footer.addEventListener('mouseleave', ()=>{
+  const active = indexToGroup(getCurrentIndex());
+  renderPills(active, null);
+  highlightFooter(active);
+});
+
+laneEls.forEach(lane=>{
+  lane.addEventListener('mouseenter', ()=>{
+    const g = lane.dataset.group;
+    if (g) previewGroup(g);
+  });
+});
+lanesWrap?.addEventListener('mouseleave', ()=>{
+  const active = indexToGroup(getCurrentIndex());
+  renderPills(active, null);
+  highlightFooter(active);
 });
 
 // Scene → UI: active card changed

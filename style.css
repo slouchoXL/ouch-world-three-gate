@@ -122,3 +122,22 @@ body{
   .footer:hover + .pills-rail,
   .pills-rail:hover{ opacity: 1; pointer-events: auto; }
 }
+/* 3 full-height hover zones (behind footer/pills, above canvas) */
+.hover-lanes{
+  position: fixed; inset: 0;
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  z-index: 5;             /* below footer/pills (25), above canvas */
+  pointer-events: none;   /* lanes ONLY receive hover on desktop */
+}
+
+/* each lane spans its third; pointer events enabled only on hover devices */
+.hover-lane{
+  pointer-events: auto;
+  /* fully transparent; use debug background if needed */
+  /* background: rgba(255,0,0,0.03); */
+}
+
+/* On touch devices, disable lanes */
+@media (hover:none){
+  .hover-lanes{ display: none; }
+}
