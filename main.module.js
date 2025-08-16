@@ -256,14 +256,16 @@ async function selectIndex(i){
   await Promise.all([0,1,2].map(ensureLoaded));
   applyActiveStyling();
 
-  // play idle only on active
-  mixers.forEach((mx, idx)=>{
-    const actMap = actions.get(idx); if (!actMap) return;
-    const idleName = Object.keys(actMap).find(n => /idle|breath|loop/i.test(n)) || Object.keys(actMap)[0];
-    const a = actMap[idleName]; if (!a) return;
-    a.paused = !(idx === current);
-    if (!a.isRunning()) a.play();
-  });
+    // let ALL characters animate their idle (no pausing)
+    mixers.forEach((mx, idx)=>{
+      const actMap = actions.get(idx); if (!actMap) return;
+      const idleName = Object.keys(actMap).find(n => /idle|breath|loop/i.test(n)) || Object.keys(actMap)[0];
+      const a = actMap[idleName]; if (!a) return;
+      a.enabled = true;
+      a.setLoop(THREE.LoopPingPong, Infinity);
+      a.paused = false;
+      if (!a.isRunning()) a.play();
+    });
 
   // Notify UI
   const slug = CARDS[current]?.slug || null;

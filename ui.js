@@ -80,6 +80,55 @@ lanes.forEach(lane=>{
   });
 });
 
+// helper: is the next element still inside our UI surface?
+function isInsideUISurfaces(el){
+  if (!el) return false;
+  return !!(el.closest('#lanes') || el.closest('#siteFooter') || el.closest('#pillsRail'));
+}
+
+function restoreActive(){
+  const active = indexToGroup(getCurrentIndex());
+  highlightFooter(active);
+  renderPills(active);
+  clearPreview(); // from main.module.js
+}
+
+/* Lanes: preview on enter */
+laneEls.forEach(lane=>{
+  lane.addEventListener('mouseenter', ()=>{
+    const g = lane.dataset.group; if (!g) return;
+    highlightFooter(g);
+    renderPills(g);
+    previewIndex(indexForGroupSlug(g));
+  });
+
+  lane.addEventListener('mouseleave', (e)=>{
+    // if moving into pills/footer/another lane, don't restore yet
+    if (isInsideUISurfaces(e.relatedTarget)) return;
+    restoreActive();
+  });
+});
+
+/* Footer: preview on enter, guarded restore on leave */
+footer.addEventListener('mouseenter', e=>{
+  const btn = e.target.closest('.footer-icon'); if (!btn) return;
+  const g = btn.dataset.group;
+  highlightFooter(g);
+  renderPills(g);
+  previewIndex(indexForGroupSlug(g));
+}, true);
+
+footer.addEventListener('mouseleave', (e)=>{
+  if (isInsideUISurfaces(e.relatedTarget)) return;
+  restoreActive();
+});
+
+/* Pills rail: keep preview while over pills, restore when truly leaving */
+pillsRail.addEventListener('mouseleave', (e)=>{
+  if (isInsideUISurfaces(e.relatedTarget)) return;
+  restoreActive();
+});
+
 /* ---------- Overlay content ---------- */
 function htmlFor(route){
   switch(route){
