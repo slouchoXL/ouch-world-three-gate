@@ -32,6 +32,9 @@ const Y_BASE   = 0.0;
 const camera = new THREE.PerspectiveCamera(35, window.innerWidth/window.innerHeight, 0.1, 200);
 scene.add(camera);
 
+// Treat "hover:none" devices as mobile-like → always 1-up
+const FORCE_ONE_UP = window.matchMedia('(hover:none)').matches;
+
 /* ---------- Responsive breakpoints (relative to first load) ---------- */
 const BASELINE_WIDTH = window.innerWidth;
 const TWO_UP_RATIO   = 0.75;
@@ -289,6 +292,12 @@ function insetForMode(){
 }
 
 function chooseLayoutMode(){
+  if (FORCE_ONE_UP){
+    const changed = (layoutMode !== '1');
+    layoutMode = '1';
+    return changed;
+  }
+    
   const w = window.innerWidth;
   const prev = layoutMode;
   const marginTwo = Math.round(BASELINE_WIDTH * 0.03);
@@ -532,11 +541,53 @@ function moveDrag(e){
 
 let lastPointerX = window.innerWidth / 2;
 
+
 window.addEventListener('mousemove', (e)=>{
   lastPointerX = e.clientX;
 });
 window.addEventListener('touchmove', (e)=>{
   if (e.touches && e.touches[0]) lastPointerX = e.touches[0].clientX;
+}, { passive: true });
+
+// --- Mobile swipe: 1-up navigation
+let touchStartX = 0, touchStartY = 0, touchActive = false;
+
+window.addEventListener('touchstart', (e)=>{
+  if (!FORCE_ONE_UP) return;        // only on mobile layout
+  const t = e.touches && e.touches[0];
+  if (!t) return;
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+  touchActive = true;
+}, { passive: true });
+
+window.addEventListener('touchmove', (e)=>{
+  if (!FORCE_ONE_UP || !touchActive) return;
+  const t = e.touches && e.touches[0]; if (!t) return;
+
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+
+  // If mostly horizontal and significant, prevent the page from scrolling
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 15){
+    e.preventDefault(); // need passive:false (set below)
+  }
+}, { passive: false });
+
+window.addEventListener('touchend', (e)=>{
+  if (!FORCE_ONE_UP || !touchActive) return;
+  touchActive = false;
+
+  const t = (e.changedTouches && e.changedTouches[0]) || null;
+  const dx = t ? (t.clientX - touchStartX) : 0;
+  const dy = t ? (t.clientY - touchStartY) : 0;
+
+  // Commit a swipe if horizontal & over threshold
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40){
+    const dir = dx < 0 ? +1 : -1;           // left swipe → next, right swipe → prev
+    // Instant snap feels best on mobile; change to false if you prefer eased camera
+    selectIndex(current + dir, { instantCamera: true });
+  }
 }, { passive: true });
 
 // Map a clientX to the visible index under that column (1/2/3-up aware)
@@ -690,6 +741,9 @@ async function boot(){
   // Put the camera far enough that first layout has room
   camera.position.set(0, CAMERA_Y, 10);
   camera.lookAt(0, TARGET_Y, 0);
+    
+    // On mobile/touch, force 1-up so it never shows 2/3 models
+     if (FORCE_ONE_UP) layoutMode = '1';
 
   await Promise.all([0,1,2].map(ensureLoaded));
   applyActiveStyling();
