@@ -170,9 +170,7 @@ footer.addEventListener('click', (e)=>{
   navigateTo(group, null);
 });
 
-  // Mobile (no hover) OR overlay is open: clicking an icon *should* navigate
-  navigateTo(group, null);
-});
+
 
 // Hovering a footer icon previews that group's pills
 footer.addEventListener('mouseenter', e=>{
