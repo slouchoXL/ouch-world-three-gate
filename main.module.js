@@ -330,12 +330,45 @@ function frameCameraToRow(pad = 1.02){
   camera.lookAt(look);
 }
 
+// Position the three models at the centers of three equal screen lanes.
+// inset shrinks how close to the edges those lanes are (0..0.25 is sensible).
+function layoutRowByViewportThirds(inset = 0.08){
+  // We assume the row sits around Z_ROW and the camera looks forward (z+).
+  const vFov = THREE.MathUtils.degToRad(camera.fov);
+  const aspect = camera.aspect;
+  const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
+
+  // Distance from camera to the row's z plane:
+  const dist = Math.abs(camera.position.z - Z_ROW);
+  const halfW = Math.tan(hFov * 0.5) * dist;    // world half-width at row depth
+  const W = 2 * halfW;
+
+  // Pull in a bit from the edges so they don't hug the bezel
+  const usable = W * (1 - inset * 2);
+  const leftEdgeX  = -usable / 2;
+  const segmentW   = usable / 3;
+
+  // Centers of the three segments in world X
+  const targets = [
+    leftEdgeX + segmentW * 0.5,      // left lane center
+    leftEdgeX + segmentW * 1.5,      // middle lane center
+    leftEdgeX + segmentW * 2.5       // right lane center
+  ];
+
+  // Apply X to each loaded node; keep Y/Z as-is
+  [0,1,2].forEach(i=>{
+    const n = cache.get(i); if (!n) return;
+    n.position.x = targets[i];
+  });
+}
+
 /* ---------- Boot ---------- */
 (async function boot(){
   await Promise.all([0,1,2].map(ensureLoaded)); // load
   applyActiveStyling();                          // dim neighbors, lift active
   centerRowGroupAtOrigin();                      // recenter row at x/z = 0
   frameCameraToRow(1.02);                        // frame (tweak pad to be closer/farther)
+    layoutRowByViewportThirds(0.08);
   await selectIndex(current);                    // play idle on active
 })();
 
@@ -356,6 +389,7 @@ window.addEventListener('resize', ()=>{
   camera.aspect = w/h; camera.updateProjectionMatrix();
   renderer.setSize(w,h);
   frameCameraToRow(1.02);
+    layoutRowByViewportThirds(0.08);
 });
 
 /* ---------- Exports for ui.js ---------- */
