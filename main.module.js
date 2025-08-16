@@ -6,6 +6,7 @@ import { KTX2Loader }   from 'three/addons/loaders/KTX2Loader.js';
 
 /* ---------- DOM ---------- */
 const canvas      = document.getElementById('webgl');
+canvas.style.visibility = 'hidden';
 const modal       = document.getElementById('overlay');
 const modalTitle  = document.getElementById('overlay-title');
 const modalBody   = document.getElementById('overlay-body');
@@ -157,6 +158,12 @@ function setDim(group, dim = true){
       }
     });
   });
+}
+
+function setProvisionalCameraZ(z = 10){
+  const look = new THREE.Vector3(0, TARGET_Y + screenYBias, 0);
+  camera.position.set(0, CAMERA_Y, z);
+  camera.lookAt(look);
 }
 
 /* ---------- Bounds & normalize ---------- */
@@ -473,20 +480,24 @@ function previewIndex(i){
 
 /* ---------- Boot ---------- */
 async function boot(){
+    
+    setProvisionalCameraZ(10);
+    
   await Promise.all([0,1,2].map(ensureLoaded)); // load
   applyActiveStyling();
   centerRowGroupAtOrigin();
-    
+    layoutRowByViewportThirds(0.08);
     chooseLayoutMode();
     positionVisibleByViewportLanes(visibleIndices(), 0.08);
     frameCameraToVisible(1.02, /*instant*/true); // set cam instantly for first frame
-  layoutRowByViewportThirds(0.08);
+
   await selectIndex(current);
 
   // First visible frame, then fade in and start the loop
   renderer.render(scene, camera);
   canvas.style.transition = 'opacity .2s ease';
   canvas.style.opacity = '1';
+    canvas.style.visibility = 'visible';
 
   startRenderLoop();
 }
