@@ -479,7 +479,7 @@ async function boot(){
     
     chooseLayoutMode();
     positionVisibleByViewportLanes(visibleIndices(), 0.08);
-  frameCameraToRow(1.02, /*instant*/true); // set cam instantly for first frame
+    frameCameraToVisible(1.02, /*instant*/true); // set cam instantly for first frame
   layoutRowByViewportThirds(0.08);
   await selectIndex(current);
 
