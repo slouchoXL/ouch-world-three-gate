@@ -78,7 +78,8 @@ function highlightFooter(group){
 function renderFooterIcons(groups){
   const iconFor = { listen:'🎧', buy:'💵', explore:'🧩' }; // <-- define this
 
-  footer.innerHTML = '';
+  //footer.innerHTML = '';
+    footer.replaceChildren();
   groups.forEach(g=>{
     const btn = document.createElement('button');
     btn.className = 'footer-icon';
@@ -212,14 +213,15 @@ window.addEventListener('hashchange', ()=>{
 
 // From main.module.js whenever layout switches 3↔2↔1 or visible set changes
 window.addEventListener('layoutchange', (e)=>{
-  const groups = e.detail?.groups;
+  // accept either shape, but main.module.js sends `visibleGroups`
+  const groups = e.detail?.visibleGroups || e.detail?.groups;
   if (!Array.isArray(groups) || groups.length === 0) return;
 
   // 1) persist the new visibility model
   visibleGroups = groups.slice();
 
   // 2) rebuild UI surfaces to match (icons + lanes)
-  renderFooterIcons(visibleGroups);
+  renderFooterIcons(visibleGroups);  // also sets --cols
   renderLanes(visibleGroups);
 
   // 3) choose the anchor group (current if still visible, else first visible)

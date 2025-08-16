@@ -5,8 +5,10 @@ import { DRACOLoader }  from 'three/addons/loaders/DRACOLoader.js';
 import { KTX2Loader }   from 'three/addons/loaders/KTX2Loader.js';
 
 /* ---------- DOM ---------- */
-const canvas      = document.getElementById('webgl');
+const canvas = document.getElementById('webgl');
 canvas.style.visibility = 'hidden';
+canvas.style.opacity = '0';
+
 const modal       = document.getElementById('overlay');
 const modalTitle  = document.getElementById('overlay-title');
 const modalBody   = document.getElementById('overlay-body');
@@ -19,49 +21,45 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
-// Optional: prevent the “first-frame flash” by starting hidden and fading in after boot
-canvas.style.opacity = '0';
-
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 
 const CAMERA_Y = 1.2;
 const TARGET_Y = 1.1;
-let screenYBias = -0.3;
+const Z_ROW    = 0.0;
+const Y_BASE   = 0.0;
 
 const camera = new THREE.PerspectiveCamera(35, window.innerWidth/window.innerHeight, 0.1, 200);
 scene.add(camera);
 
-// Dynamic breakpoints based on the initial viewport
+/* ---------- Responsive breakpoints (relative to first load) ---------- */
 const BASELINE_WIDTH = window.innerWidth;
-const TWO_UP_RATIO   = 0.75; // 2-up kicks in at ~75% of initial width
-const ONE_UP_RATIO   = 0.45; // optional: 1-up around 45% of initial width
+const TWO_UP_RATIO   = 0.75;
+const ONE_UP_RATIO   = 0.45;
 
-// Compute breakpoints once, based on baseline (not changing as you resize)
 const BP_TWO_UP = Math.round(BASELINE_WIDTH * TWO_UP_RATIO);
 const BP_ONE_UP = Math.round(BASELINE_WIDTH * ONE_UP_RATIO);
 
-// Baseline camera distances (in world units) for each layout mode
-const BASE_DIST = { '3': 8.0, '2': 6.0, '1': 4.0 };
-// Optional: don't let the camera back up *too* far on ultrawide
-const MAX_DIST_MULT = 1.35; // cap at ~35% farther than baseline
+/* ---------- Camera sizing clamps ---------- */
+const BASE_DIST     = { '3': 8.0, '2': 6.0, '1': 4.0 };
+const MAX_DIST_MULT = 1.35;
 
-// --- tiny globals near the top (after camera creation) ---
+/* ---------- Camera targets (lerped in loop) ---------- */
 let renderStarted = false;
 let camZTarget = 8;
-let camLook = new THREE.Vector3(0, TARGET_Y, 0);
+const camLook = new THREE.Vector3(0, TARGET_Y, 0);
 
-// Put camera in a safe standby pose so if anything renders early it’s not “inside” a model
+/* Safe standby so early frames aren’t “inside” a model */
 camera.position.set(0, CAMERA_Y, 8);
 camera.lookAt(0, TARGET_Y, 0);
 
-// Lights
+/* ---------- Lights ---------- */
 scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 1.0));
 const dir = new THREE.DirectionalLight(0xffffff, 2.0);
 dir.position.set(3,6,5);
 scene.add(dir);
 
-// One parent for the whole row
+/* ---------- Row group ---------- */
 const rowGroup = new THREE.Group();
 rowGroup.name = 'RowGroup';
 rowGroup.visible = false;
@@ -93,7 +91,6 @@ const ground = new THREE.Mesh(
   new THREE.CircleGeometry(12, 64),
   new THREE.MeshStandardMaterial({ color:0xffffff, map: makeFloorGradient(), metalness:0, roughness:1 })
 );
-ground.name = 'Ground';
 ground.rotation.x = -Math.PI/2;
 ground.position.y = 0.0;
 ground.renderOrder = -1000;
@@ -114,19 +111,10 @@ const CARDS = [
   { name:'Ras',          url:'assets/ras.glb',          slug:'buy',     overlay:'buy'     },
   { name:'Super Maramu', url:'assets/super-maramu.glb', slug:'explore', overlay:'explore' },
 ];
-let current = 1; // start with the middle one active
-// --- Responsive layout mode (3-up / 2-up / 1-up) ---
-let layoutMode = '3'; // '3' | '2' | '1'
+let current    = 1;     // start with middle active
+let layoutMode = '3';   // '3' | '2' | '1'
 
-//let lastW = window.innerWidth;
-//let lastH = window.innerHeight;
-//let resizeTimer = null;
-
-// Change these breakpoints if you like:
-//const BP_ONE_UP   = 700;  // < 700px => 1-up
-//const BP_TWO_UP   = 1100; // 700–1099 => 2-up, >= 1100 => 3-up
-
-/* ---------- Material dimming helpers ---------- */
+/* ---------- Material dim helpers ---------- */
 function forEachMat(mat, fn){ Array.isArray(mat) ? mat.forEach(fn) : fn(mat); }
 const originalMats = new WeakMap();
 function setDim(group, dim = true){
@@ -175,20 +163,6 @@ function setDim(group, dim = true){
   });
 }
 
-function setProvisionalCameraZ(z = 10){
-  const look = new THREE.Vector3(0, TARGET_Y + screenYBias, 0);
-  camera.position.set(0, CAMERA_Y, z);
-  camera.lookAt(look);
-}
-
-function emitLayoutChange(){
-  const visible = visibleIndices();                 // e.g. [0,1] in 2-up
-  const groups  = visible.map(i => CARDS[i].slug);  // e.g. ['listen','buy']
-  window.dispatchEvent(new CustomEvent('layoutchange', {
-    detail: { mode: layoutMode, visibleIndices: visible, visibleGroups: groups }
-  }));
-}
-
 /* ---------- Bounds & normalize ---------- */
 function getMeshBounds(root){
   const box = new THREE.Box3(); let has = false;
@@ -218,51 +192,44 @@ function normalizeAndGround(node, targetHeight = null, groundY = 0.0) {
   node.updateWorldMatrix(true, true);
 }
 
-/* ---------- Anim helpers ---------- */
-const mixers   = new Map(); // i -> AnimationMixer
-const actions  = new Map(); // i -> { name: action }
-function findIdleClip(clips){
-  return clips.find(c => /idle|breath|loop/i.test(c.name)) || clips[0] || null;
-}
+/* ---------- Anim ---------- */
+const mixers  = new Map(); // i -> AnimationMixer
+const actions = new Map(); // i -> { name: action }
+
 function startIdle(mixer, clips){
   const idle = clips.find(c => /idle|breath|loop/i.test(c.name)) || clips[0];
   if (!idle) return;
-  const action = mixer.clipAction(idle);
-  action.setLoop(THREE.LoopPingPong, Infinity);
-  action.clampWhenFinished = true;
-  action.time = Math.random() * (idle.duration * 0.4);
-  action.play();
-  action.paused = false;
-  action.timeScale = 0.9 + Math.random() * 0.2; // 0.9–1.1x
+  const a = mixer.clipAction(idle);
+  a.setLoop(THREE.LoopPingPong, Infinity);
+  a.clampWhenFinished = true;
+  a.time = Math.random() * (idle.duration * 0.4);
+  a.timeScale = 0.9 + Math.random() * 0.2;
+  a.paused = false;
+  a.play();
 }
 
-/* ---------- Layout: three columns ---------- */
-const SPACING = 3.2;      // x distance between characters
-const Y_BASE  = 0.0;
-const Z_ROW   = 0.0;
-
+/* ---------- Initial placement (just to add to scene) ---------- */
 function positionCard(node, i){
-  const x = (i - 1) * SPACING;
+  const x = (i - 1) * 3.2;
   node.position.set(x, Y_BASE, Z_ROW);
-  node.rotation.y = 0; // face camera
+  node.rotation.y = 0;
 }
 
 function applyActiveStyling(){
   for (let i=0;i<CARDS.length;i++){
     const node = cache.get(i); if (!node) continue;
-    const isActive = (i === current);
-    setDim(node, !isActive);
+    setDim(node, !(i === current));
     node.position.y = Y_BASE;
   }
 }
 
 /* ---------- Load ---------- */
-const cache    = new Map(); // i -> THREE.Group
-const inflight = new Map(); // i -> Promise<THREE.Group>
+const cache    = new Map();
+const inflight = new Map();
 
 async function ensureLoaded(i){
-  if (cache.has(i))     return cache.get(i);
-  if (inflight.has(i))  return inflight.get(i);
+  if (cache.has(i))    return cache.get(i);
+  if (inflight.has(i)) return inflight.get(i);
 
   const p = (async ()=>{
     const entry = CARDS[i];
@@ -271,12 +238,12 @@ async function ensureLoaded(i){
       const node = glb.scene;
       node.userData.cardIndex = i;
       node.traverse(o=>{ if (o.isMesh){ o.castShadow=false; o.receiveShadow=true; o.frustumCulled = true; }});
-      normalizeAndGround(node, /*targetHeight*/ 1.75, /*groundY*/ 0.0);
+      normalizeAndGround(node, 1.75, 0.0);
       positionCard(node, i);
       rowGroup.add(node);
       cache.set(i, node);
 
-      if (glb.animations && glb.animations.length){
+      if (glb.animations?.length){
         const mixer = new THREE.AnimationMixer(node);
         mixers.set(i, mixer);
         const actMap = {};
@@ -302,6 +269,128 @@ async function ensureLoaded(i){
   return p;
 }
 
+/* ---------- Layout helpers ---------- */
+function insetForMode(){
+  // Keep 3-up a bit looser on first paint
+  if (layoutMode === '3') return 0.10; // was 0.08 → more breathing room
+  if (layoutMode === '2') return 0.10;
+  return 0.08; // 1-up
+}
+
+function chooseLayoutMode(){
+  const w = window.innerWidth;
+  const prev = layoutMode;
+  const marginTwo = Math.round(BASELINE_WIDTH * 0.03);
+  const marginOne = Math.round(BASELINE_WIDTH * 0.03);
+
+  if (layoutMode === '3'){
+    if (w < BP_TWO_UP - marginTwo) layoutMode = '2';
+  } else if (layoutMode === '2'){
+    if (w >= BP_TWO_UP + marginTwo) layoutMode = '3';
+    else if (w < BP_ONE_UP - marginOne) layoutMode = '1';
+  } else { // '1'
+    if (w >= BP_ONE_UP + marginOne) layoutMode = '2';
+  }
+
+  return prev !== layoutMode;
+}
+
+// Always keep the current in view; fill with nearest neighbor(s)
+function visibleIndices(){
+  if (layoutMode === '3') return [0,1,2];
+
+  if (layoutMode === '2'){
+    if (current === 1) return [0,2];        // if middle is active, show the two outers
+    if (current === 0) return [0,1];        // if left is active, show left+middle
+    return [1,2];                           // if right is active, show middle+right
+  }
+
+  return [ current ]; // '1'
+}
+
+// Use the distance we’re going to (camZTarget) to compute stable lane spacing.
+function positionVisibleByViewportLanes(indices, inset = 0.08){
+  const vFov   = THREE.MathUtils.degToRad(camera.fov);
+  const aspect = camera.aspect;
+  const hFov   = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
+
+  const dist   = Math.abs((camZTarget ?? camera.position.z) - Z_ROW);
+  const halfW  = Math.tan(hFov * 0.5) * dist;
+  const W      = 2 * halfW;
+
+  const usable   = W * (1 - inset * 2);
+  const segW     = usable / Math.max(1, indices.length);
+  const leftEdge = -usable / 2;
+
+  indices.forEach((idx, i)=>{
+    const n = cache.get(idx); if (!n) return;
+    const cx = leftEdge + segW * (i + 0.5);
+    n.position.set(cx, Y_BASE, Z_ROW);
+    n.visible = true;
+  });
+
+  // Hide others + pause their idle
+  [0,1,2].forEach(i=>{
+    const n = cache.get(i); if (!n) return;
+    const vis = indices.includes(i);
+    if (n.visible !== vis){
+      n.visible = vis;
+      const actMap = actions.get(i);
+      if (actMap){
+        const idleName = Object.keys(actMap).find(nm => /idle|breath|loop/i.test(nm)) || Object.keys(actMap)[0];
+        const a = actMap[idleName];
+        if (a) a.paused = !vis;
+      }
+    }
+  });
+}
+
+function frameCameraToVisible(pad){
+  if (pad == null) pad = (layoutMode === '3') ? 1.10 : (layoutMode === '2') ? 1.06 : 1.02;
+
+  const temp = new THREE.Group();
+  [0,1,2].forEach(i=>{ const n = cache.get(i); if (n?.visible) temp.add(n.clone()); });
+
+  const box = getMeshBoundsDeep(temp);
+  if (!box) return;
+
+  const size   = new THREE.Vector3(); box.getSize(size);
+  const vFov   = THREE.MathUtils.degToRad(camera.fov);
+  const aspect = camera.aspect;
+  const hFov   = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
+
+  const halfW = (size.x * 0.5) * pad;
+  const halfH = (size.y * 0.5) * pad;
+
+  const distFitW = halfW / Math.tan(hFov * 0.5);
+  const distFitH = halfH / Math.tan(vFov * 0.5);
+  const distFit  = Math.max(3.5, Math.max(distFitW, distFitH));
+
+  const base    = BASE_DIST[layoutMode] ?? 10.0;
+  const maxDist = base * MAX_DIST_MULT;
+  const dist    = Math.min(Math.max(distFit, base), maxDist);
+
+  camLook.set(rowGroup.position.x, TARGET_Y, rowGroup.position.z);
+  camZTarget = camLook.z + dist;
+}
+
+/* Emit one UI event with the current visible groups (in order) */
+function emitLayoutChange(){
+  const indices = visibleIndices();
+  const groups  = indices.map(i => CARDS[i].slug);
+  window.dispatchEvent(new CustomEvent('layoutchange', {
+    detail: { mode: layoutMode, visibleIndices: indices, visibleGroups: groups }
+  }));
+}
+
+/* One entry point to place, frame, and notify UI */
+function applyLayout(){
+  const indices = visibleIndices();
+  frameCameraToVisible();                         // set camZTarget (clamped)
+  positionVisibleByViewportLanes(indices, insetForMode()); // use camZTarget for spacing
+  emitLayoutChange();                             // tell UI what’s visible
+}
+
 /* ---------- Select (no camera move) ---------- */
 async function selectIndex(i){
   current = (i + CARDS.length) % CARDS.length;
@@ -309,25 +398,23 @@ async function selectIndex(i){
   await Promise.all([0,1,2].map(ensureLoaded));
   applyActiveStyling();
 
-  // Place visible characters into lanes (1/2/3-up), then frame camera
-    frameCameraToVisible();
-    positionVisibleByViewportLanes(visibleIndices(), 0.08);
-    emitLayoutChange();
-  // Let ALL characters animate idles (no pausing)
+  applyLayout(); // re-place + frame (keeps current in view for 2-up/1-up)
+
+  // Ensure all idles run (hidden nodes get paused in positionVisibleByViewportLanes)
   mixers.forEach((mx, idx)=>{
     const actMap = actions.get(idx); if (!actMap) return;
     const idleName = Object.keys(actMap).find(n => /idle|breath|loop/i.test(n)) || Object.keys(actMap)[0];
     const a = actMap[idleName]; if (!a) return;
-    a.enabled = true;
+    a.enabled = true; a.paused = false;
     a.setLoop(THREE.LoopPingPong, Infinity);
-    a.paused = false;
     if (!a.isRunning()) a.play();
   });
 
   const slug = CARDS[current]?.slug || null;
   window.dispatchEvent(new CustomEvent('cardchange', { detail:{ index: current, slug } }));
 }
-/* ---------- Group → index helpers ---------- */
+
+/* ---------- Group helpers ---------- */
 function indexForGroupSlug(slug){
   const i = CARDS.findIndex(c => c.slug === slug);
   return i >= 0 ? i : 1;
@@ -335,7 +422,7 @@ function indexForGroupSlug(slug){
 function selectGroup(slug){ return selectIndex(indexForGroupSlug(slug)); }
 function getCurrentIndex(){ return current; }
 
-/* ---------- Overlay (kept for ui.js) ---------- */
+/* ---------- Overlay (compat for ui.js) ---------- */
 function openOverlay(kind){
   renderer.domElement.classList.add('dim-3d');
   modalTitle.textContent =
@@ -352,7 +439,7 @@ function closeOverlay(){
 modalClose?.addEventListener('click', closeOverlay);
 window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && !modal.hidden) closeOverlay(); });
 
-/* ---------- Center, Frame, Layout ---------- */
+/* ---------- Center row on origin ---------- */
 function centerRowGroupAtOrigin(){
   const box = getMeshBoundsDeep(rowGroup);
   if (!box) return;
@@ -362,178 +449,80 @@ function centerRowGroupAtOrigin(){
   rowGroup.position.z -= center.z;
 }
 
-// NEW: set camera targets (with optional instant snap on first frame)
-/*function frameCameraToRow(pad = 1.02, instant = false){
-  const box = getMeshBoundsDeep(rowGroup);
-  if (!box) return;
+/* ---------- Boot ---------- */
+async function boot(){
+  // Put the camera far enough that first layout has room
+  camera.position.set(0, CAMERA_Y, 10);
+  camera.lookAt(0, TARGET_Y, 0);
 
-  const size = new THREE.Vector3(); box.getSize(size);
+  await Promise.all([0,1,2].map(ensureLoaded));
+  applyActiveStyling();
+  centerRowGroupAtOrigin();
 
-  const vFov = THREE.MathUtils.degToRad(camera.fov);
-  const aspect = camera.aspect;
-  const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
+  chooseLayoutMode();
+  applyLayout();                 // place + frame + notify UI
 
-  const halfW = (size.x * 0.5) * pad;
-  const halfH = (size.y * 0.5) * pad;
+  await selectIndex(current);    // ensure idles + UI sync
 
-  const distW = halfW / Math.tan(hFov * 0.5);
-  const distH = halfH / Math.tan(vFov * 0.5);
-  let dist = Math.max(distW, distH);
-  dist = Math.max(dist, 3.5);
+  // First visible frame, then fade in and start the loop
+  renderer.render(scene, camera);
+  rowGroup.visible = true;
 
-  camLook.set(rowGroup.position.x, TARGET_Y + screenYBias, rowGroup.position.z);
-  camZTarget = camLook.z + dist;
+  canvas.style.transition = 'opacity .2s ease';
+  canvas.style.opacity = '1';
+  canvas.style.visibility = 'visible';
 
-  if (instant || !renderStarted){
-    camera.position.set(camLook.x, CAMERA_Y, camZTarget);
-    camera.lookAt(camLook);
-  }
-}*/
-
-function frameCameraToVisible(pad){
-  // default pad per mode (kept modest since we clamp with BASE_DIST)
-  if (pad == null) pad = (layoutMode === '3') ? 1.10 : (layoutMode === '2') ? 1.06 : 1.02;
-
-  // Build a temp group from only visible nodes
-  const temp = new THREE.Group();
-  [0,1,2].forEach(i=>{
-    const n = cache.get(i);
-    if (n?.visible) temp.add(n.clone());
-  });
-
-  const box = getMeshBoundsDeep(temp);
-  if (!box) return;
-
-  const size = new THREE.Vector3(); box.getSize(size);
-  const vFov = THREE.MathUtils.degToRad(camera.fov);
-  const aspect = camera.aspect;
-  const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
-
-  const halfW = (size.x * 0.5) * pad;
-  const halfH = (size.y * 0.5) * pad;
-
-  const distFitW = halfW / Math.tan(hFov * 0.5);
-  const distFitH = halfH / Math.tan(vFov * 0.5);
-  const distFit  = Math.max(3.5, Math.max(distFitW, distFitH));
-
-  // Clamp to keep models from getting too big:
-  const base     = BASE_DIST[layoutMode] ?? 10.0;
-  const maxDist  = base * MAX_DIST_MULT;
-  const dist     = Math.min(Math.max(distFit, base), maxDist);
-
-  // Set targets; the render loop lerps to camZTarget
-  camLook.set(rowGroup.position.x, TARGET_Y + screenYBias, rowGroup.position.z);
-  camZTarget = camLook.z + dist;
-}
-// Position the three models at the centers of three equal screen lanes.
-/*function layoutRowByViewportThirds(inset = 0.08){
-  const vFov = THREE.MathUtils.degToRad(camera.fov);
-  const aspect = camera.aspect;
-  const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
-
-  const dist = Math.abs(camera.position.z - Z_ROW);
-  const halfW = Math.tan(hFov * 0.5) * dist;
-  const W = 2 * halfW;
-
-  const usable = W * (1 - inset * 2);
-  const leftEdgeX  = -usable / 2;
-  const segmentW   = usable / 3;
-
-  const targets = [
-    leftEdgeX + segmentW * 0.5,
-    leftEdgeX + segmentW * 1.5,
-    leftEdgeX + segmentW * 2.5
-  ];
-
-  [0,1,2].forEach(i=>{
-    const n = cache.get(i); if (!n) return;
-    n.position.x = targets[i];
-  });
-}*/
-
-function chooseLayoutMode(){
-  const w = window.innerWidth;
-  const prev = layoutMode;
-
-  // Hysteresis margins ~3% of baseline to prevent flapping near thresholds
-  const marginTwo = Math.round(BASELINE_WIDTH * 0.03);
-  const marginOne = Math.round(BASELINE_WIDTH * 0.03);
-
-  if (layoutMode === '3'){
-    // Only drop to 2-up once we’re clearly below the 75% line
-    if (w < BP_TWO_UP - marginTwo) layoutMode = '2';
-  } else if (layoutMode === '2'){
-    // Go back to 3-up only after we’re comfortably above the 75% line
-    if (w >= BP_TWO_UP + marginTwo)            layoutMode = '3';
-    else if (w < BP_ONE_UP - marginOne)        layoutMode = '1';
-  } else { // '1'
-    if (w >= BP_ONE_UP + marginOne) layoutMode = '2';
-  }
-
-  return prev !== layoutMode;
+  startRenderLoop();
 }
 
-// Which models should be shown in this mode?
-function visibleIndices(){
-  if (layoutMode === '3') return [0,1,2];
-  if (layoutMode === '2') return [ current, (current + 1) % CARDS.length ];
-  return [ current ]; // '1'
+/* ---------- Loop ---------- */
+const clock = new THREE.Clock();
+function startRenderLoop(){
+  if (renderStarted) return;
+  renderStarted = true;
+  requestAnimationFrame(loop);
 }
 
-// Choose horizontal inset based on current layout mode
-function insetForMode(){
-  // More inset for 3-up to keep models breathing room on first paint
-  if (layoutMode === '3') return 0.05; // was 0.08
-  if (layoutMode === '2') return 0.10;
-  return 0.08; // 1-up
+function loop(){
+  requestAnimationFrame(loop);
+  const dt = Math.min(clock.getDelta(), 1/30);
+
+  mixers.forEach(mx => mx.update(dt));
+
+  // Smooth Z towards target
+  const z = THREE.MathUtils.lerp(camera.position.z, camZTarget, 1 - Math.exp(-8 * dt));
+  camera.position.set(camLook.x, CAMERA_Y, z);
+  camera.lookAt(camLook);
+
+  renderer.render(scene, camera);
 }
 
-// Position N visible nodes at N equal screen lanes (horizontally)
-function positionVisibleByViewportLanes(indices, inset = 0.08){
-  const vFov = THREE.MathUtils.degToRad(camera.fov);
-  const aspect = camera.aspect;
-  const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
+/* ---------- Resize (debounced) ---------- */
+let resizeTimer = null;
+let lastW = window.innerWidth, lastH = window.innerHeight;
 
-  // Use the distance we’re *going* to (prevents spacing jitter/overlap)
-  const dist = Math.abs((camZTarget ?? camera.position.z) - Z_ROW);
+window.addEventListener('resize', ()=>{
+  const w = window.innerWidth, h = window.innerHeight;
 
-  const halfW = Math.tan(hFov * 0.5) * dist;
-  const W = 2 * halfW;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
 
-  const usable = W * (1 - inset * 2);
-  const segW = usable / Math.max(1, indices.length);
-  const leftEdgeX = -usable / 2;
+  if (resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(()=>{
+    const changed = chooseLayoutMode();
+    applyLayout(); // always re-place + frame + notify UI (stable spacing via camZTarget)
+    lastW = w; lastH = h;
+  }, 120);
+});
 
-  indices.forEach((idx, i)=>{
-    const n = cache.get(idx); if (!n) return;
-    const cx = leftEdgeX + segW * (i + 0.5);
-    n.position.x = cx;
-    n.position.y = Y_BASE;
-    n.position.z = Z_ROW;
-  });
+/* ---------- Kick ---------- */
+boot();
 
-  // Show/hide + pause idle for hidden ones (perf)
-  [0,1,2].forEach(i=>{
-    const n = cache.get(i); if (!n) return;
-    const visible = indices.includes(i);
-    if (n.visible !== visible){
-      n.visible = visible;
-      const actMap = actions.get(i);
-      if (actMap){
-        const idleName = Object.keys(actMap).find(nm => /idle|breath|loop/i.test(nm)) || Object.keys(actMap)[0];
-        const a = actMap[idleName];
-        if (a) a.paused = !visible;
-      }
-    }
-  });
-    
-    window.dispatchEvent(new CustomEvent('layoutchange', {
-      detail: { groups: visibleIndices().map(i => CARDS[i].slug) }
-    }));
-}
+/* ---------- Exports for ui.js ---------- */
+export { CARDS, selectGroup, getCurrentIndex, selectIndex, openOverlay, /* for preview hover */ previewIndex, indexForGroupSlug };
 
-
-// Hover preview (dim others) without changing `current`
+/* ---------- Hover preview (dim only) ---------- */
 function previewIndex(i){
   for (let k = 0; k < CARDS.length; k++){
     const node = cache.get(k); if (!node) continue;
@@ -542,89 +531,3 @@ function previewIndex(i){
     node.position.y = Y_BASE;
   }
 }
-
-/* ---------- Boot ---------- */
-async function boot(){
-    setProvisionalCameraZ(10);
-    
-  await Promise.all([0,1,2].map(ensureLoaded)); // load
-  applyActiveStyling();
-  centerRowGroupAtOrigin();
-    
-   // layoutRowByViewportThirds(0.08);
-    // boot
-    chooseLayoutMode();
-    [0,1,2].forEach(i=> cache.get(i) && (cache.get(i).visible = true)); // or your visibleIndices()
-    frameCameraToVisible();                // sets camZTarget using clamp
-    positionVisibleByViewportLanes(visibleIndices(), 0.08);
-    emitLayoutChange();
-
-  await selectIndex(current);
-
-  // First visible frame, then fade in and start the loop
-  renderer.render(scene, camera);
-    rowGroup.visible = true;
-  canvas.style.transition = 'opacity .2s ease';
-  canvas.style.opacity = '1';
-    canvas.style.visibility = 'visible';
-
-  startRenderLoop();
-}
-
-// Start render loop only once (after boot)
-function startRenderLoop(){
-  if (renderStarted) return;
-  renderStarted = true;
-  requestAnimationFrame(loop);
-}
-
-/* ---------- Render loop (smooth camera Z) ---------- */
-const clock = new THREE.Clock();
-function loop(){
-  requestAnimationFrame(loop);
-  const dt = Math.min(clock.getDelta(), 1/30);
-
-  mixers.forEach(mx => mx.update(dt));
-
-  // Ease camera Z toward target to avoid “size jump” on layout/resize
-  const z = THREE.MathUtils.lerp(camera.position.z, camZTarget, 1 - Math.exp(-8 * dt));
-  camera.position.set(camLook.x, CAMERA_Y, z);
-  camera.lookAt(camLook);
-
-  renderer.render(scene, camera);
-}
-
-/* ---------- Resize (debounced & thresholded) ---------- */
-let resizeTimer = null;
-let lastW = window.innerWidth, lastH = window.innerHeight;
-
-window.addEventListener('resize', ()=>{
-  const w = window.innerWidth, h = window.innerHeight;
-
-  // Apply size immediately so math below uses the new aspect
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
-
-  const dW = Math.abs(w - lastW);
-  const dH = Math.abs(h - lastH);
-  const aspectDelta = Math.abs((w/h) - (lastW/lastH));
-
-  // Debounce heavy work a hair
-  if (resizeTimer) clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(()=>{
-    // Re-evaluate layout mode (3 / 2 / 1)
-      const modeChanged = chooseLayoutMode();
-      frameCameraToVisible();
-      positionVisibleByViewportLanes(visibleIndices(), 0.08);
-      emitLayoutChange();
-    // Update last-known size after we finish
-    lastW = w; lastH = h;
-  }, 120);
-});
-
-/* ---------- Kick things off ---------- */
-boot();
-
-/* ---------- Exports for ui.js ---------- */
-export { CARDS, selectGroup, getCurrentIndex, selectIndex, openOverlay, previewIndex, indexForGroupSlug };
