@@ -21,8 +21,10 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 
-const CAMERA_Y = 1.1;
+const CAMERA_Y = 1.8;
 const TARGET_Y = 1.1;
+let screenYBias = -0.18;
+
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 200);
 scene.add(camera);
 
@@ -326,7 +328,7 @@ function frameCameraToRow(pad = 1.02){
   let dist = Math.max(distW, distH);
   dist = Math.max(dist, 3.5);
 
-  const look = new THREE.Vector3(rowGroup.position.x, TARGET_Y, rowGroup.position.z);
+  const look = new THREE.Vector3(rowGroup.position.x, TARGET_Y + screenYBias, rowGroup.position.z);
   camera.position.set(look.x, CAMERA_Y, look.z + dist);
   camera.lookAt(look);
 }
