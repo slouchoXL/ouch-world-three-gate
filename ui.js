@@ -34,23 +34,16 @@ const titleMap     = { listen: 'Listen', buy: 'Buy', explore: 'Explore' };
 
 /* ---------- Render ---------- */
 function renderPills(group, activePageSlug=null){
-  // Turn on only the active column
-  document.querySelectorAll('.pill-col').forEach(col=>{
-    col.classList.toggle('on', col.dataset.group === group);
-    if (col.dataset.group === group) col.innerHTML = ''; // clear active col
-  });
-
-  const col = document.querySelector(`.pill-col[data-group="${group}"]`);
-  if (!col) return;
-
+  setPillsAnchor(group);
   const defs = SITEMAP[group] ?? [];
+  pillsRail.innerHTML = '';
   defs.forEach(({ slug, label })=>{
     const btn = document.createElement('button');
     btn.className = 'pill' + (activePageSlug===slug ? ' active' : '');
     btn.textContent = label;
     btn.setAttribute('data-page', `${group}/${slug}`);
     btn.addEventListener('click', ()=> navigateTo(group, slug));
-    col.appendChild(btn);
+    pillsRail.appendChild(btn);
   });
 }
 
@@ -64,16 +57,13 @@ function highlightFooter(group){
 }
 
 function previewGroup(group){
-  // 3D highlight without changing selection
-  const i = indexForGroupSlug(group);
-  previewIndex(i);
-
-  // UI pills preview
+  // Show that group’s pills + footer highlight
   highlightFooter(group);
   renderPills(group);
+  // Optional: preview character (no motion if previewIndex is empty)
+  previewIndex(indexForGroupSlug(group));
 }
 
-// Hover lanes
 const lanes = document.querySelectorAll('#lanes .lane');
 lanes.forEach(lane=>{
   lane.addEventListener('mouseenter', ()=>{
@@ -82,12 +72,11 @@ lanes.forEach(lane=>{
     previewGroup(g);
   });
   lane.addEventListener('mouseleave', ()=>{
-    // restore to currently selected card's group
+    // restore UI to the actual selected group
     const active = CARDS[getCurrentIndex()]?.slug || 'listen';
     highlightFooter(active);
     renderPills(active);
-    // restore 3D highlight to real current
-    previewIndex(getCurrentIndex());
+    previewIndex(getCurrentIndex()); // no-op if you left it empty
   });
 });
 
@@ -143,6 +132,18 @@ function navigateTo(group, page=null, {syncScene=true} = {}){
   }
 }
 
+function setPillsAnchor(group){
+  // positions: left(16.67%), middle(50%), right(83.33%)
+  const x =
+    group === 'listen'  ? '16.6667%' :
+    group === 'buy'     ? '50%'      :
+    group === 'explore' ? '83.3333%' : '50%';
+  pillsRail.style.left = x;
+  pillsRail.style.transform = 'translateX(-50%)';
+}
+
+
+
 window.addEventListener('hashchange', ()=>{
   const { group, page } = parseHash();
   const g = ['listen','buy','explore'].includes(group) ? group : indexToGroup(getCurrentIndex());
@@ -156,18 +157,18 @@ window.addEventListener('hashchange', ()=>{
 footer.addEventListener('click', (e)=>{
   const btn = e.target.closest('.footer-icon');
   if (!btn) return;
-
   const group = btn.dataset.group;
   const overlayIsOpen = !overlayEl.hidden;
   const isHoverCapable = window.matchMedia('(hover:hover)').matches;
 
-  // Desktop landing page: don't lock a group on click.
-  // Pills already show via hover; user will click a *pill* to navigate.
-  if (isHoverCapable && !overlayIsOpen) {
-    // Optional: if you want clicking an icon to also focus/preview its pills:
-    previewGroup(group);
+  if (isHoverCapable && !overlayIsOpen){
+    // On desktop landing, clicking icon doesn't latch anything.
+    // Let hover (lanes) control pills; do nothing here.
     return;
   }
+  // On mobile or when overlay is open, a click navigates to that group:
+  navigateTo(group, null);
+});
 
   // Mobile (no hover) OR overlay is open: clicking an icon *should* navigate
   navigateTo(group, null);

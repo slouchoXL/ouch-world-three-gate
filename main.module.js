@@ -200,7 +200,7 @@ function applyActiveStyling(){
     const node = cache.get(i); if (!node) continue;
     const isActive = (i === current);
     setDim(node, !isActive);
-    node.position.y = isActive ? Y_BASE + 0.08 : Y_BASE;
+    node.position.y = Y_BASE;
   }
 }
 
@@ -337,7 +337,7 @@ function previewIndex(i){
     const node = cache.get(k); if (!node) continue;
     const on = (k === i);
     setDim(node, !on);
-    node.position.y = on ? Y_BASE + 0.08 : Y_BASE;
+    node.position.y = Y_BASE;
   }
 }
 
