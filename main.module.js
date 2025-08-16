@@ -42,7 +42,7 @@ const BP_TWO_UP = Math.round(BASELINE_WIDTH * TWO_UP_RATIO);
 const BP_ONE_UP = Math.round(BASELINE_WIDTH * ONE_UP_RATIO);
 
 // Baseline camera distances (in world units) for each layout mode
-const BASE_DIST = { '3': 12.0, '2': 10.0, '1': 8.0 };
+const BASE_DIST = { '3': 10.0, '2': 8.0, '1': 6.0 };
 // Optional: don't let the camera back up *too* far on ultrawide
 const MAX_DIST_MULT = 1.35; // cap at ~35% farther than baseline
 
