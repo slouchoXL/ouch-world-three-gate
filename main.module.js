@@ -41,7 +41,7 @@ const BP_TWO_UP = Math.round(BASELINE_WIDTH * TWO_UP_RATIO);
 const BP_ONE_UP = Math.round(BASELINE_WIDTH * ONE_UP_RATIO);
 
 /* ---------- Camera sizing clamps ---------- */
-const BASE_DIST     = { '3': 6.0, '2': 4.0, '1': 2.0 };
+const BASE_DIST     = { '3': 7.0, '2': 5.0, '1': 3.0 };
 const MAX_DIST_MULT = 1.35;
 
 /* ---------- Camera targets (lerped in loop) ---------- */
@@ -283,7 +283,7 @@ async function ensureLoaded(i){
 /* ---------- Layout helpers ---------- */
 function insetForMode(){
   // Keep 3-up a bit looser on first paint
-  if (layoutMode === '3') return 0.07; // was 0.08 → more breathing room
+  if (layoutMode === '3') return 0.05; // was 0.08 → more breathing room
   if (layoutMode === '2') return 0.07;
   return 0.08; // 1-up
 }
