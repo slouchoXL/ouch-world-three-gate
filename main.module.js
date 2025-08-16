@@ -32,6 +32,15 @@ let screenYBias = -0.3;
 const camera = new THREE.PerspectiveCamera(35, window.innerWidth/window.innerHeight, 0.1, 200);
 scene.add(camera);
 
+// Dynamic breakpoints based on the initial viewport
+const BASELINE_WIDTH = window.innerWidth;
+const TWO_UP_RATIO   = 0.75; // 2-up kicks in at ~75% of initial width
+const ONE_UP_RATIO   = 0.45; // optional: 1-up around 45% of initial width
+
+// Compute breakpoints once, based on baseline (not changing as you resize)
+const BP_TWO_UP = Math.round(BASELINE_WIDTH * TWO_UP_RATIO);
+const BP_ONE_UP = Math.round(BASELINE_WIDTH * ONE_UP_RATIO);
+
 // --- tiny globals near the top (after camera creation) ---
 let renderStarted = false;
 let camZTarget = 8;
@@ -288,7 +297,7 @@ async function selectIndex(i){
   applyActiveStyling();
 
   // Place visible characters into lanes (1/2/3-up), then frame camera
-  positionVisibleByViewportLanes(visibleIndices(), 0.08);
+  positionVisibleByViewportLanes(visibleIndices(), insetForMode());
   frameCameraToVisible(1.02);  // sets camLook + camZTarget (see patch below)
 
   // Let ALL characters animate idles (no pausing)
@@ -424,9 +433,22 @@ function frameCameraToVisible(pad = 1.02){
 function chooseLayoutMode(){
   const w = window.innerWidth;
   const prev = layoutMode;
-  if (w < BP_ONE_UP)       layoutMode = '1';
-  else if (w < BP_TWO_UP)  layoutMode = '2';
-  else                     layoutMode = '3';
+
+  // Hysteresis margins ~3% of baseline to prevent flapping near thresholds
+  const marginTwo = Math.round(BASELINE_WIDTH * 0.03);
+  const marginOne = Math.round(BASELINE_WIDTH * 0.03);
+
+  if (layoutMode === '3'){
+    // Only drop to 2-up once we’re clearly below the 75% line
+    if (w < BP_TWO_UP - marginTwo) layoutMode = '2';
+  } else if (layoutMode === '2'){
+    // Go back to 3-up only after we’re comfortably above the 75% line
+    if (w >= BP_TWO_UP + marginTwo)            layoutMode = '3';
+    else if (w < BP_ONE_UP - marginOne)        layoutMode = '1';
+  } else { // '1'
+    if (w >= BP_ONE_UP + marginOne) layoutMode = '2';
+  }
+
   return prev !== layoutMode;
 }
 
@@ -435,6 +457,14 @@ function visibleIndices(){
   if (layoutMode === '3') return [0,1,2];
   if (layoutMode === '2') return [ current, (current + 1) % CARDS.length ];
   return [ current ]; // '1'
+}
+
+// Choose horizontal inset based on current layout mode
+function insetForMode(){
+  // More inset for 3-up to keep models breathing room on first paint
+  if (layoutMode === '3') return 0.16; // was 0.08
+  if (layoutMode === '2') return 0.10;
+  return 0.08; // 1-up
 }
 
 // Position N visible nodes at N equal screen lanes (horizontally)
@@ -486,7 +516,7 @@ async function boot(){
     
    // layoutRowByViewportThirds(0.08);
     chooseLayoutMode();
-    positionVisibleByViewportLanes(visibleIndices(), 0.08);
+    positionVisibleByViewportLanes(visibleIndices(), insetForMode());
     frameCameraToVisible(1.02, /*instant*/true); // set cam instantly for first frame
 
   await selectIndex(current);
@@ -547,7 +577,7 @@ window.addEventListener('resize', ()=>{
     const modeChanged = chooseLayoutMode();
 
     // Re-place the visible models into N equal lanes
-    positionVisibleByViewportLanes(visibleIndices(), 0.08);
+    positionVisibleByViewportLanes(visibleIndices(), insetForMode());
 
     // Re-frame to **visible** models so size looks consistent
     frameCameraToVisible(1.02);
