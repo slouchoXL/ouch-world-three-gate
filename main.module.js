@@ -34,8 +34,8 @@ scene.add(camera);
 
 // Dynamic breakpoints based on the initial viewport
 const BASELINE_WIDTH = window.innerWidth;
-const TWO_UP_RATIO   = 0.75; // 2-up kicks in at ~75% of initial width
-const ONE_UP_RATIO   = 0.45; // optional: 1-up around 45% of initial width
+const TWO_UP_RATIO   = 0.80; // 2-up kicks in at ~75% of initial width
+const ONE_UP_RATIO   = 0.60; // optional: 1-up around 45% of initial width
 
 // Compute breakpoints once, based on baseline (not changing as you resize)
 const BP_TWO_UP = Math.round(BASELINE_WIDTH * TWO_UP_RATIO);
@@ -462,8 +462,8 @@ function visibleIndices(){
 // Choose horizontal inset based on current layout mode
 function insetForMode(){
   // More inset for 3-up to keep models breathing room on first paint
-  if (layoutMode === '3') return 0.0; // was 0.08
-  if (layoutMode === '2') return 0.08;
+  if (layoutMode === '3') return 0.12; // was 0.08
+  if (layoutMode === '2') return 0.6;
   return 0.08; // 1-up
 }
 
