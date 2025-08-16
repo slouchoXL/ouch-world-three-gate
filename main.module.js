@@ -344,26 +344,27 @@ function positionVisibleByViewportLanes(indices, inset = 0.08){
   [0,1,2].forEach(i=>{
     const n = cache.get(i); if (!n) return;
     const vis = indices.includes(i);
-    if (n.visible !== vis){
-      n.visible = vis;
-      const actMap = actions.get(i);
-      if (actMap){
-        const idleName = Object.keys(actMap).find(nm => /idle|breath|loop/i.test(nm)) || Object.keys(actMap)[0];
-        const a = actMap[idleName];
-          if (a) {
-              if (visible){
-                        // coming back: make 100% sure it’s running
-                        a.enabled = true;
-                        a.paused  = false;
-                        if (!a.isRunning()) a.play();
-              } else {
-                  // hiding: just pause it
-                  a.paused = true;
+      if (n.visible !== vis){
+          n.visible = vis;
+          const actMap = actions.get(i);
+          if (actMap){
+              const idleName = Object.keys(actMap).find(nm => /idle|breath|loop/i.test(nm)) || Object.keys(actMap)[0];
+              const a = actMap[idleName];
+              if (a) {
+                  if (visible){
+                      // coming back: make 100% sure it’s running
+                      a.enabled = true;
+                      a.paused  = false;
+                      if (!a.isRunning()) a.play();
+                  } else {
+                      // hiding: just pause it
+                      a.paused = true;
+                  }
               }
+          }
       }
-    }
   });
-}
+
 
 function frameCameraToVisible(pad){
   if (pad == null) pad = (layoutMode === '3') ? 1.10 : (layoutMode === '2') ? 1.06 : 1.02;
