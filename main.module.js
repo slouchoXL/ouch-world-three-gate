@@ -530,22 +530,30 @@ function moveDrag(e){
   previewByProgress(drag.x - drag.x0);
 }
 
+let lastPointerX = window.innerWidth / 2;
+
+window.addEventListener('mousemove', (e)=>{
+  lastPointerX = e.clientX;
+});
+window.addEventListener('touchmove', (e)=>{
+  if (e.touches && e.touches[0]) lastPointerX = e.touches[0].clientX;
+}, { passive: true });
+
 // Map a clientX to the visible index under that column (1/2/3-up aware)
 function indexUnderPointer(clientX){
-  const vis = visibleIndices();               // e.g. [0,2] in 2-up
+  const vis = visibleIndices();                 // e.g. [0,2] in 2-up
   const n   = Math.max(1, vis.length);
   const w   = Math.max(1, window.innerWidth);
   const col = Math.min(n - 1, Math.max(0, Math.floor((clientX / w) * n)));
-  return vis[col];                             // returns a CARD index
+  return vis[col];
 }
 
 // Apply hover-style highlight to whatever is under the pointer right now
 function applyHoverFromPointer(clientX){
-  // only do this on hover-capable devices & when overlay is closed
+  const overlay = document.getElementById('overlay');
+  const overlayOpen = overlay && !overlay.hidden;
   const hoverCapable = window.matchMedia('(hover:hover)').matches;
-  const overlayOpen  = !!document.getElementById('overlay') && !document.getElementById('overlay').hidden;
   if (!hoverCapable || overlayOpen) return;
-
   const idx = indexUnderPointer(clientX);
   if (typeof previewIndex === 'function') previewIndex(idx);
 }
@@ -643,6 +651,29 @@ function closeOverlay(){
 }
 modalClose?.addEventListener('click', closeOverlay);
 window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && !modal.hidden) closeOverlay(); });
+
+window.addEventListener('keydown', (e)=>{
+  // ignore when typing or overlay open
+  const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+  if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.isContentEditable) return;
+  const overlay = document.getElementById('overlay');
+  if (overlay && !overlay.hidden) return;
+
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  if (e.repeat) return;           // no auto-repeat jitter
+  e.preventDefault();
+
+  const dir = (e.key === 'ArrowRight') ? +1 : -1;
+
+  // briefly suppress hover so the change feels decisive
+  if (typeof muteHover === 'function') muteHover(250);
+
+  // snap camera for crisp feel; set to false if you want eased Z instead
+  selectIndex(current + dir, { instantCamera: true });
+
+  // immediately highlight whatever is actually under the pointer
+  applyHoverFromPointer(lastPointerX);
+});
 
 /* ---------- Center row on origin ---------- */
 function centerRowGroupAtOrigin(){
