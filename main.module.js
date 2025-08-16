@@ -347,7 +347,7 @@ function indexForGroupSlug(slug){
 }
 
 // update your export line:
-export { CARDS, selectGroup, getCurrentIndex, selectIndex, openOverlay, previewIndex, indexForGroupSlug };
+
 // Position the three models at the centers of three equal screen lanes.
 // inset shrinks how close to the edges those lanes are (0..0.25 is sensible).
 function layoutRowByViewportThirds(inset = 0.08){
@@ -411,4 +411,4 @@ window.addEventListener('resize', ()=>{
 });
 
 /* ---------- Exports for ui.js ---------- */
-export { CARDS, selectGroup, getCurrentIndex, selectIndex, openOverlay };
+export { CARDS, selectGroup, getCurrentIndex, selectIndex, openOverlay, previewIndex, indexForGroupSlug };
