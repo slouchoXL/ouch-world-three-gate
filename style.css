@@ -8,116 +8,74 @@
 
 *{ box-sizing:border-box }
 html,body{ height:100% }
+html, body { overscroll-behavior-x: none; }
 body{
   margin:0; background:var(--bg); color:var(--text);
   font-family:ui-sans-serif,system-ui,-apple-system,Inter,Roboto,Arial,sans-serif;
   overflow:hidden;
 }
 
-
-
-/* in style.css */
-html, body { overscroll-behavior-x: none; }
-
 /* Canvas fills screen */
-#webgl{ position:fixed; inset:0; display:block }
-
-/* Chips (bottom center) */
-.chips{
-  position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
-  display:flex; gap:10px; z-index:10; pointer-events:auto;
-}
-.chips button{
-  background:var(--chip); color:var(--text);
-  border:1px solid var(--chip-border); border-radius:9999px;
-  padding:.5rem 1rem; cursor:pointer; transition:transform .15s ease, border-color .15s ease;
-}
-.chips button.active{ transform:scale(1.06); border-color:#888; color:#fff }
-.chips button:disabled{ opacity:.6; cursor:default }
-
-/* Modals (centered) */
-.modal{
-  position:fixed; inset:0; display:grid; place-items:center;
-  background:rgba(0,0,0,.32); backdrop-filter:saturate(.9) blur(2px);
-  z-index:20;
-}
-.modal[hidden]{ display:none }
-
-/* Intro modal sizing (smaller than overlay) */
-#intro .modal-card{
-  width: min(560px, 60vw);   /* smaller fixed-ish card */
-  height: auto;              /* shrink to content */
-  max-height: 80vh;          /* scroll if long */
-  overflow: auto;
+#webgl{
+  position:fixed; inset:0; display:block;
+  width:100vw; height:100vh;
 }
 
-/* Optional: center text a bit nicer */
-#intro .modal-card h2{ margin-bottom: 8px; }
-#intro .modal-card p{ color: var(--muted); margin: 0 0 14px; }
-.modal-card{
-  position:relative;
-  /* Size to 80% of viewport */
-  width: 70vw;
-  height: 80vh;
-  max-width: 1200px; /* optional safety cap */
-  max-height: 900px; /* optional safety cap */
+/* Footer icons */
+.footer{
+  position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%);
+  display: flex; gap: 16px; z-index: 25; pointer-events: auto;
+}
+.footer-icon{
+  font-size: 22px; line-height: 1;
+  width: 44px; height: 44px; border-radius: 10px;
+  border: 1px solid var(--chip-border); background: var(--chip); color: var(--text);
+  cursor: pointer; transition: border-color .15s ease, transform .15s ease;
+}
+.footer-icon:hover{ border-color:#888; color:#fff; transform: translateY(-1px); }
+.footer-icon[aria-pressed="true"]{ border-color:#aaa; color:#fff; transform: translateY(-1px); }
 
-  background:rgba(16,16,16,.92);
-  border:1px solid #222;
-  border-radius:14px;
-  padding:20px 18px 18px;
-  box-shadow:0 10px 30px rgba(0,0,0,.4);
-  animation:pop .18s ease-out;
+/* Pills rail */
+.pills-rail{
+  position: fixed; left: 50%; bottom: 62px; transform: translateX(-50%);
+  display: flex; flex-wrap: wrap; gap: 8px; z-index: 25;
+  max-width: min(94vw, 1000px); justify-content: center;
+}
+.pill{
+  background: var(--chip); color: var(--text);
+  border: 1px solid var(--chip-border); border-radius: 999px;
+  padding: .45rem .9rem; cursor: pointer; font-weight: 600;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.pill:hover{ border-color:#888; color:#fff; transform: translateY(-1px); }
+.pill.active{ border-color:#aaa; color:#fff; }
 
-  display: flex;
-  flex-direction: column;
+/* Overlay */
+.modal { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.66); }
+.modal[hidden] { display: none; }
+.modal-card {
+  max-width: 960px; margin: 6vh auto; background:#0b0b0b; color:#fff;
+  padding:24px; border-radius:12px; position: relative;
+}
+.modal-close {
+  position:absolute; top:12px; right:16px; font-size:28px;
+  background:none; border:0; color:#fff; cursor:pointer;
 }
 
-/* Let the modal body scroll if content overflows */
-.modal-body{
-  margin-top:8px;
-  color:var(--text);
-  overflow-y: auto;
-  flex: 1 1 auto;
-}
-@keyframes pop{ from{ transform:scale(.96); opacity:0 } to{ transform:scale(1); opacity:1 } }
-
-.modal-close{
-  position:absolute; top:10px; right:10px; width:32px; height:32px;
-  border-radius:6px; border:1px solid #333; background:#151515; color:#ddd; cursor:pointer;
-}
-.modal-close:hover{ color:#fff; border-color:#555 }
-
-.modal-body{ margin-top:8px; color:var(--text) }
-.modal-actions{ display:flex; gap:10px; margin-top:14px; justify-content:flex-end }
-.btn{
-  background:#2a2a2a; color:#fff; border:1px solid #3a3a3a; border-radius:999px;
-  padding:.5rem 1rem; cursor:pointer;
-}
-.btn:hover{ background:#3a3a3a }
-
-/* Dim scene when any modal open (we toggle a class) */
-.dim-3d{ filter:grayscale(.5) brightness(.8) }
-
-/* Bottom-centered nav: ←  [Current]  → */
-.nav{
-  position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
-  display:flex; align-items:center; gap:12px; z-index:10;
+/* Stronger dim when overlay open */
+#webgl.dim-3d{
+  filter: grayscale(.7) brightness(.55) blur(1px);
+  transition: filter .2s ease;
 }
 
-.nav-btn{
-  background:var(--chip); color:var(--text);
-  border:1px solid var(--chip-border);
-  border-radius:8px; width:40px; height:40px;
-  font-size:18px; line-height:1; cursor:pointer;
+/* a11y focus */
+.footer-icon:focus, .pill:focus, .modal-close:focus{
+  outline: 2px solid #888; outline-offset: 2px;
 }
-.nav-btn:hover{ border-color:#777; color:#fff }
 
-.nav-pill{
-  background:var(--chip); color:#fff;
-  border:1px solid var(--chip-border);
-  border-radius:9999px; padding:.55rem 1.2rem;
-  min-width:180px; text-align:center; cursor:pointer;
-  font-weight:600;
+/* Show pills on hover only for pointer devices */
+@media (hover:hover){
+  .pills-rail{ opacity: 0; pointer-events: none; transition: opacity .15s ease; }
+  .footer:hover + .pills-rail,
+  .pills-rail:hover{ opacity: 1; pointer-events: auto; }
 }
-.nav-pill:hover{ border-color:#888 }

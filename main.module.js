@@ -160,9 +160,9 @@ gltfLoader.setKTX2Loader(ktx2Loader);
 
 /* ---------- Carousel data (update URLs) ---------- */
 const CARDS = [
-      { name:'Sloucho',     url:'assets/sloucho.glb',     overlay:'music'      },
-      { name:'Ras',         url:'assets/ras.glb',         overlay:'shop'       },
-      { name:'Super Maramu',url:'assets/super-maramu.glb',overlay:'lore'       },
+      { name:'Sloucho',     url:'assets/sloucho.glb',     overlay:'listen', slug:'listen'     },
+      { name:'Ras',         url:'assets/ras.glb',         overlay:'buy', slug:'buy'       },
+      { name:'Super Maramu',url:'assets/super-maramu.glb',overlay:'explore', slug:'explore'       },
     ];
 
 /* ---------- Ring layout ---------- */
@@ -408,13 +408,13 @@ function dedupeCard(i){
 
 /* ---------- Nav pill ---------- */
 function updateChips(){ if (navCurrent) navCurrent.textContent = CARDS[current]?.name ?? ''; }
-function buildChips(){
+/*function buildChips(){
   updateChips();
   navPrev?.addEventListener('click', ()=> canInteract() && selectIndex(current - 1));
   navNext?.addEventListener('click', ()=> canInteract() && selectIndex(current + 1));
   navCurrent?.addEventListener('click', ()=> canInteract() && openOverlay(CARDS[current].overlay));
 }
-
+*/
 /* ---------- Camera orbital smoothing ---------- */
 let camAngle = 0, camAngleTarget = 0;
 let camRadius = ringRadius * 1.9, camRadiusTarget = camRadius;
@@ -530,6 +530,11 @@ async function selectIndex(i){
             a.paused = true; // keep parked
         }
     });
+    // Let UI know which card/group is active
+    const slug = CARDS[current]?.slug || null;
+    window.dispatchEvent(new CustomEvent('cardchange', {
+      detail: { index: current, slug }
+    }));
 }
 
 
@@ -664,7 +669,7 @@ function maybeShowIntro(){
   if (visited){ intro.hidden = true; return; }
 
   intro.hidden = false; // lock until dismissed
-  selectIndex(0);       // ensure Sloucho selected
+  selectIndex(START_INDEX);       // ensure Sloucho selected
 
   introContinue?.addEventListener('click', ()=>{
     intro.hidden = true;
@@ -702,13 +707,12 @@ function attachClickPick(el){
     const idx = objectToCardIndex(hits[0].object);
     if (idx === null) return;
 
-    if (idx === current){
-      // Active card -> open overlay
-      openOverlay(CARDS[current].overlay);
-    } else {
-      // Neighbor/other card -> navigate to it
-      selectIndex(idx);
-    }
+      if (idx === current){
+        const slug = CARDS[current]?.slug || 'listen';
+        location.hash = `#/${slug}`; // ui.js will render pills/overlay
+      } else {
+        selectIndex(idx);
+      }
   }, { passive: true });
 }
 
@@ -806,3 +810,22 @@ window.addEventListener('resize', ()=>{
   renderer.setSize(w,h);
   //createOrUpdateBackdropWall();   // ensure it still covers the viewport
 });
+
+// Map a group slug to the first matching card index
+function indexForGroupSlug(slug){
+  const i = CARDS.findIndex(c => c.slug === slug);
+  return i >= 0 ? i : 0;
+}
+
+// Public: move selection by group slug ("listen" | "buy" | "explore")
+function selectGroup(slug){
+  const i = indexForGroupSlug(slug);
+  return selectIndex(i);
+}
+
+// Public: current index getter
+function getCurrentIndex(){ return current; }
+
+// If openOverlay wasn’t declared with `export` at definition time,
+// ensure it’s exported here (same for selectIndex).
+export { CARDS, selectGroup, getCurrentIndex, selectIndex, openOverlay };

@@ -19,30 +19,8 @@
   <!-- 3D -->
   <canvas id="webgl" aria-label="OUCH.WORLD 3D scene"></canvas>
 
-  <!-- Chips / carousel buttons -->
-  <nav id="carouselNav" class="nav" aria-label="Carousel navigation">
-    <button id="navPrev"  class="nav-btn" aria-label="Previous">←</button>
-    <button id="navCurrent" class="nav-pill" aria-label="Open section"></button>
-    <button id="navNext"  class="nav-btn" aria-label="Next">→</button>
-  </nav>
-
-  <!-- Intro gate (first visit only) -->
-  <div id="intro" class="modal intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
-    <div class="modal-card">
-      <h2 id="intro-title">Welcome to OUCH™</h2>
-      <p>
-        Greetings friend, and welcome to the wonderful world of OUCH™.
-        Take a look around — and if you have any questions or just want to chat,
-        I’ll be here and happy to help.
-      </p>
-      <div class="modal-actions">
-        <button id="intro-continue" class="btn">Got it</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Centered overlay (reused for all items) -->
-  <div id="overlay" class="modal" role="dialog" aria-modal="true" aria-labelledby="overlay-title" hidden>
+  <!-- Reused full-screen overlay (subpages live here) -->
+  <div id="overlay" class="modal" role="dialog" aria-modal="true" aria-labelledby="overlay-title" hidden tabindex="-1">
     <div class="modal-card">
       <button id="overlay-close" class="modal-close" aria-label="Close">×</button>
       <h2 id="overlay-title"></h2>
@@ -50,6 +28,17 @@
     </div>
   </div>
 
+  <!-- Footer icons -->
+  <footer id="siteFooter" class="footer" aria-label="Primary">
+    <button class="footer-icon" data-group="listen"  aria-label="Listen">🎧</button>
+    <button class="footer-icon" data-group="buy"     aria-label="Buy">💵</button>
+    <button class="footer-icon" data-group="explore" aria-label="Explore">🧩</button>
+  </footer>
+
+  <!-- Pills rail: shows subpages for the active group -->
+  <div id="pillsRail" class="pills-rail" aria-live="polite"></div>
+
   <script type="module" src="main.module.js"></script>
+  <script type="module" src="ui.js"></script>
 </body>
 </html>
