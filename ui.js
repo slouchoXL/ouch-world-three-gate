@@ -46,6 +46,10 @@ let visibleGroups = ['listen','buy','explore'];
 
 /* ========= RENDERERS ========= */
 
+function hoverMuted(){
+  return performance.now() < (window.__hoverMuteUntil || 0);
+}
+
 function setPillsAnchorForVisible(groups, group){
   const n   = Math.max(1, groups.length);
   const idx = Math.max(0, groups.indexOf(group));
@@ -122,10 +126,11 @@ function renderLanes(groups){
 
   // (Re)bind hover events
   lanesRoot.querySelectorAll('.lane').forEach(lane=>{
-    lane.addEventListener('mouseenter', ()=>{
-      const g = lane.dataset.group;
-      if (g) previewGroup(g);
-    });
+      lane.addEventListener('mouseenter', ()=>{
+        if (hoverMuted()) return;
+        const g = lane.dataset.group; if (!g) return;
+        previewGroup(g);
+      });
     lane.addEventListener('mouseleave', (e)=>{
       if (isInsideUISurfaces(e.relatedTarget)) return;
       restoreActive();
@@ -243,9 +248,9 @@ window.addEventListener('layoutchange', (e)=>{
 
 // Footer hover (desktop)
 footer.addEventListener('mouseenter', e=>{
+  if (hoverMuted()) return;
   const btn = e.target.closest('.footer-icon'); if (!btn) return;
-  const g = btn.dataset.group;
-  previewGroup(g);
+  previewGroup(btn.dataset.group);
 }, true);
 
 footer.addEventListener('mouseleave', (e)=>{
@@ -267,6 +272,7 @@ footer.addEventListener('click', (e)=>{
 
 // Pills leave → restore
 pillsRail.addEventListener('mouseleave', (e)=>{
+  if (hoverMuted()) return;
   if (isInsideUISurfaces(e.relatedTarget)) return;
   restoreActive();
 });

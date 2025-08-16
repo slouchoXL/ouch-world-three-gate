@@ -406,13 +406,18 @@ function emitLayoutChange(){
 }
 
 /* One entry point to place, frame, and notify UI */
-                  function applyLayout(){
-                    const indices = visibleIndices();
-                    frameCameraToVisible();                               // set camZTarget (clamped)
-                    positionVisibleByViewportLanes(indices, insetForMode()); // uses camZTarget for spacing
-                    indices.forEach(ensureIdleRunning);                           // <-- make sure newly visible idles run
-                    emitLayoutChange();                                   // tell UI what’s visible
-                  }
+function applyLayout({ instantCamera = false } = {}){
+  const indices = visibleIndices();
+  frameCameraToVisible();                               // sets camZTarget
+  if (instantCamera){
+    // snap this frame so the card appears immediately
+    camera.position.set(camLook.x, CAMERA_Y, camLook.z + (camZTarget - camLook.z));
+  }
+  positionVisibleByViewportLanes(indices, insetForMode());
+  // make sure any newly visible idles are running
+  indices.forEach(ensureIdleRunning);
+  emitLayoutChange();
+}
 
 /* ---------- Select (no camera move) ---------- */
                   async function selectIndex(i){
@@ -425,12 +430,20 @@ function emitLayoutChange(){
                     applyActiveStyling();
 
                     // layout for current mode (3/2/1), keep current in view for 2-up/1-up
-                    applyLayout();
+                      applyLayout({instantCamera});
 
                     // fire UI event for things that only care about the active card
                     const slug = CARDS[current]?.slug || null;
                     window.dispatchEvent(new CustomEvent('cardchange', { detail:{ index: current, slug } }));
                   }
+
+// --- Hover mute so lanes/icons don't immediately re-preview after swipe ---
+function muteHover(ms = 250){
+  window.__hoverMuteUntil = performance.now() + ms; // ui.js checks this
+}
+function hoverMuted(){
+  return performance.now() < (window.__hoverMuteUntil || 0);
+}
 
 /* ---------- Swipe / Drag / Trackpad navigation (smoother) ---------- */
 const CAN_SWIPE = () => layoutMode !== '3'; // enable in 2-up & 1-up
@@ -521,25 +534,22 @@ function endDrag(e){
   const vx = Math.abs(dx) / dt;
 
   let didSwipe = false;
-  if (Math.abs(dx) > H_SWIPE_PX || vx > FLICK_VX){
-    const dir = dx < 0 ? +1 : -1; // left → next
-    const target = current + dir;
+    // in endDrag(e) inside your swipe block:
+    if (Math.abs(dx) > H_SWIPE_PX || vx > FLICK_VX){
+      const dir = dx < 0 ? +1 : -1;
+      const target = current + dir;
 
-    // only commit if the target card will be visible in this mode
-    const vis = new Set(visibleIndices());
-    const nextIdx = (target + CARDS.length) % CARDS.length;
-    if (vis.has(nextIdx) || layoutMode === '1'){ // in 1-up you can always change
-      selectIndex(target);
-      didSwipe = true;
+      const vis = new Set(visibleIndices());
+      const nextIdx = (target + CARDS.length) % CARDS.length;
+
+      if (vis.has(nextIdx) || layoutMode === '1'){
+        muteHover(280);                    // stop lanes/footer from re-previewing
+        selectIndex(target, { instantCamera: true }); // snap this transition
+        didSwipe = true;
+      }
     }
-  }
-
-  // reset preview
-  previewIndex(-1);
-
-  // cooldown to avoid double-firing
-  if (didSwipe) swipeCooldownUntil = performance.now() + COOLDOWN_MS;
-
+    previewIndex(-1);
+    if (didSwipe) swipeCooldownUntil = performance.now() + COOLDOWN_MS;
   cancelDrag(e);
 }
 
