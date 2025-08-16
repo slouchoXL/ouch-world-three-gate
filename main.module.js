@@ -550,15 +550,17 @@ function loop(){
 /* ---------- Kick ---------- */
 boot();
 
+    function previewIndex(i){
+      for (let k = 0; k < CARDS.length; k++){
+        const node = cache.get(k); if (!node) continue;
+        const highlight = (i >= 0) ? (k === i) : (k === current);
+        setDim(node, !highlight);
+        node.position.y = Y_BASE;
+      }
+    }
+
 /* ---------- Exports for ui.js ---------- */
 export { CARDS, selectGroup, getCurrentIndex, selectIndex, openOverlay, /* for preview hover */ previewIndex, indexForGroupSlug };
 
 /* ---------- Hover preview (dim only) ---------- */
-function previewIndex(i){
-  for (let k = 0; k < CARDS.length; k++){
-    const node = cache.get(k); if (!node) continue;
-    const highlight = (i >= 0) ? (k === i) : (k === current);
-    setDim(node, !highlight);
-    node.position.y = Y_BASE;
-  }
-}
+
