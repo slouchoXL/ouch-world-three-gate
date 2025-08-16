@@ -24,7 +24,7 @@ body{
 /* Footer icons */
 .footer{
   position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
-  display: flex; gap: 150px; z-index: 25; pointer-events: auto;
+  display: flex; gap: 500px; z-index: 25; pointer-events: auto;
 }
 .footer-icon{
   font-size: 24px; line-height: 1;

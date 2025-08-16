@@ -1,17 +1,15 @@
 // main.module.js — OUCH: three characters side-by-side (no carousel)
-console.log('OUCH row layout build loaded');
-// Imports via <script type="importmap"> in index.html
 import * as THREE from 'three';
 import { GLTFLoader }   from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader }  from 'three/addons/loaders/DRACOLoader.js';
 import { KTX2Loader }   from 'three/addons/loaders/KTX2Loader.js';
 
 /* ---------- DOM ---------- */
-const canvas        = document.getElementById('webgl');
-const modal         = document.getElementById('overlay');
-const modalTitle    = document.getElementById('overlay-title');
-const modalBody     = document.getElementById('overlay-body');
-const modalClose    = document.getElementById('overlay-close');
+const canvas      = document.getElementById('webgl');
+const modal       = document.getElementById('overlay');
+const modalTitle  = document.getElementById('overlay-title');
+const modalBody   = document.getElementById('overlay-body');
+const modalClose  = document.getElementById('overlay-close');
 
 /* ---------- Three setup ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
@@ -28,13 +26,18 @@ const TARGET_Y = 1.1;
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 200);
 scene.add(camera);
 
-/* Lights */
+// Lights
 scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 1.0));
 const dir = new THREE.DirectionalLight(0xffffff, 2.0);
 dir.position.set(3,6,5);
 scene.add(dir);
 
-/* Floor (gradient) */
+// One parent for the whole row
+const rowGroup = new THREE.Group();
+rowGroup.name = 'RowGroup';
+scene.add(rowGroup);
+
+/* ---------- Floor (gradient) ---------- */
 function makeFloorGradient({
   size = 512,
   base = '#0a0a0a',
@@ -47,10 +50,13 @@ function makeFloorGradient({
   g.fillStyle = base; g.fillRect(0,0,size,size);
   const cx=size/2, cy=size/2, r=size*0.48;
   const grad = g.createRadialGradient(cx, cy, r*0.12, cx, cy, r);
-  grad.addColorStop(0.00, inner); grad.addColorStop(0.55, mid); grad.addColorStop(1.00, outer);
+  grad.addColorStop(0.00, inner);
+  grad.addColorStop(0.55, mid);
+  grad.addColorStop(1.00, outer);
   g.globalCompositeOperation = 'multiply';
   g.fillStyle = grad; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI*2); g.fill();
-  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = false;
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = false;
   return tex;
 }
 const ground = new THREE.Mesh(
@@ -78,9 +84,9 @@ const CARDS = [
   { name:'Ras',          url:'assets/ras.glb',          slug:'buy',     overlay:'buy'     },
   { name:'Super Maramu', url:'assets/super-maramu.glb', slug:'explore', overlay:'explore' },
 ];
-let current = 1; // start with middle one active
+let current = 1; // start with the middle one active
 
-/* ---------- Helpers ---------- */
+/* ---------- Material dimming helpers ---------- */
 function forEachMat(mat, fn){ Array.isArray(mat) ? mat.forEach(fn) : fn(mat); }
 const originalMats = new WeakMap();
 function setDim(group, dim = true){
@@ -129,39 +135,7 @@ function setDim(group, dim = true){
   });
 }
 
-// Fit the camera to all loaded characters in the row
-function fitRowToCamera({ padding = 1.08 } = {}){
-  // Union bounds of all cached nodes
-  const box = new THREE.Box3();
-  let any = false;
-  cache.forEach(node=>{
-    if (!node) return;
-    node.updateWorldMatrix(true, true);
-    const b = new THREE.Box3().setFromObject(node);
-    if (!isFinite(b.min.x) || !isFinite(b.max.x)) return;
-    box.union(b); any = true;
-  });
-  if (!any) return;
-
-  // Center target at row center (keep Y fixed at TARGET_Y)
-  const center = new THREE.Vector3();
-  box.getCenter(center);
-  camCenter.set(center.x, TARGET_Y, center.z);
-  camCenterTarget.copy(camCenter);
-
-  // Compute distance along Z to frame width/height with a little padding
-  const size = new THREE.Vector3();
-  box.getSize(size);
-  const maxDim = Math.max(size.x, size.y);
-  const fov = THREE.MathUtils.degToRad(camera.fov);
-  const distH = (maxDim * 0.5) / Math.tan(fov * 0.5);
-  const dist = distH * padding + 0.5; // tiny safety
-
-  // Place camera on Z axis looking at target
-  camRadius = camRadiusTarget = dist;
-  camAngle = camAngleTarget = 0; // straight-on
-}
-
+/* ---------- Bounds & normalize ---------- */
 function getMeshBounds(root){
   const box = new THREE.Box3(); let has = false;
   root.traverse(o=>{
@@ -169,11 +143,12 @@ function getMeshBounds(root){
       o.updateWorldMatrix(true, false);
       if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
       const bb = o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld);
-      box.union(bb); has = true;
+      if (isFinite(bb.min.x) && isFinite(bb.max.x)) { box.union(bb); has = true; }
     }
   });
   return has ? box : null;
 }
+function getMeshBoundsDeep(root){ return getMeshBounds(root); }
 
 function normalizeAndGround(node, targetHeight = null, groundY = 0.0) {
   const box = getMeshBounds(node); if (!box) return;
@@ -189,12 +164,9 @@ function normalizeAndGround(node, targetHeight = null, groundY = 0.0) {
   node.updateWorldMatrix(true, true);
 }
 
-/* ---------- Cache / animations ---------- */
-const cache    = new Map(); // i -> THREE.Group
-const inflight = new Map(); // i -> Promise<THREE.Group>
+/* ---------- Anim helpers ---------- */
 const mixers   = new Map(); // i -> AnimationMixer
 const actions  = new Map(); // i -> { name: action }
-
 function findIdleClip(clips){
   return clips.find(c => /idle|breath|loop/i.test(c.name)) || clips[0] || null;
 }
@@ -233,6 +205,9 @@ function applyActiveStyling(){
 }
 
 /* ---------- Load ---------- */
+const cache    = new Map(); // i -> THREE.Group
+const inflight = new Map(); // i -> Promise<THREE.Group>
+
 async function ensureLoaded(i){
   if (cache.has(i))     return cache.get(i);
   if (inflight.has(i))  return inflight.get(i);
@@ -246,7 +221,7 @@ async function ensureLoaded(i){
       node.traverse(o=>{ if (o.isMesh){ o.castShadow=false; o.receiveShadow=true; o.frustumCulled = true; }});
       normalizeAndGround(node, /*targetHeight*/ 1.75, /*groundY*/ 0.0);
       positionCard(node, i);
-      scene.add(node);
+      rowGroup.add(node);
       cache.set(i, node);
 
       if (glb.animations && glb.animations.length){
@@ -263,7 +238,7 @@ async function ensureLoaded(i){
       const node = new THREE.Group();
       node.userData.cardIndex = i;
       positionCard(node, i);
-      scene.add(node);
+      rowGroup.add(node);
       cache.set(i, node);
       return node;
     } finally {
@@ -275,10 +250,10 @@ async function ensureLoaded(i){
   return p;
 }
 
-/* ---------- Public selection (no camera move) ---------- */
+/* ---------- Select (no camera move) ---------- */
 async function selectIndex(i){
   current = (i + CARDS.length) % CARDS.length;
-  // Ensure all are loaded (cheap for 3)
+
   await Promise.all([0,1,2].map(ensureLoaded));
   applyActiveStyling();
 
@@ -296,7 +271,7 @@ async function selectIndex(i){
   window.dispatchEvent(new CustomEvent('cardchange', { detail:{ index: current, slug } }));
 }
 
-/* Map slug -> index */
+/* ---------- Group → index helpers ---------- */
 function indexForGroupSlug(slug){
   const i = CARDS.findIndex(c => c.slug === slug);
   return i >= 0 ? i : 1;
@@ -304,7 +279,7 @@ function indexForGroupSlug(slug){
 function selectGroup(slug){ return selectIndex(indexForGroupSlug(slug)); }
 function getCurrentIndex(){ return current; }
 
-/* ---------- Overlay (kept for compatibility with ui.js routes if needed) ---------- */
+/* ---------- Overlay (kept for ui.js) ---------- */
 function openOverlay(kind){
   renderer.domElement.classList.add('dim-3d');
   modalTitle.textContent =
@@ -321,27 +296,19 @@ function closeOverlay(){
 modalClose?.addEventListener('click', closeOverlay);
 window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && !modal.hidden) closeOverlay(); });
 
-/* ---------- Boot ---------- */
-(async function boot(){
-  // Load all three
-  await Promise.all([0,1,2].map(ensureLoaded));
+/* ---------- Center & Frame ---------- */
+function centerRowGroupAtOrigin(){
+  const box = getMeshBoundsDeep(rowGroup);
+  if (!box) return;
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  // keep y as-is; center x/z
+  rowGroup.position.x -= center.x;
+  rowGroup.position.z -= center.z;
+}
 
-  // Place & style
-  applyActiveStyling();
-    
-    getRowBounds();
-    centerRowAtZero();
-    
-
-  // Frame camera to see all three comfortably
-  frameCameraToRow(1.02);
-
-  // Start mixers paused except active (handled in selectIndex)
-  await selectIndex(current);
-})();
-
-function frameCameraToRow(pad = 1.06) {
-  const box = getRowBounds();
+function frameCameraToRow(pad = 1.02){
+  const box = getMeshBoundsDeep(rowGroup);
   if (!box) return;
 
   const size = new THREE.Vector3(); box.getSize(size);
@@ -358,51 +325,27 @@ function frameCameraToRow(pad = 1.06) {
   let dist = Math.max(distW, distH);
   dist = Math.max(dist, 3.5);
 
-  const look = new THREE.Vector3(0, TARGET_Y, 0);   // <-- fixed center line
-  camera.position.set(0, CAMERA_Y, look.z + dist);
+  const look = new THREE.Vector3(rowGroup.position.x, TARGET_Y, rowGroup.position.z);
+  camera.position.set(look.x, CAMERA_Y, look.z + dist);
   camera.lookAt(look);
 }
 
-// --- add near your other helpers ---
-function getRowBounds(){
-  const box = new THREE.Box3();
-  let any = false;
-  [0,1,2].forEach(i=>{
-    const n = cache.get(i);
-    if (!n) return;
-    n.updateWorldMatrix(true, true);
-    const b = new THREE.Box3().setFromObject(n);
-    if (isFinite(b.min.x) && isFinite(b.max.x)) {
-      box.union(b);
-      any = true;
-    }
-  });
-  return any ? box : null;
-}
-
-// Shift all three so their combined center.x is exactly 0
-function centerRowAtZero(){
-  const box = getRowBounds();
-  if (!box) return;
-  const center = new THREE.Vector3();
-  box.getCenter(center);
-  if (Math.abs(center.x) < 1e-4) return; // already centered enough
-
-  [0,1,2].forEach(i=>{
-    const n = cache.get(i);
-    if (n) n.position.x -= center.x; // slide horizontally only
-  });
-}
+/* ---------- Boot ---------- */
+(async function boot(){
+  await Promise.all([0,1,2].map(ensureLoaded)); // load
+  applyActiveStyling();                          // dim neighbors, lift active
+  centerRowGroupAtOrigin();                      // recenter row at x/z = 0
+  frameCameraToRow(1.02);                        // frame (tweak pad to be closer/farther)
+  await selectIndex(current);                    // play idle on active
+})();
 
 /* ---------- Render loop ---------- */
 const clock = new THREE.Clock();
 function loop(){
   requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), 1/30);
-
   const mx = mixers.get(current);
   if (mx) mx.update(dt);
-
   renderer.render(scene, camera);
 }
 loop();
@@ -412,9 +355,8 @@ window.addEventListener('resize', ()=>{
   const w = window.innerWidth, h = window.innerHeight;
   camera.aspect = w/h; camera.updateProjectionMatrix();
   renderer.setSize(w,h);
-  frameCameraToRow();
+  frameCameraToRow(1.02);
 });
 
 /* ---------- Exports for ui.js ---------- */
 export { CARDS, selectGroup, getCurrentIndex, selectIndex, openOverlay };
-
