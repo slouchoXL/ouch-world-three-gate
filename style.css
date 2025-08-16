@@ -37,23 +37,33 @@ body{
 @media (hover:none){ #lanes{ display:none; } }*/
 
 /* Footer icons (three equal thirds) */
+/* Footer uses a dynamic column count that ui.js sets via --cols */
 .footer{
   position: fixed;
   left: 0; right: 0; bottom: 12px;
   display: grid;
-  grid-template-columns: repeat(var(--cols, 3), 1fr); /* <-- dynamic */
-  justify-items: center; align-items: center;
-  width: 100vw; z-index: 25; pointer-events: auto;
+  grid-template-columns: repeat(var(--cols, 3), 1fr); /* <= key line */
+  justify-items: center;
+  align-items: center;
+  width: 100vw;
+  z-index: 25;
+  pointer-events: auto;
 }
-}
-.footer-icon{
+
+/* Increase specificity so it definitely applies to the JS-rendered buttons */
+.footer .footer-icon{
   font-size: 22px; line-height: 1;
   width: 44px; height: 44px; border-radius: 10px;
-  border: 1px solid var(--chip-border); background: var(--chip); color: var(--text);
-  cursor: pointer; transition: border-color .15s ease, transform .15s ease;
+  border: 1px solid var(--chip-border);
+  background: var(--chip);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color .15s ease, transform .15s ease;
+  display: inline-flex; align-items: center; justify-content: center;
 }
-.footer-icon:hover{ border-color:#888; color:#fff; transform: translateY(-1px); }
-
+.footer .footer-icon:hover{
+  border-color:#888; color:#fff; transform: translateY(-1px);
+}
 /* Single pills rail (centered; JS re-anchors left/50/83%) */
 #pillsRail{
   position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
