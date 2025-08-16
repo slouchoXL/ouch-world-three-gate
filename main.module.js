@@ -35,13 +35,13 @@ scene.add(camera);
 /* ---------- Responsive breakpoints (relative to first load) ---------- */
 const BASELINE_WIDTH = window.innerWidth;
 const TWO_UP_RATIO   = 0.75;
-const ONE_UP_RATIO   = 0.5;
+const ONE_UP_RATIO   = 0.6;
 
 const BP_TWO_UP = Math.round(BASELINE_WIDTH * TWO_UP_RATIO);
 const BP_ONE_UP = Math.round(BASELINE_WIDTH * ONE_UP_RATIO);
 
 /* ---------- Camera sizing clamps ---------- */
-const BASE_DIST     = { '3': 7.0, '2': 5.0, '1': 3.0 };
+const BASE_DIST     = { '3': 7.0, '2': 6.0, '1': 5.0 };
 const MAX_DIST_MULT = 1.35;
 
 /* ---------- Camera targets (lerped in loop) ---------- */
