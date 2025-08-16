@@ -25,6 +25,10 @@ body{
 #lanes{
   position: fixed; inset: 0; pointer-events: none; z-index: 10;
 }
+
+#lanes { z-index: 10; }
+.footer, #pillsRail { z-index: 25; }
+
 #lanes .lane{
   position: absolute; top: 0; bottom: 0; width: 33.3333%;
   pointer-events: auto; cursor: pointer;
@@ -68,6 +72,11 @@ body{
   padding: .45rem .9rem; cursor: pointer; font-weight: 600;
   font-size: 14px; line-height: 1.1;
   transition: border-color .15s ease, transform .15s ease;
+}
+
+.pill{
+    white-space: nowrap;
+    max-width: 38ch;
 }
 @media (min-width:768px){ .pill{ font-size: 15px; } }
 .pill:hover{ border-color:#888; color:#fff; transform: translateY(-1px); }
