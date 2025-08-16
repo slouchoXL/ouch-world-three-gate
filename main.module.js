@@ -118,8 +118,8 @@ let layoutMode = '3'; // '3' | '2' | '1'
 //let resizeTimer = null;
 
 // Change these breakpoints if you like:
-const BP_ONE_UP   = 700;  // < 700px => 1-up
-const BP_TWO_UP   = 1100; // 700–1099 => 2-up, >= 1100 => 3-up
+//const BP_ONE_UP   = 700;  // < 700px => 1-up
+//const BP_TWO_UP   = 1100; // 700–1099 => 2-up, >= 1100 => 3-up
 
 /* ---------- Material dimming helpers ---------- */
 function forEachMat(mat, fn){ Array.isArray(mat) ? mat.forEach(fn) : fn(mat); }
