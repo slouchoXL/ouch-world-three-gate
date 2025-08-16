@@ -530,6 +530,26 @@ function moveDrag(e){
   previewByProgress(drag.x - drag.x0);
 }
 
+// Map a clientX to the visible index under that column (1/2/3-up aware)
+function indexUnderPointer(clientX){
+  const vis = visibleIndices();               // e.g. [0,2] in 2-up
+  const n   = Math.max(1, vis.length);
+  const w   = Math.max(1, window.innerWidth);
+  const col = Math.min(n - 1, Math.max(0, Math.floor((clientX / w) * n)));
+  return vis[col];                             // returns a CARD index
+}
+
+// Apply hover-style highlight to whatever is under the pointer right now
+function applyHoverFromPointer(clientX){
+  // only do this on hover-capable devices & when overlay is closed
+  const hoverCapable = window.matchMedia('(hover:hover)').matches;
+  const overlayOpen  = !!document.getElementById('overlay') && !document.getElementById('overlay').hidden;
+  if (!hoverCapable || overlayOpen) return;
+
+  const idx = indexUnderPointer(clientX);
+  if (typeof previewIndex === 'function') previewIndex(idx);
+}
+
 function endDrag(e){
   if (!dragging) return;
   dragging = false;
@@ -545,18 +565,16 @@ function endDrag(e){
   if (passedDistance || passedVelocity){
     const dir     = dx < 0 ? +1 : -1;      // swipe left -> next (+1), right -> prev (-1)
     const target  = current + dir;
-    const nextIdx = ((target % CARDS.length) + CARDS.length) % CARDS.length;
 
-    const visibleSet = new Set(visibleIndices());
-    const canShow = visibleSet.has(nextIdx) || layoutMode === '1';
+    // briefly suppress hover so swipe feels decisive (no flicker)
+    if (typeof muteHover === 'function') muteHover(280);
 
-    if (canShow){
-      // briefly suppress hover-based previews so swipe feels decisive
-      if (typeof muteHover === 'function') muteHover(280);
+    // switch selection; snap camera quickly (no Z easing lag)
+    // make sure your selectIndex accepts the options object
+    selectIndex(target, { instantCamera: true });
 
-      // snap the camera (no easing) so there’s no post-swipe lag
-      selectIndex(target, { instantCamera: true });
-    }
+    // immediately set the highlight based on where the pointer actually is
+    applyHoverFromPointer(pt.clientX);
   }
 }
 
