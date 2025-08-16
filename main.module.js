@@ -283,8 +283,8 @@ async function ensureLoaded(i){
 /* ---------- Layout helpers ---------- */
 function insetForMode(){
   // Keep 3-up a bit looser on first paint
-  if (layoutMode === '3') return 0.10; // was 0.08 → more breathing room
-  if (layoutMode === '2') return 0.10;
+  if (layoutMode === '3') return 0.07; // was 0.08 → more breathing room
+  if (layoutMode === '2') return 0.07;
   return 0.08; // 1-up
 }
 
