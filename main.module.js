@@ -367,7 +367,7 @@ function positionVisibleByViewportLanes(indices, inset = 0.08){
 }
 
 
-function frameCameraToVisible(pad){
+function frameCameraToVisible(pad, instantCamera = false){
   if (pad == null) pad = (layoutMode === '3') ? 1.10 : (layoutMode === '2') ? 1.06 : 1.02;
 
   const temp = new THREE.Group();
@@ -394,6 +394,10 @@ function frameCameraToVisible(pad){
 
   camLook.set(rowGroup.position.x, TARGET_Y, rowGroup.position.z);
   camZTarget = camLook.z + dist;
+    
+    if (instantCamera){
+        camera.position.z = camZTarget;
+    }
 }
 
 /* Emit one UI event with the current visible groups (in order) */
@@ -408,7 +412,7 @@ function emitLayoutChange(){
 /* One entry point to place, frame, and notify UI */
 function applyLayout({ instantCamera = false } = {}){
   const indices = visibleIndices();
-  frameCameraToVisible();                               // sets camZTarget
+  frameCameraToVisible(undefined, instantCamera);                               // sets camZTarget
   if (instantCamera){
     // snap this frame so the card appears immediately
     camera.position.set(camLook.x, CAMERA_Y, camLook.z + (camZTarget - camLook.z));
@@ -420,7 +424,7 @@ function applyLayout({ instantCamera = false } = {}){
 }
 
 /* ---------- Select (no camera move) ---------- */
-                  async function selectIndex(i){
+async function selectIndex(i, {instantCamera = false} ={}){
                     current = (i + CARDS.length) % CARDS.length;
 
                     // make sure all three are in memory
@@ -527,30 +531,33 @@ function moveDrag(e){
 }
 
 function endDrag(e){
-  if (!drag.active) return;
+  if (!dragging) return;
+  dragging = false;
 
-  const dx = drag.x - drag.x0;
-  const dt = Math.max(1, performance.now() - drag.t0);
-  const vx = Math.abs(dx) / dt;
+  const pt = e.changedTouches ? e.changedTouches[0] : e;
+  const dx = pt.clientX - startX;
+  const dt = Math.max(1, performance.now() - startT);
+  const vx = Math.abs(dx) / dt;            // px per ms
 
-  let didSwipe = false;
-    // in endDrag(e) inside your swipe block:
-    if (Math.abs(dx) > H_SWIPE_PX || vx > FLICK_VX){
-      const dir = dx < 0 ? +1 : -1;
-      const target = current + dir;
+  const passedDistance = Math.abs(dx) > H_SWIPE_PX;
+  const passedVelocity = vx > FLICK_VX;
 
-      const vis = new Set(visibleIndices());
-      const nextIdx = (target + CARDS.length) % CARDS.length;
+  if (passedDistance || passedVelocity){
+    const dir     = dx < 0 ? +1 : -1;      // swipe left -> next (+1), right -> prev (-1)
+    const target  = current + dir;
+    const nextIdx = ((target % CARDS.length) + CARDS.length) % CARDS.length;
 
-      if (vis.has(nextIdx) || layoutMode === '1'){
-        muteHover(280);                    // stop lanes/footer from re-previewing
-        selectIndex(target, { instantCamera: true }); // snap this transition
-        didSwipe = true;
-      }
+    const visibleSet = new Set(visibleIndices());
+    const canShow = visibleSet.has(nextIdx) || layoutMode === '1';
+
+    if (canShow){
+      // briefly suppress hover-based previews so swipe feels decisive
+      if (typeof muteHover === 'function') muteHover(280);
+
+      // snap the camera (no easing) so there’s no post-swipe lag
+      selectIndex(target, { instantCamera: true });
     }
-    previewIndex(-1);
-    if (didSwipe) swipeCooldownUntil = performance.now() + COOLDOWN_MS;
-  cancelDrag(e);
+  }
 }
 
 function cancelDrag(e){
