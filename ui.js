@@ -1,5 +1,5 @@
 // ui.js — footer icons + pills + overlay routing
-import { CARDS, selectGroup, getCurrentIndex, selectIndex } from './main.module.js';
+import { CARDS, selectGroup, getCurrentIndex, selectIndex } from './main.module.js?v=row1';
 
 const SITEMAP = {
   listen:  [
