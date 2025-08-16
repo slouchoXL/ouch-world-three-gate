@@ -76,6 +76,8 @@ function highlightFooter(group){
 }
 
 function renderFooterIcons(groups){
+  const iconFor = { listen:'🎧', buy:'💵', explore:'🧩' }; // <-- define this
+
   footer.innerHTML = '';
   groups.forEach(g=>{
     const btn = document.createElement('button');
@@ -85,25 +87,38 @@ function renderFooterIcons(groups){
     btn.textContent = iconFor[g] || '•';
     footer.appendChild(btn);
   });
-  // let CSS adapt columns: grid-template-columns: repeat(var(--cols), 1fr)
-  footer.style.setProperty('--cols', String(groups.length));
+
+  // Let CSS adapt columns: grid-template-columns: repeat(var(--cols, 3), 1fr)
+  footer.style.setProperty('--cols', String(Math.max(1, groups.length))); // <-- safe min 1
 }
 
 function renderLanes(groups){
+  const lanesRoot = document.getElementById('lanes');
   if (!lanesRoot) return;
+
+  // Only create lanes on hover-capable devices
+  const hoverCapable = window.matchMedia('(hover:hover)').matches;
+  lanesRoot.style.display = hoverCapable ? '' : 'none';
+  if (!hoverCapable) { lanesRoot.innerHTML = ''; return; }
+
   lanesRoot.innerHTML = '';
-  groups.forEach(g=>{
+  const n = Math.max(1, groups.length);
+  const widthPct = 100 / n;
+
+  groups.forEach((g, i)=>{
     const lane = document.createElement('div');
     lane.className = 'lane';
     lane.dataset.group = g;
+    lane.style.left = (i * widthPct) + '%';
+    lane.style.width = widthPct + '%';
     lanesRoot.appendChild(lane);
   });
 
-  // Bind hover (desktop)
+  // (Re)bind hover events
   lanesRoot.querySelectorAll('.lane').forEach(lane=>{
     lane.addEventListener('mouseenter', ()=>{
-      const g = lane.dataset.group; if (!g) return;
-      previewGroup(g);
+      const g = lane.dataset.group;
+      if (g) previewGroup(g);
     });
     lane.addEventListener('mouseleave', (e)=>{
       if (isInsideUISurfaces(e.relatedTarget)) return;
@@ -111,7 +126,6 @@ function renderLanes(groups){
     });
   });
 }
-
 /* ========= PREVIEW / RESTORE ========= */
 
 function isInsideUISurfaces(el){
@@ -198,19 +212,26 @@ window.addEventListener('hashchange', ()=>{
 
 // From main.module.js whenever layout switches 3↔2↔1 or visible set changes
 window.addEventListener('layoutchange', (e)=>{
-  if (Array.isArray(e.detail?.groups) && e.detail.groups.length){
-    visibleGroups = e.detail.groups.slice();
-    renderFooterIcons(visibleGroups);
-    renderLanes(visibleGroups);
+  const groups = e.detail?.groups;
+  if (!Array.isArray(groups) || groups.length === 0) return;
 
-    const active = indexToGroup(getCurrentIndex());
-    // If active isn't visible anymore, pick the first visible
-    const anchorGroup = visibleGroups.includes(active) ? active : visibleGroups[0];
+  // 1) persist the new visibility model
+  visibleGroups = groups.slice();
 
-    highlightFooter(anchorGroup);
-    renderPills(anchorGroup);
-    setPillsAnchorForVisible(visibleGroups, anchorGroup);
-  }
+  // 2) rebuild UI surfaces to match (icons + lanes)
+  renderFooterIcons(visibleGroups);
+  renderLanes(visibleGroups);
+
+  // 3) choose the anchor group (current if still visible, else first visible)
+  const currentGroup = indexToGroup(getCurrentIndex());
+  const anchorGroup = visibleGroups.includes(currentGroup)
+    ? currentGroup
+    : visibleGroups[0];
+
+  // 4) update footer highlight + pills and anchor them under the right column
+  highlightFooter(anchorGroup);
+  renderPills(anchorGroup);
+  setPillsAnchorForVisible(visibleGroups, anchorGroup);
 });
 
 // Footer hover (desktop)

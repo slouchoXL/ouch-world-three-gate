@@ -23,24 +23,28 @@ body{
 
 /* ----- Hover thirds overlay (desktop only) ----- */
 /* Hover thirds overlay */
+/* Hover lanes: stop hard-coding 3 thirds */
 #lanes{
   position: fixed; inset: 0; pointer-events: none; z-index: 10;
 }
 #lanes .lane{
-  position: absolute; top: 0; bottom: 0; width: 33.3333%;
+  position: absolute; top: 0; bottom: 0;
   pointer-events: auto; cursor: pointer;
 }
-#lanes .lane:nth-child(1){ left: 0; }
+/*#lanes .lane:nth-child(1){ left: 0; }
 #lanes .lane:nth-child(2){ left: 33.3333%; }
 #lanes .lane:nth-child(3){ left: 66.6666%; }
-@media (hover:none){ #lanes{ display:none; } }
+@media (hover:none){ #lanes{ display:none; } }*/
 
 /* Footer icons (three equal thirds) */
 .footer{
-  position: fixed; left: 0; right: 0; bottom: 12px;
-  display: grid; grid-template-columns: repeat (var(--cols, 3), 1fr);
+  position: fixed;
+  left: 0; right: 0; bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), 1fr); /* <-- dynamic */
   justify-items: center; align-items: center;
-  width: 100vw; z-index: 25;
+  width: 100vw; z-index: 25; pointer-events: auto;
+}
 }
 .footer-icon{
   font-size: 22px; line-height: 1;
