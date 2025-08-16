@@ -21,22 +21,32 @@ body{
   width:100vw; height:100vh;
 }
 
-/* Footer icons */
-/* Footer icons laid out in three equal thirds */
+/* ----- Hover thirds overlay (desktop only) ----- */
+#lanes{
+  position: fixed; inset: 0; pointer-events: none; z-index: 10;
+}
+#lanes .lane{
+  position: absolute; top: 0; bottom: 0; width: 33.3333%;
+  pointer-events: auto; cursor: pointer;
+}
+#lanes .lane:nth-child(1){ left: 0; }
+#lanes .lane:nth-child(2){ left: 33.3333%; }
+#lanes .lane:nth-child(3){ left: 66.6666%; }
+
+/* Lanes only matter on hover devices; hide on touch */
+@media (hover:none){
+  #lanes{ display: none; }
+}
+
+/* ----- Footer: three icons in thirds ----- */
 .footer{
   position: fixed;
   left: 0; right: 0; bottom: 12px;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;  /* three equal lanes */
-  justify-items: center;               /* center icon within each lane */
-  align-items: center;
-  width: 100vw;
-  z-index: 25;
-  pointer-events: auto;
-  gap: 0;                              /* no spacing—lanes do the spacing */
+  grid-template-columns: 1fr 1fr 1fr;
+  justify-items: center; align-items: center;
+  width: 100vw; z-index: 25; pointer-events: auto;
 }
-
-/* keep your existing .footer-icon styles */
 .footer-icon{
   font-size: 22px; line-height: 1;
   width: 44px; height: 44px; border-radius: 10px;
@@ -45,53 +55,31 @@ body{
 }
 .footer-icon:hover{ border-color:#888; color:#fff; transform: translateY(-1px); }
 
-/* Pills rail spans full width in three equal lanes, sits above footer */
-.pills-rail{
-  position: fixed;
-  left: 0; right: 0; bottom: 62px;   /* sits right above the icons */
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr; /* three equal columns */
-  align-items: end;
-  width: 100vw;
+/* ----- Single pills rail (JS moves its X anchor) ----- */
+#pillsRail{
+  position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  max-width: min(94vw, 1000px); width: max-content;
   z-index: 25;
-  pointer-events: none;               /* columns control interactivity */
 }
-
-/* Each column centers its pills */
-.pill-col{
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-  pointer-events: none;               /* off by default */
-  opacity: 0;                         /* hidden by default */
-  transition: opacity .15s ease;
-}
-
-/* Only the active group's column is interactive/visible */
-.pill-col.on{
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* Pill styling stays the same */
 .pill{
   background: var(--chip); color: var(--text);
   border: 1px solid var(--chip-border); border-radius: 999px;
   padding: .45rem .9rem; cursor: pointer; font-weight: 600;
+  font-size: 14px; line-height: 1.1;
   transition: border-color .15s ease, transform .15s ease;
 }
+@media (min-width:768px){ .pill{ font-size: 15px; } }
 .pill:hover{ border-color:#888; color:#fff; transform: translateY(-1px); }
 .pill.active{ border-color:#aaa; color:#fff; }
 
-/* Desktop: rail reveals on footer hover (keeps your old behavior) */
+/* Desktop: pills fade in on hover of lanes or footer */
 @media (hover:hover){
-  .pills-rail{ opacity: 0; }
-  .footer:hover ~ .pills-rail,
-  .pills-rail:hover{ opacity: 1; }
+  #pillsRail{ opacity: 0; pointer-events: none; transition: opacity .12s ease; }
+  #lanes:hover ~ #pillsRail,
+  .footer:hover ~ #pillsRail,
+  #pillsRail:hover{ opacity: 1; pointer-events: auto; }
 }
-
-/* Mobile: always visible (we just keep it as-is) */
 
 /* Overlay */
 .modal { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.66); }
@@ -114,49 +102,4 @@ body{
 /* a11y focus */
 .footer-icon:focus, .pill:focus, .modal-close:focus{
   outline: 2px solid #888; outline-offset: 2px;
-}
-
-/* Show pills on hover only for pointer devices */
-@media (hover:hover){
-  .pills-rail{ opacity: 0; pointer-events: none; transition: opacity .15s ease; }
-  .footer:hover + .pills-rail,
-  .pills-rail:hover{ opacity: 1; pointer-events: auto; }
-}
-/* 3 full-height hover zones (behind footer/pills, above canvas) */
-.hover-lanes{
-  position: fixed; inset: 0;
-  display: grid; grid-template-columns: 1fr 1fr 1fr;
-  z-index: 5;             /* below footer/pills (25), above canvas */
-  pointer-events: none;   /* lanes ONLY receive hover on desktop */
-}
-
-/* each lane spans its third; pointer events enabled only on hover devices */
-.hover-lane{
-  pointer-events: auto;
-  /* fully transparent; use debug background if needed */
-  /* background: rgba(255,0,0,0.03); */
-}
-
-/* Hover lanes cover thirds of the screen; only active on hover-capable devices */
-#lanes{
-  position: fixed; inset: 0; pointer-events: none; z-index: 10;
-}
-#lanes .lane{
-  position: absolute; top: 0; bottom: 0; width: 33.3333%;
-  pointer-events: auto; /* allow hover */
-  /* transparent, but keep a subtle cursor hint */
-  cursor: pointer;
-}
-#lanes .lane:nth-child(1){ left: 0; }
-#lanes .lane:nth-child(2){ left: 33.3333%; }
-#lanes .lane:nth-child(3){ left: 66.6666%; }
-
-/* Lanes only matter on hover devices; disable on touch */
-@media (hover:none){
-  #lanes{ display: none; }
-}
-
-/* On touch devices, disable lanes */
-@media (hover:none){
-  .hover-lanes{ display: none; }
 }

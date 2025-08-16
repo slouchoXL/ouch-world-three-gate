@@ -170,19 +170,18 @@ const actions  = new Map(); // i -> { name: action }
 function findIdleClip(clips){
   return clips.find(c => /idle|breath|loop/i.test(c.name)) || clips[0] || null;
 }
-function primeIdlePose(mixer, clips, tSeconds = 0.4){
-  const idle = findIdleClip(clips); if (!idle) return null;
+function startIdle(mixer, clips){
+  const idle = clips.find(c => /idle|breath|loop/i.test(c.name)) || clips[0];
+  if (!idle) return;
   const action = mixer.clipAction(idle);
-  action.enabled = true;
   action.setLoop(THREE.LoopPingPong, Infinity);
   action.clampWhenFinished = true;
+  // small random offset + slight timeScale variance to desync characters
+  action.time = Math.random() * (idle.duration * 0.4);
   action.play();
-  action.time = Math.min(tSeconds, idle.duration * 0.25);
-  mixer.update(0);
-  action.paused = true;
-  return action;
+  action.paused = false;
+  action.timeScale = 0.9 + Math.random() * 0.2; // 0.9–1.1x
 }
-
 /* ---------- Layout: three columns ---------- */
 const SPACING = 3.2;      // x distance between characters
 const Y_BASE  = 0.0;
@@ -230,7 +229,7 @@ async function ensureLoaded(i){
         const actMap = {};
         glb.animations.forEach(clip => actMap[clip.name] = mixer.clipAction(clip));
         actions.set(i, actMap);
-        primeIdlePose(mixer, glb.animations, entry.idleAt ?? 0.4);
+        startIdle(mixer, glb.animations);
       }
       return node;
     } catch (e){
@@ -395,8 +394,7 @@ const clock = new THREE.Clock();
 function loop(){
   requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), 1/30);
-  const mx = mixers.get(current);
-  if (mx) mx.update(dt);
+  mixers.forEach(mx => mx.update(dt));
   renderer.render(scene, camera);
 }
 loop();

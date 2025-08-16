@@ -17,21 +17,25 @@
 </head>
 <body>
   <!-- 3D -->
-  <canvas id="webgl" aria-label="OUCH.WORLD 3D scene"></canvas>
-  
-  <!-- Desktop hover lanes (3 equal thirds). Mobile will hide via CSS -->
-  <div class="hover-lanes" aria-hidden="true">
-    <div class="hover-lane" data-group="listen"></div>
-    <div class="hover-lane" data-group="buy"></div>
-    <div class="hover-lane" data-group="explore"></div>
+  <canvas id="webgl"></canvas>
+
+  <!-- lanes BEFORE footer+pills -->
+  <div id="lanes" aria-hidden="true">
+    <div class="lane" data-group="listen"></div>
+    <div class="lane" data-group="buy"></div>
+    <div class="lane" data-group="explore"></div>
   </div>
 
-  <!-- Reused full-screen overlay (subpages live here) -->
-  <div id="overlay" class="modal" role="dialog" aria-modal="true" aria-labelledby="overlay-title" hidden tabindex="-1">
-    <div class="modal-card">
-      <button id="overlay-close" class="modal-close" aria-label="Close">×</button>
-      <h2 id="overlay-title"></h2>
-      <div id="overlay-body" class="modal-body"></div>
+  <footer id="siteFooter" class="footer">
+    <button class="footer-icon" data-group="listen">🎧</button>
+    <button class="footer-icon" data-group="buy">💵</button>
+    <button class="footer-icon" data-group="explore">🧩</button>
+  </footer>
+
+  <div id="pillsRail" class="pills-rail"></div>
+
+  <!-- overlay after is fine -->
+  <div id="overlay" class="modal" hidden>...</div>
     </div>
   </div>
 
