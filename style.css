@@ -137,6 +137,25 @@ body{
   /* background: rgba(255,0,0,0.03); */
 }
 
+/* Hover lanes cover thirds of the screen; only active on hover-capable devices */
+#lanes{
+  position: fixed; inset: 0; pointer-events: none; z-index: 10;
+}
+#lanes .lane{
+  position: absolute; top: 0; bottom: 0; width: 33.3333%;
+  pointer-events: auto; /* allow hover */
+  /* transparent, but keep a subtle cursor hint */
+  cursor: pointer;
+}
+#lanes .lane:nth-child(1){ left: 0; }
+#lanes .lane:nth-child(2){ left: 33.3333%; }
+#lanes .lane:nth-child(3){ left: 66.6666%; }
+
+/* Lanes only matter on hover devices; disable on touch */
+@media (hover:none){
+  #lanes{ display: none; }
+}
+
 /* On touch devices, disable lanes */
 @media (hover:none){
   .hover-lanes{ display: none; }

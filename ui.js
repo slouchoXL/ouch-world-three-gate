@@ -1,5 +1,5 @@
 // ui.js — footer icons + pills + overlay routing
-import { CARDS, selectGroup, getCurrentIndex, selectIndex } from './main.module.js?v=row1';
+import { CARDS, selectGroup, getCurrentIndex, selectIndex, previewIndex, indexForGroupSlug } from './main.module.js?v=row1';
 
 const SITEMAP = {
   listen:  [
@@ -64,9 +64,32 @@ function highlightFooter(group){
 }
 
 function previewGroup(group){
-  highlightFooter(group);      // visual state on footer
-  renderPills(group, null);    // show that group's pills
+  // 3D highlight without changing selection
+  const i = indexForGroupSlug(group);
+  previewIndex(i);
+
+  // UI pills preview
+  highlightFooter(group);
+  renderPills(group);
 }
+
+// Hover lanes
+const lanes = document.querySelectorAll('#lanes .lane');
+lanes.forEach(lane=>{
+  lane.addEventListener('mouseenter', ()=>{
+    const g = lane.dataset.group;
+    if (!g) return;
+    previewGroup(g);
+  });
+  lane.addEventListener('mouseleave', ()=>{
+    // restore to currently selected card's group
+    const active = CARDS[getCurrentIndex()]?.slug || 'listen';
+    highlightFooter(active);
+    renderPills(active);
+    // restore 3D highlight to real current
+    previewIndex(getCurrentIndex());
+  });
+});
 
 /* ---------- Overlay content ---------- */
 function htmlFor(route){
@@ -133,7 +156,20 @@ window.addEventListener('hashchange', ()=>{
 footer.addEventListener('click', (e)=>{
   const btn = e.target.closest('.footer-icon');
   if (!btn) return;
+
   const group = btn.dataset.group;
+  const overlayIsOpen = !overlayEl.hidden;
+  const isHoverCapable = window.matchMedia('(hover:hover)').matches;
+
+  // Desktop landing page: don't lock a group on click.
+  // Pills already show via hover; user will click a *pill* to navigate.
+  if (isHoverCapable && !overlayIsOpen) {
+    // Optional: if you want clicking an icon to also focus/preview its pills:
+    previewGroup(group);
+    return;
+  }
+
+  // Mobile (no hover) OR overlay is open: clicking an icon *should* navigate
   navigateTo(group, null);
 });
 

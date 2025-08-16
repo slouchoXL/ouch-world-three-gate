@@ -330,6 +330,24 @@ function frameCameraToRow(pad = 1.02){
   camera.lookAt(look);
 }
 
+// --- Add to main.module.js ---
+function previewIndex(i){
+  // Temporary highlight for hover (does NOT change `current`)
+  for (let k = 0; k < CARDS.length; k++){
+    const node = cache.get(k); if (!node) continue;
+    const on = (k === i);
+    setDim(node, !on);
+    node.position.y = on ? Y_BASE + 0.08 : Y_BASE;
+  }
+}
+
+function indexForGroupSlug(slug){
+  const i = CARDS.findIndex(c => c.slug === slug);
+  return i >= 0 ? i : 1; // default to middle
+}
+
+// update your export line:
+export { CARDS, selectGroup, getCurrentIndex, selectIndex, openOverlay, previewIndex, indexForGroupSlug };
 // Position the three models at the centers of three equal screen lanes.
 // inset shrinks how close to the edges those lanes are (0..0.25 is sensible).
 function layoutRowByViewportThirds(inset = 0.08){
