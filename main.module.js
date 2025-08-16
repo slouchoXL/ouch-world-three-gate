@@ -333,6 +333,7 @@ function positionVisibleByViewportLanes(indices, inset = 0.08){
   const segW     = usable / Math.max(1, indices.length);
   const leftEdge = -usable / 2;
 
+  // Place the visible ones
   indices.forEach((idx, i)=>{
     const n = cache.get(idx); if (!n) return;
     const cx = leftEdge + segW * (i + 0.5);
@@ -340,30 +341,30 @@ function positionVisibleByViewportLanes(indices, inset = 0.08){
     n.visible = true;
   });
 
-  // Hide others + pause their idle
+  // Hide others + pause/resume their idle
   [0,1,2].forEach(i=>{
     const n = cache.get(i); if (!n) return;
     const vis = indices.includes(i);
-      if (n.visible !== vis){
-          n.visible = vis;
-          const actMap = actions.get(i);
-          if (actMap){
-              const idleName = Object.keys(actMap).find(nm => /idle|breath|loop/i.test(nm)) || Object.keys(actMap)[0];
-              const a = actMap[idleName];
-              if (a) {
-                  if (visible){
-                      // coming back: make 100% sure it’s running
-                      a.enabled = true;
-                      a.paused  = false;
-                      if (!a.isRunning()) a.play();
-                  } else {
-                      // hiding: just pause it
-                      a.paused = true;
-                  }
-              }
+    if (n.visible !== vis){
+      n.visible = vis;
+      const actMap = actions.get(i);
+      if (actMap){
+        const idleName = Object.keys(actMap).find(nm => /idle|breath|loop/i.test(nm)) || Object.keys(actMap)[0];
+        const a = actMap[idleName];
+        if (a){
+          if (vis){
+            // coming back: be 100% sure it’s running
+            a.enabled = true;
+            a.paused  = false;
+            if (!a.isRunning()) a.play();
+          } else {
+            a.paused = true;
           }
+        }
       }
+    }
   });
+}
 
 
 function frameCameraToVisible(pad){
@@ -409,7 +410,7 @@ function emitLayoutChange(){
                     const indices = visibleIndices();
                     frameCameraToVisible();                               // set camZTarget (clamped)
                     positionVisibleByViewportLanes(indices, insetForMode()); // uses camZTarget for spacing
-                    ensureIdleRunning(indices);                           // <-- make sure newly visible idles run
+                    indices.forEach(ensureIdleRunning);                           // <-- make sure newly visible idles run
                     emitLayoutChange();                                   // tell UI what’s visible
                   }
 
