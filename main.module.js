@@ -50,6 +50,7 @@ scene.add(dir);
 // One parent for the whole row
 const rowGroup = new THREE.Group();
 rowGroup.name = 'RowGroup';
+rowGroup.visible = false;
 scene.add(rowGroup);
 
 /* ---------- Floor (gradient) ---------- */
@@ -286,10 +287,12 @@ async function selectIndex(i){
   await Promise.all([0,1,2].map(ensureLoaded));
   applyActiveStyling();
 
-  // All characters animate idles
+  // Place visible characters into lanes (1/2/3-up), then frame camera
+  positionVisibleByViewportLanes(visibleIndices(), 0.08);
+  frameCameraToVisible(1.02);  // sets camLook + camZTarget (see patch below)
+
+  // Let ALL characters animate idles (no pausing)
   mixers.forEach((mx, idx)=>{
-      positionVisibleByViewportLanes(visibleIndices(), 0.08);
-        frameCameraToVisible(1.02);
     const actMap = actions.get(idx); if (!actMap) return;
     const idleName = Object.keys(actMap).find(n => /idle|breath|loop/i.test(n)) || Object.keys(actMap)[0];
     const a = actMap[idleName]; if (!a) return;
@@ -302,7 +305,6 @@ async function selectIndex(i){
   const slug = CARDS[current]?.slug || null;
   window.dispatchEvent(new CustomEvent('cardchange', { detail:{ index: current, slug } }));
 }
-
 /* ---------- Group → index helpers ---------- */
 function indexForGroupSlug(slug){
   const i = CARDS.findIndex(c => c.slug === slug);
@@ -367,7 +369,6 @@ function centerRowGroupAtOrigin(){
 }*/
 
 function frameCameraToVisible(pad = 1.02){
-  // Build a temp group from only visible nodes
   const temp = new THREE.Group();
   [0,1,2].forEach(i=>{
     const n = cache.get(i);
@@ -378,7 +379,6 @@ function frameCameraToVisible(pad = 1.02){
   if (!box) return;
 
   const size = new THREE.Vector3(); box.getSize(size);
-
   const vFov = THREE.MathUtils.degToRad(camera.fov);
   const aspect = camera.aspect;
   const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
@@ -388,17 +388,15 @@ function frameCameraToVisible(pad = 1.02){
 
   const distW = halfW / Math.tan(hFov * 0.5);
   const distH = halfH / Math.tan(vFov * 0.5);
-  let dist = Math.max(distW, distH);
-  dist = Math.max(dist, 3.5);
+  const dist = Math.max(3.5, Math.max(distW, distH));
 
-  // Look at rowGroup center (x/z), keep your target Y bias
-  const look = new THREE.Vector3(rowGroup.position.x, TARGET_Y + screenYBias, rowGroup.position.z);
-  camera.position.set(look.x, CAMERA_Y, look.z + dist);
-  camera.lookAt(look);
+  // Set targets; loop() will smoothly lerp Z to camZTarget
+  camLook.set(rowGroup.position.x, TARGET_Y + screenYBias, rowGroup.position.z);
+  camZTarget = camLook.z + dist;
 }
 
 // Position the three models at the centers of three equal screen lanes.
-function layoutRowByViewportThirds(inset = 0.08){
+/*function layoutRowByViewportThirds(inset = 0.08){
   const vFov = THREE.MathUtils.degToRad(camera.fov);
   const aspect = camera.aspect;
   const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
@@ -421,7 +419,7 @@ function layoutRowByViewportThirds(inset = 0.08){
     const n = cache.get(i); if (!n) return;
     n.position.x = targets[i];
   });
-}
+}*/
 
 function chooseLayoutMode(){
   const w = window.innerWidth;
@@ -480,13 +478,13 @@ function previewIndex(i){
 
 /* ---------- Boot ---------- */
 async function boot(){
-    
     setProvisionalCameraZ(10);
     
   await Promise.all([0,1,2].map(ensureLoaded)); // load
   applyActiveStyling();
   centerRowGroupAtOrigin();
-    layoutRowByViewportThirds(0.08);
+    
+   // layoutRowByViewportThirds(0.08);
     chooseLayoutMode();
     positionVisibleByViewportLanes(visibleIndices(), 0.08);
     frameCameraToVisible(1.02, /*instant*/true); // set cam instantly for first frame
@@ -495,6 +493,7 @@ async function boot(){
 
   // First visible frame, then fade in and start the loop
   renderer.render(scene, camera);
+    rowGroup.visible = true;
   canvas.style.transition = 'opacity .2s ease';
   canvas.style.opacity = '1';
     canvas.style.visibility = 'visible';
