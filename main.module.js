@@ -435,20 +435,19 @@ function emitLayoutChange(){
 /* ---------- Swipe / Drag / Trackpad navigation ---------- */
 // Works on mobile (touch) and desktop (mouse drag / trackpad)
 // Behavior: selectIndex(current ± 1). We disable in 3-up by default.
-const GESTURE_EL = canvas; // attach to the WebGL area
+/* ---------- Swipe / Drag / Trackpad navigation ---------- */
+const CAN_SWIPE = () => layoutMode !== '3'; // enable in 2-up & 1-up
 
-// thresholds
-const H_SWipe_PX   = 60;   // horizontal distance to count as a swipe
-const V_CANCEL_PX  = 24;   // if vertical drift exceeds this, cancel (let scroll)
-const FLICK_VX     = 1.0;  // px per ms (fast flick wins even if distance small)
-const CAN_SWIPE = () => layoutMode !== '3'; // enable in 2-up & 1-up only
+const gestureTargets = [
+  document.getElementById('lanes'),
+  canvas
+].filter(Boolean);
 
-let drag = {
-  active: false,
-  id: null,
-  x0: 0, y0: 0, t0: 0,
-  x: 0,  y: 0
-};
+const H_SWIPE_PX  = 40;   // was 60 — make a bit easier to trigger
+const V_CANCEL_PX = 28;   // vertical drift tolerance
+const FLICK_VX    = 0.6;  // px/ms; flicks count even with small distance
+
+const drag = { active:false, x0:0, y0:0, t0:0, x:0, y:0, id:null };
 
 function startDrag(e){
   if (!CAN_SWIPE()) return;
@@ -456,65 +455,71 @@ function startDrag(e){
   drag.id = e.pointerId ?? null;
   drag.x0 = e.clientX; drag.y0 = e.clientY;
   drag.t0 = performance.now();
-  drag.x = drag.x0; drag.y = drag.y0;
-  try { GESTURE_EL.setPointerCapture && e.pointerId != null && GESTURE_EL.setPointerCapture(e.pointerId); } catch {}
+  drag.x  = drag.x0;    drag.y  = drag.y0;
+  // try to capture so we keep getting moves
+  try { e.currentTarget.setPointerCapture && drag.id != null && e.currentTarget.setPointerCapture(drag.id); } catch {}
 }
+
 function moveDrag(e){
   if (!drag.active) return;
-  // update last point
+  // while dragging, stop the page from scrolling
+  e.preventDefault();
+
   drag.x = e.clientX; drag.y = e.clientY;
 
-  // if user scrolls vertically, abandon swipe to avoid fighting the page
+  // if the gesture turns mostly vertical, cancel
   if (Math.abs(drag.y - drag.y0) > V_CANCEL_PX){
-    cancelDrag();
+    cancelDrag(e);
   }
 }
+
 function endDrag(e){
   if (!drag.active) return;
   const dx = drag.x - drag.x0;
   const dt = Math.max(1, performance.now() - drag.t0);
-  const vx = Math.abs(dx) / dt; // px per ms
+  const vx = Math.abs(dx) / dt;
 
-  // decide direction if it’s a real swipe
-  if (Math.abs(dx) > H_SWipe_PX || vx > FLICK_VX){
-    const dir = dx < 0 ? +1 : -1; // left swipe → next (+1)
+  if (Math.abs(dx) > H_SWIPE_PX || vx > FLICK_VX){
+    const dir = dx < 0 ? +1 : -1; // left swipe → next
     selectIndex(current + dir);
   }
-  cancelDrag();
+  cancelDrag(e);
 }
-function cancelDrag(){
+
+function cancelDrag(e){
   drag.active = false;
   drag.id = null;
 }
 
-GESTURE_EL.addEventListener('pointerdown', startDrag, { passive: true });
-GESTURE_EL.addEventListener('pointermove',  moveDrag,  { passive: true });
-GESTURE_EL.addEventListener('pointerup',    endDrag,   { passive: true });
-GESTURE_EL.addEventListener('pointercancel',cancelDrag,{ passive: true });
-GESTURE_EL.addEventListener('pointerleave', endDrag,   { passive: true });
+gestureTargets.forEach(el=>{
+  el.addEventListener('pointerdown',  startDrag, { passive: true  });
+  el.addEventListener('pointermove',  moveDrag,  { passive: false }); // must be non-passive to preventDefault
+  el.addEventListener('pointerup',    endDrag,   { passive: true  });
+  el.addEventListener('pointercancel',cancelDrag,{ passive: true  });
+  el.addEventListener('pointerleave', endDrag,   { passive: true  });
+});
 
-// Trackpad horizontal swipe support (two-finger left/right)
-// We accumulate deltaX a bit, then trigger a step.
-let wheelAccum = 0;
-let wheelTimer = null;
-GESTURE_EL.addEventListener('wheel', (e)=>{
-  if (!CAN_SWIPE()) return;
-  // If there’s strong vertical scroll, ignore (user is scrolling)
-  if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 1.6) return;
+// Trackpad horizontal swipe (two-finger left/right)
+let wheelAccum = 0, wheelTimer = null;
+gestureTargets.forEach(el=>{
+  el.addEventListener('wheel', (e)=>{
+    if (!CAN_SWIPE()) return;
+    // Ignore when mostly vertical
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 1.6) return;
 
-  wheelAccum += e.deltaX;
-  if (wheelTimer) clearTimeout(wheelTimer);
-  wheelTimer = setTimeout(()=>{
-    if (Math.abs(wheelAccum) > 120){ // tune if needed
-      const dir = wheelAccum > 0 ? +1 : -1; // swipe left on trackpad → positive deltaX
-      selectIndex(current + dir);
-    }
-    wheelAccum = 0;
-    wheelTimer = null;
-  }, 80);
-}, { passive: true });
+    wheelAccum += e.deltaX;
+    if (wheelTimer) clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(()=>{
+      if (Math.abs(wheelAccum) > 120){
+        const dir = wheelAccum > 0 ? +1 : -1; // rightward delta → next
+        selectIndex(current + dir);
+      }
+      wheelAccum = 0; wheelTimer = null;
+    }, 80);
+  }, { passive: true });
+});
 
-// Optional: keyboard support
+// Optional keyboard (already working for you)
 window.addEventListener('keydown', (e)=>{
   if (!CAN_SWIPE()) return;
   if (e.key === 'ArrowLeft')  selectIndex(current - 1);

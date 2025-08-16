@@ -21,6 +21,15 @@ body{
   width:100vw; height:100vh;
 }
 
+/* allow our JS to receive horizontal drags instead of the browser scrolling */
+#webgl,
+#lanes {
+  touch-action: none;            /* critical for mobile Safari/Chromium */
+  -webkit-user-select: none;     /* niceties */
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
 /* ----- Hover thirds overlay (desktop only) ----- */
 /* Hover thirds overlay */
 /* Hover lanes: stop hard-coding 3 thirds */
