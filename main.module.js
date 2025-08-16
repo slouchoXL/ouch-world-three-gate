@@ -462,8 +462,8 @@ function visibleIndices(){
 // Choose horizontal inset based on current layout mode
 function insetForMode(){
   // More inset for 3-up to keep models breathing room on first paint
-  if (layoutMode === '3') return 0.12; // was 0.08
-  if (layoutMode === '2') return 0.6;
+  if (layoutMode === '3') return 0.01; // was 0.08
+  if (layoutMode === '2') return 0.9;
   return 0.08; // 1-up
 }
 
