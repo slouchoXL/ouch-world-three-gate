@@ -129,6 +129,39 @@ function setDim(group, dim = true){
   });
 }
 
+// Fit the camera to all loaded characters in the row
+function fitRowToCamera({ padding = 1.08 } = {}){
+  // Union bounds of all cached nodes
+  const box = new THREE.Box3();
+  let any = false;
+  cache.forEach(node=>{
+    if (!node) return;
+    node.updateWorldMatrix(true, true);
+    const b = new THREE.Box3().setFromObject(node);
+    if (!isFinite(b.min.x) || !isFinite(b.max.x)) return;
+    box.union(b); any = true;
+  });
+  if (!any) return;
+
+  // Center target at row center (keep Y fixed at TARGET_Y)
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  camCenter.set(center.x, TARGET_Y, center.z);
+  camCenterTarget.copy(camCenter);
+
+  // Compute distance along Z to frame width/height with a little padding
+  const size = new THREE.Vector3();
+  box.getSize(size);
+  const maxDim = Math.max(size.x, size.y);
+  const fov = THREE.MathUtils.degToRad(camera.fov);
+  const distH = (maxDim * 0.5) / Math.tan(fov * 0.5);
+  const dist = distH * padding + 0.5; // tiny safety
+
+  // Place camera on Z axis looking at target
+  camRadius = camRadiusTarget = dist;
+  camAngle = camAngleTarget = 0; // straight-on
+}
+
 function getMeshBounds(root){
   const box = new THREE.Box3(); let has = false;
   root.traverse(o=>{
@@ -303,21 +336,51 @@ window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && !modal.hidde
   await selectIndex(current);
 })();
 
-function frameCameraToRow(){
-  // Compute combined bounds of all loaded nodes
-  const group = new THREE.Group();
-  [0,1,2].forEach(i=>{ const n = cache.get(i); if (n) group.add(n.clone()); });
-  const box = getMeshBounds(group);
-  const size = new THREE.Vector3(); box?.getSize(size);
-  const cen  = new THREE.Vector3(); box?.getCenter(cen);
+function frameCameraToRow(pad = 1.06) {
+  // Union bounds of loaded nodes
+  const box = new THREE.Box3();
+  let any = false;
+  [0,1,2].forEach(i=>{
+    const n = cache.get(i);
+    if (!n) return;
+    n.updateWorldMatrix(true, true);
+    const b = new THREE.Box3().setFromObject(n);
+    if (isFinite(b.min.x) && isFinite(b.max.x)) {
+      box.union(b);
+      any = true;
+    }
+  });
+  if (!any) return;
 
-  const fov = THREE.MathUtils.degToRad(camera.fov);
-  const maxDim = Math.max(size.x || 6, size.y || 2);
-  let dist = (maxDim * 0.6) / Math.tan(fov * 0.5); // a bit wider than half
-  dist = Math.max(dist, 6.0);
+  const size = new THREE.Vector3(); box.getSize(size);
+  const center = new THREE.Vector3(); box.getCenter(center);
 
-  const look = new THREE.Vector3(0, TARGET_Y, 0);
-  camera.position.set(0, CAMERA_Y, dist);
+  // Keep the look target centered horizontally, fixed Y
+  const look = new THREE.Vector3(center.x, TARGET_Y, center.z);
+
+  // Compute distance to fit width OR height (whichever is tighter)
+  const vFov = THREE.MathUtils.degToRad(camera.fov);
+  const aspect = camera.aspect;
+
+  // Horizontal FOV derived from vertical FOV and aspect
+  const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
+
+  // Half extents we need to see (pad expands slightly)
+  const halfW = (size.x * 0.5) * pad;
+  const halfH = (size.y * 0.5) * pad;
+
+  // Distances needed to fit width/height
+  const distW = halfW / Math.tan(hFov * 0.5);
+  const distH = halfH / Math.tan(vFov * 0.5);
+
+  // Choose the larger so both fit
+  let dist = Math.max(distW, distH);
+
+  // Optional tiny bias closer/farther
+  dist = Math.max(dist, 3.5); // don’t go *too* close
+
+  // Place camera straight-on on Z axis
+  camera.position.set(look.x, CAMERA_Y, look.z + dist);
   camera.lookAt(look);
 }
 
