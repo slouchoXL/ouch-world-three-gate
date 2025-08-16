@@ -571,7 +571,7 @@ function endDrag(e){
 
     // switch selection; snap camera quickly (no Z easing lag)
     // make sure your selectIndex accepts the options object
-    selectIndex(target, { instantCamera: true });
+    selectIndex(target, { instantCamera: false });
 
     // immediately set the highlight based on where the pointer actually is
     applyHoverFromPointer(pt.clientX);
