@@ -341,7 +341,7 @@ function previewIndex(i){
     node.position.y = Y_BASE; // keep everyone on ground
   }
 }
-export { previewIndex }; // already exporting; keep as-is
+
 
 function indexForGroupSlug(slug){
   const i = CARDS.findIndex(c => c.slug === slug);
