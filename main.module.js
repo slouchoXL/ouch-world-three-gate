@@ -35,7 +35,7 @@ scene.add(camera);
 /* ---------- Responsive breakpoints (relative to first load) ---------- */
 const BASELINE_WIDTH = window.innerWidth;
 const TWO_UP_RATIO   = 0.75;
-const ONE_UP_RATIO   = 0.45;
+const ONE_UP_RATIO   = 0.5;
 
 const BP_TWO_UP = Math.round(BASELINE_WIDTH * TWO_UP_RATIO);
 const BP_ONE_UP = Math.round(BASELINE_WIDTH * ONE_UP_RATIO);
@@ -283,7 +283,7 @@ async function ensureLoaded(i){
 /* ---------- Layout helpers ---------- */
 function insetForMode(){
   // Keep 3-up a bit looser on first paint
-  if (layoutMode === '3') return 0.05; // was 0.08 → more breathing room
+  if (layoutMode === '3') return 0.02; // was 0.08 → more breathing room
   if (layoutMode === '2') return 0.07;
   return 0.08; // 1-up
 }
