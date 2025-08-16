@@ -35,6 +35,12 @@ scene.add(camera);
 // Treat "hover:none" devices as mobile-like → always 1-up
 const FORCE_ONE_UP = window.matchMedia('(hover:none)').matches;
 
+// Mobile-only vertical composition tweak (moves models up in screen space)
+const MOBILE_Y_BIAS = -0.28;       // try -0.20 .. -0.35 to taste (more negative = higher)
+function currentYBias(){
+  return FORCE_ONE_UP ? MOBILE_Y_BIAS : 0.0;
+}
+
 /* ---------- Responsive breakpoints (relative to first load) ---------- */
 const BASELINE_WIDTH = window.innerWidth;
 const TWO_UP_RATIO   = 0.75;
@@ -401,7 +407,7 @@ function frameCameraToVisible(pad, instantCamera = false){
   const maxDist = base * MAX_DIST_MULT;
   const dist    = Math.min(Math.max(distFit, base), maxDist);
 
-  camLook.set(rowGroup.position.x, TARGET_Y, rowGroup.position.z);
+  camLook.set(rowGroup.position.x, TARGET_Y + currentYBias(), rowGroup.position.z);
   camZTarget = camLook.z + dist;
     
     if (instantCamera){
@@ -740,7 +746,7 @@ function centerRowGroupAtOrigin(){
 async function boot(){
   // Put the camera far enough that first layout has room
   camera.position.set(0, CAMERA_Y, 10);
-  camera.lookAt(0, TARGET_Y, 0);
+  camera.lookAt(0, TARGET_Y + currentYBias(), 0);
     
     // On mobile/touch, force 1-up so it never shows 2/3 models
      if (FORCE_ONE_UP) layoutMode = '1';
