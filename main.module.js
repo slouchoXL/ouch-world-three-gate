@@ -181,6 +181,14 @@ function setProvisionalCameraZ(z = 10){
   camera.lookAt(look);
 }
 
+function emitLayoutChange(){
+  const visible = visibleIndices();                 // e.g. [0,1] in 2-up
+  const groups  = visible.map(i => CARDS[i].slug);  // e.g. ['listen','buy']
+  window.dispatchEvent(new CustomEvent('layoutchange', {
+    detail: { mode: layoutMode, visibleIndices: visible, visibleGroups: groups }
+  }));
+}
+
 /* ---------- Bounds & normalize ---------- */
 function getMeshBounds(root){
   const box = new THREE.Box3(); let has = false;
@@ -304,6 +312,7 @@ async function selectIndex(i){
   // Place visible characters into lanes (1/2/3-up), then frame camera
     frameCameraToVisible();
     positionVisibleByViewportLanes(visibleIndices(), 0.08);
+    emitLayoutChange();
   // Let ALL characters animate idles (no pausing)
   mixers.forEach((mx, idx)=>{
     const actMap = actions.get(idx); if (!actMap) return;
@@ -517,7 +526,12 @@ function positionVisibleByViewportLanes(indices, inset = 0.08){
       }
     }
   });
+    
+    window.dispatchEvent(new CustomEvent('layoutchange', {
+      detail: { groups: visibleIndices().map(i => CARDS[i].slug) }
+    }));
 }
+
 
 // Hover preview (dim others) without changing `current`
 function previewIndex(i){
@@ -543,6 +557,7 @@ async function boot(){
     [0,1,2].forEach(i=> cache.get(i) && (cache.get(i).visible = true)); // or your visibleIndices()
     frameCameraToVisible();                // sets camZTarget using clamp
     positionVisibleByViewportLanes(visibleIndices(), 0.08);
+    emitLayoutChange();
 
   await selectIndex(current);
 
@@ -602,6 +617,7 @@ window.addEventListener('resize', ()=>{
       const modeChanged = chooseLayoutMode();
       frameCameraToVisible();
       positionVisibleByViewportLanes(visibleIndices(), 0.08);
+      emitLayoutChange();
     // Update last-known size after we finish
     lastW = w; lastH = h;
   }, 120);

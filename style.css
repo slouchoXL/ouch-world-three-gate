@@ -38,7 +38,7 @@ body{
 /* Footer icons (three equal thirds) */
 .footer{
   position: fixed; left: 0; right: 0; bottom: 12px;
-  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  display: grid; grid-template-columns: repeat (var(--cols, 3), 1fr);
   justify-items: center; align-items: center;
   width: 100vw; z-index: 25;
 }
