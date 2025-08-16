@@ -31,15 +31,23 @@ const titleMap     = { listen: 'Listen', buy: 'Buy', explore: 'Explore' };
 
 /* ---------- Render ---------- */
 function renderPills(group, activePageSlug=null){
+  // Turn on only the active column
+  document.querySelectorAll('.pill-col').forEach(col=>{
+    col.classList.toggle('on', col.dataset.group === group);
+    if (col.dataset.group === group) col.innerHTML = ''; // clear active col
+  });
+
+  const col = document.querySelector(`.pill-col[data-group="${group}"]`);
+  if (!col) return;
+
   const defs = SITEMAP[group] ?? [];
-  pillsRail.innerHTML = '';
   defs.forEach(({ slug, label })=>{
     const btn = document.createElement('button');
     btn.className = 'pill' + (activePageSlug===slug ? ' active' : '');
     btn.textContent = label;
     btn.setAttribute('data-page', `${group}/${slug}`);
     btn.addEventListener('click', ()=> navigateTo(group, slug));
-    pillsRail.appendChild(btn);
+    col.appendChild(btn);
   });
 }
 
