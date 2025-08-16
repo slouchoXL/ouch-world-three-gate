@@ -328,16 +328,43 @@ window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && !modal.hidde
 
   // Place & style
   applyActiveStyling();
+    
+    getRowBounds();
+    centerRowAtZero();
+    
 
   // Frame camera to see all three comfortably
-  frameCameraToRow();
+  frameCameraToRow(1.02);
 
   // Start mixers paused except active (handled in selectIndex)
   await selectIndex(current);
 })();
 
 function frameCameraToRow(pad = 1.06) {
-  // Union bounds of loaded nodes
+  const box = getRowBounds();
+  if (!box) return;
+
+  const size = new THREE.Vector3(); box.getSize(size);
+
+  const vFov = THREE.MathUtils.degToRad(camera.fov);
+  const aspect = camera.aspect;
+  const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
+
+  const halfW = (size.x * 0.5) * pad;
+  const halfH = (size.y * 0.5) * pad;
+
+  const distW = halfW / Math.tan(hFov * 0.5);
+  const distH = halfH / Math.tan(vFov * 0.5);
+  let dist = Math.max(distW, distH);
+  dist = Math.max(dist, 3.5);
+
+  const look = new THREE.Vector3(0, TARGET_Y, 0);   // <-- fixed center line
+  camera.position.set(0, CAMERA_Y, look.z + dist);
+  camera.lookAt(look);
+}
+
+// --- add near your other helpers ---
+function getRowBounds(){
   const box = new THREE.Box3();
   let any = false;
   [0,1,2].forEach(i=>{
@@ -350,38 +377,21 @@ function frameCameraToRow(pad = 1.06) {
       any = true;
     }
   });
-  if (!any) return;
+  return any ? box : null;
+}
 
-  const size = new THREE.Vector3(); box.getSize(size);
-  const center = new THREE.Vector3(); box.getCenter(center);
+// Shift all three so their combined center.x is exactly 0
+function centerRowAtZero(){
+  const box = getRowBounds();
+  if (!box) return;
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  if (Math.abs(center.x) < 1e-4) return; // already centered enough
 
-  // Keep the look target centered horizontally, fixed Y
-  const look = new THREE.Vector3(center.x, TARGET_Y, center.z);
-
-  // Compute distance to fit width OR height (whichever is tighter)
-  const vFov = THREE.MathUtils.degToRad(camera.fov);
-  const aspect = camera.aspect;
-
-  // Horizontal FOV derived from vertical FOV and aspect
-  const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
-
-  // Half extents we need to see (pad expands slightly)
-  const halfW = (size.x * 0.5) * pad;
-  const halfH = (size.y * 0.5) * pad;
-
-  // Distances needed to fit width/height
-  const distW = halfW / Math.tan(hFov * 0.5);
-  const distH = halfH / Math.tan(vFov * 0.5);
-
-  // Choose the larger so both fit
-  let dist = Math.max(distW, distH);
-
-  // Optional tiny bias closer/farther
-  dist = Math.max(dist, 3.5); // don’t go *too* close
-
-  // Place camera straight-on on Z axis
-  camera.position.set(look.x, CAMERA_Y, look.z + dist);
-  camera.lookAt(look);
+  [0,1,2].forEach(i=>{
+    const n = cache.get(i);
+    if (n) n.position.x -= center.x; // slide horizontally only
+  });
 }
 
 /* ---------- Render loop ---------- */
