@@ -41,7 +41,7 @@ const BP_TWO_UP = Math.round(BASELINE_WIDTH * TWO_UP_RATIO);
 const BP_ONE_UP = Math.round(BASELINE_WIDTH * ONE_UP_RATIO);
 
 /* ---------- Camera sizing clamps ---------- */
-const BASE_DIST     = { '3': 8.0, '2': 6.0, '1': 4.0 };
+const BASE_DIST     = { '3': 6.0, '2': 4.0, '1': 2.0 };
 const MAX_DIST_MULT = 1.35;
 
 /* ---------- Camera targets (lerped in loop) ---------- */
