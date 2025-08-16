@@ -42,7 +42,7 @@ scene.add(rowGroup);
 /* ---------- Floor (gradient) ---------- */
 function makeFloorGradient({
   size = 512,
-  base = '#0a0a0a',
+  base = '#FFFFFF',
   inner = 'rgba(0,0,0,0.55)',
   mid   = 'rgba(0,0,0,0.18)',
   outer = 'rgba(0,0,0,0.00)'
