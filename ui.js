@@ -1,12 +1,5 @@
-// ui.js — footer icons + pills + overlay routing (no flicker version)
-import {
-  CARDS,
-  selectGroup,
-  getCurrentIndex,
-  selectIndex,
-  previewIndex,
-  indexForGroupSlug
-} from './main.module.js';
+// ui.js — pills + hover thirds + overlay routing (clean)
+import { CARDS, selectGroup, getCurrentIndex, selectIndex, previewIndex, indexForGroupSlug } from './main.module.js';
 
 const SITEMAP = {
   listen:  [
@@ -25,23 +18,38 @@ const SITEMAP = {
   ],
 };
 
-const footer      = document.getElementById('siteFooter');
-const pillsRail   = document.getElementById('pillsRail');
-const overlayEl   = document.getElementById('overlay');
-const overlayBody = document.getElementById('overlay-body');
-const overlayTit  = document.getElementById('overlay-title');
-const overlayClose= document.getElementById('overlay-close');
-const canvas      = document.getElementById('webgl');
-const lanesWrap   = document.getElementById('lanes');                 // <- three full-height lanes
-const laneEls     = lanesWrap ? lanesWrap.querySelectorAll('.lane') : [];
+const footer     = document.getElementById('siteFooter');
+const pillsRail  = document.getElementById('pillsRail');
+const overlayEl  = document.getElementById('overlay');
+const overlayT   = document.getElementById('overlay-title');
+const overlayB   = document.getElementById('overlay-body');
+const overlayX   = document.getElementById('overlay-close');
+const canvas     = document.getElementById('webgl');
+const lanes      = document.querySelectorAll('#lanes .lane');
 
-const titleMap = { listen:'Listen', buy:'Buy', explore:'Explore' };
 const indexToGroup = i => CARDS[i]?.slug ?? 'listen';
+const titleMap     = { listen: 'Listen', buy: 'Buy', explore: 'Explore' };
 
-// ----- helpers -----
-function isInsideUISurfaces(el){
-  if (!el) return false;
-  return !!(el.closest('#lanes') || el.closest('#siteFooter') || el.closest('#pillsRail'));
+function setPillsAnchor(group){
+  const x =
+    group === 'listen'  ? '16.6667%' :
+    group === 'buy'     ? '50%'      :
+    group === 'explore' ? '83.3333%' : '50%';
+  pillsRail.style.left = x;
+  pillsRail.style.transform = 'translateX(-50%)';
+}
+
+function renderPills(group, activePageSlug=null){
+  setPillsAnchor(group);
+  pillsRail.innerHTML = '';
+  (SITEMAP[group] ?? []).forEach(({ slug, label })=>{
+    const btn = document.createElement('button');
+    btn.className = 'pill' + (activePageSlug===slug ? ' active' : '');
+    btn.textContent = label;
+    btn.dataset.page = `${group}/${slug}`;
+    btn.addEventListener('click', ()=> navigateTo(group, slug));
+    pillsRail.appendChild(btn);
+  });
 }
 
 function highlightFooter(group){
@@ -53,52 +61,68 @@ function highlightFooter(group){
   });
 }
 
-// Pills: build once as 3 columns, then just toggle which is visible
-function buildPillsOnce(){
-  pillsRail.innerHTML = '';
-  ['listen','buy','explore'].forEach(group=>{
-    const col = document.createElement('div');
-    col.className = 'pill-col';
-    col.dataset.group = group;
-    (SITEMAP[group] || []).forEach(({slug,label})=>{
-      const btn = document.createElement('button');
-      btn.className = 'pill';
-      btn.textContent = label;
-      btn.dataset.page = `${group}/${slug}`;
-      btn.addEventListener('click', ()=> navigateTo(group, slug));
-      col.appendChild(btn);
-    });
-    pillsRail.appendChild(col);
-  });
-}
-
-function setActivePillColumn(group){
-  pillsRail.querySelectorAll('.pill-col').forEach(col=>{
-    col.classList.toggle('on', col.dataset.group === group);
-  });
-}
-function setActivePillHighlight(group, pageSlug){
-  pillsRail.querySelectorAll('.pill').forEach(p=>{
-    const [g, s] = (p.dataset.page||'').split('/');
-    p.classList.toggle('active', g===group && s===pageSlug);
-  });
-}
-
-function previewGroup(group){
-  highlightFooter(group);
-  setActivePillColumn(group);
-  previewIndex(indexForGroupSlug(group)); // visual dim only; no movement
+function isInsideUISurfaces(el){
+  if (!el) return false;
+  return !!(el.closest('#lanes') || el.closest('#siteFooter') || el.closest('#pillsRail'));
 }
 
 function restoreActive(){
   const active = indexToGroup(getCurrentIndex());
   highlightFooter(active);
-  setActivePillColumn(active);
-  setActivePillHighlight(active, null);
-  // do not call selectGroup here; just restore pills/footer state
+  renderPills(active);
+  // Clear the temporary dimming preview
+  previewIndex(-1); // implement as "clear preview" in main: if i<0, undim all to default/active
 }
 
-// ----- overlay content -----
+function previewGroup(group){
+  highlightFooter(group);
+  renderPills(group);
+  previewIndex(indexForGroupSlug(group)); // only highlight; no position jump
+}
+
+/* ----- Hover thirds (desktop) ----- */
+lanes.forEach(lane=>{
+  lane.addEventListener('mouseenter', ()=>{
+    const g = lane.dataset.group; if (!g) return;
+    previewGroup(g);
+  });
+  lane.addEventListener('mouseleave', (e)=>{
+    if (isInsideUISurfaces(e.relatedTarget)) return;
+    restoreActive();
+  });
+});
+
+/* ----- Footer hover (desktop) ----- */
+footer.addEventListener('mouseenter', e=>{
+  const btn = e.target.closest('.footer-icon'); if (!btn) return;
+  const g = btn.dataset.group;
+  previewGroup(g);
+}, true);
+
+footer.addEventListener('mouseleave', (e)=>{
+  if (isInsideUISurfaces(e.relatedTarget)) return;
+  restoreActive();
+});
+
+/* Footer clicks:
+   - On desktop landing (overlay closed), clicking does nothing (hover controls).
+   - On mobile or when overlay is open, clicking navigates to that group. */
+footer.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.footer-icon'); if (!btn) return;
+  const group = btn.dataset.group;
+  const overlayOpen = !overlayEl.hidden;
+  const hoverCapable = window.matchMedia('(hover:hover)').matches;
+  if (hoverCapable && !overlayOpen) return; // desktop landing: hover-only
+  navigateTo(group, null);
+});
+
+/* ----- Pills rail leave → restore ----- */
+pillsRail.addEventListener('mouseleave', (e)=>{
+  if (isInsideUISurfaces(e.relatedTarget)) return;
+  restoreActive();
+});
+
+/* ----- Overlay content ----- */
 function htmlFor(route){
   switch(route){
     case 'listen/discography': return `<p>Discography grid goes here.</p>`;
@@ -112,118 +136,54 @@ function htmlFor(route){
     default: return `<p>Coming soon: <strong>${route}</strong></p>`;
   }
 }
-
 function openPage(group, page){
-  overlayTit.textContent = `${titleMap[group] ?? 'Section'} — ${(SITEMAP[group]||[]).find(x=>x.slug===page)?.label ?? page}`;
-  overlayBody.innerHTML  = htmlFor(`${group}/${page}`);
+  overlayT.textContent = `${titleMap[group] ?? 'Section'} — ${(SITEMAP[group]||[]).find(x=>x.slug===page)?.label ?? page}`;
+  overlayB.innerHTML   = htmlFor(`${group}/${page}`);
   overlayEl.hidden = false;
   canvas?.classList.add('dim-3d');
   overlayEl.focus();
 }
 
-function closeOverlay(){
-  overlayEl.hidden = true;
-  canvas?.classList.remove('dim-3d');
-}
-overlayClose?.addEventListener('click', ()=>{
-  // return to group-only state
-  const g = indexToGroup(getCurrentIndex());
-  navigateTo(g, null, { syncScene:false });
-});
-
-// ----- router -----
+/* ----- Router ----- */
 function parseHash(){
   const h = (location.hash || '').replace(/^#\/?/, '');
   const [group, page] = h.split('/');
   return { group, page };
 }
-
-function navigateTo(group, page=null, { syncScene=true } = {}){
+function navigateTo(group, page=null, {syncScene=true} = {}){
   const newHash = page ? `#/${group}/${page}` : `#/${group}`;
   if (location.hash !== newHash) location.hash = newHash;
 
   highlightFooter(group);
-  setActivePillColumn(group);
-  setActivePillHighlight(group, page || null);
-
+  renderPills(group, page || null);
   if (syncScene) selectGroup(group);
 
-  if (page) openPage(group, page);
-  else      closeOverlay();
+  if (page){ openPage(group, page); }
+  else { overlayEl.hidden = true; canvas?.classList.remove('dim-3d'); }
 }
 
 window.addEventListener('hashchange', ()=>{
   const { group, page } = parseHash();
   const g = ['listen','buy','explore'].includes(group) ? group : indexToGroup(getCurrentIndex());
-  const syncScene = overlayEl.hidden; // don’t re-spin while inside overlay nav
-  navigateTo(g, page || null, { syncScene });
+  navigateTo(g, page || null, { syncScene: overlayEl.hidden });
 });
 
-// ----- events -----
-// Lanes: preview on enter; guarded restore on leave
-laneEls.forEach(lane=>{
-  lane.addEventListener('mouseenter', ()=>{
-    const g = lane.dataset.group; if (!g) return;
-    previewGroup(g);
-  });
-  lane.addEventListener('mouseleave', (e)=>{
-    if (isInsideUISurfaces(e.relatedTarget)) return; // went to pills/footer/another lane
-    restoreActive();
-  });
+/* Close overlay */
+overlayX?.addEventListener('click', ()=>{
+  navigateTo(indexToGroup(getCurrentIndex()), null, { syncScene:false });
 });
 
-// Footer: preview on hover
-footer.addEventListener('mouseenter', e=>{
-  const btn = e.target.closest('.footer-icon'); if (!btn) return;
-  const g = btn.dataset.group;
-  previewGroup(g);
-}, true);
-
-footer.addEventListener('mouseleave', (e)=>{
-  if (isInsideUISurfaces(e.relatedTarget)) return;
-  restoreActive();
-});
-
-// Footer: click behavior
-footer.addEventListener('click', (e)=>{
-  const btn = e.target.closest('.footer-icon'); if (!btn) return;
-  const g = btn.dataset.group;
-  const isHoverCapable = window.matchMedia('(hover:hover)').matches;
-  const overlayOpen = !overlayEl.hidden;
-
-  // On desktop landing (no overlay), click doesn’t “latch” — hover controls preview.
-  if (isHoverCapable && !overlayOpen) return;
-
-  // On mobile or when overlay is open, click navigates to that group.
-  navigateTo(g, null);
-});
-
-// Pills: keep preview while over pills; restore only when truly leaving all UI
-pillsRail.addEventListener('mouseleave', (e)=>{
-  if (isInsideUISurfaces(e.relatedTarget)) return;
-  restoreActive();
-});
-
-// Scene → UI: active card changed (e.g., programmatic select)
-window.addEventListener('cardchange', ()=>{
-  const g = indexToGroup(getCurrentIndex());
-  highlightFooter(g);
-  if (overlayEl.hidden){
-    setActivePillColumn(g);
-    setActivePillHighlight(g, null);
-  }
-});
-
-// ----- boot -----
+/* ----- Initial boot ----- */
 (function init(){
-  buildPillsOnce();
-
   const { group, page } = parseHash();
   const g = group || indexToGroup(getCurrentIndex());
-
   highlightFooter(g);
-  setActivePillColumn(g);
-  setActivePillHighlight(g, page || null);
-
+  renderPills(g, page || null);
   if (page) openPage(g, page);
+
+  overlayEl.addEventListener('keydown', ev=>{
+    if (ev.key === 'Escape'){
+      navigateTo(indexToGroup(getCurrentIndex()), null, { syncScene:false });
+    }
+  });
 })();

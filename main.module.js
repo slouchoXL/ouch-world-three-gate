@@ -333,14 +333,15 @@ function frameCameraToRow(pad = 1.02){
 
 // --- Add to main.module.js ---
 function previewIndex(i){
-  // Temporary highlight for hover (does NOT change `current`)
+  // i >= 0: temporarily highlight that index; i < 0: clear preview
   for (let k = 0; k < CARDS.length; k++){
     const node = cache.get(k); if (!node) continue;
-    const on = (k === i);
-    setDim(node, !on);
-    node.position.y = Y_BASE;
+    const highlight = (i >= 0) ? (k === i) : (k === current);
+    setDim(node, !highlight);
+    node.position.y = Y_BASE; // keep everyone on ground
   }
 }
+export { previewIndex }; // already exporting; keep as-is
 
 function indexForGroupSlug(slug){
   const i = CARDS.findIndex(c => c.slug === slug);

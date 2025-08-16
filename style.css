@@ -22,13 +22,10 @@ body{
 }
 
 /* ----- Hover thirds overlay (desktop only) ----- */
+/* Hover thirds overlay */
 #lanes{
   position: fixed; inset: 0; pointer-events: none; z-index: 10;
 }
-
-#lanes { z-index: 10; }
-.footer, #pillsRail { z-index: 25; }
-
 #lanes .lane{
   position: absolute; top: 0; bottom: 0; width: 33.3333%;
   pointer-events: auto; cursor: pointer;
@@ -36,20 +33,14 @@ body{
 #lanes .lane:nth-child(1){ left: 0; }
 #lanes .lane:nth-child(2){ left: 33.3333%; }
 #lanes .lane:nth-child(3){ left: 66.6666%; }
+@media (hover:none){ #lanes{ display:none; } }
 
-/* Lanes only matter on hover devices; hide on touch */
-@media (hover:none){
-  #lanes{ display: none; }
-}
-
-/* ----- Footer: three icons in thirds ----- */
+/* Footer icons (three equal thirds) */
 .footer{
-  position: fixed;
-  left: 0; right: 0; bottom: 12px;
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  position: fixed; left: 0; right: 0; bottom: 12px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
   justify-items: center; align-items: center;
-  width: 100vw; z-index: 25; pointer-events: auto;
+  width: 100vw; z-index: 25;
 }
 .footer-icon{
   font-size: 22px; line-height: 1;
@@ -59,7 +50,7 @@ body{
 }
 .footer-icon:hover{ border-color:#888; color:#fff; transform: translateY(-1px); }
 
-/* ----- Single pills rail (JS moves its X anchor) ----- */
+/* Single pills rail (centered; JS re-anchors left/50/83%) */
 #pillsRail{
   position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
   display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
@@ -73,16 +64,11 @@ body{
   font-size: 14px; line-height: 1.1;
   transition: border-color .15s ease, transform .15s ease;
 }
-
-.pill{
-    white-space: nowrap;
-    max-width: 38ch;
-}
 @media (min-width:768px){ .pill{ font-size: 15px; } }
 .pill:hover{ border-color:#888; color:#fff; transform: translateY(-1px); }
 .pill.active{ border-color:#aaa; color:#fff; }
 
-/* Desktop: pills fade in on hover of lanes or footer */
+/* Desktop: pills fade in while hovering lanes/footer/pills */
 @media (hover:hover){
   #pillsRail{ opacity: 0; pointer-events: none; transition: opacity .12s ease; }
   #lanes:hover ~ #pillsRail,
@@ -90,6 +76,10 @@ body{
   #pillsRail:hover{ opacity: 1; pointer-events: auto; }
 }
 
+/* On touch devices: keep pills visible */
+@media (hover:none){
+  #pillsRail{ opacity: 1; pointer-events: auto; }
+}
 /* Overlay */
 .modal { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.66); }
 .modal[hidden] { display: none; }
