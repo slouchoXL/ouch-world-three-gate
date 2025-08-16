@@ -34,12 +34,17 @@ scene.add(camera);
 
 // Dynamic breakpoints based on the initial viewport
 const BASELINE_WIDTH = window.innerWidth;
-const TWO_UP_RATIO   = 0.80; // 2-up kicks in at ~75% of initial width
-const ONE_UP_RATIO   = 0.60; // optional: 1-up around 45% of initial width
+const TWO_UP_RATIO   = 0.75; // 2-up kicks in at ~75% of initial width
+const ONE_UP_RATIO   = 0.45; // optional: 1-up around 45% of initial width
 
 // Compute breakpoints once, based on baseline (not changing as you resize)
 const BP_TWO_UP = Math.round(BASELINE_WIDTH * TWO_UP_RATIO);
 const BP_ONE_UP = Math.round(BASELINE_WIDTH * ONE_UP_RATIO);
+
+// Baseline camera distances (in world units) for each layout mode
+const BASE_DIST = { '3': 12.0, '2': 10.0, '1': 8.0 };
+// Optional: don't let the camera back up *too* far on ultrawide
+const MAX_DIST_MULT = 1.35; // cap at ~35% farther than baseline
 
 // --- tiny globals near the top (after camera creation) ---
 let renderStarted = false;
@@ -297,9 +302,8 @@ async function selectIndex(i){
   applyActiveStyling();
 
   // Place visible characters into lanes (1/2/3-up), then frame camera
-  positionVisibleByViewportLanes(visibleIndices(), insetForMode());
-  frameCameraToVisible(1.02);  // sets camLook + camZTarget (see patch below)
-
+    frameCameraToVisible();
+    positionVisibleByViewportLanes(visibleIndices(), 0.08);
   // Let ALL characters animate idles (no pausing)
   mixers.forEach((mx, idx)=>{
     const actMap = actions.get(idx); if (!actMap) return;
@@ -377,7 +381,11 @@ function centerRowGroupAtOrigin(){
   }
 }*/
 
-function frameCameraToVisible(pad = 1.02){
+function frameCameraToVisible(pad){
+  // default pad per mode (kept modest since we clamp with BASE_DIST)
+  if (pad == null) pad = (layoutMode === '3') ? 1.10 : (layoutMode === '2') ? 1.06 : 1.02;
+
+  // Build a temp group from only visible nodes
   const temp = new THREE.Group();
   [0,1,2].forEach(i=>{
     const n = cache.get(i);
@@ -395,15 +403,19 @@ function frameCameraToVisible(pad = 1.02){
   const halfW = (size.x * 0.5) * pad;
   const halfH = (size.y * 0.5) * pad;
 
-  const distW = halfW / Math.tan(hFov * 0.5);
-  const distH = halfH / Math.tan(vFov * 0.5);
-  const dist = Math.max(3.5, Math.max(distW, distH));
+  const distFitW = halfW / Math.tan(hFov * 0.5);
+  const distFitH = halfH / Math.tan(vFov * 0.5);
+  const distFit  = Math.max(3.5, Math.max(distFitW, distFitH));
 
-  // Set targets; loop() will smoothly lerp Z to camZTarget
+  // Clamp to keep models from getting too big:
+  const base     = BASE_DIST[layoutMode] ?? 10.0;
+  const maxDist  = base * MAX_DIST_MULT;
+  const dist     = Math.min(Math.max(distFit, base), maxDist);
+
+  // Set targets; the render loop lerps to camZTarget
   camLook.set(rowGroup.position.x, TARGET_Y + screenYBias, rowGroup.position.z);
   camZTarget = camLook.z + dist;
 }
-
 // Position the three models at the centers of three equal screen lanes.
 /*function layoutRowByViewportThirds(inset = 0.08){
   const vFov = THREE.MathUtils.degToRad(camera.fov);
@@ -462,8 +474,8 @@ function visibleIndices(){
 // Choose horizontal inset based on current layout mode
 function insetForMode(){
   // More inset for 3-up to keep models breathing room on first paint
-  if (layoutMode === '3') return 0.01; // was 0.08
-  if (layoutMode === '2') return 0.9;
+  if (layoutMode === '3') return 0.05; // was 0.08
+  if (layoutMode === '2') return 0.10;
   return 0.08; // 1-up
 }
 
@@ -473,7 +485,9 @@ function positionVisibleByViewportLanes(indices, inset = 0.08){
   const aspect = camera.aspect;
   const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * aspect);
 
-  const dist = Math.abs(camera.position.z - Z_ROW);
+  // Use the distance we’re *going* to (prevents spacing jitter/overlap)
+  const dist = Math.abs((camZTarget ?? camera.position.z) - Z_ROW);
+
   const halfW = Math.tan(hFov * 0.5) * dist;
   const W = 2 * halfW;
 
@@ -489,10 +503,19 @@ function positionVisibleByViewportLanes(indices, inset = 0.08){
     n.position.z = Z_ROW;
   });
 
-  // Hide the others
+  // Show/hide + pause idle for hidden ones (perf)
   [0,1,2].forEach(i=>{
     const n = cache.get(i); if (!n) return;
-    n.visible = indices.includes(i);
+    const visible = indices.includes(i);
+    if (n.visible !== visible){
+      n.visible = visible;
+      const actMap = actions.get(i);
+      if (actMap){
+        const idleName = Object.keys(actMap).find(nm => /idle|breath|loop/i.test(nm)) || Object.keys(actMap)[0];
+        const a = actMap[idleName];
+        if (a) a.paused = !visible;
+      }
+    }
   });
 }
 
@@ -515,9 +538,11 @@ async function boot(){
   centerRowGroupAtOrigin();
     
    // layoutRowByViewportThirds(0.08);
+    // boot
     chooseLayoutMode();
-    positionVisibleByViewportLanes(visibleIndices(), insetForMode());
-    frameCameraToVisible(1.02, /*instant*/true); // set cam instantly for first frame
+    [0,1,2].forEach(i=> cache.get(i) && (cache.get(i).visible = true)); // or your visibleIndices()
+    frameCameraToVisible();                // sets camZTarget using clamp
+    positionVisibleByViewportLanes(visibleIndices(), 0.08);
 
   await selectIndex(current);
 
@@ -574,14 +599,9 @@ window.addEventListener('resize', ()=>{
   if (resizeTimer) clearTimeout(resizeTimer);
   resizeTimer = setTimeout(()=>{
     // Re-evaluate layout mode (3 / 2 / 1)
-    const modeChanged = chooseLayoutMode();
-
-    // Re-place the visible models into N equal lanes
-    positionVisibleByViewportLanes(visibleIndices(), insetForMode());
-
-    // Re-frame to **visible** models so size looks consistent
-    frameCameraToVisible(1.02);
-
+      const modeChanged = chooseLayoutMode();
+      frameCameraToVisible();
+      positionVisibleByViewportLanes(visibleIndices(), 0.08);
     // Update last-known size after we finish
     lastW = w; lastH = h;
   }, 120);
