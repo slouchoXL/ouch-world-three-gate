@@ -432,10 +432,7 @@ function emitLayoutChange(){
                     window.dispatchEvent(new CustomEvent('cardchange', { detail:{ index: current, slug } }));
                   }
 
-/* ---------- Swipe / Drag / Trackpad navigation ---------- */
-// Works on mobile (touch) and desktop (mouse drag / trackpad)
-// Behavior: selectIndex(current ± 1). We disable in 3-up by default.
-/* ---------- Swipe / Drag / Trackpad navigation ---------- */
+/* ---------- Swipe / Drag / Trackpad navigation (smoother) ---------- */
 const CAN_SWIPE = () => layoutMode !== '3'; // enable in 2-up & 1-up
 
 const gestureTargets = [
@@ -443,46 +440,106 @@ const gestureTargets = [
   canvas
 ].filter(Boolean);
 
-const H_SWIPE_PX  = 40;   // was 60 — make a bit easier to trigger
-const V_CANCEL_PX = 28;   // vertical drift tolerance
-const FLICK_VX    = 0.6;  // px/ms; flicks count even with small distance
+/* Tunables */
+const DRAG_RANGE   = 140; // px for a “full” swipe (controls sensitivity/feel)
+const H_SWIPE_PX   = 56;  // min horizontal distance to count as swipe
+const V_CANCEL_PX  = 36;  // vertical drift tolerance (higher = less accidental cancels)
+const FLICK_VX     = 0.35; // px/ms; faster than this triggers even if distance small
+const COOLDOWN_MS  = 160; // ignore second swipe immediately after the first
 
+/* State */
 const drag = { active:false, x0:0, y0:0, t0:0, x:0, y:0, id:null };
+let swipeCooldownUntil = 0;
 
+/* helper: clamp */
+const clamp = (v,min,max)=> Math.min(max, Math.max(min, v));
+
+/* helper: ease progress for nicer feel (cubic) */
+function easeProgress(p){
+  const s = Math.sign(p), a = Math.abs(p);
+  return s * (a*a*(3 - 2*a)); // smoothstep-ish
+}
+
+/* while dragging, softly preview highlight (no movement) */
+function previewByProgress(dx){
+  const raw = clamp(dx / DRAG_RANGE, -1, 1);
+  const p   = easeProgress(raw);
+
+  if (Math.abs(p) < 0.15){
+    // close to center → keep current highlighted
+    previewIndex(-1);
+    return;
+  }
+  const dir = p < 0 ? +1 : -1; // dragging left shows NEXT, right shows PREV
+  const neighbor = (current + dir + CARDS.length) % CARDS.length;
+
+  // only preview if that neighbor is visible in this layout
+  const visible = new Set(visibleIndices());
+  if (visible.has(neighbor)) {
+    previewIndex(neighbor);
+  } else {
+    previewIndex(-1);
+  }
+}
+
+/* core handlers */
 function startDrag(e){
   if (!CAN_SWIPE()) return;
+  if (performance.now() < swipeCooldownUntil) return;
+
   drag.active = true;
   drag.id = e.pointerId ?? null;
   drag.x0 = e.clientX; drag.y0 = e.clientY;
   drag.t0 = performance.now();
-  drag.x  = drag.x0;    drag.y  = drag.y0;
-  // try to capture so we keep getting moves
-  try { e.currentTarget.setPointerCapture && drag.id != null && e.currentTarget.setPointerCapture(drag.id); } catch {}
+  drag.x  = drag.x0;   drag.y  = drag.y0;
+
+  try { e.currentTarget.setPointerCapture && drag.id!=null && e.currentTarget.setPointerCapture(drag.id); } catch {}
 }
 
 function moveDrag(e){
   if (!drag.active) return;
-  // while dragging, stop the page from scrolling
-  e.preventDefault();
+  e.preventDefault(); // keep the page from scrolling while we drag
 
   drag.x = e.clientX; drag.y = e.clientY;
 
-  // if the gesture turns mostly vertical, cancel
+  // cancel if it turned into a vertical scroll
   if (Math.abs(drag.y - drag.y0) > V_CANCEL_PX){
     cancelDrag(e);
+    previewIndex(-1);
+    return;
   }
+
+  // live preview highlight based on horizontal progress
+  previewByProgress(drag.x - drag.x0);
 }
 
 function endDrag(e){
   if (!drag.active) return;
+
   const dx = drag.x - drag.x0;
   const dt = Math.max(1, performance.now() - drag.t0);
   const vx = Math.abs(dx) / dt;
 
+  let didSwipe = false;
   if (Math.abs(dx) > H_SWIPE_PX || vx > FLICK_VX){
-    const dir = dx < 0 ? +1 : -1; // left swipe → next
-    selectIndex(current + dir);
+    const dir = dx < 0 ? +1 : -1; // left → next
+    const target = current + dir;
+
+    // only commit if the target card will be visible in this mode
+    const vis = new Set(visibleIndices());
+    const nextIdx = (target + CARDS.length) % CARDS.length;
+    if (vis.has(nextIdx) || layoutMode === '1'){ // in 1-up you can always change
+      selectIndex(target);
+      didSwipe = true;
+    }
   }
+
+  // reset preview
+  previewIndex(-1);
+
+  // cooldown to avoid double-firing
+  if (didSwipe) swipeCooldownUntil = performance.now() + COOLDOWN_MS;
+
   cancelDrag(e);
 }
 
@@ -491,39 +548,40 @@ function cancelDrag(e){
   drag.id = null;
 }
 
+/* attach to both #lanes and #webgl (topmost wins) */
 gestureTargets.forEach(el=>{
   el.addEventListener('pointerdown',  startDrag, { passive: true  });
-  el.addEventListener('pointermove',  moveDrag,  { passive: false }); // must be non-passive to preventDefault
+  el.addEventListener('pointermove',  moveDrag,  { passive: false }); // must be non-passive
   el.addEventListener('pointerup',    endDrag,   { passive: true  });
   el.addEventListener('pointercancel',cancelDrag,{ passive: true  });
   el.addEventListener('pointerleave', endDrag,   { passive: true  });
 });
 
-// Trackpad horizontal swipe (two-finger left/right)
+/* Trackpad: smooth two-finger left/right */
 let wheelAccum = 0, wheelTimer = null;
 gestureTargets.forEach(el=>{
   el.addEventListener('wheel', (e)=>{
     if (!CAN_SWIPE()) return;
-    // Ignore when mostly vertical
+    // ignore when mostly vertical
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 1.6) return;
 
     wheelAccum += e.deltaX;
+
+    // live preview as you scrub
+    previewByProgress(wheelAccum);
+
     if (wheelTimer) clearTimeout(wheelTimer);
     wheelTimer = setTimeout(()=>{
-      if (Math.abs(wheelAccum) > 120){
-        const dir = wheelAccum > 0 ? +1 : -1; // rightward delta → next
+      if (Math.abs(wheelAccum) > 110){
+        const dir = wheelAccum > 0 ? +1 : -1;
         selectIndex(current + dir);
+        swipeCooldownUntil = performance.now() + COOLDOWN_MS;
       }
-      wheelAccum = 0; wheelTimer = null;
-    }, 80);
+      wheelAccum = 0;
+      wheelTimer = null;
+      previewIndex(-1);
+    }, 90);
   }, { passive: true });
-});
-
-// Optional keyboard (already working for you)
-window.addEventListener('keydown', (e)=>{
-  if (!CAN_SWIPE()) return;
-  if (e.key === 'ArrowLeft')  selectIndex(current - 1);
-  if (e.key === 'ArrowRight') selectIndex(current + 1);
 });
 
 /* ---------- Group helpers ---------- */
