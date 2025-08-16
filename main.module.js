@@ -102,9 +102,9 @@ let current = 1; // start with the middle one active
 // --- Responsive layout mode (3-up / 2-up / 1-up) ---
 let layoutMode = '3'; // '3' | '2' | '1'
 
-let lastW = window.innerWidth;
-let lastH = window.innerHeight;
-let resizeTimer = null;
+//let lastW = window.innerWidth;
+//let lastH = window.innerHeight;
+//let resizeTimer = null;
 
 // Change these breakpoints if you like:
 const BP_ONE_UP   = 700;  // < 700px => 1-up
