@@ -75,9 +75,14 @@ function highlightFooter(group){
   });
 }
 
+let lastFooterKey = '';
+
 function renderFooterIcons(groups){
   const iconFor = { listen:'🎧', buy:'💵', explore:'🧩' }; // <-- define this
 
+    const key = groups.join('|');
+    if (key === lastFooterKey && footer.childElementCount === groups.length) return;
+    lastFooterKey = key;
   //footer.innerHTML = '';
     footer.replaceChildren();
   groups.forEach(g=>{
@@ -285,7 +290,7 @@ overlayX?.addEventListener('click', ()=>{
 
 (function init(){
   // Build footer + lanes for the initial (3-up) state; main will correct via layoutchange
-  renderFooterIcons(visibleGroups);
+  //renderFooterIcons(visibleGroups);
   renderLanes(visibleGroups);
 
   const { group, page } = parseHash();
