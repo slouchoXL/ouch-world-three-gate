@@ -223,6 +223,17 @@ function applyActiveStyling(){
   }
 }
 
+function ensureIdleRunning(i){
+  const actMap = actions.get(i);
+  if (!actMap) return;
+  const idleName = Object.keys(actMap).find(nm => /idle|breath|loop/i.test(nm)) || Object.keys(actMap)[0];
+  const a = actMap[idleName];
+  if (!a) return;
+  a.enabled = true;
+  a.paused  = false;
+  if (!a.isRunning()) a.play();
+}
+
 /* ---------- Load ---------- */
 const cache    = new Map();
 const inflight = new Map();
@@ -339,7 +350,16 @@ function positionVisibleByViewportLanes(indices, inset = 0.08){
       if (actMap){
         const idleName = Object.keys(actMap).find(nm => /idle|breath|loop/i.test(nm)) || Object.keys(actMap)[0];
         const a = actMap[idleName];
-        if (a) a.paused = !vis;
+          if (a) {
+              if (visible){
+                        // coming back: make 100% sure it’s running
+                        a.enabled = true;
+                        a.paused  = false;
+                        if (!a.isRunning()) a.play();
+              } else {
+                  // hiding: just pause it
+                  a.paused = true;
+              }
       }
     }
   });
@@ -384,35 +404,31 @@ function emitLayoutChange(){
 }
 
 /* One entry point to place, frame, and notify UI */
-function applyLayout(){
-  const indices = visibleIndices();
-  frameCameraToVisible();                         // set camZTarget (clamped)
-  positionVisibleByViewportLanes(indices, insetForMode()); // use camZTarget for spacing
-  emitLayoutChange();                             // tell UI what’s visible
-}
+                  function applyLayout(){
+                    const indices = visibleIndices();
+                    frameCameraToVisible();                               // set camZTarget (clamped)
+                    positionVisibleByViewportLanes(indices, insetForMode()); // uses camZTarget for spacing
+                    ensureIdleRunning(indices);                           // <-- make sure newly visible idles run
+                    emitLayoutChange();                                   // tell UI what’s visible
+                  }
 
 /* ---------- Select (no camera move) ---------- */
-async function selectIndex(i){
-  current = (i + CARDS.length) % CARDS.length;
+                  async function selectIndex(i){
+                    current = (i + CARDS.length) % CARDS.length;
 
-  await Promise.all([0,1,2].map(ensureLoaded));
-  applyActiveStyling();
+                    // make sure all three are in memory
+                    await Promise.all([0,1,2].map(ensureLoaded));
 
-  applyLayout(); // re-place + frame (keeps current in view for 2-up/1-up)
+                    // dim non-current (no vertical “hop”)
+                    applyActiveStyling();
 
-  // Ensure all idles run (hidden nodes get paused in positionVisibleByViewportLanes)
-  mixers.forEach((mx, idx)=>{
-    const actMap = actions.get(idx); if (!actMap) return;
-    const idleName = Object.keys(actMap).find(n => /idle|breath|loop/i.test(n)) || Object.keys(actMap)[0];
-    const a = actMap[idleName]; if (!a) return;
-    a.enabled = true; a.paused = false;
-    a.setLoop(THREE.LoopPingPong, Infinity);
-    if (!a.isRunning()) a.play();
-  });
+                    // layout for current mode (3/2/1), keep current in view for 2-up/1-up
+                    applyLayout();
 
-  const slug = CARDS[current]?.slug || null;
-  window.dispatchEvent(new CustomEvent('cardchange', { detail:{ index: current, slug } }));
-}
+                    // fire UI event for things that only care about the active card
+                    const slug = CARDS[current]?.slug || null;
+                    window.dispatchEvent(new CustomEvent('cardchange', { detail:{ index: current, slug } }));
+                  }
 
 /* ---------- Group helpers ---------- */
 function indexForGroupSlug(slug){
@@ -497,24 +513,38 @@ function loop(){
   renderer.render(scene, camera);
 }
 
-/* ---------- Resize (debounced) ---------- */
-let resizeTimer = null;
-let lastW = window.innerWidth, lastH = window.innerHeight;
+                  /* ---------- Resize (debounced) ---------- */
+                  let resizeTimer = null;
+                  let lastW = window.innerWidth, lastH = window.innerHeight;
 
-window.addEventListener('resize', ()=>{
-  const w = window.innerWidth, h = window.innerHeight;
+                  window.addEventListener('resize', ()=>{
+                    const w = window.innerWidth, h = window.innerHeight;
 
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
+                    // update renderer/camera immediately so our math uses the new aspect
+                    camera.aspect = w / h;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(w, h);
 
-  if (resizeTimer) clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(()=>{
-    const changed = chooseLayoutMode();
-    applyLayout(); // always re-place + frame + notify UI (stable spacing via camZTarget)
-    lastW = w; lastH = h;
-  }, 120);
-});
+                    if (resizeTimer) clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(()=>{
+                      // may flip 3↔2↔1 with hysteresis
+                      const modeChanged = chooseLayoutMode();
+
+                      // 1) place visible models into N equal lanes (use your per-mode inset)
+                      positionVisibleByViewportLanes(visibleIndices(), insetForMode());
+
+                      // 2) frame to the *visible* set (updates camZTarget; render loop eases)
+                      frameCameraToVisible();
+
+                      // 3) make sure any model that just returned is animating
+                      visibleIndices().forEach(ensureIdleRunning);
+
+                      // 4) tell the UI (icons/lanes/pills) what’s visible now
+                      emitLayoutChange();
+
+                      lastW = w; lastH = h;
+                    }, 120);
+                  });
 
 /* ---------- Kick ---------- */
 boot();
