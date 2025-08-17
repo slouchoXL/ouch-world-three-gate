@@ -362,13 +362,15 @@ footer.addEventListener('mouseenter', cancelTrayClose);
 pillsRail.addEventListener('mouseleave', (e)=>{
   const to = e.relatedTarget;
   if (to && (to.closest('#pillsRail') || to.closest('#siteFooter'))) return;
-  scheduleTrayClose();
+  closeTray();         // closes + hover-mutes
+  previewIndex(-1);    // just clear temporary highlight
 });
 
 footer.addEventListener('mouseleave', (e)=>{
   const to = e.relatedTarget;
   if (to && (to.closest('#pillsRail') || to.closest('#siteFooter'))) return;
-  scheduleTrayClose();
+  closeTray();         // closes + hover-mutes
+  previewIndex(-1);    // no “snap back to middle”
 });
 
 // Scene → UI: keep footer/pills in sync when current index changes
