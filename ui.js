@@ -165,6 +165,7 @@ function renderLanes(groups){
   // Lanes: highlight only — DO NOT open the tray
   root.querySelectorAll('.lane').forEach(lane=>{
     lane.addEventListener('mouseenter', ()=>{
+        cancelTrayClose();
       if (hoverMuted()) return;
       const g = lane.dataset.group;
       if (!g) return;
@@ -179,7 +180,7 @@ function renderLanes(groups){
       highlightFooter(active);
     });
   });
-}
+//}
 
 function isInsideUISurfaces(el){
   if (!el) return false;
@@ -364,12 +365,32 @@ function restoreActiveUI(){
 function scheduleTrayClose(delay = 120){
   cancelTrayClose();
   trayCloseTimer = setTimeout(()=>{
-    closeTray();          // your function that hides the tray + hover mute
-    restoreActiveUI();    // put footer/pills back to the active card
-    previewIndex(-1);     // clear temporary highlight
+    // What are we over *at the moment of closing*?
+    const el = document.elementFromPoint(lastPointerX, lastPointerY);
+    const overFooter = !!(el && el.closest && el.closest('#siteFooter'));
+    const overTray   = !!(el && el.closest && el.closest('#pillsRail'));
+    const laneEl     = el && el.closest && el.closest('#lanes .lane');
+
+    // If we somehow ended up back over tray/footer, abort closing.
+    if (overFooter || overTray) return;
+
+    // Close the tray now.
+    closeTray(); // also applies the hover mute
+
+    // If pointer is over a lane, keep THAT lane highlighted.
+    if (laneEl && laneEl.dataset && laneEl.dataset.group){
+      const g = laneEl.dataset.group;
+      highlightFooter(g);
+      renderPills(g);                     // prepares content (tray can remain closed)
+      setTrayAnchorForVisible(visibleGroups, g);
+      previewIndex(indexForGroupSlug(g)); // 3D highlight for that lane
+    } else {
+      // Otherwise go back to the currently active (middle) selection.
+      restoreActiveUI();
+      previewIndex(-1);
+    }
   }, delay);
 }
-
 // keep the tray open while pointer is over it (or the footer)
 pillsRail.addEventListener('mouseenter', cancelTrayClose);
 footer.addEventListener('mouseenter', cancelTrayClose);
