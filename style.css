@@ -95,7 +95,7 @@ body{
     bottom: calc(12px + env(safe-area-inset-bottom));
   }
   .footer .footer-icon{
-    color: #ffffff;                  /* hard white if you prefer */
+    color: #fff;                  /* hard white if you prefer */
     -webkit-tap-highlight-color: transparent;
   }
   .footer .footer-icon svg{
@@ -106,6 +106,8 @@ body{
   }
 }
 
+.footer {background: rgba(255,0,0,0.55); }
+.footer .footer-icon {outline: 1px solid rgba (0,255,255,0.3);}
 /* ---------- Pills TRAY (opens above the active icon) ---------- */
 #pillsRail{
   position: fixed;

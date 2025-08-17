@@ -133,6 +133,7 @@ function closeTray(muteMs = HOVER_MUTE_MS){
 
 /* ========= FOOTER & LANES ========= */
 
+// --- iOS-safe inline SVG builder that strips embedded styles/fills ---
 function createInlineSVG(markup){
   const tmp = document.createElement('div');
   tmp.innerHTML = markup.trim();
@@ -145,49 +146,64 @@ function createInlineSVG(markup){
     if (node.nodeType === 3) return document.createTextNode(node.nodeValue);
     if (node.nodeType !== 1) return null;
 
+    // Skip any <style> blocks embedded in the SVG
+    if (node.tagName && node.tagName.toLowerCase() === 'style') return null;
+
     const el = document.createElementNS(NS, node.tagName.toLowerCase());
-    // copy attributes
+
+    // Copy attributes, but drop those that fight coloring/size
     for (let i = 0; i < node.attributes.length; i++){
       const a = node.attributes[i];
-      el.setAttribute(a.name, a.value);
+      const name = a.name.toLowerCase();
+      if (name === 'class' || name === 'style' || name === 'fill' || name === 'stroke') continue;
+      el.setAttribute(name, a.value);
     }
-    // recurse children
+
+    // Recurse children
     for (let i = 0; i < node.childNodes.length; i++){
       const child = cloneNodeNS(node.childNodes[i]);
       if (child) el.appendChild(child);
+    }
+
+    // Ensure shapes inherit currentColor if they were hard-coded
+    // (presentation attributes removed above; this is just a safety net)
+    if (['path','rect','circle','ellipse','polygon','polyline','line','g'].includes(el.tagName)){
+      // don’t set explicit fill/stroke; inheritance via CSS is enough
     }
     return el;
   }
 
   const out = document.createElementNS(NS, 'svg');
 
-  // carry over viewBox/attrs (but we’ll force size)
+  // Carry over viewBox (not width/height)
   const vb = src.getAttribute('viewBox');
   if (vb) out.setAttribute('viewBox', vb);
-  for (let i = 0; i < src.attributes.length; i++){
-    const a = src.attributes[i];
-    if (a.name === 'width' || a.name === 'height') continue;
-    out.setAttribute(a.name, a.value);
-  }
 
-  // force a sane size; CSS can still override
+  // Sensible default size; CSS can override
   out.setAttribute('width', '24');
   out.setAttribute('height', '24');
   out.setAttribute('focusable', 'false');
   out.setAttribute('aria-hidden', 'true');
 
-  // clone children into the proper namespace
+  // Copy remaining attributes except width/height
+  for (let i = 0; i < src.attributes.length; i++){
+    const a = src.attributes[i];
+    const name = a.name.toLowerCase();
+    if (name === 'width' || name === 'height') continue;
+    out.setAttribute(name, a.value);
+  }
+
+  // Children (with sanitization)
   for (let i = 0; i < src.childNodes.length; i++){
     const child = cloneNodeNS(src.childNodes[i]);
     if (child) out.appendChild(child);
   }
 
-  // ensure paint
+  // Force paint via currentColor
   out.style.fill = 'currentColor';
   out.style.stroke = 'currentColor';
   return out;
 }
-
 function highlightFooter(group){
   footer.querySelectorAll('.footer-icon').forEach(btn=>{
     const on = btn.dataset.group === group;
