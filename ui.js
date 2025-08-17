@@ -130,8 +130,11 @@ function renderFooterIcons(groups){
     btn.className = 'footer-icon';
     btn.dataset.group = g;
     btn.setAttribute('aria-label', g);
-      btn.innerHTML = ICON_SVGS[g] || '•';
-  //  btn.textContent = iconFor[g] || '•';
+      if (ICON_SVGS[g]) {
+          btn.innerHTML = ICON_SVGS[g];
+      } else {
+          btn.textContent = iconFor[g] || '•';
+      }
     footer.appendChild(btn);
   });
   footer.style.setProperty('--cols', String(Math.max(1, groups.length)));
