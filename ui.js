@@ -165,7 +165,7 @@ function renderLanes(groups){
   // Lanes: highlight only — DO NOT open the tray
   root.querySelectorAll('.lane').forEach(lane=>{
     lane.addEventListener('mouseenter', ()=>{
-        cancelTrayClose();
+       // cancelTrayClose();
       if (hoverMuted()) return;
       const g = lane.dataset.group;
       if (!g) return;
@@ -399,15 +399,13 @@ footer.addEventListener('mouseenter', cancelTrayClose);
 pillsRail.addEventListener('mouseleave', (e)=>{
   const to = e.relatedTarget;
   if (to && (to.closest('#pillsRail') || to.closest('#siteFooter'))) return;
-  closeTray();         // closes + hover-mutes
-  previewIndex(-1);    // just clear temporary highlight
+  scheduleTrayClose(120);   // lane-aware delayed close
 });
 
 footer.addEventListener('mouseleave', (e)=>{
   const to = e.relatedTarget;
   if (to && (to.closest('#pillsRail') || to.closest('#siteFooter'))) return;
-  closeTray();         // closes + hover-mutes
-  previewIndex(-1);    // no “snap back to middle”
+  scheduleTrayClose(120);   // lane-aware delayed close
 });
 
 // Scene → UI: keep footer/pills in sync when current index changes
