@@ -125,6 +125,9 @@ function renderFooterIcons(groups){
   lastFooterKey = key;
 
   footer.replaceChildren();
+    
+    const parser = new DOMParser();
+    
   groups.forEach(g=>{
     const btn = document.createElement('button');
     btn.className = 'footer-icon';
@@ -135,10 +138,28 @@ function renderFooterIcons(groups){
       } else {
           btn.textContent = iconFor[g] || '•';
       }
-    footer.appendChild(btn);
-  });
-  footer.style.setProperty('--cols', String(Math.max(1, groups.length)));
-}
+      const svgMarkup = ICON_SVGS[g];
+         if (svgMarkup){
+           const doc = parser.parseFromString(svgMarkup.trim(), 'image/svg+xml');
+           const svg = doc.documentElement;
+
+           // Make sure the svg flexes nicely in the button
+           svg.setAttribute('width',  '24');   // CSS will still override, this is a fallback
+           svg.setAttribute('height', '24');
+           svg.setAttribute('focusable', 'false');
+           svg.setAttribute('aria-hidden', 'true');
+
+           btn.appendChild(svg);
+         } else {
+           // Fallback emoji if no SVG provided
+           btn.textContent = iconFor[g] || '•';
+         }
+
+         footer.appendChild(btn);
+       });
+
+       footer.style.setProperty('--cols', String(Math.max(1, groups.length)));
+     }
 
 let lastPointerX = 0, lastPointerY = 0;
 
