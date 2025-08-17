@@ -133,159 +133,18 @@ function closeTray(muteMs = HOVER_MUTE_MS){
 
 /* ========= FOOTER & LANES ========= */
 
-// --- iOS-safe inline SVG builder that strips embedded styles/fills ---
-function createInlineSVG(markup){
-  const tmp = document.createElement('div');
-  tmp.innerHTML = markup.trim();
-  const src = tmp.querySelector('svg');
-  if (!src) return null;
-
-  const NS = 'http://www.w3.org/2000/svg';
-
-  function cloneNodeNS(node){
-    if (node.nodeType === 3) return document.createTextNode(node.nodeValue);
-    if (node.nodeType !== 1) return null;
-
-    // Skip any <style> blocks embedded in the SVG
-    if (node.tagName && node.tagName.toLowerCase() === 'style') return null;
-
-    const el = document.createElementNS(NS, node.tagName.toLowerCase());
-
-    // Copy attributes, but drop those that fight coloring/size
-    for (let i = 0; i < node.attributes.length; i++){
-      const a = node.attributes[i];
-      const name = a.name.toLowerCase();
-      if (name === 'class' || name === 'style' || name === 'fill' || name === 'stroke') continue;
-      el.setAttribute(name, a.value);
-    }
-
-    // Recurse children
-    for (let i = 0; i < node.childNodes.length; i++){
-      const child = cloneNodeNS(node.childNodes[i]);
-      if (child) el.appendChild(child);
-    }
-
-    // Ensure shapes inherit currentColor if they were hard-coded
-    // (presentation attributes removed above; this is just a safety net)
-    if (['path','rect','circle','ellipse','polygon','polyline','line','g'].includes(el.tagName)){
-      // don’t set explicit fill/stroke; inheritance via CSS is enough
-    }
-    return el;
-  }
-
-  const out = document.createElementNS(NS, 'svg');
-
-  // Carry over viewBox (not width/height)
-  const vb = src.getAttribute('viewBox');
-  if (vb) out.setAttribute('viewBox', vb);
-
-  // Sensible default size; CSS can override
-  out.setAttribute('width', '24');
-  out.setAttribute('height', '24');
-  out.setAttribute('focusable', 'false');
-  out.setAttribute('aria-hidden', 'true');
-
-  // Copy remaining attributes except width/height
-  for (let i = 0; i < src.attributes.length; i++){
-    const a = src.attributes[i];
-    const name = a.name.toLowerCase();
-    if (name === 'width' || name === 'height') continue;
-    out.setAttribute(name, a.value);
-  }
-
-  // Children (with sanitization)
-  for (let i = 0; i < src.childNodes.length; i++){
-    const child = cloneNodeNS(src.childNodes[i]);
-    if (child) out.appendChild(child);
-  }
-
-  // Force paint via currentColor
-  out.style.fill = 'currentColor';
-  out.style.stroke = 'currentColor';
-  return out;
-}
-function highlightFooter(group){
-  footer.querySelectorAll('.footer-icon').forEach(btn=>{
-    const on = btn.dataset.group === group;
-    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    btn.style.borderColor = on ? '#aaa' : 'var(--chip-border)';
-    btn.style.transform   = on ? 'translateY(-1px)' : 'none';
-  });
-}
-
-//let lastFooterKey = '';
-let _footerRenderedOnce = false;
-
-// robustly build an inline SVG that iOS Safari will actually paint
-function createInlineSVG(markup){
-  const tmp = document.createElement('div');
-  tmp.innerHTML = markup.trim();
-  const src = tmp.querySelector('svg');
-  if (!src) return null;
-
-  const NS = 'http://www.w3.org/2000/svg';
-
-  function cloneNodeNS(node){
-    if (node.nodeType === 3) {
-      // text node (rare in icons)
-      return document.createTextNode(node.nodeValue);
-    }
-    if (node.nodeType !== 1) return null;
-
-    // create element in proper namespace
-    const el = document.createElementNS(NS, node.tagName.toLowerCase());
-
-    // copy attributes
-    for (let i = 0; i < node.attributes.length; i++){
-      const attr = node.attributes[i];
-      el.setAttribute(attr.name, attr.value);
-    }
-
-    // recurse children
-    for (let i = 0; i < node.childNodes.length; i++){
-      const child = cloneNodeNS(node.childNodes[i]);
-      if (child) el.appendChild(child);
-    }
-    return el;
-  }
-
-  const out = document.createElementNS(NS, 'svg');
-
-  // viewBox if present
-  const vb = src.getAttribute('viewBox');
-  if (vb) out.setAttribute('viewBox', vb);
-
-  // sensible default size; CSS can override
-  out.setAttribute('width',  '24');
-  out.setAttribute('height', '24');
-  out.setAttribute('focusable', 'false');
-  out.setAttribute('aria-hidden', 'true');
-
-  // copy all attributes except width/height (we set those)
-  for (let i = 0; i < src.attributes.length; i++){
-    const a = src.attributes[i];
-    if (a.name === 'width' || a.name === 'height') continue;
-    out.setAttribute(a.name, a.value);
-  }
-
-  // copy children in correct namespace
-  for (let i = 0; i < src.childNodes.length; i++){
-    const child = cloneNodeNS(src.childNodes[i]);
-    if (child) out.appendChild(child);
-  }
-
-  // force painting via currentColor (still respects hard-coded fills unless you override)
-  out.style.fill = 'currentColor';
-  out.style.stroke = 'currentColor';
-  return out;
-}
-
-let lastFooterKey = '';
 function renderFooterIcons(groups){
-  const key = groups.join('|');
-  if (key === lastFooterKey && footer.childElementCount === groups.length) return;
-  lastFooterKey = key;
+  // If you accidentally have more than one #siteFooter, warn (this causes doubles)
+  if (document.querySelectorAll('#siteFooter').length !== 1){
+    console.warn('Multiple #siteFooter elements detected. Remove duplicates in index.html.');
+  }
 
+  const key = groups.join('|');
+
+  // Guard: if we already rendered for this exact set and the count matches, skip
+  if (_footerRenderedOnce && key === lastFooterKey && footer.childElementCount === groups.length) return;
+
+  lastFooterKey = key;
   footer.replaceChildren();
 
   groups.forEach(g=>{
@@ -294,27 +153,25 @@ function renderFooterIcons(groups){
     btn.dataset.group = g;
     btn.setAttribute('aria-label', g);
 
-    // Try to build an inline SVG node; fallback to emoji if anything fails
-    let inserted = false;
-    try {
-      if (ICON_SVGS[g]){
-        const svgNode = createInlineSVG(ICON_SVGS[g]);
-        if (svgNode){
-          btn.appendChild(svgNode);
-          inserted = true;
-        }
+    const svgMarkup = ICON_SVGS[g];
+    if (svgMarkup){
+      const svgEl = createInlineSVG(svgMarkup);
+      if (svgEl) {
+        btn.appendChild(svgEl);
+      } else {
+        // fallback text if parsing fails
+        btn.textContent = (g in iconFor) ? iconFor[g] : '•';
       }
-    } catch (e){
-      // swallow and fallback to text below
-    }
-    if (!inserted){
-      btn.textContent = iconFor[g] || '•';
+    } else {
+      // emoji fallback
+      btn.textContent = (g in iconFor) ? iconFor[g] : '•';
     }
 
     footer.appendChild(btn);
   });
 
   footer.style.setProperty('--cols', String(Math.max(1, groups.length)));
+  _footerRenderedOnce = true;
 }
 
 let lastPointerX = 0, lastPointerY = 0;
