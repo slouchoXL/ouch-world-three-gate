@@ -57,7 +57,7 @@ body{
 }
 
 .footer .footer-icon{
-  font-size: 22px; line-height: 1;
+  font-size: 0px;
   width: 44px; height: 44px; border-radius: 10px;
   border: 1px solid var(--chip-border);
   background: var(--chip);
@@ -69,8 +69,8 @@ body{
 .footer .footer-icon:hover{
   border-color:#888; color:#fff; transform: translateY(-1px);
 }
-.footer .footer-icon[aria-pressed="true"]{
-  border-color:#aaa; color:#fff; transform: translateY(-1px);
+.footer .footer-icon svg {
+    width: 44px; height: 44px; display block;
 }
 
 /* ---------- Pills TRAY (opens above the active icon) ---------- */
