@@ -74,11 +74,92 @@ body{
   border-color:#888; color:#fff; transform: translateY(-1px);
 }
 /* Single pills rail (centered; JS re-anchors left/50/83%) */
+/* --- TRAY (replaces floating pills rail) --- */
 #pillsRail{
-  position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
-  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
-  max-width: min(94vw, 1000px); width: max-content;
+  position: fixed;
+  bottom: 62px;
+  left: 50%;                 /* JS will update left:% to center over the icon */
+  transform: translateX(-50%) translateY(8px);
   z-index: 25;
+
+  /* tray look */
+  background: var(--chip);
+  border: 1px solid var(--chip-border);
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+
+  /* layout inside tray */
+  padding: 10px;
+  min-width: 260px;
+  max-width: 520px;
+
+  /* hidden by default */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s ease, transform .12s ease;
+}
+
+/* arrow/caret pointing to the icon */
+#pillsRail::after{
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid var(--chip);
+  filter: drop-shadow(0 2px 0 var(--chip-border));
+}
+
+/* open state */
+#pillsRail.open{
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* pills inside tray: full-width, left-aligned */
+#pillsRail .pill{
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--chip-border);
+  border-radius: 8px;
+  padding: .55rem .75rem;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.15;
+  transition: border-color .12s ease, background-color .12s ease, transform .12s ease;
+}
+#pillsRail .pill + .pill{ margin-top: 8px; }
+
+#pillsRail .pill:hover{
+  border-color:#888;
+  background: rgba(255,255,255,0.03);
+  color:#fff;
+  transform: translateY(-1px);
+}
+#pillsRail .pill.active{
+  border-color:#aaa;
+  background: rgba(255,255,255,0.05);
+  color:#fff;
+}
+
+/* desktop only: we keep lanes purely for the visual highlight, not to open the tray */
+@media (hover:hover){
+  /* no special hover-to-open CSS — JS controls .open */
+}
+
+/* mobile: the tray will still be used, but we’ll open on tap */
+@media (hover:none){
+  /* optional: make tray nearly full width on small screens */
+  #pillsRail{
+    min-width: min(92vw, 520px);
+    max-width: min(92vw, 520px);
+  }
 }
 .pill{
   background: var(--chip); color: var(--text);

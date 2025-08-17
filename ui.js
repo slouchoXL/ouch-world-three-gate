@@ -1,4 +1,4 @@
-// ui.js — responsive footer/lanes + pills + overlay routing
+// ui.js — responsive footer/lanes + tray pills + overlay routing
 import {
   CARDS,
   selectGroup,
@@ -28,7 +28,7 @@ const SITEMAP = {
 
 /* ---------- DOM ---------- */
 const footer     = document.getElementById('siteFooter');
-const pillsRail  = document.getElementById('pillsRail');
+const pillsRail  = document.getElementById('pillsRail'); // acts as the tray
 const overlayEl  = document.getElementById('overlay');
 const overlayT   = document.getElementById('overlay-title');
 const overlayB   = document.getElementById('overlay-body');
@@ -44,17 +44,20 @@ const iconFor      = { listen:'🎧', buy:'💵', explore:'🧩' };
 // Which groups are currently visible in 3D (default to 3-up)
 let visibleGroups = ['listen','buy','explore'];
 
-/* ========= RENDERERS ========= */
-
+// optional hover-muting window (used during swipe/drag on desktop if you want)
 function hoverMuted(){
   return performance.now() < (window.__hoverMuteUntil || 0);
 }
 
-function setPillsAnchorForVisible(groups, group){
+/* ========= TRAY (pills) ========= */
+
+// Center the tray above the selected icon *within current visible groups*
+function setTrayAnchorForVisible(groups, group){
   const n   = Math.max(1, groups.length);
   const idx = Math.max(0, groups.indexOf(group));
-  const percent = ((idx + 0.5) / n) * 100; // center of that lane
+  const percent = ((idx + 0.5) / n) * 100; // center of that column
   pillsRail.style.left = percent + '%';
+  // Y is animated via CSS; here we only center horizontally
   pillsRail.style.transform = 'translateX(-50%)';
 }
 
@@ -70,6 +73,29 @@ function renderPills(group, activePageSlug = null){
   });
 }
 
+let hideTimer = null;
+function showTray(group, {keepPreview=false} = {}){
+  if (hideTimer){ clearTimeout(hideTimer); hideTimer = null; }
+  highlightFooter(group);
+  renderPills(group);
+  setTrayAnchorForVisible(visibleGroups, group);
+  pillsRail.classList.add('open');
+  if (!keepPreview){
+    // just a highlight (no movement)
+    previewIndex(indexForGroupSlug(group));
+  }
+}
+function hideTray(delay = 90){
+  if (hideTimer) clearTimeout(hideTimer);
+  hideTimer = setTimeout(()=>{
+    pillsRail.classList.remove('open');
+    // Clear preview: restore dimming to current
+    previewIndex(-1);
+  }, delay);
+}
+
+/* ========= FOOTER & LANES ========= */
+
 function highlightFooter(group){
   footer.querySelectorAll('.footer-icon').forEach(btn=>{
     const on = btn.dataset.group === group;
@@ -80,15 +106,12 @@ function highlightFooter(group){
 }
 
 let lastFooterKey = '';
-
 function renderFooterIcons(groups){
-  const iconFor = { listen:'🎧', buy:'💵', explore:'🧩' }; // <-- define this
+  const key = groups.join('|');
+  if (key === lastFooterKey && footer.childElementCount === groups.length) return;
+  lastFooterKey = key;
 
-    const key = groups.join('|');
-    if (key === lastFooterKey && footer.childElementCount === groups.length) return;
-    lastFooterKey = key;
-  //footer.innerHTML = '';
-    footer.replaceChildren();
+  footer.replaceChildren();
   groups.forEach(g=>{
     const btn = document.createElement('button');
     btn.className = 'footer-icon';
@@ -97,13 +120,11 @@ function renderFooterIcons(groups){
     btn.textContent = iconFor[g] || '•';
     footer.appendChild(btn);
   });
-
   // Let CSS adapt columns: grid-template-columns: repeat(var(--cols, 3), 1fr)
-  footer.style.setProperty('--cols', String(Math.max(1, groups.length))); // <-- safe min 1
+  footer.style.setProperty('--cols', String(Math.max(1, groups.length)));
 }
 
 function renderLanes(groups){
-  const lanesRoot = document.getElementById('lanes');
   if (!lanesRoot) return;
 
   // Only create lanes on hover-capable devices
@@ -124,20 +145,19 @@ function renderLanes(groups){
     lanesRoot.appendChild(lane);
   });
 
-  // (Re)bind hover events
+  // (Re)bind hover events — lanes only preview highlight; they do NOT open the tray
   lanesRoot.querySelectorAll('.lane').forEach(lane=>{
-      lane.addEventListener('mouseenter', ()=>{
-        if (hoverMuted()) return;
-        const g = lane.dataset.group; if (!g) return;
-        previewGroup(g);
-      });
+    lane.addEventListener('mouseenter', ()=>{
+      if (hoverMuted()) return;
+      const g = lane.dataset.group; if (!g) return;
+      previewGroup(g);
+    });
     lane.addEventListener('mouseleave', (e)=>{
       if (isInsideUISurfaces(e.relatedTarget)) return;
       restoreActive();
     });
   });
 }
-/* ========= PREVIEW / RESTORE ========= */
 
 function isInsideUISurfaces(el){
   if (!el) return false;
@@ -146,19 +166,17 @@ function isInsideUISurfaces(el){
 
 function previewGroup(group){
   highlightFooter(group);
-  renderPills(group);
-  setPillsAnchorForVisible(visibleGroups, group);
-  // Only highlight in 3D; do NOT move or scale
-  previewIndex(indexForGroupSlug(group));
+  renderPills(group);                         // prep content (tray may be closed)
+  setTrayAnchorForVisible(visibleGroups, group);
+  previewIndex(indexForGroupSlug(group));    // only highlight; no motion
 }
 
 function restoreActive(){
   const active = indexToGroup(getCurrentIndex());
   highlightFooter(active);
   renderPills(active);
-  setPillsAnchorForVisible(visibleGroups, active);
-  // Clear temporary preview and revert to normal dimming
-  previewIndex(-1);
+  setTrayAnchorForVisible(visibleGroups, active);
+  previewIndex(-1); // clear preview → restore normal dimming
 }
 
 /* ========= OVERLAY CONTENT ========= */
@@ -183,6 +201,7 @@ function openPage(group, page){
   overlayB.innerHTML   = htmlFor(`${group}/${page}`);
   overlayEl.hidden = false;
   canvas?.classList.add('dim-3d');
+  pillsRail.classList.remove('open'); // close tray when overlay opens
   overlayEl.focus();
 }
 
@@ -200,7 +219,7 @@ function navigateTo(group, page=null, { syncScene=true } = {}){
 
   highlightFooter(group);
   renderPills(group, page || null);
-  setPillsAnchorForVisible(visibleGroups, group);
+  setTrayAnchorForVisible(visibleGroups, group);
 
   if (syncScene) selectGroup(group);
 
@@ -221,9 +240,8 @@ window.addEventListener('hashchange', ()=>{
 
 /* ========= EVENTS ========= */
 
-// From main.module.js whenever layout switches 3↔2↔1 or visible set changes
+// Layout → UI (from main.module.js)
 window.addEventListener('layoutchange', (e)=>{
-  // accept either shape, but main.module.js sends `visibleGroups`
   const groups = e.detail?.visibleGroups || e.detail?.groups;
   if (!Array.isArray(groups) || groups.length === 0) return;
 
@@ -231,7 +249,7 @@ window.addEventListener('layoutchange', (e)=>{
   visibleGroups = groups.slice();
 
   // 2) rebuild UI surfaces to match (icons + lanes)
-  renderFooterIcons(visibleGroups);  // also sets --cols
+  renderFooterIcons(visibleGroups);
   renderLanes(visibleGroups);
 
   // 3) choose the anchor group (current if still visible, else first visible)
@@ -243,47 +261,64 @@ window.addEventListener('layoutchange', (e)=>{
   // 4) update footer highlight + pills and anchor them under the right column
   highlightFooter(anchorGroup);
   renderPills(anchorGroup);
-  setPillsAnchorForVisible(visibleGroups, anchorGroup);
+  setTrayAnchorForVisible(visibleGroups, anchorGroup);
+
+  // If the tray is open, keep it pinned over the new anchor
+  if (pillsRail.classList.contains('open')){
+    setTrayAnchorForVisible(visibleGroups, anchorGroup);
+  }
 });
 
-// Footer hover (desktop)
+// Footer hover (desktop): open tray above that icon
 footer.addEventListener('mouseenter', e=>{
   if (hoverMuted()) return;
   const btn = e.target.closest('.footer-icon'); if (!btn) return;
-  previewGroup(btn.dataset.group);
+  const hoverCapable = window.matchMedia('(hover:hover)').matches;
+  if (hoverCapable){
+    showTray(btn.dataset.group);
+  }
 }, true);
 
+// Leaving footer: close tray unless moving into tray
 footer.addEventListener('mouseleave', (e)=>{
-  if (isInsideUISurfaces(e.relatedTarget)) return;
-  restoreActive();
+  if (isInsideUISurfaces(e.relatedTarget)) return;            // into tray/lanes/etc
+  hideTray();
 });
 
-// Footer clicks:
-// - Desktop landing (overlay closed): do nothing (hover controls)
-// - Mobile or when overlay is open: click switches group
+// Footer click: on mobile (no hover) or when overlay is open, toggle the tray
 footer.addEventListener('click', (e)=>{
   const btn = e.target.closest('.footer-icon'); if (!btn) return;
   const group = btn.dataset.group;
   const overlayOpen = !overlayEl.hidden;
   const hoverCapable = window.matchMedia('(hover:hover)').matches;
-  if (hoverCapable && !overlayOpen) return;
-  navigateTo(group, null);
+
+  if (!hoverCapable || overlayOpen){
+    if (pillsRail.classList.contains('open')){
+      hideTray(0);
+    } else {
+      showTray(group, {keepPreview:true});
+    }
+  }
 });
 
-// Pills leave → restore
+// Keep tray open while hovering it; close when leaving it (unless going back to footer)
+pillsRail.addEventListener('mouseenter', ()=>{
+  if (hideTimer){ clearTimeout(hideTimer); hideTimer = null; }
+});
 pillsRail.addEventListener('mouseleave', (e)=>{
-  if (hoverMuted()) return;
-  if (isInsideUISurfaces(e.relatedTarget)) return;
-  restoreActive();
+  if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('#siteFooter')) return;
+  hideTray();
 });
 
 // Scene → UI: keep footer/pills in sync when current index changes
 window.addEventListener('cardchange', (e)=>{
   const group = e.detail?.slug || indexToGroup(getCurrentIndex());
   highlightFooter(group);
-  if (overlayEl.hidden){
-    renderPills(group);
-    setPillsAnchorForVisible(visibleGroups, group);
+  renderPills(group);
+  setTrayAnchorForVisible(visibleGroups, group);
+  // Keep tray position if it is open
+  if (pillsRail.classList.contains('open')){
+    setTrayAnchorForVisible(visibleGroups, group);
   }
 });
 
@@ -295,15 +330,15 @@ overlayX?.addEventListener('click', ()=>{
 /* ========= INITIAL BOOT ========= */
 
 (function init(){
-  // Build footer + lanes for the initial (3-up) state; main will correct via layoutchange
-  //renderFooterIcons(visibleGroups);
+  // Build initial UI surfaces; main.module will refine via layoutchange
+  renderFooterIcons(visibleGroups);
   renderLanes(visibleGroups);
 
   const { group, page } = parseHash();
   const g = group || indexToGroup(getCurrentIndex());
   highlightFooter(g);
   renderPills(g, page || null);
-  setPillsAnchorForVisible(visibleGroups, g);
+  setTrayAnchorForVisible(visibleGroups, g);
   if (page) openPage(g, page);
 
   // Accessibility: escape closes overlay
