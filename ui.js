@@ -119,6 +119,28 @@ function renderFooterIcons(groups){
   footer.style.setProperty('--cols', String(Math.max(1, groups.length)));
 }
 
+let lastPointerX = 0, lastPointerY = 0;
+
+// Track pointer globally
+document.addEventListener('pointermove', (e)=>{
+  lastPointerX = e.clientX; lastPointerY = e.clientY;
+  // If tray is open and we are not over tray/footer, start a delayed close
+  if (trayOpenFor && !isOverTrayOrFooter(e.target)){
+    scheduleGlobalClose();
+  } else if (globalCloseTimer){
+    clearTimeout(globalCloseTimer);
+    globalCloseTimer = null;
+  }
+});
+
+// Click/tap anywhere outside tray/footer should close immediately
+document.addEventListener('pointerdown', (e)=>{
+  if (!trayOpenFor) return;
+  if (!isOverTrayOrFooter(e.target)){
+    closeTray(0);
+  }
+});
+
 function renderLanes(groups){
   const root = lanesRoot;
   if (!root) return;
@@ -164,6 +186,21 @@ function isInsideUISurfaces(el){
   return !!(el.closest('#lanes') || el.closest('#siteFooter') || el.closest('#pillsRail'));
 }
 
+function isOverTrayOrFooter(el){
+  if (!el) return false;
+  return !!(el.closest('#pillsRail') || el.closest('#siteFooter'));
+}
+
+let globalCloseTimer = null;
+function scheduleGlobalClose(){
+  if (!trayOpenFor) return;
+  if (globalCloseTimer) clearTimeout(globalCloseTimer);
+  globalCloseTimer = setTimeout(()=>{
+    // only close if we're STILL not over tray/footer
+    const el = document.elementFromPoint(lastPointerX, lastPointerY);
+    if (!isOverTrayOrFooter(el)) closeTray(0);
+  }, 150);
+}
 /* ========= OVERLAY CONTENT ========= */
 
 function htmlFor(route){
@@ -261,13 +298,12 @@ footer.addEventListener('mouseenter', e=>{
 }, true);
 
 footer.addEventListener('mouseleave', (e)=>{
-  if (isInsideUISurfaces(e.relatedTarget)) return;
-  closeTray();
-  const active = indexToGroup(getCurrentIndex());
-  highlightFooter(active);
-  renderPills(active);
-  setTrayAnchorForVisible(visibleGroups, active);
-  previewIndex(-1);
+  // If you move directly into the tray, don't close here (keep it open)
+  if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('#pillsRail')) return;
+  // Otherwise, let the global watcher decide (starts a delayed close)
+  if (trayOpenFor && !isOverTrayOrFooter(e.relatedTarget)){
+    scheduleGlobalClose();
+  }
 });
 
 // Footer click:
@@ -295,14 +331,44 @@ footer.addEventListener('click', (e)=>{
 pillsRail.addEventListener('mouseenter', ()=>{
   // cancel any pending close
 });
-pillsRail.addEventListener('mouseleave', (e)=>{
-  if (isInsideUISurfaces(e.relatedTarget)) return;
-  closeTray();
+// --- shared helpers for smooth closing ---
+let trayCloseTimer = null;
+
+function cancelTrayClose(){
+  if (trayCloseTimer){ clearTimeout(trayCloseTimer); trayCloseTimer = null; }
+}
+
+function restoreActiveUI(){
   const active = indexToGroup(getCurrentIndex());
   highlightFooter(active);
   renderPills(active);
   setTrayAnchorForVisible(visibleGroups, active);
-  previewIndex(-1);
+}
+
+function scheduleTrayClose(delay = 120){
+  cancelTrayClose();
+  trayCloseTimer = setTimeout(()=>{
+    closeTray();          // your function that hides the tray + hover mute
+    restoreActiveUI();    // put footer/pills back to the active card
+    previewIndex(-1);     // clear temporary highlight
+  }, delay);
+}
+
+// keep the tray open while pointer is over it (or the footer)
+pillsRail.addEventListener('mouseenter', cancelTrayClose);
+footer.addEventListener('mouseenter', cancelTrayClose);
+
+// close only if leaving BOTH tray and footer
+pillsRail.addEventListener('mouseleave', (e)=>{
+  const to = e.relatedTarget;
+  if (to && (to.closest('#pillsRail') || to.closest('#siteFooter'))) return;
+  scheduleTrayClose();
+});
+
+footer.addEventListener('mouseleave', (e)=>{
+  const to = e.relatedTarget;
+  if (to && (to.closest('#pillsRail') || to.closest('#siteFooter'))) return;
+  scheduleTrayClose();
 });
 
 // Scene → UI: keep footer/pills in sync when current index changes
