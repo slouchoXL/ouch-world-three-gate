@@ -56,57 +56,51 @@ body{
   pointer-events: auto;
 }
 
+/* ---------- Footer (icons) ---------- */
 .footer .footer-icon{
-  /* (you already have most of this) */
-  font-size: 22px; /* not used by svg, but fine */
-  width: 44px; height: 44px;
-  background: var(--chip);
-  color: var(--text);               /* <-- drives SVG via currentColor */
+  font-size: 22px;
+  width: 44px; height: 44px; border-radius: 10px;
+  border: none;                       /* removed border */
+  background: transparent;            /* no chip background */
+  color: var(--text);
   display: inline-flex; align-items: center; justify-content: center;
   cursor: pointer;
-  transition: border-color .15s ease, transform .15s ease, color .15s ease;
+  transition: transform .15s ease, color .15s ease;
 }
 
-/* Make the SVG fill the button nicely and use currentColor */
 .footer .footer-icon svg{
-  width: 22px; height: 22px;       /* tweak to taste */
+  width: 22px; height: 22px;
   display: block;
-  fill: currentColor;               /* key line */
+  fill: currentColor;
 }
 
-/* Hover/focus states already in your CSS;
-   ensure color/border updates also affect SVG via currentColor */
 .footer .footer-icon:hover{
-  border-color:#888; color:#fff; transform: translateY(-1px);
-}
-.footer-icon:focus{
-  outline: 2px solid #888; outline-offset: 2px;
+  color: #fff;
+  transform: translateY(-1px);
 }
 
-/* ---------- Pills TRAY (opens above the active icon) ---------- */
+/* ---------- Pills TRAY ---------- */
 #pillsRail{
   position: fixed;
   bottom: 62px;
-  left: 50%;                             /* JS sets left:% to column center */
+  left: 50%;
   transform: translateX(-50%) translateY(8px);
   z-index: 25;
 
-  /* tray look */
   background: var(--chip);
+  border: none;                       /* removed border */
+  border-radius: 12px;
   box-shadow: 0 10px 24px rgba(0,0,0,0.35);
 
-  /* layout inside tray */
   padding: 10px;
   min-width: 260px;
   max-width: 520px;
 
-  /* hidden by default; JS toggles .open */
   opacity: 0;
   pointer-events: none;
   transition: opacity .15s ease, transform .15s ease;
 }
 
-/* caret pointing at the icon */
 #pillsRail::after{
   content: "";
   position: absolute;
@@ -116,41 +110,35 @@ body{
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
   border-top: 8px solid var(--chip);
-  filter: drop-shadow(0 2px 0 var(--chip-border));
+  filter: drop-shadow(0 2px 0 rgba(0,0,0,0.35));
 }
 
-/* visible state */
-#pillsRail.open{
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
-}
-
-/* Pills in tray: full-width & left-aligned */
+/* ---------- Tray items (pills) ---------- */
 #pillsRail .pill{
   display: block;
   width: 100%;
   text-align: left;
   background: transparent;
   color: var(--text);
- 
+  border: none;                       /* removed border */
+  border-radius: 8px;
   padding: .55rem .75rem;
   font-weight: 600;
   font-size: 14px;
   line-height: 1.15;
-  transition: border-color .12s ease, background-color .12s ease, transform .12s ease;
+  transition: background-color .12s ease, color .12s ease, transform .12s ease;
 }
 #pillsRail .pill + .pill{ margin-top: 8px; }
+
 #pillsRail .pill:hover{
-  border-color:#888;
-  background: rgba(255,255,255,0.03);
-  color:#fff;
+  background: rgba(255,255,255,0.05);
+  color: #fff;
   transform: translateY(-1px);
 }
+
 #pillsRail .pill.active{
-  border-color:#aaa;
-  background: rgba(255,255,255,0.05);
-  color:#fff;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
 }
 
 /* ---------- Overlay ---------- */
