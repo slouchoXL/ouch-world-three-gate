@@ -143,47 +143,75 @@ function highlightFooter(group){
 }
 
 let lastFooterKey = '';
-function renderFooterIcons(groups){
-  const key = groups.join('|');
-  if (key === lastFooterKey && footer.childElementCount === groups.length) return;
-  lastFooterKey = key;
+let _footerRenderedOnce = false;
 
+// robustly build an inline SVG that iOS Safari will actually paint
+function createInlineSVG(markup){
+  // Parse via HTML, then rebuild with the proper SVG namespace
+  const tmp = document.createElement('div');
+  tmp.innerHTML = markup.trim();
+  const src = tmp.querySelector('svg');
+  if (!src) return null;
+
+  const out = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  // Carry over essential attributes
+  const vb = src.getAttribute('viewBox');
+  if (vb) out.setAttribute('viewBox', vb);
+  out.setAttribute('width',  '24');
+  out.setAttribute('height', '24');
+  out.setAttribute('focusable', 'false');
+  out.setAttribute('aria-hidden', 'true');
+
+  // Copy children (paths, groups, etc.)
+  out.innerHTML = src.innerHTML;
+
+  // Ensure they follow currentColor on all platforms
+  out.style.fill   = 'currentColor';
+  out.style.stroke = 'currentColor';
+
+  return out;
+}
+
+function renderFooterIcons(groups){
+  // If you accidentally have more than one #siteFooter, warn (this causes doubles)
+  if (document.querySelectorAll('#siteFooter').length !== 1){
+    console.warn('Multiple #siteFooter elements detected. Remove duplicates in index.html.');
+  }
+
+  const key = groups.join('|');
+
+  // Guard: if we already rendered for this exact set and the count matches, skip
+  if (_footerRenderedOnce && key === lastFooterKey && footer.childElementCount === groups.length) return;
+
+  lastFooterKey = key;
   footer.replaceChildren();
-    
-    const parser = new DOMParser();
-    
+
   groups.forEach(g=>{
     const btn = document.createElement('button');
     btn.className = 'footer-icon';
     btn.dataset.group = g;
     btn.setAttribute('aria-label', g);
-      if (ICON_SVGS[g]) {
-          btn.innerHTML = ICON_SVGS[g];
+
+    const svgMarkup = ICON_SVGS[g];
+    if (svgMarkup){
+      const svgEl = createInlineSVG(svgMarkup);
+      if (svgEl) {
+        btn.appendChild(svgEl);
       } else {
-          btn.textContent = iconFor[g] || '•';
+        // fallback text if parsing fails
+        btn.textContent = (g in iconFor) ? iconFor[g] : '•';
       }
-      const svgMarkup = ICON_SVGS[g];
-         if (svgMarkup){
-           const doc = parser.parseFromString(svgMarkup.trim(), 'image/svg+xml');
-           const svg = doc.documentElement;
+    } else {
+      // emoji fallback
+      btn.textContent = (g in iconFor) ? iconFor[g] : '•';
+    }
 
-           // Make sure the svg flexes nicely in the button
-           svg.setAttribute('width',  '24');   // CSS will still override, this is a fallback
-           svg.setAttribute('height', '24');
-           svg.setAttribute('focusable', 'false');
-           svg.setAttribute('aria-hidden', 'true');
+    footer.appendChild(btn);
+  });
 
-           btn.appendChild(svg);
-         } else {
-           // Fallback emoji if no SVG provided
-           btn.textContent = iconFor[g] || '•';
-         }
-
-         footer.appendChild(btn);
-       });
-
-       footer.style.setProperty('--cols', String(Math.max(1, groups.length)));
-     }
+  footer.style.setProperty('--cols', String(Math.max(1, groups.length)));
+  _footerRenderedOnce = true;
+}
 
 let lastPointerX = 0, lastPointerY = 0;
 
