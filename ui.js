@@ -49,6 +49,28 @@ function hoverMuted(){
   return performance.now() < (window.__hoverMuteUntil || 0);
 }
 
+/* ---------- Tray control + hover mute ---------- */
+let trayOpenFor = null;                   // 'listen' | 'buy' | 'explore' | null
+const HOVER_MUTE_MS = 180;
+function hoverMuted(){ return performance.now() < (window.__hoverMuteUntil || 0); }
+function muteHover(ms = HOVER_MUTE_MS){ window.__hoverMuteUntil = performance.now() + ms; }
+
+function openTrayFor(group){
+  if (!group) return;
+  trayOpenFor = group;
+  highlightFooter(group);
+  renderPills(group);
+  setPillsAnchorForVisible(visibleGroups, group);
+  pillsRail.classList.add('open');        // show tray
+}
+
+function closeTray(muteMs = HOVER_MUTE_MS){
+  if (!trayOpenFor) return;
+  pillsRail.classList.remove('open');     // hide tray
+  trayOpenFor = null;
+  muteHover(muteMs);                      // brief guard against lane hover
+}
+
 /* ========= TRAY (pills) ========= */
 
 // Center the tray above the selected icon *within current visible groups*
@@ -125,14 +147,14 @@ function renderFooterIcons(groups){
 }
 
 function renderLanes(groups){
-  if (!lanesRoot) return;
+  const root = document.getElementById('lanes');
+  if (!root) return;
 
-  // Only create lanes on hover-capable devices
   const hoverCapable = window.matchMedia('(hover:hover)').matches;
-  lanesRoot.style.display = hoverCapable ? '' : 'none';
-  if (!hoverCapable) { lanesRoot.innerHTML = ''; return; }
+  root.style.display = hoverCapable ? '' : 'none';
+  if (!hoverCapable){ root.replaceChildren(); return; }
 
-  lanesRoot.innerHTML = '';
+  root.replaceChildren();
   const n = Math.max(1, groups.length);
   const widthPct = 100 / n;
 
@@ -142,19 +164,26 @@ function renderLanes(groups){
     lane.dataset.group = g;
     lane.style.left = (i * widthPct) + '%';
     lane.style.width = widthPct + '%';
-    lanesRoot.appendChild(lane);
+    root.appendChild(lane);
   });
 
-  // (Re)bind hover events — lanes only preview highlight; they do NOT open the tray
-  lanesRoot.querySelectorAll('.lane').forEach(lane=>{
+  root.querySelectorAll('.lane').forEach(lane=>{
     lane.addEventListener('mouseenter', ()=>{
       if (hoverMuted()) return;
-      const g = lane.dataset.group; if (!g) return;
-      previewGroup(g);
+      const g = lane.dataset.group;
+      if (!g) return;
+      // highlight only; do NOT open tray here
+      previewIndex(indexForGroupSlug(g));
+      highlightFooter(g);
+      // keep tray state as-is
     });
+
     lane.addEventListener('mouseleave', (e)=>{
       if (isInsideUISurfaces(e.relatedTarget)) return;
-      restoreActive();
+      // don’t close tray here; just restore highlight
+      previewIndex(-1);
+      const active = indexToGroup(getCurrentIndex());
+      highlightFooter(active);
     });
   });
 }
@@ -270,35 +299,45 @@ window.addEventListener('layoutchange', (e)=>{
 });
 
 // Footer hover (desktop): open tray above that icon
+// Footer hover: open tray over that icon (desktop only, overlay closed)
 footer.addEventListener('mouseenter', e=>{
   if (hoverMuted()) return;
-  const btn = e.target.closest('.footer-icon'); if (!btn) return;
-  const hoverCapable = window.matchMedia('(hover:hover)').matches;
-  if (hoverCapable){
-    showTray(btn.dataset.group);
-  }
+  const btn = e.target.closest('.footer-icon');
+  if (!btn) return;
+  if (!window.matchMedia('(hover:hover)').matches) return;
+  if (!overlayEl.hidden) return;          // don’t flap while overlay is open
+  openTrayFor(btn.dataset.group);
 }, true);
 
-// Leaving footer: close tray unless moving into tray
 footer.addEventListener('mouseleave', (e)=>{
-  if (isInsideUISurfaces(e.relatedTarget)) return;            // into tray/lanes/etc
-  hideTray();
+  if (isInsideUISurfaces(e.relatedTarget)) return;
+  // close tray and restore highlights
+  closeTray();
+  const active = indexToGroup(getCurrentIndex());
+  highlightFooter(active);
+  renderPills(active);
+  setPillsAnchorForVisible(visibleGroups, active);
+  previewIndex(-1);
 });
 
-// Footer click: on mobile (no hover) or when overlay is open, toggle the tray
+// Footer click: mobile (or overlay open) navigates; desktop landing uses hover
 footer.addEventListener('click', (e)=>{
-  const btn = e.target.closest('.footer-icon'); if (!btn) return;
-  const group = btn.dataset.group;
-  const overlayOpen = !overlayEl.hidden;
+  const btn = e.target.closest('.footer-icon');
+  if (!btn) return;
   const hoverCapable = window.matchMedia('(hover:hover)').matches;
+  const overlayOpen  = !overlayEl.hidden;
 
-  if (!hoverCapable || overlayOpen){
-    if (pillsRail.classList.contains('open')){
-      hideTray(0);
+  if (hoverCapable && !overlayOpen){
+    // desktop landing: hover already opened tray; keep click to toggle it
+    if (trayOpenFor === btn.dataset.group){
+      closeTray();
     } else {
-      showTray(group, {keepPreview:true});
+      openTrayFor(btn.dataset.group);
     }
+    return;
   }
+  // mobile or overlay open → navigate
+  navigateTo(btn.dataset.group, null);
 });
 
 // Keep tray open while hovering it; close when leaving it (unless going back to footer)
@@ -306,8 +345,13 @@ pillsRail.addEventListener('mouseenter', ()=>{
   if (hideTimer){ clearTimeout(hideTimer); hideTimer = null; }
 });
 pillsRail.addEventListener('mouseleave', (e)=>{
-  if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('#siteFooter')) return;
-  hideTray();
+  if (isInsideUISurfaces(e.relatedTarget)) return;
+  closeTray();                             // add hover mute
+  const active = indexToGroup(getCurrentIndex());
+  highlightFooter(active);
+  renderPills(active);
+  setPillsAnchorForVisible(visibleGroups, active);
+  previewIndex(-1);
 });
 
 // Scene → UI: keep footer/pills in sync when current index changes
