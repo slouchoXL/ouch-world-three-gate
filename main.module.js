@@ -125,50 +125,98 @@ let layoutMode = '3';   // '3' | '2' | '1'
 
 /* ---------- Material dim helpers ---------- */
 function forEachMat(mat, fn){ Array.isArray(mat) ? mat.forEach(fn) : fn(mat); }
-const originalMats = new WeakMap();
+const originalMats = new WeakMap(); // material -> { originals..., dimmed:boolean }
+
+const DIM_PARAMS = {
+  colorScalar: 0.55,   // how dark inactive looks (0..1)
+  emissiveScalar: 0.6, // emissive dim
+  metalnessCap: 0.2,   // clamp metalness
+  roughnessFloor: 0.8  // clamp roughness
+};
+
+function captureOriginal(m){
+  if (originalMats.has(m)) return originalMats.get(m);
+  const rec = {
+    dimmed: false,
+    color: m.color?.clone?.() ?? null,
+    emissive: m.emissive?.clone?.() ?? null,
+    emissiveIntensity: (typeof m.emissiveIntensity === 'number') ? m.emissiveIntensity : null,
+    metalness: (typeof m.metalness === 'number') ? m.metalness : null,
+    roughness: (typeof m.roughness === 'number') ? m.roughness : null,
+    transparent: !!m.transparent,
+    opacity: (typeof m.opacity === 'number') ? m.opacity : null,
+    depthWrite: (typeof m.depthWrite === 'boolean') ? m.depthWrite : null
+  };
+  originalMats.set(m, rec);
+  return rec;
+}
+
+function applyDimFromOriginal(m, rec){
+  // always start from originals so dimming never stacks
+  if (rec.color && m.color) m.color.copy(rec.color).multiplyScalar(DIM_PARAMS.colorScalar);
+  if (rec.emissive && m.emissive) m.emissive.copy(rec.emissive).multiplyScalar(DIM_PARAMS.emissiveScalar);
+
+  if (rec.emissiveIntensity !== null && typeof m.emissiveIntensity === 'number'){
+    m.emissiveIntensity = rec.emissiveIntensity * DIM_PARAMS.emissiveScalar;
+  }
+  if (rec.metalness !== null && typeof m.metalness === 'number'){
+    m.metalness = Math.min(rec.metalness, DIM_PARAMS.metalnessCap);
+  }
+  if (rec.roughness !== null && typeof m.roughness === 'number'){
+    m.roughness = Math.max(rec.roughness, DIM_PARAMS.roughnessFloor);
+  }
+
+  // make inactive fully opaque & depth-writing for stability
+  m.transparent = false;
+  if (typeof m.opacity === 'number') m.opacity = 1.0;
+  if (typeof m.depthWrite === 'boolean') m.depthWrite = true;
+
+  m.needsUpdate = true;
+}
+
+function restoreFromOriginal(m, rec){
+  if (rec.color && m.color) m.color.copy(rec.color);
+  if (rec.emissive && m.emissive) m.emissive.copy(rec.emissive);
+  if (rec.emissiveIntensity !== null && typeof m.emissiveIntensity === 'number') m.emissiveIntensity = rec.emissiveIntensity;
+  if (rec.metalness !== null && typeof m.metalness === 'number') m.metalness = rec.metalness;
+  if (rec.roughness !== null && typeof m.roughness === 'number') m.roughness = rec.roughness;
+
+  m.transparent = rec.transparent;
+  if (rec.opacity !== null && typeof m.opacity === 'number') m.opacity = rec.opacity;
+  if (rec.depthWrite !== null && typeof m.depthWrite === 'boolean') m.depthWrite = rec.depthWrite;
+
+  m.needsUpdate = true;
+}
+
 function setDim(group, dim = true){
   group.traverse(o=>{
     if (!o.isMesh || !o.material) return;
-    forEachMat(o.material, (m)=>{
-      const isStd = m.isMeshStandardMaterial || m.isMeshPhysicalMaterial || m.isMeshLambertMaterial || m.isMeshPhongMaterial || m.isMeshBasicMaterial;
+
+    const apply = (m)=>{
+      const isStd =
+        m.isMeshStandardMaterial ||
+        m.isMeshPhysicalMaterial ||
+        m.isMeshLambertMaterial ||
+        m.isMeshPhongMaterial ||
+        m.isMeshBasicMaterial;
       if (!isStd) return;
+
+      const rec = captureOriginal(m);
+
+      // If state isn't changing, skip (prevents re-dimming)
+      if (dim && rec.dimmed) return;
+      if (!dim && !rec.dimmed) return;
+
       if (dim){
-        if (!originalMats.has(m)){
-          originalMats.set(m, {
-            color: m.color?.clone?.() ?? null,
-            emissive: m.emissive?.clone?.() ?? null,
-            emissiveIntensity: (typeof m.emissiveIntensity === 'number') ? m.emissiveIntensity : null,
-            metalness: (typeof m.metalness === 'number') ? m.metalness : null,
-            roughness: (typeof m.roughness === 'number') ? m.roughness : null,
-            transparent: !!m.transparent,
-            opacity: (typeof m.opacity === 'number') ? m.opacity : null,
-            depthWrite: (typeof m.depthWrite === 'boolean') ? m.depthWrite : null,
-          });
-        }
-        if (m.transparent) m.transparent = false;
-        if (typeof m.opacity === 'number') m.opacity = 1.0;
-        if (m.color) m.color.multiplyScalar(0.55);
-        if (typeof m.metalness === 'number') m.metalness = Math.min(m.metalness, 0.2);
-        if (typeof m.roughness === 'number') m.roughness = Math.max(m.roughness, 0.8);
-        if (m.emissive) m.emissive.multiplyScalar(0.6);
-        if (typeof m.emissiveIntensity === 'number') m.emissiveIntensity *= 0.6;
-        if (typeof m.depthWrite === 'boolean') m.depthWrite = true;
-        m.needsUpdate = true;
+        applyDimFromOriginal(m, rec);
+        rec.dimmed = true;
       } else {
-        const orig = originalMats.get(m);
-        if (orig){
-          if (orig.color && m.color) m.color.copy(orig.color);
-          if (orig.emissive && m.emissive) m.emissive.copy(orig.emissive);
-          if (orig.emissiveIntensity !== null && typeof m.emissiveIntensity === 'number') m.emissiveIntensity = orig.emissiveIntensity;
-          if (orig.metalness !== null && typeof m.metalness === 'number') m.metalness = orig.metalness;
-          if (orig.roughness !== null && typeof m.roughness === 'number') m.roughness = orig.roughness;
-          m.transparent = orig.transparent;
-          if (orig.opacity !== null && typeof m.opacity === 'number') m.opacity = orig.opacity;
-          if (orig.depthWrite !== null && typeof m.depthWrite === 'boolean') m.depthWrite = orig.depthWrite;
-          m.needsUpdate = true;
-        }
+        restoreFromOriginal(m, rec);
+        rec.dimmed = false;
       }
-    });
+    };
+
+    Array.isArray(o.material) ? o.material.forEach(apply) : apply(o.material);
   });
 }
 
