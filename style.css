@@ -221,3 +221,36 @@ body{
     transition: none;
   }
 }
+/* --- explicit stacking so footer is guaranteed above the canvas on iOS --- */
+#webgl{ z-index: 0; }           /* canvas at the bottom of our stack */
+#lanes{ z-index: 50; }          /* hover lanes above canvas */
+.footer{ z-index: 200; }        /* footer (icons) above lanes */
+#pillsRail{ z-index: 210; }     /* tray above footer */
+.modal{ z-index: 1000; }        /* overlay on top */
+
+/* iOS safe-area: push footer up so it’s not behind the home indicator */
+@supports(padding:max(0px)){
+  .footer{
+    /* give it breathing room on devices with a home indicator */
+    bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Make sure footer is visible & tappable on touch devices */
+@media (hover:none){
+  .footer{
+    position: fixed;
+    left: 0; right: 0;
+    /* the bottom above already applies; this is just to be explicit */
+    pointer-events: auto;
+  }
+  .footer .footer-icon{
+    -webkit-tap-highlight-color: transparent;
+    color: #fff; /* hard white for testing/contrast */
+  }
+  .footer .footer-icon svg{
+    width: 26px; height: 26px;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+}

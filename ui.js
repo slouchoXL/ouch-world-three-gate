@@ -380,6 +380,32 @@ function renderLanes(groups){
   });
 }
 
+(function init(){
+  renderFooterIcons(visibleGroups);
+  renderLanes(visibleGroups);
+
+  // --- debug guard: ensure footer has children and is on-screen ---
+  if (!footer.childElementCount) {
+    console.warn('[ui] footer has no icons (render failed)');
+  } else {
+    const rect = footer.getBoundingClientRect();
+    console.log('[ui] footer rendered at', rect);
+  }
+
+  const { group, page } = parseHash();
+  const g = group || indexToGroup(getCurrentIndex());
+  highlightFooter(g);
+  renderPills(g, page || null);
+  setTrayAnchorForVisible(visibleGroups, g);
+  if (page) openPage(g, page);
+
+  overlayEl.addEventListener('keydown', (ev)=>{
+    if (ev.key === 'Escape'){
+      navigateTo(indexToGroup(getCurrentIndex()), null, { syncScene:false });
+    }
+  });
+})();
+
 function isInsideUISurfaces(el){
   if (!el) return false;
   return !!(el.closest('#lanes') || el.closest('#siteFooter') || el.closest('#pillsRail'));
