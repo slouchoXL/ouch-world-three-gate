@@ -133,6 +133,63 @@ function closeTray(muteMs = HOVER_MUTE_MS){
 
 /* ========= FOOTER & LANES ========= */
 
+// --- iOS-safe inline SVG builder (single version) ---
+function createInlineSVG(markup){
+  const tmp = document.createElement('div');
+  tmp.innerHTML = markup.trim();
+  const src = tmp.querySelector('svg');
+  if (!src) return null;
+
+  const NS = 'http://www.w3.org/2000/svg';
+
+  function cloneNS(node){
+    if (node.nodeType === 3) return document.createTextNode(node.nodeValue);
+    if (node.nodeType !== 1) return null;
+    if (node.tagName && node.tagName.toLowerCase() === 'style') return null; // strip embedded styles
+
+    const el = document.createElementNS(NS, node.tagName.toLowerCase());
+    // copy attributes, but drop ones that fight currentColor / sizing
+    for (let i=0; i<node.attributes.length; i++){
+      const a = node.attributes[i];
+      const n = a.name.toLowerCase();
+      if (n === 'width' || n === 'height' || n === 'style' || n === 'class' || n === 'fill' || n === 'stroke') continue;
+      el.setAttribute(n, a.value);
+    }
+    for (let i=0; i<node.childNodes.length; i++){
+      const c = cloneNS(node.childNodes[i]); if (c) el.appendChild(c);
+    }
+    return el;
+  }
+
+  const out = document.createElementNS(NS, 'svg');
+  const vb = src.getAttribute('viewBox');
+  if (vb) out.setAttribute('viewBox', vb);
+  out.setAttribute('width', '24');
+  out.setAttribute('height','24');
+  out.setAttribute('focusable','false');
+  out.setAttribute('aria-hidden','true');
+
+  // copy remaining attrs except width/height
+  for (let i=0; i<src.attributes.length; i++){
+    const a = src.attributes[i];
+    const n = a.name.toLowerCase();
+    if (n === 'width' || n === 'height') continue;
+    out.setAttribute(n, a.value);
+  }
+
+  for (let i=0; i<src.childNodes.length; i++){
+    const c = cloneNS(src.childNodes[i]); if (c) out.appendChild(c);
+  }
+
+  out.style.fill   = 'currentColor';
+  out.style.stroke = 'currentColor';
+  return out;
+}
+
+// footer render guards
+let lastFooterKey = '';
+let _footerRenderedOnce = false;
+
 function renderFooterIcons(groups){
   // If you accidentally have more than one #siteFooter, warn (this causes doubles)
   if (document.querySelectorAll('#siteFooter').length !== 1){
