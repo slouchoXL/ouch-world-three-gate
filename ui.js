@@ -313,18 +313,34 @@ footer.addEventListener('click', (e)=>{
   const btn = e.target.closest('.footer-icon');
   if (!btn) return;
 
+  const group        = btn.dataset.group;
   const hoverCapable = window.matchMedia('(hover:hover)').matches;
   const overlayOpen  = !overlayEl.hidden;
 
+  if (!hoverCapable && !overlayOpen){
+    // MOBILE / TOUCH: toggle tray (don’t navigate)
+    if (trayOpenFor === group){
+      closeTray();         // hides tray + brief hover mute
+    } else {
+      openTrayFor(group);  // centers + fills + shows the tray
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+
   if (hoverCapable && !overlayOpen){
-    if (trayOpenFor === btn.dataset.group){
+    // DESKTOP landing: toggle tray on click (hover also opens it)
+    if (trayOpenFor === group){
       closeTray();
     } else {
-      openTrayFor(btn.dataset.group);
+      openTrayFor(group);
     }
     return;
   }
-  navigateTo(btn.dataset.group, null);
+
+  // When overlay is open, clicks should navigate instead of toggling
+  navigateTo(group, null);
 });
 
 // Keep tray open while hovering it; close when leaving (unless going back to footer)
