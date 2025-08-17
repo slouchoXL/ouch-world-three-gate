@@ -180,7 +180,7 @@ function renderLanes(groups){
       highlightFooter(active);
     });
   });
-//}
+}
 
 function isInsideUISurfaces(el){
   if (!el) return false;
