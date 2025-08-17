@@ -56,7 +56,6 @@ body{
   pointer-events: auto;
 }
 
-/* ---------- Footer (icons) ---------- */
 .footer .footer-icon{
   font-size: 22px;
   width: 44px; height: 44px; border-radius: 10px;
@@ -79,7 +78,11 @@ body{
   transform: translateY(-1px);
 }
 
-/* ---------- Pills TRAY ---------- */
+.footer-icon:focus{
+  outline: 2px solid #888; outline-offset: 2px;
+}
+
+/* ---------- Pills TRAY (opens above the active icon) ---------- */
 #pillsRail{
   position: fixed;
   bottom: 62px;
@@ -101,6 +104,8 @@ body{
   transition: opacity .15s ease, transform .15s ease;
 }
 
+
+/* caret pointing at the icon */
 #pillsRail::after{
   content: "";
   position: absolute;
@@ -113,6 +118,14 @@ body{
   filter: drop-shadow(0 2px 0 rgba(0,0,0,0.35));
 }
 
+/* visible state */
+#pillsRail.open{
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Pills in tray: full-width & left-aligned */
 /* ---------- Tray items (pills) ---------- */
 #pillsRail .pill{
   display: block;
