@@ -15,43 +15,40 @@ body{
   overflow:hidden;
 }
 
-/* Canvas fills screen */
+/* ---------- Canvas fills screen ---------- */
 #webgl{
   position:fixed; inset:0; display:block;
   width:100vw; height:100vh;
 }
 
-/* allow our JS to receive horizontal drags instead of the browser scrolling */
+/* Let our JS receive horizontal drags (mobile) */
 #webgl,
 #lanes {
-  touch-action: none;            /* critical for mobile Safari/Chromium */
-  -webkit-user-select: none;     /* niceties */
+  touch-action: none;
+  -webkit-user-select: none;
   -webkit-touch-callout: none;
   user-select: none;
 }
 
-/* ----- Hover thirds overlay (desktop only) ----- */
-/* Hover thirds overlay */
-/* Hover lanes: stop hard-coding 3 thirds */
+/* ---------- Hover lanes (JS sizes/positions) ---------- */
 #lanes{
-  position: fixed; inset: 0; pointer-events: none; z-index: 10;
+  position: fixed; inset: 0;
+  pointer-events: none;          /* container ignores events */
+  z-index: 10;
 }
 #lanes .lane{
   position: absolute; top: 0; bottom: 0;
-  pointer-events: auto; cursor: pointer;
+  pointer-events: auto;          /* individual lanes can receive hover */
+  cursor: pointer;
 }
-/*#lanes .lane:nth-child(1){ left: 0; }
-#lanes .lane:nth-child(2){ left: 33.3333%; }
-#lanes .lane:nth-child(3){ left: 66.6666%; }
-@media (hover:none){ #lanes{ display:none; } }*/
 
-/* Footer icons (three equal thirds) */
-/* Footer uses a dynamic column count that ui.js sets via --cols */
+/* ---------- Footer (icons) ---------- */
+/* JS sets --cols to 3, 2, or 1 based on visible groups */
 .footer{
   position: fixed;
   left: 0; right: 0; bottom: 12px;
   display: grid;
-  grid-template-columns: repeat(var(--cols, 3), 1fr); /* <= key line */
+  grid-template-columns: repeat(var(--cols, 3), 1fr);
   justify-items: center;
   align-items: center;
   width: 100vw;
@@ -59,7 +56,6 @@ body{
   pointer-events: auto;
 }
 
-/* Increase specificity so it definitely applies to the JS-rendered buttons */
 .footer .footer-icon{
   font-size: 22px; line-height: 1;
   width: 44px; height: 44px; border-radius: 10px;
@@ -67,18 +63,21 @@ body{
   background: var(--chip);
   color: var(--text);
   cursor: pointer;
-  transition: border-color .15s ease, transform .15s ease;
+  transition: border-color .15s ease, transform .15s ease, color .15s ease;
   display: inline-flex; align-items: center; justify-content: center;
 }
 .footer .footer-icon:hover{
   border-color:#888; color:#fff; transform: translateY(-1px);
 }
-/* Single pills rail (centered; JS re-anchors left/50/83%) */
-/* --- TRAY (replaces floating pills rail) --- */
+.footer .footer-icon[aria-pressed="true"]{
+  border-color:#aaa; color:#fff; transform: translateY(-1px);
+}
+
+/* ---------- Pills TRAY (opens above the active icon) ---------- */
 #pillsRail{
   position: fixed;
   bottom: 62px;
-  left: 50%;                 /* JS will update left:% to center over the icon */
+  left: 50%;                             /* JS sets left:% to column center */
   transform: translateX(-50%) translateY(8px);
   z-index: 25;
 
@@ -93,13 +92,13 @@ body{
   min-width: 260px;
   max-width: 520px;
 
-  /* hidden by default */
+  /* hidden by default; JS toggles .open */
   opacity: 0;
   pointer-events: none;
-  transition: opacity .12s ease, transform .12s ease;
+  transition: opacity .15s ease, transform .15s ease;
 }
 
-/* arrow/caret pointing to the icon */
+/* caret pointing at the icon */
 #pillsRail::after{
   content: "";
   position: absolute;
@@ -112,14 +111,14 @@ body{
   filter: drop-shadow(0 2px 0 var(--chip-border));
 }
 
-/* open state */
+/* visible state */
 #pillsRail.open{
   opacity: 1;
   pointer-events: auto;
   transform: translateX(-50%) translateY(0);
 }
 
-/* pills inside tray: full-width, left-aligned */
+/* Pills in tray: full-width & left-aligned */
 #pillsRail .pill{
   display: block;
   width: 100%;
@@ -135,7 +134,6 @@ body{
   transition: border-color .12s ease, background-color .12s ease, transform .12s ease;
 }
 #pillsRail .pill + .pill{ margin-top: 8px; }
-
 #pillsRail .pill:hover{
   border-color:#888;
   background: rgba(255,255,255,0.03);
@@ -148,43 +146,7 @@ body{
   color:#fff;
 }
 
-/* desktop only: we keep lanes purely for the visual highlight, not to open the tray */
-@media (hover:hover){
-  /* no special hover-to-open CSS — JS controls .open */
-}
-
-/* mobile: the tray will still be used, but we’ll open on tap */
-@media (hover:none){
-  /* optional: make tray nearly full width on small screens */
-  #pillsRail{
-    min-width: min(92vw, 520px);
-    max-width: min(92vw, 520px);
-  }
-}
-.pill{
-  background: var(--chip); color: var(--text);
-  border: 1px solid var(--chip-border); border-radius: 999px;
-  padding: .45rem .9rem; cursor: pointer; font-weight: 600;
-  font-size: 14px; line-height: 1.1;
-  transition: border-color .15s ease, transform .15s ease;
-}
-@media (min-width:768px){ .pill{ font-size: 15px; } }
-.pill:hover{ border-color:#888; color:#fff; transform: translateY(-1px); }
-.pill.active{ border-color:#aaa; color:#fff; }
-
-/* Desktop: pills fade in while hovering lanes/footer/pills */
-@media (hover:hover){
-  #pillsRail{ opacity: 0; pointer-events: none; transition: opacity .12s ease; }
-  #lanes:hover ~ #pillsRail,
-  .footer:hover ~ #pillsRail,
-  #pillsRail:hover{ opacity: 1; pointer-events: auto; }
-}
-
-/* On touch devices: keep pills visible */
-@media (hover:none){
-  #pillsRail{ opacity: 1; pointer-events: auto; }
-}
-/* Overlay */
+/* ---------- Overlay ---------- */
 .modal { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.66); }
 .modal[hidden] { display: none; }
 .modal-card {
@@ -202,7 +164,26 @@ body{
   transition: filter .2s ease;
 }
 
-/* a11y focus */
-.footer-icon:focus, .pill:focus, .modal-close:focus{
+/* ---------- a11y focus ---------- */
+.footer .footer-icon:focus,
+#pillsRail .pill:focus,
+.modal-close:focus{
   outline: 2px solid #888; outline-offset: 2px;
+}
+
+/* ---------- Mobile tweaks ---------- */
+@media (hover:none){
+  /* tray stays class-controlled; just let it size wider on phones */
+  #pillsRail{
+    min-width: min(92vw, 520px);
+    max-width: min(92vw, 520px);
+  }
+}
+
+/* ---------- Motion reduction ---------- */
+@media (prefers-reduced-motion: reduce){
+  .footer .footer-icon,
+  #pillsRail{
+    transition: none;
+  }
 }
