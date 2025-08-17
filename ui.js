@@ -147,28 +147,65 @@ let _footerRenderedOnce = false;
 
 // robustly build an inline SVG that iOS Safari will actually paint
 function createInlineSVG(markup){
-  // Parse via HTML, then rebuild with the proper SVG namespace
   const tmp = document.createElement('div');
   tmp.innerHTML = markup.trim();
   const src = tmp.querySelector('svg');
   if (!src) return null;
 
-  const out = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  // Carry over essential attributes
+  const NS = 'http://www.w3.org/2000/svg';
+
+  function cloneNodeNS(node){
+    if (node.nodeType === 3) {
+      // text node (rare in icons)
+      return document.createTextNode(node.nodeValue);
+    }
+    if (node.nodeType !== 1) return null;
+
+    // create element in proper namespace
+    const el = document.createElementNS(NS, node.tagName.toLowerCase());
+
+    // copy attributes
+    for (let i = 0; i < node.attributes.length; i++){
+      const attr = node.attributes[i];
+      el.setAttribute(attr.name, attr.value);
+    }
+
+    // recurse children
+    for (let i = 0; i < node.childNodes.length; i++){
+      const child = cloneNodeNS(node.childNodes[i]);
+      if (child) el.appendChild(child);
+    }
+    return el;
+  }
+
+  const out = document.createElementNS(NS, 'svg');
+
+  // viewBox if present
   const vb = src.getAttribute('viewBox');
   if (vb) out.setAttribute('viewBox', vb);
+
+  // sensible default size; CSS can override
   out.setAttribute('width',  '24');
   out.setAttribute('height', '24');
   out.setAttribute('focusable', 'false');
   out.setAttribute('aria-hidden', 'true');
 
-  // Copy children (paths, groups, etc.)
-  out.innerHTML = src.innerHTML;
+  // copy all attributes except width/height (we set those)
+  for (let i = 0; i < src.attributes.length; i++){
+    const a = src.attributes[i];
+    if (a.name === 'width' || a.name === 'height') continue;
+    out.setAttribute(a.name, a.value);
+  }
 
-  // Ensure they follow currentColor on all platforms
-  out.style.fill   = 'currentColor';
+  // copy children in correct namespace
+  for (let i = 0; i < src.childNodes.length; i++){
+    const child = cloneNodeNS(src.childNodes[i]);
+    if (child) out.appendChild(child);
+  }
+
+  // force painting via currentColor (still respects hard-coded fills unless you override)
+  out.style.fill = 'currentColor';
   out.style.stroke = 'currentColor';
-
   return out;
 }
 

@@ -89,17 +89,20 @@ body{
   stroke: currentColor !important;
 }
 
-/* Mobile: slightly larger and force painting */
+/* Mobile: make sure they render & are tappable */
 @media (hover:none){
+  .footer{
+    bottom: calc(12px + env(safe-area-inset-bottom));
+  }
   .footer .footer-icon{
-    color: #e9e9e9;
+    color: #ffffff;                  /* hard white if you prefer */
     -webkit-tap-highlight-color: transparent;
   }
   .footer .footer-icon svg{
     width: 26px; height: 26px;
     display: block;
-    -webkit-transform: translateZ(0); /* kicks WebKit into painting */
-            transform: translateZ(0);
+    transform: translateZ(0);        /* nudge WebKit to paint */
+    -webkit-transform: translateZ(0);
   }
 }
 
