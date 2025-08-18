@@ -91,13 +91,11 @@ body{
 
 /* Mobile: make sure they render & are tappable */
 @media (hover:none){
-  .footer{
-      visibility: hidden;
-    bottom: calc(12px + env(safe-area-inset-bottom));
-  }
-  .footer.ready {
-      visibility: visible;
-  }
+    .footer { visibility: hidden; }
+    .footer.ready { visibility: visible; }
+        bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+
   .footer .footer-icon{
     color: #fff;                  /* hard white if you prefer */
     -webkit-tap-highlight-color: transparent;
@@ -180,7 +178,6 @@ body{
 #pillsRail .pill + .pill{ margin-top: 6px; } /* was 8px */
 
 @media (hover:none){
-  /* tray stays class-controlled; just let it size narrower on phones */
   #pillsRail{
     width: min(160px, 92vw);   /* narrower than before */
     padding: 8px;

@@ -16,7 +16,7 @@ const SITEMAP = {
    
   ],
   buy: [
-    { slug: 'merch',     label:'Merch' },
+    { slug: 'merch',     label:'Store' },
     { slug: 'tickets',   label:'Tickets' },
    
   ],
@@ -446,6 +446,10 @@ overlayX?.addEventListener('click', ()=>{
 
 /* ---------- Boot ---------- */
 (function init(){
+    if (IS_TOUCH) {
+        const active = indexToGroup (getCurrentIndex());
+        visibleGroups = [active];
+    }
   renderFooterIcons(visibleGroups);
   renderLanes(visibleGroups);
 
