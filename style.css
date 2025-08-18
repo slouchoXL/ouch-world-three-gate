@@ -275,10 +275,9 @@ body{
 }
 /* Active state highlight for footer icons (desktop + mobile) */
 .footer .footer-icon.active {
-  color: #fff;                     /* white icon */
-  background: rgba(255,255,255,0.15); /* faint halo behind it */
-  border-radius: 12px;
-  transform: scale(1.1);           /* subtle bump */
+  color: #fff;  
+  transform: scale (1.1); /* white icon */
+ background: none;          /* subtle bump */
 }
 
 /* Keep hover distinct on desktop */
@@ -286,7 +285,7 @@ body{
   .footer .footer-icon:hover {
     color: #fff;
     transform: translateY(-1px) scale(1.1);
-    background: rgba(255,255,255,0.1);
+    background: none;
   }
 }
 
