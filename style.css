@@ -179,7 +179,7 @@ body{
 @media (hover:none){
   /* tray stays class-controlled; just let it size narrower on phones */
   #pillsRail{
-    width: min(340px, 92vw);   /* narrower than before */
+    width: min(160px, 92vw);   /* narrower than before */
     padding: 8px;
   }
 
