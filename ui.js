@@ -41,64 +41,36 @@ const indexToGroup = i => CARDS[i]?.slug ?? 'listen';
 const titleMap     = { listen: 'Listen', buy: 'Buy', explore: 'Explore' };
 const iconFor      = { listen:'🎧', buy:'💵', explore:'🧩' };
 
-// Inline SVGs that inherit currentColor (so your hover/active styles still work)
+// Inline SVG markup (any source is fine; colors are overridden via currentColor)
 const ICON_SVGS = {
   listen: `
- <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 24 24">
-   <!-- Generator: Adobe Illustrator 29.7.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 8)  -->
-   <defs>
-     <style>
-       .st0 {
-         fill: #fff;
-       }
-     </style>
-   </defs>
-   <path class="st0" d="M16.5,0H7.5C5,0,3,2,3,4.5v15c0,2.5,2,4.5,4.5,4.5h9c2.5,0,4.5-2,4.5-4.5V4.5c0-2.5-2-4.5-4.5-4.5ZM20,19.5c0,1.9-1.6,3.5-3.5,3.5H7.5c-1.9,0-3.5-1.6-3.5-3.5V4.5c0-1.9,1.6-3.5,3.5-3.5h9c1.9,0,3.5,1.6,3.5,3.5v15ZM12,8c1.4,0,2.5-1.1,2.5-2.5s-1.1-2.5-2.5-2.5-2.5,1.1-2.5,2.5,1.1,2.5,2.5,2.5ZM12,4c.8,0,1.5.7,1.5,1.5s-.7,1.5-1.5,1.5-1.5-.7-1.5-1.5.7-1.5,1.5-1.5ZM12,11c-2.8,0-5,2.2-5,5s2.2,5,5,5,5-2.2,5-5-2.2-5-5-5ZM12,20c-2.2,0-4-1.8-4-4s1.8-4,4-4,4,1.8,4,4-1.8,4-4,4ZM13,16c0,.6-.4,1-1,1s-1-.4-1-1,.4-1,1-1,1,.4,1,1Z"/>
- </svg>`,
+  <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <defs><style>.st0{fill:#fff}</style></defs>
+    <path class="st0" d="M16.5,0H7.5C5,0,3,2,3,4.5v15c0,2.5,2,4.5,4.5,4.5h9c2.5,0,4.5-2,4.5-4.5V4.5c0-2.5-2-4.5-4.5-4.5ZM20,19.5c0,1.9-1.6,3.5-3.5,3.5H7.5c-1.9,0-3.5-1.6-3.5-3.5V4.5c0-1.9,1.6-3.5,3.5-3.5h9c1.9,0,3.5,1.6,3.5,3.5v15ZM12,8c1.4,0,2.5-1.1,2.5-2.5s-1.1-2.5-2.5-2.5-2.5,1.1-2.5,2.5,1.1,2.5,2.5,2.5ZM12,4c.8,0,1.5.7,1.5,1.5s-.7,1.5-1.5,1.5-1.5-.7-1.5-1.5.7-1.5,1.5-1.5ZM12,11c-2.8,0-5,2.2-5,5s2.2,5,5,5,5-2.2,5-5-2.2-5-5-5ZM12,20c-2.2,0-4-1.8-4-4s1.8-4,4-4,4,1.8,4,4-1.8,4-4,4ZM13,16c0,.6-.4,1-1,1s-1-.4-1-1,.4-1,1-1,1,.4,1,1Z"/>
+  </svg>`,
   buy: `
-  <svg id="Outline" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 24 24">
-    <!-- Generator: Adobe Illustrator 29.7.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 8)  -->
-    <defs>
-      <style>
-        .st0 {
-          fill: #fff;
-        }
-      </style>
-    </defs>
+  <svg id="Outline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <defs><style>.st0{fill:#fff}</style></defs>
     <path class="st0" d="M23.4,4.9c-.5-.6-1.2-.9-1.9-.9H4.5l-.3-1.8c-.2-1.2-1.2-2.2-2.5-2.2H.5C.2,0,0,.2,0,.5s.2.5.5.5h1.3c.7,0,1.4.6,1.5,1.3l1.8,12.8c.3,2.2,2.2,3.9,4.5,3.9h10c.3,0,.5-.2.5-.5s-.2-.5-.5-.5h-10c-1.7,0-3.2-1.3-3.5-3h12.6c2.1,0,4-1.5,4.4-3.6l.9-4.4c.1-.7,0-1.5-.5-2.1h0ZM23,6.8l-.9,4.4c-.3,1.6-1.8,2.8-3.4,2.8H5.9l-1.2-9h16.9c.5,0,.9.2,1.2.5s.4.8.3,1.2ZM7,20c-1.1,0-2,.9-2,2s.9,2,2,2,2-.9,2-2-.9-2-2-2ZM7,23c-.6,0-1-.4-1-1s.4-1,1-1,1,.4,1,1-.4,1-1,1ZM17,20c-1.1,0-2,.9-2,2s.9,2,2,2,2-.9,2-2-.9-2-2-2ZM17,23c-.6,0-1-.4-1-1s.4-1,1-1,1,.4,1,1-.4,1-1,1Z"/>
   </svg>`,
   explore: `
-    <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 24 24">
-      <!-- Generator: Adobe Illustrator 29.7.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 8)  -->
-      <defs>
-        <style>
-          .st0 {
-            fill: #fff;
-          }
-        </style>
-      </defs>
-      <path class="st0" d="M23.6,4.8c-.5-1.1-1.5-1.9-2.6-2.2L13.7.2c-1.2-.4-2.4-.3-3.5.3-1.1.6-1.9,1.5-2.2,2.7l-.2.8h-3.3c-2.5,0-4.5,2-4.5,4.5v11c0,2.5,2,4.5,4.5,4.5h7c1.6,0,3-.8,3.8-2.1.2,0,.5,0,.7,0,1.9,0,3.6-1.2,4.3-3.1l3.6-10.7c.4-1.1.3-2.4-.3-3.5ZM11.5,23h-7c-1.9,0-3.5-1.6-3.5-3.5v-11c0-1.9,1.6-3.5,3.5-3.5h7c1.9,0,3.5,1.6,3.5,3.5v11c0,1.9-1.6,3.5-3.5,3.5ZM22.9,7.9l-3.6,10.7c-.5,1.5-2,2.5-3.6,2.4.2-.5.3-1,.3-1.5v-11c0-2.5-2-4.5-4.5-4.5h-2.7l.2-.5c.3-.9.9-1.6,1.7-2.1.8-.4,1.8-.5,2.7-.2l7.2,2.3c.9.3,1.6.9,2,1.7.4.8.5,1.8.2,2.7h0Z"/>
-    </svg>`
-
+  <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <defs><style>.st0{fill:#fff}</style></defs>
+    <path class="st0" d="M23.6,4.8c-.5-1.1-1.5-1.9-2.6-2.2L13.7.2c-1.2-.4-2.4-.3-3.5.3-1.1.6-1.9,1.5-2.2,2.7l-.2.8h-3.3c-2.5,0-4.5,2-4.5,4.5v11c0,2.5,2,4.5,4.5,4.5h7c1.6,0,3-.8,3.8-2.1.2,0,.5,0,.7,0,1.9,0,3.6-1.2,4.3-3.1l3.6-10.7c.4-1.1.3-2.4-.3-3.5ZM11.5,23h-7c-1.9,0-3.5-1.6-3.5-3.5v-11c0-1.9,1.6-3.5,3.5-3.5h7c1.9,0,3.5,1.6,3.5,3.5v11c0,1.9-1.6,3.5-3.5,3.5ZM22.9,7.9l-3.6,10.7c-.5,1.5-2,2.5-3.6,2.4.2-.5.3-1,.3-1.5v-11c0-2.5-2-4.5-4.5-4.5h-2.7l.2-.5c.3-.9.9-1.6,1.7-2.1.8-.4,1.8-.5,2.7-.2l7.2,2.3c.9.3,1.6.9,2,1.7.4.8.5,1.8.2,2.7Z"/>
+  </svg>`
 };
 
-// Which groups are currently visible in 3D (default to 3-up)
-let visibleGroups = ['listen','buy','explore'];
-
-/* ---------- Hover mute (prevents tray flicker on fast exits) ---------- */
+/* ---------- Tray logic ---------- */
 const HOVER_MUTE_MS = 180;
 function hoverMuted(){ return performance.now() < (window.__hoverMuteUntil || 0); }
 function muteHover(ms = HOVER_MUTE_MS){ window.__hoverMuteUntil = performance.now() + ms; }
 
-/* ========= TRAY (pills) ========= */
-
 let trayOpenFor = null; // 'listen' | 'buy' | 'explore' | null
 
-// Center the tray over the selected icon *within current visible groups*
 function setTrayAnchorForVisible(groups, group){
   const n   = Math.max(1, groups.length);
   const idx = Math.max(0, groups.indexOf(group));
-  const percent = ((idx + 0.5) / n) * 100; // center of that column
+  const percent = ((idx + 0.5) / n) * 100;
   pillsRail.style.left = percent + '%';
   pillsRail.style.transform = 'translateX(-50%)';
 }
@@ -121,19 +93,19 @@ function openTrayFor(group){
   highlightFooter(group);
   renderPills(group);
   setTrayAnchorForVisible(visibleGroups, group);
-  pillsRail.classList.add('open'); // show tray
+  pillsRail.classList.add('open');
 }
 
 function closeTray(muteMs = HOVER_MUTE_MS){
   if (!trayOpenFor) return;
-  pillsRail.classList.remove('open'); // hide tray
+  pillsRail.classList.remove('open');
   trayOpenFor = null;
-  muteHover(muteMs); // guard against immediate lane hover
+  muteHover(muteMs);
 }
 
-/* ========= FOOTER & LANES ========= */
+/* ---------- Footer & lanes ---------- */
 
-// iOS-safe inline SVG builder that strips <style> and hard fills
+// iOS/Android-safe inline SVG builder: strips <style>, class/fill/stroke, width/height
 function createInlineSVG(markup){
   const tmp = document.createElement('div');
   tmp.innerHTML = markup.trim();
@@ -145,19 +117,16 @@ function createInlineSVG(markup){
   function cloneNS(node){
     if (node.nodeType === 3) return document.createTextNode(node.nodeValue);
     if (node.nodeType !== 1) return null;
-    if (node.tagName && node.tagName.toLowerCase() === 'style') return null; // drop <style>
+    if (node.tagName && node.tagName.toLowerCase() === 'style') return null;
 
     const el = document.createElementNS(NS, node.tagName.toLowerCase());
-
-    // copy attrs but drop ones that break currentColor/sizing
-    for (let i=0; i<node.attributes.length; i++){
+    for (let i=0;i<node.attributes.length;i++){
       const a = node.attributes[i];
       const n = a.name.toLowerCase();
       if (n === 'width' || n === 'height' || n === 'style' || n === 'class' || n === 'fill' || n === 'stroke') continue;
       el.setAttribute(n, a.value);
     }
-
-    for (let i=0; i<node.childNodes.length; i++){
+    for (let i=0;i<node.childNodes.length;i++){
       const c = cloneNS(node.childNodes[i]);
       if (c) el.appendChild(c);
     }
@@ -172,29 +141,34 @@ function createInlineSVG(markup){
   out.setAttribute('focusable','false');
   out.setAttribute('aria-hidden','true');
 
-  // copy remaining attrs except width/height
-  for (let i=0; i<src.attributes.length; i++){
+  for (let i=0;i<src.attributes.length;i++){
     const a = src.attributes[i];
     const n = a.name.toLowerCase();
     if (n === 'width' || n === 'height') continue;
     out.setAttribute(n, a.value);
   }
 
-  for (let i=0; i<src.childNodes.length; i++){
+  for (let i=0;i<src.childNodes.length;i++){
     const c = cloneNS(src.childNodes[i]);
     if (c) out.appendChild(c);
   }
 
-  // inherit from button color
-  out.style.fill = 'currentColor';
+  out.style.fill   = 'currentColor';
   out.style.stroke = 'currentColor';
   return out;
 }
 
-// footer render guards
+function highlightFooter(group){
+  footer.querySelectorAll('.footer-icon').forEach(btn=>{
+    const on = btn.dataset.group === group;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.style.transform = on ? 'translateY(-1px)' : 'none';
+  });
+}
+
+// Render icons (with robust fallback if an SVG fails to paint on mobile)
 let lastFooterKey = '';
 let _footerRenderedOnce = false;
-
 function renderFooterIcons(groups){
   const key = groups.join('|');
   if (_footerRenderedOnce && key === lastFooterKey && footer.childElementCount === groups.length) return;
@@ -209,17 +183,35 @@ function renderFooterIcons(groups){
     btn.setAttribute('aria-label', g);
 
     let inserted = false;
-    try {
+    try{
       if (ICON_SVGS[g]){
         const svgEl = createInlineSVG(ICON_SVGS[g]);
-        if (svgEl){ btn.appendChild(svgEl); inserted = true; }
+        if (svgEl){
+          btn.appendChild(svgEl);
+          inserted = true;
+
+          // On iOS some inline SVGs silently fail to render. Detect via getBBox next frame.
+          requestAnimationFrame(()=>{
+            try{
+              const box = svgEl.getBBox();
+              if (!box || box.width === 0 || box.height === 0){
+                // Fallback to emoji so the button is still visible/tappable
+                btn.textContent = iconFor[g] || '•';
+                svgEl.remove();
+              }
+            }catch(_){
+              // If getBBox throws before layout, do a soft fallback anyway.
+              if (!btn.textContent) { btn.textContent = iconFor[g] || '•'; svgEl.remove(); }
+            }
+          });
+        }
       }
-    } catch(_) {}
+    }catch(_){}
 
     if (!inserted){
-      // emoji fallback so buttons still exist
       btn.textContent = iconFor[g] || '•';
     }
+
     footer.appendChild(btn);
   });
 
@@ -227,28 +219,7 @@ function renderFooterIcons(groups){
   _footerRenderedOnce = true;
 }
 
-let lastPointerX = 0, lastPointerY = 0;
-
-// Track pointer globally
-document.addEventListener('pointermove', (e)=>{
-  lastPointerX = e.clientX; lastPointerY = e.clientY;
-  // If tray is open and we are not over tray/footer, start a delayed close
-  if (trayOpenFor && !isOverTrayOrFooter(e.target)){
-    scheduleGlobalClose();
-  } else if (globalCloseTimer){
-    clearTimeout(globalCloseTimer);
-    globalCloseTimer = null;
-  }
-});
-
-// Click/tap anywhere outside tray/footer should close immediately
-document.addEventListener('pointerdown', (e)=>{
-  if (!trayOpenFor) return;
-  if (!isOverTrayOrFooter(e.target)){
-    closeTray(0);
-  }
-});
-
+/* ---------- Hover lanes (desktop only) ---------- */
 function renderLanes(groups){
   const root = lanesRoot;
   if (!root) return;
@@ -270,19 +241,15 @@ function renderLanes(groups){
     root.appendChild(lane);
   });
 
-  // Lanes: highlight only — DO NOT open the tray
   root.querySelectorAll('.lane').forEach(lane=>{
     lane.addEventListener('mouseenter', ()=>{
-       // cancelTrayClose();
       if (hoverMuted()) return;
-      const g = lane.dataset.group;
-      if (!g) return;
-      previewIndex(indexForGroupSlug(g)); // 3D highlight
-      highlightFooter(g);                 // footer state
+      const g = lane.dataset.group; if (!g) return;
+      previewIndex(indexForGroupSlug(g));
+      highlightFooter(g);
     });
     lane.addEventListener('mouseleave', (e)=>{
       if (isInsideUISurfaces(e.relatedTarget)) return;
-      // Restore highlight to current; tray state untouched
       previewIndex(-1);
       const active = indexToGroup(getCurrentIndex());
       highlightFooter(active);
@@ -290,37 +257,29 @@ function renderLanes(groups){
   });
 }
 
-(function init(){
-  renderFooterIcons(visibleGroups);
-  renderLanes(visibleGroups);
-
-  // --- debug guard: ensure footer has children and is on-screen ---
-  if (!footer.childElementCount) {
-    console.warn('[ui] footer has no icons (render failed)');
-  } else {
-    const rect = footer.getBoundingClientRect();
-    console.log('[ui] footer rendered at', rect);
+/* ---------- Outside click / pointer tracking ---------- */
+let lastPointerX = 0, lastPointerY = 0;
+document.addEventListener('pointermove', (e)=>{
+  lastPointerX = e.clientX; lastPointerY = e.clientY;
+  if (trayOpenFor && !isOverTrayOrFooter(e.target)){
+    scheduleGlobalClose();
+  } else if (globalCloseTimer){
+    clearTimeout(globalCloseTimer);
+    globalCloseTimer = null;
   }
+});
 
-  const { group, page } = parseHash();
-  const g = group || indexToGroup(getCurrentIndex());
-  highlightFooter(g);
-  renderPills(g, page || null);
-  setTrayAnchorForVisible(visibleGroups, g);
-  if (page) openPage(g, page);
-
-  overlayEl.addEventListener('keydown', (ev)=>{
-    if (ev.key === 'Escape'){
-      navigateTo(indexToGroup(getCurrentIndex()), null, { syncScene:false });
-    }
-  });
-})();
+document.addEventListener('pointerdown', (e)=>{
+  if (!trayOpenFor) return;
+  if (!isOverTrayOrFooter(e.target)){
+    closeTray(0);
+  }
+});
 
 function isInsideUISurfaces(el){
   if (!el) return false;
   return !!(el.closest('#lanes') || el.closest('#siteFooter') || el.closest('#pillsRail'));
 }
-
 function isOverTrayOrFooter(el){
   if (!el) return false;
   return !!(el.closest('#pillsRail') || el.closest('#siteFooter'));
@@ -331,13 +290,12 @@ function scheduleGlobalClose(){
   if (!trayOpenFor) return;
   if (globalCloseTimer) clearTimeout(globalCloseTimer);
   globalCloseTimer = setTimeout(()=>{
-    // only close if we're STILL not over tray/footer
     const el = document.elementFromPoint(lastPointerX, lastPointerY);
     if (!isOverTrayOrFooter(el)) closeTray(0);
   }, 150);
 }
-/* ========= OVERLAY CONTENT ========= */
 
+/* ---------- Overlay routes ---------- */
 function htmlFor(route){
   switch(route){
     case 'listen/discography': return `<p>Discography grid goes here.</p>`;
@@ -358,13 +316,12 @@ function openPage(group, page){
   overlayB.innerHTML   = htmlFor(`${group}/${page}`);
   overlayEl.hidden = false;
   canvas?.classList.add('dim-3d');
-  pillsRail.classList.remove('open'); // close tray when overlay opens
+  pillsRail.classList.remove('open');
   trayOpenFor = null;
   overlayEl.focus();
 }
 
-/* ========= ROUTER ========= */
-
+/* ---------- Router ---------- */
 function parseHash(){
   const h = (location.hash || '').replace(/^#\/?/, '');
   const [group, page] = h.split('/');
@@ -395,9 +352,9 @@ window.addEventListener('hashchange', ()=>{
   navigateTo(g, page || null, { syncScene: overlayEl.hidden });
 });
 
-/* ========= EVENTS ========= */
+/* ---------- Events ---------- */
+let visibleGroups = ['listen','buy','explore'];
 
-// Layout → UI (from main.module.js)
 window.addEventListener('layoutchange', (e)=>{
   const groups = e.detail?.visibleGroups || e.detail?.groups;
   if (!Array.isArray(groups) || groups.length === 0) return;
@@ -408,21 +365,18 @@ window.addEventListener('layoutchange', (e)=>{
   renderLanes(visibleGroups);
 
   const currentGroup = indexToGroup(getCurrentIndex());
-  const anchorGroup = visibleGroups.includes(currentGroup)
-    ? currentGroup
-    : visibleGroups[0];
+  const anchorGroup = visibleGroups.includes(currentGroup) ? currentGroup : visibleGroups[0];
 
   highlightFooter(anchorGroup);
   renderPills(anchorGroup);
   setTrayAnchorForVisible(visibleGroups, anchorGroup);
 
   if (pillsRail.classList.contains('open')){
-    // keep the tray centered over the correct column after layout changes
     setTrayAnchorForVisible(visibleGroups, trayOpenFor || anchorGroup);
   }
 });
 
-// Footer hover: open/close tray (desktop, overlay closed)
+// Desktop hover to open tray (keep your previous behavior)
 footer.addEventListener('mouseenter', e=>{
   if (hoverMuted()) return;
   const btn = e.target.closest('.footer-icon');
@@ -433,17 +387,13 @@ footer.addEventListener('mouseenter', e=>{
 }, true);
 
 footer.addEventListener('mouseleave', (e)=>{
-  // If you move directly into the tray, don't close here (keep it open)
   if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('#pillsRail')) return;
-  // Otherwise, let the global watcher decide (starts a delayed close)
   if (trayOpenFor && !isOverTrayOrFooter(e.relatedTarget)){
     scheduleGlobalClose();
   }
 });
 
-// Footer click:
-// - Desktop landing: toggle tray
-// - Mobile or overlay open: navigate to group
+// Clicks: mobile toggles tray, desktop toggles when overlay closed; overlay open → navigate
 footer.addEventListener('click', (e)=>{
   const btn = e.target.closest('.footer-icon');
   if (!btn) return;
@@ -453,41 +403,24 @@ footer.addEventListener('click', (e)=>{
   const overlayOpen  = !overlayEl.hidden;
 
   if (!hoverCapable && !overlayOpen){
-    // MOBILE / TOUCH: toggle tray (don’t navigate)
-    if (trayOpenFor === group){
-      closeTray();         // hides tray + brief hover mute
-    } else {
-      openTrayFor(group);  // centers + fills + shows the tray
-    }
-    e.preventDefault();
-    e.stopPropagation();
-    return;
+    if (trayOpenFor === group){ closeTray(); } else { openTrayFor(group); }
+    e.preventDefault(); e.stopPropagation(); return;
   }
 
   if (hoverCapable && !overlayOpen){
-    // DESKTOP landing: toggle tray on click (hover also opens it)
-    if (trayOpenFor === group){
-      closeTray();
-    } else {
-      openTrayFor(group);
-    }
+    if (trayOpenFor === group){ closeTray(); } else { openTrayFor(group); }
     return;
   }
 
-  // When overlay is open, clicks should navigate instead of toggling
   navigateTo(group, null);
 });
 
-// Keep tray open while hovering it; close when leaving (unless going back to footer)
-pillsRail.addEventListener('mouseenter', ()=>{
-  // cancel any pending close
-});
-// --- shared helpers for smooth closing ---
+// Keep tray open while hovering; close when leaving both tray and footer
+pillsRail.addEventListener('mouseenter', ()=>{ /* cancel pending close if any */ });
 let trayCloseTimer = null;
-
-function cancelTrayClose(){
-  if (trayCloseTimer){ clearTimeout(trayCloseTimer); trayCloseTimer = null; }
-}
+function cancelTrayClose(){ if (trayCloseTimer){ clearTimeout(trayCloseTimer); trayCloseTimer = null; } }
+pillsRail.addEventListener('mouseenter', cancelTrayClose);
+footer.addEventListener('mouseenter', cancelTrayClose);
 
 function restoreActiveUI(){
   const active = indexToGroup(getCurrentIndex());
@@ -495,54 +428,39 @@ function restoreActiveUI(){
   renderPills(active);
   setTrayAnchorForVisible(visibleGroups, active);
 }
-
 function scheduleTrayClose(delay = 120){
   cancelTrayClose();
   trayCloseTimer = setTimeout(()=>{
-    // What are we over *at the moment of closing*?
     const el = document.elementFromPoint(lastPointerX, lastPointerY);
     const overFooter = !!(el && el.closest && el.closest('#siteFooter'));
     const overTray   = !!(el && el.closest && el.closest('#pillsRail'));
     const laneEl     = el && el.closest && el.closest('#lanes .lane');
-
-    // If we somehow ended up back over tray/footer, abort closing.
     if (overFooter || overTray) return;
-
-    // Close the tray now.
-    closeTray(); // also applies the hover mute
-
-    // If pointer is over a lane, keep THAT lane highlighted.
+    closeTray();
     if (laneEl && laneEl.dataset && laneEl.dataset.group){
       const g = laneEl.dataset.group;
       highlightFooter(g);
-      renderPills(g);                     // prepares content (tray can remain closed)
+      renderPills(g);
       setTrayAnchorForVisible(visibleGroups, g);
-      previewIndex(indexForGroupSlug(g)); // 3D highlight for that lane
+      previewIndex(indexForGroupSlug(g));
     } else {
-      // Otherwise go back to the currently active (middle) selection.
       restoreActiveUI();
       previewIndex(-1);
     }
   }, delay);
 }
-// keep the tray open while pointer is over it (or the footer)
-pillsRail.addEventListener('mouseenter', cancelTrayClose);
-footer.addEventListener('mouseenter', cancelTrayClose);
-
-// close only if leaving BOTH tray and footer
 pillsRail.addEventListener('mouseleave', (e)=>{
   const to = e.relatedTarget;
   if (to && (to.closest('#pillsRail') || to.closest('#siteFooter'))) return;
-  scheduleTrayClose(120);   // lane-aware delayed close
+  scheduleTrayClose(120);
 });
-
 footer.addEventListener('mouseleave', (e)=>{
   const to = e.relatedTarget;
   if (to && (to.closest('#pillsRail') || to.closest('#siteFooter'))) return;
-  scheduleTrayClose(120);   // lane-aware delayed close
+  scheduleTrayClose(120);
 });
 
-// Scene → UI: keep footer/pills in sync when current index changes
+// Scene → UI
 window.addEventListener('cardchange', (e)=>{
   const group = e.detail?.slug || indexToGroup(getCurrentIndex());
   highlightFooter(group);
@@ -558,8 +476,7 @@ overlayX?.addEventListener('click', ()=>{
   navigateTo(indexToGroup(getCurrentIndex()), null, { syncScene:false });
 });
 
-/* ========= INITIAL BOOT ========= */
-
+/* ---------- Boot ---------- */
 (function init(){
   renderFooterIcons(visibleGroups);
   renderLanes(visibleGroups);
@@ -577,4 +494,3 @@ overlayX?.addEventListener('click', ()=>{
     }
   });
 })();
-
