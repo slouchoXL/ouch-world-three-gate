@@ -133,7 +133,7 @@ function closeTray(muteMs = HOVER_MUTE_MS){
 
 /* ========= FOOTER & LANES ========= */
 
-// --- iOS-safe inline SVG builder (single version) ---
+// iOS-safe inline SVG builder that strips <style> and hard fills
 function createInlineSVG(markup){
   const tmp = document.createElement('div');
   tmp.innerHTML = markup.trim();
@@ -145,18 +145,21 @@ function createInlineSVG(markup){
   function cloneNS(node){
     if (node.nodeType === 3) return document.createTextNode(node.nodeValue);
     if (node.nodeType !== 1) return null;
-    if (node.tagName && node.tagName.toLowerCase() === 'style') return null; // strip embedded styles
+    if (node.tagName && node.tagName.toLowerCase() === 'style') return null; // drop <style>
 
     const el = document.createElementNS(NS, node.tagName.toLowerCase());
-    // copy attributes, but drop ones that fight currentColor / sizing
+
+    // copy attrs but drop ones that break currentColor/sizing
     for (let i=0; i<node.attributes.length; i++){
       const a = node.attributes[i];
       const n = a.name.toLowerCase();
       if (n === 'width' || n === 'height' || n === 'style' || n === 'class' || n === 'fill' || n === 'stroke') continue;
       el.setAttribute(n, a.value);
     }
+
     for (let i=0; i<node.childNodes.length; i++){
-      const c = cloneNS(node.childNodes[i]); if (c) el.appendChild(c);
+      const c = cloneNS(node.childNodes[i]);
+      if (c) el.appendChild(c);
     }
     return el;
   }
@@ -164,7 +167,7 @@ function createInlineSVG(markup){
   const out = document.createElementNS(NS, 'svg');
   const vb = src.getAttribute('viewBox');
   if (vb) out.setAttribute('viewBox', vb);
-  out.setAttribute('width', '24');
+  out.setAttribute('width','24');
   out.setAttribute('height','24');
   out.setAttribute('focusable','false');
   out.setAttribute('aria-hidden','true');
@@ -178,10 +181,12 @@ function createInlineSVG(markup){
   }
 
   for (let i=0; i<src.childNodes.length; i++){
-    const c = cloneNS(src.childNodes[i]); if (c) out.appendChild(c);
+    const c = cloneNS(src.childNodes[i]);
+    if (c) out.appendChild(c);
   }
 
-  out.style.fill   = 'currentColor';
+  // inherit from button color
+  out.style.fill = 'currentColor';
   out.style.stroke = 'currentColor';
   return out;
 }
@@ -191,17 +196,10 @@ let lastFooterKey = '';
 let _footerRenderedOnce = false;
 
 function renderFooterIcons(groups){
-  // If you accidentally have more than one #siteFooter, warn (this causes doubles)
-  if (document.querySelectorAll('#siteFooter').length !== 1){
-    console.warn('Multiple #siteFooter elements detected. Remove duplicates in index.html.');
-  }
-
   const key = groups.join('|');
-
-  // Guard: if we already rendered for this exact set and the count matches, skip
   if (_footerRenderedOnce && key === lastFooterKey && footer.childElementCount === groups.length) return;
-
   lastFooterKey = key;
+
   footer.replaceChildren();
 
   groups.forEach(g=>{
@@ -210,20 +208,18 @@ function renderFooterIcons(groups){
     btn.dataset.group = g;
     btn.setAttribute('aria-label', g);
 
-    const svgMarkup = ICON_SVGS[g];
-    if (svgMarkup){
-      const svgEl = createInlineSVG(svgMarkup);
-      if (svgEl) {
-        btn.appendChild(svgEl);
-      } else {
-        // fallback text if parsing fails
-        btn.textContent = (g in iconFor) ? iconFor[g] : '•';
+    let inserted = false;
+    try {
+      if (ICON_SVGS[g]){
+        const svgEl = createInlineSVG(ICON_SVGS[g]);
+        if (svgEl){ btn.appendChild(svgEl); inserted = true; }
       }
-    } else {
-      // emoji fallback
-      btn.textContent = (g in iconFor) ? iconFor[g] : '•';
-    }
+    } catch(_) {}
 
+    if (!inserted){
+      // emoji fallback so buttons still exist
+      btn.textContent = iconFor[g] || '•';
+    }
     footer.appendChild(btn);
   });
 
