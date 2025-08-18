@@ -664,38 +664,45 @@ function applyHoverFromPointer(clientX){
 }
 
 function endDrag(e){
-  if (!dragging) return;
-  dragging = false;
+  if (!drag.active) return;               // was: if (!dragging) return;
 
   const pt = e.changedTouches ? e.changedTouches[0] : e;
-  const dx = pt.clientX - startX;
-  const dt = Math.max(1, performance.now() - startT);
-  const vx = Math.abs(dx) / dt;            // px per ms
+  const dx = pt.clientX - drag.x0;        // was: startX
+  const dt = Math.max(1, performance.now() - drag.t0); // was: startT
+  const vx = Math.abs(dx) / dt;           // px per ms
 
   const passedDistance = Math.abs(dx) > H_SWIPE_PX;
   const passedVelocity = vx > FLICK_VX;
 
   if (passedDistance || passedVelocity){
-    const dir     = dx < 0 ? +1 : -1;      // swipe left -> next (+1), right -> prev (-1)
-    const target  = current + dir;
+    const dir    = dx < 0 ? +1 : -1;      // left swipe → next
+    const target = current + dir;
 
-    // briefly suppress hover so swipe feels decisive (no flicker)
+    // suppress hover flicker after swipe
     if (typeof muteHover === 'function') muteHover(280);
 
-    // switch selection; snap camera quickly (no Z easing lag)
-    // make sure your selectIndex accepts the options object
+    // keep your prior behavior; set to true if you want snap on commit
     selectIndex(target, { instantCamera: false });
 
-    // immediately set the highlight based on where the pointer actually is
+    // immediately restore correct hover highlight under the pointer
     applyHoverFromPointer(pt.clientX);
+
+    // brief cooldown to avoid double-trigger
+    swipeCooldownUntil = performance.now() + COOLDOWN_MS;
   }
+
+  // reset drag state
+  drag.active = false;
+  drag.id = null;
+  previewIndex(-1);
 }
 
 function cancelDrag(e){
+  if (!drag.active) return;
   drag.active = false;
   drag.id = null;
+  previewIndex(-1);
 }
-
 /* attach to both #lanes and #webgl (topmost wins) */
 gestureTargets.forEach(el=>{
   el.addEventListener('pointerdown',  startDrag, { passive: true  });

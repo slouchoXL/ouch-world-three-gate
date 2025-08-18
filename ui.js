@@ -67,6 +67,7 @@ function hoverMuted(){ return performance.now() < (window.__hoverMuteUntil || 0)
 function muteHover(ms = HOVER_MUTE_MS){ window.__hoverMuteUntil = performance.now() + ms; }
 
 let trayOpenFor = null;
+let dragging = false;
 
 function setTrayAnchorForVisible(groups, group){
   const n   = Math.max(1, groups.length);
