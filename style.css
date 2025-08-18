@@ -109,6 +109,7 @@ body{
 
 /* ---------- Pills TRAY (opens above the active icon) ---------- */
 /* ---------- Pills TRAY (opens above the active icon) ---------- */
+/* ---------- Pills TRAY (opens above the active icon) ---------- */
 #pillsRail{
   position: fixed;
   bottom: 62px;
@@ -118,33 +119,35 @@ body{
 
   background: var(--chip);
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 10px 24px rgba(0,0,0,0.35);
 
-  /* smaller + tighter */
-  padding: 6px 8px;
-  min-width: 220px;       /* was 260px */
-  max-width: 380px;       /* was 520px */
+  /* key changes for intrinsic width */
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: max-content;          /* === size to the longest pill === */
+  min-width: 0;                /* remove fixed minimums */
+  max-width: 90vw;             /* safety cap */
+  padding: 6px;                /* tighter chrome */
 
   opacity: 0;
   pointer-events: none;
   transition: opacity .15s ease, transform .15s ease;
 }
 
-
-/* caret pointing at the icon */
+/* smaller caret to match compact tray */
 #pillsRail::after{
   content: "";
   position: absolute;
-  bottom: -8px;
+  bottom: -6px;                /* was -8px */
   left: 50%;
   transform: translateX(-50%);
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 8px solid var(--chip);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--chip); /* was 8px */
   filter: drop-shadow(0 2px 0 rgba(0,0,0,0.35));
 }
-
 /* visible state */
 #pillsRail.open{
   opacity: 1;
@@ -155,7 +158,8 @@ body{
 /* ---------- Tray items (pills) ---------- */
 #pillsRail .pill{
   display: block;
-  width: 100%;
+  width: auto;
+  white-space: nowrap;
   text-align: left;
   background: transparent;
   color: var(--text);
@@ -163,10 +167,10 @@ body{
   border-radius: 8px;
 
   /* tighter */
-  padding: .45rem .6rem;   /* was .55rem .75rem */
+  padding: .35rem .55rem;   /* was .55rem .75rem */
   font-weight: 600;
-  font-size: 13.5px;       /* was 14px */
-  line-height: 1.15;
+  font-size: 13px;       /* was 14px */
+  line-height: 1.1;
 
   transition: background-color .12s ease, color .12s ease, transform .12s ease;
 }
@@ -212,17 +216,23 @@ body{
 @media (hover:none){
   /* tray stays class-controlled; just let it size narrower on phones */
   #pillsRail{
-    min-width: min(78vw, 340px);   /* narrower than before */
-    max-width: min(82vw, 360px);
+    width: max-content;   /* narrower than before */
+    max-width: 88vw;
+    padding: 6px;
   }
 
   /* optional: slightly smaller pills on mobile for extra fit */
   #pillsRail .pill{
-    font-size: 13px;
-    padding: .4rem .55rem;
+    font-size: 12.75px;
+    padding: .32rem .5rem;
   }
 }
 
+@supports (overflow-wrap:anywhere){
+    #pillsRail .pill {
+        overflow-wrap: anywhere;
+    }
+}
 /* ---------- Motion reduction ---------- */
 @media (prefers-reduced-motion: reduce){
   .footer .footer-icon,
