@@ -176,6 +176,21 @@ body{
 }
 #pillsRail .pill + .pill{ margin-top: 6px; } /* was 8px */
 
+@media (hover:none){
+  /* tray stays class-controlled; just let it size narrower on phones */
+  #pillsRail{
+    width: max-content;   /* narrower than before */
+    max-width: 88vw;
+    padding: 6px;
+  }
+
+  /* optional: slightly smaller pills on mobile for extra fit */
+  #pillsRail .pill{
+    font-size: 12.75px;
+    padding: .32rem .5rem;
+  }
+}
+
 #pillsRail .pill:hover{
   background: rgba(255,255,255,0.05);
   color: #fff;
@@ -210,22 +225,6 @@ body{
 #pillsRail .pill:focus,
 .modal-close:focus{
   outline: 2px solid #888; outline-offset: 2px;
-}
-
-/* ---------- Mobile tweaks ---------- */
-@media (hover:none){
-  /* tray stays class-controlled; just let it size narrower on phones */
-  #pillsRail{
-    width: max-content;   /* narrower than before */
-    max-width: 88vw;
-    padding: 6px;
-  }
-
-  /* optional: slightly smaller pills on mobile for extra fit */
-  #pillsRail .pill{
-    font-size: 12.75px;
-    padding: .32rem .5rem;
-  }
 }
 
 @supports (overflow-wrap:anywhere){
