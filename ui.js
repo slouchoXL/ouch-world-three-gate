@@ -22,7 +22,7 @@ const SITEMAP = {
   ],
   explore: [
     { slug: 'packs', label:'Packs' },
-    { slug: 'dex',   label:'SlouchoDex' },
+    { slug: 'dex',   label:'My Collection' },
   ],
 };
 
