@@ -360,7 +360,7 @@ if (hoverMuted()) return;
 const btn = e.target.closest('.footer-icon');
  if (!btn || !footer.contains(btn)) return;
  // treat as hover if any input can hover and we’re not on touch
-  const canHover = window.matchMedia('(any-hover: hover)').matches && !IS_TOUCH;
+  const canHover = window.matchMedia('(any-hover: hover)').matches;
   if (!canHover) return;
   if (!overlayEl.hidden) return;
   openTrayFor(btn.dataset.group);
@@ -376,7 +376,7 @@ footer.addEventListener('click', (e)=>{
   if (!btn) return;
 
   const group        = btn.dataset.group;
-  const hoverCapable = window.matchMedia('(any-hover: hover)').matches && !IS_TOUCH;
+  const hoverCapable = window.matchMedia('(any-hover: hover)').matches;
   const overlayOpen  = !overlayEl.hidden;
 
   if (!hoverCapable && !overlayOpen){
