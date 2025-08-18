@@ -51,6 +51,51 @@ const ICON_SVGS = {
   explore:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M23.6,4.8c-.5-1.1-1.5-1.9-2.6-2.2L13.7.2c-1.2-.4-2.4-.3-3.5.3-1.1.6-1.9,1.5-2.2,2.7l-.2.8h-3.3c-2.5,0-4.5,2-4.5,4.5v11c0,2.5,2,4.5,4.5,4.5h7c1.6,0,3-.8,3.8-2.1.2,0,.5,0,.7,0,1.9,0,3.6-1.2,4.3-3.1l3.6-10.7c.4-1.1.3-2.4-.3-3.5ZM11.5,23h-7c-1.9,0-3.5-1.6-3.5-3.5v-11c0-1.9,1.6-3.5,3.5-3.5h7c1.9,0,3.5,1.6,3.5,3.5v11c0,1.9-1.6,3.5-3.5,3.5ZM22.9,7.9l-3.6,10.7c-.5,1.5-2,2.5-3.6,2.4.2-.5.3-1,.3-1.5v-11c0-2.5-2-4.5-4.5-4.5h-2.7l.2-.5c.3-.9.9-1.6,1.7-2.1.8-.4,1.8-.5,2.7-.2l7.2,2.3c.9.3,1.6.9,2,1.7.4.8.5,1.8.2,2.7Z"/></svg>`
 };
 
+/* ---------- Pill icons (inline SVG strings; minimal, solid, currentColor) ---------- */
+const PILL_ICONS = {
+  // listen
+  discography: `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"/>
+      <circle cx="12" cy="12" r="2.2" fill="var(--bg)"/>
+    </svg>
+  `,
+  radio: `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <rect x="4" y="8" width="16" height="10" rx="2" ry="2"/>
+      <circle cx="9" cy="13" r="2.2" fill="var(--bg)"/>
+      <path d="M6 6l12-3" stroke="currentColor" stroke-width="2" fill="none"/>
+    </svg>
+  `,
+
+  // buy
+  merch: `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path d="M7 7h10l1.2 11.2A2 2 0 0 1 16.2 20H7.8a2 2 0 0 1-2-1.8L7 7Z"/>
+      <path d="M9 7a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="2"/>
+    </svg>
+  `,
+  tickets: `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path d="M4 8h13a2 2 0 0 1 2 2v1a2 2 0 1 0 0 4v1a2 2 0 0 1-2 2H4Z"/>
+      <path d="M10 9v6" stroke="currentColor" stroke-width="2"/>
+    </svg>
+  `,
+
+  // explore
+  packs: `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path d="M4 9l8-5 8 5v8l-8 5-8-5V9Z"/>
+      <path d="M4 9l8 5 8-5" fill="none" stroke="currentColor" stroke-width="2"/>
+    </svg>
+  `,
+  dex: `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <rect x="5" y="4" width="12" height="16" rx="2" ry="2"/>
+      <path d="M8 8h6M8 12h6M8 16h6" stroke="currentColor" stroke-width="2"/>
+    </svg>
+  `,
+};
 /* ---------- Data-URI maker for mobile fallback ---------- */
 function svgToDataURI(svg, color = '#fff'){
   // color the paths by injecting fill; we keep it simple & safe
@@ -81,8 +126,28 @@ function renderPills(group, activePageSlug = null){
   (SITEMAP[group] ?? []).forEach(({ slug, label })=>{
     const btn = document.createElement('button');
     btn.className = 'pill' + (activePageSlug === slug ? ' active' : '');
-    btn.textContent = label;
     btn.dataset.page = `${group}/${slug}`;
+    btn.type = 'button';
+
+    // --- icon ---
+    const raw = PILL_ICONS[slug];
+    if (raw) {
+      try {
+        const svgEl = createInlineSVG(raw);
+        if (svgEl) {
+          svgEl.setAttribute('aria-hidden', 'true');
+          svgEl.setAttribute('width', '16');
+          svgEl.setAttribute('height', '16');
+          btn.appendChild(svgEl);
+        }
+      } catch(_) {}
+    }
+
+    // --- text ---
+    const text = document.createElement('span');
+    text.textContent = label;
+    btn.appendChild(text);
+
     btn.addEventListener('click', ()=> navigateTo(group, slug));
     pillsRail.appendChild(btn);
   });

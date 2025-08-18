@@ -153,7 +153,9 @@ body{
 
 /* ---------- Tray items (pills) ---------- */
 #pillsRail .pill{
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   width: auto;
   white-space: nowrap;
   text-align: left;
@@ -169,6 +171,12 @@ body{
   line-height: 1.1;
 
   transition: background-color .12s ease, color .12s ease, transform .12s ease;
+}
+
+#pillsRail .pill svg{
+  flex-shrink: 0;
+  display: block;
+  fill: currentColor;
 }
 #pillsRail .pill + .pill{ margin-top: 6px; } /* was 8px */
 
