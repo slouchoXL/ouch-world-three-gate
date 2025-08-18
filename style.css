@@ -108,6 +108,7 @@ body{
 
 
 /* ---------- Pills TRAY (opens above the active icon) ---------- */
+/* ---------- Pills TRAY (opens above the active icon) ---------- */
 #pillsRail{
   position: fixed;
   bottom: 62px;
@@ -116,13 +117,14 @@ body{
   z-index: 25;
 
   background: var(--chip);
-  border: none;                       /* removed border */
+  border: none;
   border-radius: 12px;
   box-shadow: 0 10px 24px rgba(0,0,0,0.35);
 
-  padding: 10px;
-  min-width: 260px;
-  max-width: 520px;
+  /* smaller + tighter */
+  padding: 6px 8px;
+  min-width: 220px;       /* was 260px */
+  max-width: 380px;       /* was 520px */
 
   opacity: 0;
   pointer-events: none;
@@ -150,7 +152,6 @@ body{
   transform: translateX(-50%) translateY(0);
 }
 
-/* Pills in tray: full-width & left-aligned */
 /* ---------- Tray items (pills) ---------- */
 #pillsRail .pill{
   display: block;
@@ -158,15 +159,18 @@ body{
   text-align: left;
   background: transparent;
   color: var(--text);
-  border: none;                       /* removed border */
+  border: none;
   border-radius: 8px;
-  padding: .55rem .75rem;
+
+  /* tighter */
+  padding: .45rem .6rem;   /* was .55rem .75rem */
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13.5px;       /* was 14px */
   line-height: 1.15;
+
   transition: background-color .12s ease, color .12s ease, transform .12s ease;
 }
-#pillsRail .pill + .pill{ margin-top: 8px; }
+#pillsRail .pill + .pill{ margin-top: 6px; } /* was 8px */
 
 #pillsRail .pill:hover{
   background: rgba(255,255,255,0.05);
@@ -206,10 +210,16 @@ body{
 
 /* ---------- Mobile tweaks ---------- */
 @media (hover:none){
-  /* tray stays class-controlled; just let it size wider on phones */
+  /* tray stays class-controlled; just let it size narrower on phones */
   #pillsRail{
-    min-width: min(92vw, 520px);
-    max-width: min(92vw, 520px);
+    min-width: min(78vw, 340px);   /* narrower than before */
+    max-width: min(82vw, 360px);
+  }
+
+  /* optional: slightly smaller pills on mobile for extra fit */
+  #pillsRail .pill{
+    font-size: 13px;
+    padding: .4rem .55rem;
   }
 }
 
@@ -253,3 +263,20 @@ body{
     -webkit-transform: translateZ(0);
   }
 }
+/* Active state highlight for footer icons (desktop + mobile) */
+.footer .footer-icon.active {
+  color: #fff;                     /* white icon */
+  background: rgba(255,255,255,0.15); /* faint halo behind it */
+  border-radius: 12px;
+  transform: scale(1.1);           /* subtle bump */
+}
+
+/* Keep hover distinct on desktop */
+@media (hover:hover) {
+  .footer .footer-icon:hover {
+    color: #fff;
+    transform: translateY(-1px) scale(1.1);
+    background: rgba(255,255,255,0.1);
+  }
+}
+
