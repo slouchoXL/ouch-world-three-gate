@@ -13,15 +13,15 @@ const SITEMAP = {
   listen: [
     { slug: 'discography', label:'Discography' },
     { slug: 'radio',       label:'Radio' },
-    { slug: 'guitar',      label:'Guitar Hero' },
+   
   ],
   buy: [
     { slug: 'merch',     label:'Merch' },
     { slug: 'tickets',   label:'Tickets' },
-    { slug: 'subscribe', label:'Subscribe' },
+   
   ],
   explore: [
-    { slug: 'packs', label:'Pack Opening' },
+    { slug: 'packs', label:'Packs' },
     { slug: 'dex',   label:'SlouchoDex' },
   ],
 };
@@ -192,6 +192,7 @@ function renderFooterIcons(groups){
   });
 
   footer.style.setProperty('--cols', String(Math.max(1, groups.length)));
+    footer.classList.add('ready');
   _footerRenderedOnce = true;
 }
 

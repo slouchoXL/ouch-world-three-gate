@@ -92,7 +92,11 @@ body{
 /* Mobile: make sure they render & are tappable */
 @media (hover:none){
   .footer{
+      visibility: hidden;
     bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  .footer.ready {
+      visibility: visible;
   }
   .footer .footer-icon{
     color: #fff;                  /* hard white if you prefer */
