@@ -74,7 +74,7 @@ function setTrayAnchorForVisible(groups, group){
   const idx = Math.max(0, groups.indexOf(group));
   const percent = ((idx + 0.5) / n) * 100;
   pillsRail.style.left = percent + '%';
-  pillsRail.style.transform = 'translateX(-50%)';
+  //pillsRail.style.transform = 'translateX(-50%)';
 }
 function renderPills(group, activePageSlug = null){
   pillsRail.innerHTML = '';
