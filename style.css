@@ -248,19 +248,17 @@ body{
 
 /* Make sure footer is visible & tappable on touch devices */
 @media (hover:none){
-  .footer{
-    position: fixed;
-    left: 0; right: 0;
-    /* the bottom above already applies; this is just to be explicit */
-    pointer-events: auto;
-  }
+  .footer { visibility: hidden; }
+  .footer.ready { visibility: visible; }
+
   .footer .footer-icon{
+    color: #fff;                  /* hard white if you prefer */
     -webkit-tap-highlight-color: transparent;
-    color: #fff; /* hard white for testing/contrast */
   }
   .footer .footer-icon svg{
     width: 26px; height: 26px;
-    transform: translateZ(0);
+    display: block;
+    transform: translateZ(0);        /* nudge WebKit to paint */
     -webkit-transform: translateZ(0);
   }
 }
