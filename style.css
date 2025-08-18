@@ -93,7 +93,6 @@ body{
 @media (hover:none){
     .footer { visibility: hidden; }
     .footer.ready { visibility: visible; }
-        bottom: calc(12px + env(safe-area-inset-bottom));
     }
 
   .footer .footer-icon{
