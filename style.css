@@ -225,11 +225,7 @@ body{
   outline: 2px solid #888; outline-offset: 2px;
 }
 
-@supports (overflow-wrap:anywhere){
-    #pillsRail .pill {
-        overflow-wrap: anywhere;
-    }
-}
+
 /* ---------- Motion reduction ---------- */
 @media (prefers-reduced-motion: reduce){
   .footer .footer-icon,
