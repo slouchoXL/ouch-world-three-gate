@@ -106,8 +106,7 @@ body{
   }
 }
 
-.footer {background: rgba(255,0,0,0.55); }
-.footer .footer-icon { outline: 1px solid rgba(0,255,255,0.3); }
+
 /* ---------- Pills TRAY (opens above the active icon) ---------- */
 #pillsRail{
   position: fixed;
