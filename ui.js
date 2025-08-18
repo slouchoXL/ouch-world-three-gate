@@ -356,16 +356,13 @@ window.addEventListener('layoutchange', (e)=>{
 
 /* ---------- Footer hover/click ---------- */
 footer.addEventListener('mouseover', (e)=>{
-  if (hoverMuted()) return;
-
-  // Only act when we're actually over an icon
-  const btn = e.target.closest('.footer-icon');
-  if (!btn || !footer.contains(btn)) return;
-
-  // Desktop/hover-capable only, and only when overlay is closed
-  if (!window.matchMedia('(hover:hover)').matches) return;
+if (hoverMuted()) return;
+const btn = e.target.closest('.footer-icon');
+ if (!btn || !footer.contains(btn)) return;
+ // treat as hover if any input can hover and we’re not on touch
+  const canHover = window.matchMedia('(any-hover: hover)').matches && !IS_TOUCH;
+  if (!canHover) return;
   if (!overlayEl.hidden) return;
-
   openTrayFor(btn.dataset.group);
 });
 
@@ -379,7 +376,7 @@ footer.addEventListener('click', (e)=>{
   if (!btn) return;
 
   const group        = btn.dataset.group;
-  const hoverCapable = window.matchMedia('(hover:hover)').matches;
+  const hoverCapable = window.matchMedia('(any-hover: hover)').matches && !IS_TOUCH;
   const overlayOpen  = !overlayEl.hidden;
 
   if (!hoverCapable && !overlayOpen){
