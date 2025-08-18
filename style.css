@@ -127,8 +127,7 @@ body{
   flex-direction: column;
   align-items: stretch;
   width: max-content;          /* === size to the longest pill === */
-  min-width: 0;                /* remove fixed minimums */
-  max-width: 90vw;             /* safety cap */
+  width: min(160px, 92vw);           /* safety cap */
   padding: 6px;                /* tighter chrome */
 
   opacity: 0;
