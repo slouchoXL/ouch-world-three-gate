@@ -225,6 +225,7 @@ body{
   display: flex;
   flex-direction: column;
   align-items: center;
+  max-height: 600px;
 }
 
 /* Center the widget container inside the card, remove body padding */
