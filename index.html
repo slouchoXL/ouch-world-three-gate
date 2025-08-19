@@ -21,8 +21,19 @@
 
   <!-- PACKS WIDGET assets -->
   <link rel="stylesheet" href="/assets/widget/packs-widget.css" />
+  <script>
+    // Set your backend base BEFORE the widget runs
+    window.__PACKS_API_BASE = 'https://backend-o9ot.onrender.com';
+  </script>
+  <!-- Load the built IIFE bundle (common filename we generated) -->
   <script src="/assets/widget/packs-widget-element.js"></script>
 
+  <!-- (optional) sanity check: log whether the element is defined -->
+  <script>
+    window.addEventListener('load', () => {
+      console.log('[packs] defined?', !!customElements.get('packs-widget'));
+    });
+  </script>
 
 </head>
 <body>
@@ -58,38 +69,65 @@
   <script>
     (function () {
       const HASH = '#/explore/packs';
-      const overlay     = document.getElementById('overlay');
-      const overlayBody = document.getElementById('overlay-body');
-      const overlayTitle= document.getElementById('overlay-title');
-      const overlayClose= document.getElementById('overlay-close');
+      const overlay      = document.getElementById('overlay');
+      const overlayBody  = document.getElementById('overlay-body');
+      const overlayTitle = document.getElementById('overlay-title');
+      const overlayClose = document.getElementById('overlay-close');
 
-      function openOverlay() {
+      function openOverlayForPacks() {
         if (!overlay) return;
+        overlay.classList.add('modal--packs');   // widen the modal
         overlay.removeAttribute('hidden');
+        // Optional: dim the canvas while open
+        const webgl = document.getElementById('webgl');
+        if (webgl) webgl.classList.add('dim-3d');
       }
+
       function closeOverlay() {
         if (!overlay) return;
         overlay.setAttribute('hidden', '');
+        overlay.classList.remove('modal--packs');
         if (overlayBody) overlayBody.replaceChildren();
         if (overlayTitle) overlayTitle.textContent = '';
+        const webgl = document.getElementById('webgl');
+        if (webgl) webgl.classList.remove('dim-3d');
       }
 
       function mountPacksInOverlay() {
         if (!overlayBody) return;
-        // set a title if you want, or leave blank
+
+        // Set title or leave blank
         if (overlayTitle) overlayTitle.textContent = '';
+
+        // Avoid duplicate mounts
+        if (overlayBody.querySelector('packs-widget')) {
+          openOverlayForPacks();
+          return;
+        }
+
         const el = document.createElement('packs-widget');
-        // Optional sizing inside modal body:
+        // allow it to size nicely in the modal
         el.style.display  = 'block';
         el.style.width    = '100%';
-        el.style.maxWidth = '860px';
+        el.style.maxWidth = '880px';
         el.style.margin   = '0 auto';
-        overlayBody.replaceChildren(el);
-        openOverlay();
+
+        // If the element isn’t defined yet, wait for the definition
+        if (!window.customElements.get('packs-widget')) {
+          console.warn('[packs] packs-widget not defined yet—waiting');
+          window.customElements.whenDefined('packs-widget').then(() => {
+            overlayBody.replaceChildren(el);
+            openOverlayForPacks();
+          });
+        } else {
+          overlayBody.replaceChildren(el);
+          openOverlayForPacks();
+        }
       }
 
       function onRouteChange() {
         if (location.hash.startsWith(HASH)) {
+          console.debug('[packs] route → packs (overlay mount)');
           mountPacksInOverlay();
         } else {
           closeOverlay();
