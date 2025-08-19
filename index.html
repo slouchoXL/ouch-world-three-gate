@@ -4,7 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>OUCH.WORLD</title>
+
+  <!-- Your site CSS -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- PACKS WIDGET assets -->
+  <link rel="stylesheet" href="/assets/widget/styles.css" />
+  <script type="module" src="/assets/widget/packs-widget.js"></script>
+
   <!-- Map bare specifiers to CDN URLs -->
   <script type="importmap">
   {
@@ -37,8 +44,46 @@
     </div>
   </div>
 
+  <!-- Packs widget mount point (only used on #/explore/packs) -->
+  <div id="packs-root" aria-live="polite"></div>
+
   <!-- Scripts: main first (emits layoutchange), then ui (listens & renders UI) -->
   <script type="module" src="main.module.js"></script>
   <script type="module" src="ui.js"></script>
+
+  <!-- Minimal hash-router to mount/unmount the widget -->
+  <script>
+    (function () {
+      const HASH = '#/explore/packs';
+      const root = document.getElementById('packs-root');
+
+      function mountPacks() {
+        if (!root) return;
+        // only mount once
+        if (!root.querySelector('packs-widget')) {
+          const el = document.createElement('packs-widget');
+          root.replaceChildren(el);
+        }
+      }
+
+      function unmountPacks() {
+        if (!root) return;
+        root.textContent = '';
+      }
+
+      function onRouteChange() {
+        if (location.hash.startsWith(HASH)) {
+          mountPacks();
+        } else {
+          unmountPacks();
+        }
+      }
+
+      window.addEventListener('hashchange', onRouteChange);
+      window.addEventListener('load', onRouteChange);
+      // run once in case this script loads after DOMContentLoaded
+      onRouteChange();
+    })();
+  </script>
 </body>
 </html>
