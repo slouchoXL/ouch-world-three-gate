@@ -6,6 +6,8 @@
   --chip-border:#444;
 }
 
+html{ scrollbar-gutter: stable both-edges; }
+
 *{ box-sizing:border-box }
 html,body{ height:100% }
 html, body { overscroll-behavior-x: none; }
@@ -128,7 +130,7 @@ body{
 /* ---------- Packs overlay: wide, centered, no internal padding ---------- */
 .modal.modal--packs{
   display:flex; align-items:center; justify-content:center;
-  padding: 4vh 4vw;
+  padding: 4vh 0;
   /* Optional: scale widget internals via CSS vars */
   --packW: 420px;      /* stage pack width inside widget */
   --cardW: 320px;      /* stack card width */
