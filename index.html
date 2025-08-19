@@ -67,77 +67,86 @@
 
   <!-- Minimal hash-router to mount/unmount the widget -->
   <script>
-    (function () {
-      const HASH = '#/explore/packs';
-      const overlay      = document.getElementById('overlay');
-      const overlayBody  = document.getElementById('overlay-body');
-      const overlayTitle = document.getElementById('overlay-title');
-      const overlayClose = document.getElementById('overlay-close');
+  (function () {
+    const HASH = '#/explore/packs';
+    const overlay      = document.getElementById('overlay');
+    const overlayBody  = document.getElementById('overlay-body');
+    const overlayTitle = document.getElementById('overlay-title');
+    const overlayClose = document.getElementById('overlay-close');
 
-      function openOverlayForPacks() {
-        if (!overlay) return;
-        overlay.classList.add('modal--packs');   // wider modal rules
-        overlay.removeAttribute('hidden');
-        const webgl = document.getElementById('webgl');
-        if (webgl) webgl.classList.add('dim-3d');
-      }
-      function closeOverlay() {
-        if (!overlay) return;
-        overlay.setAttribute('hidden', '');
-        overlay.classList.remove('modal--packs');
-        if (overlayBody) overlayBody.replaceChildren();
-        if (overlayTitle) overlayTitle.textContent = '';
-        const webgl = document.getElementById('webgl');
-        if (webgl) webgl.classList.remove('dim-3d');
-      }
+    let mo = null; // MutationObserver
 
-      function mountPacksInOverlay() {
-        if (!overlayBody) return;
-        if (overlayTitle) overlayTitle.textContent = '';
+    function openOverlayForPacks() {
+      if (!overlay) return;
+      overlay.classList.add('modal--packs');
+      overlay.removeAttribute('hidden');
+      const webgl = document.getElementById('webgl');
+      if (webgl) webgl.classList.add('dim-3d');
+    }
 
-        // Open the overlay immediately so the user sees it
-        openOverlayForPacks();
+    function closeOverlay() {
+      if (mo) { mo.disconnect(); mo = null; }
+      if (!overlay) return;
+      overlay.setAttribute('hidden', '');
+      overlay.classList.remove('modal--packs');
+      const webgl = document.getElementById('webgl');
+      if (webgl) webgl.classList.remove('dim-3d');
+      if (overlayBody) overlayBody.replaceChildren();
+      if (overlayTitle) overlayTitle.textContent = '';
+    }
 
-        // Avoid duplicate mounts
-        if (overlayBody.querySelector('packs-widget')) return;
-
+    function ensureMounted() {
+      if (!overlayBody) return;
+      if (!overlayBody.querySelector('packs-widget')) {
         const el = document.createElement('packs-widget');
+        // sizing inside modal
         el.style.display  = 'block';
         el.style.width    = '100%';
         el.style.maxWidth = '880px';
         el.style.margin   = '0 auto';
+        overlayBody.replaceChildren(el);
+      }
+    }
 
-        const defineAndMount = () => {
-          overlayBody.replaceChildren(el);
-        };
+    async function mountPacksInOverlay() {
+      if (!overlayBody) return;
 
-        // If not defined yet, wait; otherwise mount now
+      // 1) Open modal immediately (so user sees it)
+      openOverlayForPacks();
+      if (overlayTitle) overlayTitle.textContent = '';
+
+      // 2) Wait for the element definition; then mount
+      try {
         if (!customElements.get('packs-widget')) {
-          customElements.whenDefined('packs-widget').then(defineAndMount);
-          // safety fallback in case whenDefined never resolves due to a load error
-          setTimeout(() => {
-            if (!overlayBody.querySelector('packs-widget')) {
-              defineAndMount();
-            }
-          }, 1500);
-        } else {
-          defineAndMount();
+          await customElements.whenDefined('packs-widget');
         }
-      }
+      } catch(_) { /* ignore */ }
 
-      function onRouteChange() {
-        if (location.hash.startsWith(HASH)) {
-          mountPacksInOverlay();
-        } else {
-          closeOverlay();
-        }
-      }
+      // 3) Mount now
+      ensureMounted();
 
-      if (overlayClose) overlayClose.addEventListener('click', closeOverlay);
-      window.addEventListener('hashchange', onRouteChange);
-      window.addEventListener('load', onRouteChange);
-      onRouteChange();
-    })();
+      // 4) Keep it mounted if other code clears the modal body
+      if (!mo) {
+        mo = new MutationObserver(() => {
+          if (location.hash.startsWith(HASH)) ensureMounted();
+        });
+        mo.observe(overlayBody, { childList: true, subtree: false });
+      }
+    }
+
+    function onRouteChange() {
+      if (location.hash.startsWith(HASH)) {
+        mountPacksInOverlay();
+      } else {
+        closeOverlay();
+      }
+    }
+
+    if (overlayClose) overlayClose.addEventListener('click', closeOverlay);
+    window.addEventListener('hashchange', onRouteChange);
+    window.addEventListener('load', onRouteChange);
+    onRouteChange();
+  })();
   </script>
 </body>
 </html>
