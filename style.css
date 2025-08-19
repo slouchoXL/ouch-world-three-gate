@@ -218,36 +218,38 @@ body{
 
 /* Make overlay roomy for the packs view */
 .modal.modal--packs .modal-card{
-  width: min(980px, 96vw);
-  margin-left: auto;
-  margin-right: auto;
+  width: min(1000px, 96vw);
+  margin: 6vh auto;
+  padding-left: 0;          /* kill asymmetric padding */
+  padding-right: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;   /* center children horizontally */
+  align-items: center;
 }
 
-/* Center the widget box and remove side padding that nudges it */
+/* Center the widget container inside the card, remove body padding */
 .modal.modal--packs .modal-body{
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-left: 0;
-  padding-right: 0;
   width: 100%;
+  padding: 0;               /* remove left/right padding that shifts the center */
+  display: flex;
+  justify-content: center;  /* horizontal centering */
+  align-items: flex-start;   /* keep top-aligned */
   box-sizing: border-box;
-  min-height: 560px;
 }
 
-/* Ensure the custom element itself is treated like a centered block */
+/* Make the custom element a centered block with a max width */
 packs-widget{
   display: block;
+  width: 100%;
+  max-width: 880px;         /* match your widget’s intended width */
   margin-left: auto;
   margin-right: auto;
-  max-width: 880px;   /* or whatever you set in JS; this keeps it symmetrical */
-  width: 100%;
 }
-/* If the modal has [hidden], actually remove it from layout/stacking
-.modal[hidden] { display: none !important; }*/
+
+/* (Optional) Debug helpers – toggle these on to see where things are */
+.modal.modal--packs .modal-card{ outline: 1px dashed #44f8; }
+.modal.modal--packs .modal-body{ outline: 1px dashed #4f48; }
+packs-widget{ outline: 1px dashed #f448; }
 
 /* Stronger dim when overlay open */
 #webgl.dim-3d{

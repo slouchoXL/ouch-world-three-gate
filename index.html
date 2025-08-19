@@ -108,30 +108,12 @@
       }
     }
 
-    async function mountPacksInOverlay() {
+    function mountPacksInOverlay() {
       if (!overlayBody) return;
-
-      // 1) Open modal immediately (so user sees it)
-      openOverlayForPacks();
-      if (overlayTitle) overlayTitle.textContent = '';
-
-      // 2) Wait for the element definition; then mount
-      try {
-        if (!customElements.get('packs-widget')) {
-          await customElements.whenDefined('packs-widget');
-        }
-      } catch(_) { /* ignore */ }
-
-      // 3) Mount now
-      ensureMounted();
-
-      // 4) Keep it mounted if other code clears the modal body
-      if (!mo) {
-        mo = new MutationObserver(() => {
-          if (location.hash.startsWith(HASH)) ensureMounted();
-        });
-        mo.observe(overlayBody, { childList: true, subtree: false });
-      }
+      overlay.classList.add('modal--packs');       // ensure packs styling applies
+      const el = document.createElement('packs-widget');
+      overlayBody.replaceChildren(el);             // no inline width/margins here
+      overlay.removeAttribute('hidden');
     }
 
     function onRouteChange() {
