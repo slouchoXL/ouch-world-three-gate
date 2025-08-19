@@ -67,68 +67,75 @@
 
   <!-- Minimal hash-router to mount/unmount the widget -->
   <script>
-  (function () {
-    const HASH = '#/explore/packs';
-    const overlay      = document.getElementById('overlay');
-    const overlayBody  = document.getElementById('overlay-body');
-    const overlayTitle = document.getElementById('overlay-title');
-    const overlayClose = document.getElementById('overlay-close');
+    (function () {
+      const HASH = '#/explore/packs';
+      const overlay      = document.getElementById('overlay');
+      const overlayBody  = document.getElementById('overlay-body');
+      const overlayTitle = document.getElementById('overlay-title');
+      const overlayClose = document.getElementById('overlay-close');
 
-    let mo = null; // MutationObserver
+      // Wait until the custom element is defined
+      function whenWidgetDefined() {
+        return customElements.get('packs-widget')
+          ? Promise.resolve()
+          : customElements.whenDefined('packs-widget');
+      }
 
-    function openOverlayForPacks() {
-      if (!overlay) return;
-      overlay.classList.add('modal--packs');
-      overlay.removeAttribute('hidden');
-      const webgl = document.getElementById('webgl');
-      if (webgl) webgl.classList.add('dim-3d');
-    }
+      // (Optional) also wait for the widget CSS to finish loading
+      function whenWidgetCSSLoaded() {
+        const link = document.querySelector('link[href*="packs-widget.css"]');
+        if (!link) return Promise.resolve();
+        // If stylesheet already applied, link.sheet exists
+        if (link.sheet) return Promise.resolve();
+        return new Promise(res => link.addEventListener('load', res, { once: true }));
+      }
 
-    function closeOverlay() {
-      if (mo) { mo.disconnect(); mo = null; }
-      if (!overlay) return;
-      overlay.setAttribute('hidden', '');
-      overlay.classList.remove('modal--packs');
-      const webgl = document.getElementById('webgl');
-      if (webgl) webgl.classList.remove('dim-3d');
-      if (overlayBody) overlayBody.replaceChildren();
-      if (overlayTitle) overlayTitle.textContent = '';
-    }
+      function openOverlay() {
+        if (!overlay) return;
+        overlay.removeAttribute('hidden');
+        // optional: dim your 3D canvas while open
+        const canvas = document.getElementById('webgl');
+        if (canvas) canvas.classList.add('dim-3d');
+      }
 
-    function ensureMounted() {
-      if (!overlayBody) return;
-      if (!overlayBody.querySelector('packs-widget')) {
+      function closeOverlay() {
+        if (!overlay) return;
+        overlay.setAttribute('hidden', '');
+        if (overlayBody) overlayBody.replaceChildren();
+        if (overlayTitle) overlayTitle.textContent = '';
+        const canvas = document.getElementById('webgl');
+        if (canvas) canvas.classList.remove('dim-3d');
+      }
+
+      async function mountPacksInOverlay() {
+        if (!overlayBody) return;
+        // Ensure widget JS + CSS are ready before inserting the element
+        await whenWidgetDefined();
+        await whenWidgetCSSLoaded();
+
+        overlayTitle && (overlayTitle.textContent = '');
         const el = document.createElement('packs-widget');
-        // sizing inside modal
         el.style.display  = 'block';
         el.style.width    = '100%';
-        el.style.maxWidth = '880px';
+        el.style.maxWidth = '1100px';     // adjust if you want tighter/wider
         el.style.margin   = '0 auto';
         overlayBody.replaceChildren(el);
+        openOverlay();
       }
-    }
 
-    function mountPacksInOverlay() {
-      if (!overlayBody) return;
-      overlay.classList.add('modal--packs');       // ensure packs styling applies
-      const el = document.createElement('packs-widget');
-      overlayBody.replaceChildren(el);             // no inline width/margins here
-      overlay.removeAttribute('hidden');
-    }
-
-    function onRouteChange() {
-      if (location.hash.startsWith(HASH)) {
-        mountPacksInOverlay();
-      } else {
-        closeOverlay();
+      async function onRouteChange() {
+        if (location.hash.startsWith(HASH)) {
+          await mountPacksInOverlay();
+        } else {
+          closeOverlay();
+        }
       }
-    }
 
-    if (overlayClose) overlayClose.addEventListener('click', closeOverlay);
-    window.addEventListener('hashchange', onRouteChange);
-    window.addEventListener('load', onRouteChange);
-    onRouteChange();
-  })();
+      overlayClose && overlayClose.addEventListener('click', closeOverlay);
+      window.addEventListener('hashchange', onRouteChange);
+      window.addEventListener('load', onRouteChange);
+      onRouteChange();
+    })();
   </script>
 </body>
 </html>
