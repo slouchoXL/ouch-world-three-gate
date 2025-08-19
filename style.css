@@ -6,7 +6,6 @@
   --chip-border:#444;
 }
 
-html{ scrollbar-gutter: stable both-edges; }
 
 *{ box-sizing:border-box }
 html,body{ height:100% }
@@ -129,8 +128,11 @@ body{
 
 /* ---------- Packs overlay: wide, centered, no internal padding ---------- */
 .modal.modal--packs{
-  display:flex; align-items:center; justify-content:center;
-  padding: 4vh 0;
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  padding: 0;
   /* Optional: scale widget internals via CSS vars */
   --packW: 420px;      /* stage pack width inside widget */
   --cardW: 320px;      /* stack card width */
@@ -145,16 +147,22 @@ body{
 }
 
 .modal.modal--packs .modal-card{
-  width: min(1100px, 92vw);
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);  /* perfect center, ignores gutter */
+  margin: 0;                          /* never rely on auto margins here */
+  width: min(1100px, calc(100vw - 32px));  /* keep a little edge padding */
   height: min(92vh, 900px);
-  background:#0b0b0b; color:#fff;
+  background:#0b0b0b;
+  color:#fff;
   border-radius:12px;
-  position: relative;
-  display:flex; flex-direction:column;
-  padding:0;             /* critical: no inner padding to keep center true */
-  margin:0;              /* flex centering handles placement */
-  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding: 0;                         /* let inner body control its own spacing */
 }
+
 .modal.modal--packs .modal-close{
   position:absolute; top:12px; right:16px; font-size:28px;
   background:none; border:0; color:#fff; cursor:pointer;
@@ -162,16 +170,21 @@ body{
 
 /* Body fills card; center widget */
 .modal.modal--packs .modal-body{
-  flex:1; min-height:0; overflow:hidden;
-  padding:0;
-  display:flex; justify-content:center; align-items:flex-start;
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;   /* horizontally center the widget */
+  padding: 16px;             /* optional inner breathing room */
+  min-height: 0;             /* avoid double scrollbars */
+  overflow: auto;
 }
 
 /* Packs widget sizing inside the modal */
 .modal.modal--packs .modal-body packs-widget{
   display:block;
-  width:100%; max-width:1080px;
-  height:100%;
+  width: 100%;
+  max-width: 1060px;          /* slightly less than card width */
+  margin: 0 auto;
 }
 
 /* Ensure the widget’s outer container doesn’t introduce margins that shift centering */
