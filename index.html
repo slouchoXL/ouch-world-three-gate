@@ -92,6 +92,7 @@
 
       function openOverlay() {
         if (!overlay) return;
+        overlay.classList.add('modal--packs');
         overlay.removeAttribute('hidden');
         // optional: dim your 3D canvas while open
         const canvas = document.getElementById('webgl');
@@ -101,6 +102,7 @@
       function closeOverlay() {
         if (!overlay) return;
         overlay.setAttribute('hidden', '');
+        overlay.classList.remove('modal--packs');
         if (overlayBody) overlayBody.replaceChildren();
         if (overlayTitle) overlayTitle.textContent = '';
         const canvas = document.getElementById('webgl');
