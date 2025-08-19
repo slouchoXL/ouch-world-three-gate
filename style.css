@@ -208,8 +208,18 @@ body{
 .modal { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.66); }
 .modal[hidden] { display: none; }
 .modal-card {
-  max-width: 90%; margin: 6vh auto; background:#0b0b0b; color:#fff;
-  padding:15px; border-radius:12px; position: relative;
+  max-width: 90%; 
+  height: 85vh;
+  max-width: none;
+  max-height: none;
+  margin: 6vh auto;
+  background:#0b0b0b;
+  color:#fff;
+  padding:15px; 
+  display: flex;
+  border-radius:12px;
+  position: relative;
+  flex-direction: column;
 }
 .modal-close {
   position:absolute; top:12px; right:16px; font-size:28px;
@@ -218,7 +228,7 @@ body{
 
 /* Make overlay roomy for the packs view */
 .modal.modal--packs .modal-card{
-  width: min(1000px, 96vw);
+  width: min(1500px, 90vw);
   margin: 6vh auto;
   padding-left: 0;          /* kill asymmetric padding */
   padding-right: 0;
@@ -232,6 +242,13 @@ body{
   justify-content: center;  /* horizontal centering */
   align-items: flex-start;   /* keep top-aligned */
   box-sizing: border-box;
+}
+
+.modal-card packs-widget {
+    flex: 1;
+    display: block;
+    width: 100%;
+    overflow-y: auto;
 }
 
 /* Make the custom element a centered block with a max width */
