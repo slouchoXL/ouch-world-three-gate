@@ -220,10 +220,15 @@ body{
 .modal.modal--packs .modal-card {
   width: min(980px, 96vw);
   max-height: 90vh;
+  margin: 6vh auto;
 }
 .modal.modal--packs .modal-body {
-  padding: 0;         /* let the widget occupy the full area */
-  overflow: visible;
+  padding: 0;    
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  /* let the widget occupy the full area
+  overflow: visible;*/
   min-height: 560px;  /* ensure the modal isn’t tiny while widget loads */
 }
 /* If the modal has [hidden], actually remove it from layout/stacking
