@@ -218,3 +218,76 @@ body{
     transition: none;
   }
 }
+
+/* ---------- Packs modal: fix alignment + prevent side-scroll ---------- */
+
+/* Make the packs modal roomy on desktop, full-width on mobile */
+.modal.modal--packs .modal-card{
+  width: min(1100px, 92vw);
+  height: min(90vh, 100svh);
+  margin: 5vh auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Center widget inside; kill extra padding & horizontal scroll */
+.modal.modal--packs .modal-body{
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;  /* stop horizontal scroll */
+}
+
+/* The custom element should never force overflow */
+.modal.modal--packs .modal-body > packs-widget{
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;      /* belt-and-suspenders */
+}
+
+/* If your canvas (webgl) was causing layout shifts, keep it put */
+#webgl{ max-width: 100vw; }
+
+/* ---------- Mobile sizing: scale the widget via CSS variables ---------- */
+/* We override the widget’s internal sizes by setting vars on the host.    */
+/* These cascade into Shadow DOM as computed style, so they’ll be picked up */
+@media (max-width: 900px){
+  .modal.modal--packs .modal-card{
+    width: min(820px, 96vw);
+    height: min(92vh, 100svh);
+    margin: 4vh auto;
+  }
+}
+
+/* Phone — make everything smaller and keep the full loop on screen */
+@media (max-width: 600px){
+  .modal.modal--packs .modal-card{
+    width: 100vw;
+    height: 100svh;
+    margin: 0;
+    border-radius: 0;          /* edge-to-edge on phones */
+  }
+}
+
+/* ---------- Image safety: never squish ---------- */
+packs-widget img{
+  /* For safety: if any image inside widget leaks out, keep ratio */
+  max-width: 100%;
+  height: auto;
+}
+
+/* The pack image in the widget should be contained (not stretched) */
+packs-widget .pack-img{
+  object-fit: contain !important;
+}
+
+/* Optional: make sure no child introduces horizontal scroll */
+.modal, .modal-card, .modal-body, packs-widget{
+  overscroll-behavior: contain;
+  overflow-x: hidden;
+}
