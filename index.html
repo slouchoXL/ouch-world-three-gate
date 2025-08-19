@@ -90,27 +90,27 @@
     // Scale variables for the widget based on viewport
     function applyWidgetVars(el){
       const w = window.innerWidth;
-      // Defaults (desktop-ish)
-      let packW = 420;   // px
-      let cardW = 320;
-      let trayW = 180;
+
+      // Defaults (desktop)
+      let packW = 420, cardW = 320, trayW = 180;
 
       if (w <= 900) {     // tablet
-        packW = 360;
-        cardW = 280;
+        packW = 340;
+        cardW = 270;
         trayW = 160;
       }
       if (w <= 600) {     // phone
-        packW = 300;
-        cardW = 240;
-        trayW = 140;
+        packW = 280;      // was 300 — a bit smaller
+        cardW = 220;      // was 240
+        trayW = 130;      // was 140
       }
 
-      // Set vars on the host; these flow into the widget’s Shadow DOM
-      el.style.setProperty('--packW',  packW + 'px');
-      el.style.setProperty('--cardW',  cardW + 'px');
+      el.style.setProperty('--packW', packW + 'px');
+      el.style.setProperty('--cardW', cardW + 'px');
       el.style.setProperty('--trayCardW', trayW + 'px');
-      // Heights inside the widget use aspect ratios, so no need to set H-vars.
+
+      // Also trim stage/button spacing via a CSS var the widget reads (fallback via CSS above)
+      el.style.setProperty('--stageGap', (w <= 600 ? '8px' : '14px'));
     }
 
     function openOverlay() {
