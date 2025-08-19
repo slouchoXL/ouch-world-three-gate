@@ -250,6 +250,18 @@ body{
     overflow-y: auto;
 }
 
+.modal-card .modal-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;       /* avoid double scrollbars */
+}
+.modal-card .modal-body packs-widget {
+  flex: 1;
+  min-height: 0;          /* allow inner scrolling if needed */
+  width: 100%;
+}
+
 /* Make the custom element a centered block with a max width */
 packs-widget{
   display: block;
