@@ -58,33 +58,47 @@
   <script>
     (function () {
       const HASH = '#/explore/packs';
-      const root = document.getElementById('packs-root');
+      const overlay     = document.getElementById('overlay');
+      const overlayBody = document.getElementById('overlay-body');
+      const overlayTitle= document.getElementById('overlay-title');
+      const overlayClose= document.getElementById('overlay-close');
 
-      function mountPacks() {
-        if (!root) return;
-        // only mount once
-        if (!root.querySelector('packs-widget')) {
-          const el = document.createElement('packs-widget');
-          root.replaceChildren(el);
-        }
+      function openOverlay() {
+        if (!overlay) return;
+        overlay.removeAttribute('hidden');
+      }
+      function closeOverlay() {
+        if (!overlay) return;
+        overlay.setAttribute('hidden', '');
+        if (overlayBody) overlayBody.replaceChildren();
+        if (overlayTitle) overlayTitle.textContent = '';
       }
 
-      function unmountPacks() {
-        if (!root) return;
-        root.textContent = '';
+      function mountPacksInOverlay() {
+        if (!overlayBody) return;
+        // set a title if you want, or leave blank
+        if (overlayTitle) overlayTitle.textContent = '';
+        const el = document.createElement('packs-widget');
+        // Optional sizing inside modal body:
+        el.style.display  = 'block';
+        el.style.width    = '100%';
+        el.style.maxWidth = '860px';
+        el.style.margin   = '0 auto';
+        overlayBody.replaceChildren(el);
+        openOverlay();
       }
 
       function onRouteChange() {
         if (location.hash.startsWith(HASH)) {
-          mountPacks();
+          mountPacksInOverlay();
         } else {
-          unmountPacks();
+          closeOverlay();
         }
       }
 
+      if (overlayClose) overlayClose.addEventListener('click', closeOverlay);
       window.addEventListener('hashchange', onRouteChange);
       window.addEventListener('load', onRouteChange);
-      // run once in case this script loads after DOMContentLoaded
       onRouteChange();
     })();
   </script>

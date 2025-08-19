@@ -216,6 +216,9 @@ body{
   background:none; border:0; color:#fff; cursor:pointer;
 }
 
+/* If the modal has [hidden], actually remove it from layout/stacking */
+.modal[hidden] { display: none !important; }
+
 /* Stronger dim when overlay open */
 #webgl.dim-3d{
   filter: grayscale(.7) brightness(.55) blur(1px);
