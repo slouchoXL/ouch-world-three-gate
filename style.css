@@ -324,3 +324,16 @@ packs-widget .pack-topbar{
     justify-content: center;
   }
 }
+
+.stage-shell{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap: var(--actionsGap, 10px);   /* controls the button distance */
+}
+.stage-shell .card-stage{ margin-bottom: 0 !important; }
+.stage-shell .stage-actions{ margin: 0 !important; }
+
+@media (max-width: 600px){
+  .stage-shell{ gap: 6px; }       /* nice tight mobile spacing */
+}
