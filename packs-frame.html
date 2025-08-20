@@ -24,6 +24,47 @@
       box-sizing: border-box;
     }
     packs-widget { display:block; width:100%; max-width:1060px; }
+    
+      /* Desktop defaults (can match your diagnose page) */
+      packs-widget{
+        --packW: 420px;
+        --cardW: 320px;
+        --trayCardW: 180px;
+        --trayGapX: 16px;
+        --trayGapY: var(--trayGapX);
+        --stagePad: 0px;
+        --actionsGap: 10px;   /* distance from stage to button */
+        --metaGap: 10px;      /* distance from meta (balance/price) to pack */
+      }
+
+      /* Tablet */
+      @media (max-width: 900px){
+        packs-widget{
+          --packW: 340px;
+          --cardW: 270px;
+          --trayCardW: 160px;
+          --stagePad: 8px;
+          --actionsGap: 6px;
+          --metaGap: 6px;
+        }
+      }
+
+      /* Phone */
+      @media (max-width: 600px){
+        packs-widget{
+          --packW: 240px;   /* you said this size is good */
+          --cardW: 200px;
+          --trayCardW: 130px;
+          --stagePad: 10px; /* keeps tray off edges */
+          --actionsGap: 2px;/* button directly under pack */
+          --metaGap: 2px;   /* balance directly above pack */
+          --trayGapX: 8px;
+          --trayGapY: var(--trayGapX);
+        }
+
+        /* if your widget had a default bottom margin under the stage, kill it: */
+        packs-widget .card-stage{ margin-bottom: 0 !important; }
+      }
   </style>
 </head>
 <body>
