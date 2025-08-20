@@ -517,3 +517,56 @@ packs-widget .tray-card {
     --metaGap: 6px;
   }
 }
+
+/* ===== Packs overlay: center & contain ===== */
+.modal.modal--packs {
+  /* optional: no extra padding on the outer overlay */
+  padding: 0;
+}
+
+.modal.modal--packs .modal-card{
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);   /* perfect center */
+  margin: 0;                          /* kill auto margins */
+  padding: 0;                         /* IMPORTANT: no side padding */
+  width: min(1100px, 92vw);           /* generous width, respects viewport */
+  height: min(92vh, 100svh);          /* generous height */
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;                   /* contain content */
+  background: #0b0b0b;
+  color: #fff;
+  box-sizing: border-box;
+}
+
+/* Body fills the card and centers the widget */
+.modal.modal--packs .modal-body{
+  flex: 1;
+  display: flex;
+  justify-content: center;            /* horizontal centering */
+  align-items: flex-start;            /* sit at top */
+  padding: 0;                         /* IMPORTANT: no padding here */
+  overflow-x: hidden;                 /* no side scroll */
+  overflow-y: auto;
+}
+
+/* The widget element: full width but contained */
+.modal.modal--packs .modal-body > packs-widget{
+  display: block;
+  width: 100%;
+  max-width: 1060px;                  /* matches diagnose page */
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+/* Mobile: make the modal full-screen, no rounding */
+@media (max-width: 600px){
+  .modal.modal--packs .modal-card{
+    width: 100vw;
+    height: 100svh;
+    border-radius: 0;
+  }
+}
