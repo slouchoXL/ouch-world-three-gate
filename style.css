@@ -356,3 +356,89 @@ packs-widget .tray-card {
     --trayCardW: 160px;
   }
 }
+
+/* ====== Packs widget: mobile polish & tray fit ====== */
+
+/* Never let the modal or widget scroll sideways */
+.modal.modal--packs,
+.modal.modal--packs .modal-card,
+.modal.modal--packs .modal-body,
+.modal.modal--packs .modal-body > packs-widget {
+  overflow-x: hidden;
+}
+
+/* Images never distort */
+packs-widget img { max-width: 100%; height: auto; }
+
+/* Enforce 5:7 on cards & preview */
+packs-widget .card-abs,
+packs-widget .tray-card,
+packs-widget .stage-modal-img {
+  aspect-ratio: 5 / 7;
+}
+packs-widget .card-img,
+packs-widget .tray-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Tie sizes to vars (widget already reads these) */
+packs-widget .pack-img {
+  width: var(--packW);
+  height: calc(var(--packW) * 1.4286); /* 1400x2000 */
+  object-fit: contain;
+}
+packs-widget .card-abs {
+  width: var(--cardW);
+  height: calc(var(--cardW) * 1.4);     /* 1200x1680 */
+}
+packs-widget .tray-card {
+  width: var(--trayCardW);
+  height: calc(var(--trayCardW) * 1.4);
+}
+
+/* Keep tray centered & tighten gaps (we’ll set these vars from JS) */
+packs-widget .tray-grid {
+  column-gap: var(--trayGapX, 12px);
+  row-gap: var(--trayGapY, 10px);
+  justify-content: center;
+}
+
+/* Pull the actions row closer to the stage */
+packs-widget .stage-actions {
+  margin-top: var(--actionsGap, 10px) !important;
+}
+
+/* Pull any meta (price/balance) block closer to the pack */
+packs-widget .pack-card,
+packs-widget .pack-meta,
+packs-widget .pack-topbar {
+  margin-bottom: var(--metaGap, 8px) !important;
+  text-align: center; /* keep centered over the pack */
+}
+
+/* Slightly smaller on phones + reduce tray gap */
+@media (max-width: 600px){
+  /* Smaller pack & cards */
+  packs-widget {
+    --packW: 260px;   /* was larger; this reduces overall height */
+    --cardW: 210px;
+  }
+
+  /* Tighten spacing */
+  packs-widget .card-stage { margin-bottom: 6px !important; }
+  packs-widget {
+    --actionsGap: 6px;
+    --metaGap: 6px;
+    --trayGapY: 6px;     /* smaller row gap (top↔bottom row) */
+  }
+}
+
+/* Tablet pass */
+@media (max-width: 900px){
+  packs-widget {
+    --packW: 320px;
+    --cardW: 250px;
+  }
+}
