@@ -67,98 +67,48 @@
 
   <!-- Minimal hash-router to mount/unmount the widget -->
   <script>
-    (function () {
-      const HASH = '#/explore/packs';
+  (function () {
+    const HASH = '#/explore/packs';
+    const overlay      = document.getElementById('overlay');
+    const overlayBody  = document.getElementById('overlay-body');
+    const overlayClose = document.getElementById('overlay-close');
 
-      const overlay      = document.getElementById('overlay');
-      const overlayBody  = document.getElementById('overlay-body');
-      const overlayTitle = document.getElementById('overlay-title');
-      const overlayClose = document.getElementById('overlay-close');
+    function openOverlay() {
+      overlay.classList.add('modal--packs');
+      overlay.removeAttribute('hidden');
+      document.getElementById('webgl')?.classList.add('dim-3d');
+    }
+    function closeOverlay() {
+      overlay.setAttribute('hidden','');
+      overlay.classList.remove('modal--packs');
+      overlayBody.replaceChildren();
+      document.getElementById('webgl')?.classList.remove('dim-3d');
+    }
 
-      function whenWidgetDefined() {
-        return customElements.get('packs-widget')
-          ? Promise.resolve()
-          : customElements.whenDefined('packs-widget');
-      }
-      function whenWidgetCSSLoaded() {
-        const link = document.querySelector('link[href*="packs-widget.css"]');
-        if (!link) return Promise.resolve();
-        if (link.sheet) return Promise.resolve();
-        return new Promise(res => link.addEventListener('load', res, { once: true }));
-      }
+    function mountIframe() {
+      overlayBody.replaceChildren(); // clear old content
+      const iframe = document.createElement('iframe');
+      iframe.src = '/packs-frame.html';
+      iframe.title = 'Packs';
+      iframe.loading = 'eager';
+      iframe.setAttribute('allowtransparency','true');
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      iframe.style.border = '0';
+      overlayBody.appendChild(iframe);
+      openOverlay();
+    }
 
-      function openOverlay() {
-        if (!overlay) return;
-        overlay.classList.add('modal--packs');
-        overlay.removeAttribute('hidden');
-        const canvas = document.getElementById('webgl');
-        if (canvas) canvas.classList.add('dim-3d');
-      }
-      function closeOverlay() {
-        if (!overlay) return;
-        overlay.setAttribute('hidden', '');
-        overlay.classList.remove('modal--packs');
-        if (overlayBody) overlayBody.replaceChildren();
-        if (overlayTitle) overlayTitle.textContent = '';
-        const canvas = document.getElementById('webgl');
-        if (canvas) canvas.classList.remove('dim-3d');
-      }
+    async function onRouteChange() {
+      if (location.hash.startsWith(HASH)) mountIframe();
+      else closeOverlay();
+    }
 
-      async function mountPacksInOverlay() {
-        if (!overlayBody) return;
-        await whenWidgetDefined();
-        await whenWidgetCSSLoaded();
-
-        overlayTitle && (overlayTitle.textContent = '');
-
-        const el = document.createElement('packs-widget');
-        // Tighten mobile spacing by setting CSS vars directly on the element
-        const isPhone = window.matchMedia('(max-width: 600px)').matches;
-        if (isPhone) {
-          el.style.setProperty('--actionsGap', '-120px'); // button hugs the stage
-          el.style.setProperty('--metaGap',    '-80px');  // balance/price hug the pack
-          el.style.setProperty('--trayGapX',   '8px');    // equal col gap
-          el.style.setProperty('--trayGapY',   '8px');    // equal row gap
-        }
-        el.style.display  = 'block';
-        el.style.width    = '100%';
-        el.style.maxWidth = '1100px';
-        el.style.margin   = '0 auto';
-
-        // 🔒 Force the mobile-friendly sizing & tight gaps via CSS vars
-        // (Inline styles beat all stylesheets.)
-        if (window.matchMedia('(max-width: 600px)').matches) {
-          el.style.setProperty('--packW',     '240px');  // smaller pack on phones
-          el.style.setProperty('--cardW',     '200px');
-          el.style.setProperty('--trayCardW', '130px');
-
-          // keep tray off the edges and keep gaps tight
-          el.style.setProperty('--stagePad',  '10px');
-          el.style.setProperty('--trayGapX',  '8px');
-          el.style.setProperty('--trayGapY',  '8px');    // == col gap as requested
-
-          // 🟢 These two are the critical ones you asked about:
-          el.style.setProperty('--actionsGap','2px');    // CTA row almost touching stage
-          el.style.setProperty('--metaGap',   '2px');    // balance/price almost touching pack
-        }
-
-        overlayBody.replaceChildren(el);
-        openOverlay();
-      }
-
-      async function onRouteChange() {
-        if (location.hash.startsWith(HASH)) {
-          await mountPacksInOverlay();
-        } else {
-          closeOverlay();
-        }
-      }
-
-      overlayClose && overlayClose.addEventListener('click', closeOverlay);
-      window.addEventListener('hashchange', onRouteChange);
-      window.addEventListener('load', onRouteChange);
-      onRouteChange();
-    })();
+    overlayClose?.addEventListener('click', closeOverlay);
+    window.addEventListener('hashchange', onRouteChange);
+    window.addEventListener('load', onRouteChange);
+    onRouteChange();
+  })();
   </script>
 </body>
 </html>

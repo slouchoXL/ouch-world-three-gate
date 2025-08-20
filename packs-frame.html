@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Packs Widget Frame</title>
+
+  <!-- ONLY the widget assets -->
+  <link rel="stylesheet" href="/assets/widget/packs-widget.css" />
+  <script>
+    // Point to your Render backend
+    window.__PACKS_API_BASE = 'https://backend-o9ot.onrender.com';
+  </script>
+  <script src="/assets/widget/packs-widget-element.js"></script>
+
+  <style>
+    /* Neutral, self-contained layout */
+    html, body { height:100%; margin:0; background:#0a0a0a; color:#eaeaea; }
+    .wrap {
+      min-height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+    packs-widget { display:block; width:100%; max-width:1060px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <packs-widget></packs-widget>
+  </div>
+</body>
+</html>
