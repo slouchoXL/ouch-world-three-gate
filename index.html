@@ -112,6 +112,14 @@
         overlayTitle && (overlayTitle.textContent = '');
 
         const el = document.createElement('packs-widget');
+        // Tighten mobile spacing by setting CSS vars directly on the element
+        const isPhone = window.matchMedia('(max-width: 600px)').matches;
+        if (isPhone) {
+          el.style.setProperty('--actionsGap', '-120px'); // button hugs the stage
+          el.style.setProperty('--metaGap',    '-80px');  // balance/price hug the pack
+          el.style.setProperty('--trayGapX',   '8px');    // equal col gap
+          el.style.setProperty('--trayGapY',   '8px');    // equal row gap
+        }
         el.style.display  = 'block';
         el.style.width    = '100%';
         el.style.maxWidth = '1100px';

@@ -136,36 +136,7 @@ body{
   display:block; width:100%; max-width:1060px; margin:0 auto; overflow:hidden;
 }
 
-/* Optional debug (toggle on if needed) */
-/* .modal.modal--packs .modal-card{ outline:1px dashed #44f8; } */
-/* .modal.modal--packs .modal-body{ outline:1px dashed #4f48; } */
-/* packs-widget{ outline:1px dashed #f448; } */
 
-/* Desktop → Tablet → Phone sizing via CSS vars that cascade into the widget */
-packs-widget{
-  /* These width vars drive pack/cards/tray inside the widget (no height vars needed) */
-  --packW: 420px;
-  --cardW: 320px;
-  --trayCardW: 180px;
-
-  /* Spacing controls the widget reads */
-  --stagePad: 0px;        /* side padding inside stage (keeps tray off edges) */
-  --actionsGap: 10px;     /* space above the CTA row */
-  --metaGap: 10px;        /* space below meta (price/balance) */
-  --trayGapX: 16px;       /* tray col gap */
-  --trayGapY: var(--trayGapX); /* keep row gap equal to col gap by default */
-}
-
-@media (max-width: 900px){
-  packs-widget{
-    --packW: 340px;
-    --cardW: 270px;
-    --trayCardW: 160px;
-    --stagePad: 8px;
-    --actionsGap: 6px;
-    --metaGap: 6px;
-  }
-}
 @media (max-width: 600px){
   packs-widget{
     --packW: 240px;   /* smaller pack on phones */
@@ -322,4 +293,34 @@ packs-widget .pack-topbar{
 .modal.modal--packs .modal-body packs-widget .card-img,
 .modal.modal--packs .modal-body packs-widget .tray-card img {
   width: 100%; height: 100%; object-fit: cover;
+}
+
+/* --- Packs mobile spacing overrides (high specificity) --- */
+@media (max-width: 600px){
+  /* Kill any default bottom space under the stage */
+  .modal.modal--packs .modal-body > packs-widget .card-stage{
+    margin-bottom: 0 !important;
+  }
+
+  /* Button row immediately under the stage (support both class names) */
+  .modal.modal--packs .modal-body > packs-widget .stage-actions,
+  .modal.modal--packs .modal-body > packs-widget .tray-actions{
+    margin-top: var(--actionsGap, -120px) !important;
+  }
+
+  /* Meta/balance block sits tight above the pack; cover multiple structures */
+  .modal.modal--packs .modal-body > packs-widget .pack-card,
+  .modal.modal--packs .modal-body > packs-widget .pack-meta,
+  .modal.modal--packs .modal-body > packs-widget .header,
+  .modal.modal--packs .modal-body > packs-widget .balance{
+    margin-bottom: var(--metaGap, -80px) !important;
+    text-align: center;
+  }
+
+  /* Tray grid gaps equalized */
+  .modal.modal--packs .modal-body > packs-widget .tray-grid{
+    column-gap: var(--trayGapX, 8px) !important;
+    row-gap:    var(--trayGapY, 8px) !important;
+    justify-content: center;
+  }
 }
