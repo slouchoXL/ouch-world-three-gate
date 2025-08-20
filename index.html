@@ -149,7 +149,7 @@
 
            // create and apply variables BEFORE inserting (to avoid first-frame wrong size)
            const el = document.createElement('packs-widget');
-           setPacksVars(el);
+           applyWidgetVars (el);
            overlayBody.replaceChildren(el);
 
            // open modal etc… (your existing openOverlay)
@@ -158,7 +158,7 @@
          // keep it responsive
          window.addEventListener('resize', () => {
            const el = document.querySelector('packs-widget');
-           if (el) setPacksVars(el);
+           if (el) applyWidgetVars (el);
          }, { passive: true });
 
     function openOverlay() {
