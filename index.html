@@ -75,65 +75,29 @@
     const overlayTitle = document.getElementById('overlay-title');
     const overlayClose = document.getElementById('overlay-close');
 
-    // --- helpers ------------------------------------------------------------
+    // Ensure the custom element is defined before we insert it
     function whenWidgetDefined() {
       return customElements.get('packs-widget')
         ? Promise.resolve()
         : customElements.whenDefined('packs-widget');
     }
+
+    // (Optional) wait for the widget CSS to load so layout is correct on first paint
     function whenWidgetCSSLoaded() {
       const link = document.querySelector('link[href*="packs-widget.css"]');
       if (!link) return Promise.resolve();
       if (link.sheet) return Promise.resolve();
       return new Promise(res => link.addEventListener('load', res, { once: true }));
     }
-    function forcePacksLayout() {
-      // Class so our packs-specific CSS wins
-      overlay.classList.add('modal--packs');
 
-      // Inline “guard rails” so nothing else can nudge the layout
-      const card = overlay.querySelector('.modal-card');
-      const body = overlay.querySelector('.modal-body');
-      if (card) {
-        Object.assign(card.style, {
-          position: 'fixed',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          margin: '0',
-          padding: '0',
-          width: 'min(1100px, 92vw)',
-          height: 'min(92vh, 100svh)',
-          borderRadius: '12px',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          background: '#0b0b0b',
-          color: '#fff',
-          boxSizing: 'border-box'
-        });
-      }
-      if (body) {
-        Object.assign(body.style, {
-          flex: '1',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-          padding: '0',
-          overflowX: 'hidden',
-          overflowY: 'auto',
-          width: '100%',
-          height: '100%'
-        });
-      }
-    }
     function openOverlay() {
       if (!overlay) return;
+      overlay.classList.add('modal--packs');  // IMPORTANT: gives the modal the wide layout
       overlay.removeAttribute('hidden');
-      forcePacksLayout();
       const canvas = document.getElementById('webgl');
       if (canvas) canvas.classList.add('dim-3d');
     }
+
     function closeOverlay() {
       if (!overlay) return;
       overlay.setAttribute('hidden', '');
@@ -144,33 +108,22 @@
       if (canvas) canvas.classList.remove('dim-3d');
     }
 
-    // --- mount --------------------------------------------------------------
     async function mountPacksInOverlay() {
       if (!overlayBody) return;
-
-      // Make sure widget assets are truly ready
       await whenWidgetDefined();
       await whenWidgetCSSLoaded();
 
-      // Clear any prior content and title spacing
-      if (overlayTitle) overlayTitle.textContent = '';
+      overlayTitle && (overlayTitle.textContent = '');
+      const el = document.createElement('packs-widget');
+      el.style.display  = 'block';
+      el.style.width    = '100%';
+      el.style.maxWidth = '1100px';
+      el.style.margin   = '0 auto';
 
-      // Create (or reuse) a single packs-widget
-      let el = overlayBody.querySelector('packs-widget');
-      if (!el) {
-        el = document.createElement('packs-widget');
-        // Optional: constrain width so it matches diagnose page
-        el.style.display  = 'block';
-        el.style.width    = '100%';
-        el.style.maxWidth = '1060px';
-        el.style.margin   = '0 auto';
-        overlayBody.replaceChildren(el);
-      }
-
-      openOverlay(); // show and center after we’ve inserted the element
+      overlayBody.replaceChildren(el);
+      openOverlay();
     }
 
-    // --- router -------------------------------------------------------------
     async function onRouteChange() {
       if (location.hash.startsWith(HASH)) {
         await mountPacksInOverlay();
