@@ -69,12 +69,13 @@
   <script>
   (function () {
     const HASH = '#/explore/packs';
+
     const overlay      = document.getElementById('overlay');
     const overlayBody  = document.getElementById('overlay-body');
     const overlayTitle = document.getElementById('overlay-title');
     const overlayClose = document.getElementById('overlay-close');
 
-    // Wait until the custom element is defined and its CSS is loaded
+    // --- helpers ------------------------------------------------------------
     function whenWidgetDefined() {
       return customElements.get('packs-widget')
         ? Promise.resolve()
@@ -86,129 +87,90 @@
       if (link.sheet) return Promise.resolve();
       return new Promise(res => link.addEventListener('load', res, { once: true }));
     }
+    function forcePacksLayout() {
+      // Class so our packs-specific CSS wins
+      overlay.classList.add('modal--packs');
 
-    // Scale variables for the widget based on viewport
-    function applyWidgetVars(el){
-        const w = window.innerWidth;
-           const isTab = w <= 900;
-           const isPhone = w <= 600;
-
-           // Defaults (desktop)
-           let packW = 420;
-           let cardW = 320;
-           let stagePad = 0;
-           let gapX = 12;      // column gap
-           let actionsGap = 10; // space under the stage to the button
-           let metaGap = 10;    // space above the stage to the balance/price
-
-           if (isTab){
-             packW = 320;
-             cardW = 240;
-             stagePad = 8;
-             gapX = 10;
-             actionsGap = 6;
-             metaGap = 6;
-           }
-           if (isPhone){
-             packW = 240;      // you said pack is still large; drop more if needed (e.g. 220)
-             cardW = 200;
-             stagePad = 10;    // keep tray off the edges
-             gapX = 8;         // tighter grid gaps
-             actionsGap = 2;   // button almost touching pack
-             metaGap = 2;      // balance almost touching pack
-           }
-
-           // Fit 3 columns inside pack width with padding + gaps
-           const cols = 3;
-           const inner = packW - (stagePad * 2) - (gapX * (cols - 1));
-           let trayCardW = Math.floor(inner / cols);
-           trayCardW = Math.max(98, Math.min(trayCardW, 160)); // sanity bounds
-
-           // Apply — these flow into Shadow DOM
-           el.style.setProperty('--packW', packW + 'px');
-           el.style.setProperty('--cardW', cardW + 'px');
-           el.style.setProperty('--stagePad', stagePad + 'px');
-
-           el.style.setProperty('--trayCardW', trayCardW + 'px');
-           el.style.setProperty('--trayGapX', gapX + 'px');
-           el.style.setProperty('--trayGapY', gapX + 'px');  // row gap == column gap
-
-           el.style.setProperty('--actionsGap', actionsGap + 'px');
-           el.style.setProperty('--metaGap', metaGap + 'px');
-         }
-
-         async function mountPacksInOverlay() {
-           // wait for element definition + CSS load (your existing code does this)
-           const overlayBody = document.getElementById('overlay-body');
-           if (!overlayBody) return;
-
-           // ensure custom element is defined (your earlier whenDefined helper is fine)
-           if (!customElements.get('packs-widget')) {
-             await customElements.whenDefined('packs-widget');
-           }
-
-           // create and apply variables BEFORE inserting (to avoid first-frame wrong size)
-           const el = document.createElement('packs-widget');
-           applyWidgetVars (el);
-           overlayBody.replaceChildren(el);
-
-           // open modal etc… (your existing openOverlay)
-         }
-
-         // keep it responsive
-         window.addEventListener('resize', () => {
-           const el = document.querySelector('packs-widget');
-           if (el) applyWidgetVars (el);
-         }, { passive: true });
-
+      // Inline “guard rails” so nothing else can nudge the layout
+      const card = overlay.querySelector('.modal-card');
+      const body = overlay.querySelector('.modal-body');
+      if (card) {
+        Object.assign(card.style, {
+          position: 'fixed',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          margin: '0',
+          padding: '0',
+          width: 'min(1100px, 92vw)',
+          height: 'min(92vh, 100svh)',
+          borderRadius: '12px',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          background: '#0b0b0b',
+          color: '#fff',
+          boxSizing: 'border-box'
+        });
+      }
+      if (body) {
+        Object.assign(body.style, {
+          flex: '1',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          padding: '0',
+          overflowX: 'hidden',
+          overflowY: 'auto',
+          width: '100%',
+          height: '100%'
+        });
+      }
+    }
     function openOverlay() {
       if (!overlay) return;
-      overlay.classList.add('modal--packs');
       overlay.removeAttribute('hidden');
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
+      forcePacksLayout();
       const canvas = document.getElementById('webgl');
       if (canvas) canvas.classList.add('dim-3d');
     }
-
     function closeOverlay() {
       if (!overlay) return;
       overlay.setAttribute('hidden', '');
       overlay.classList.remove('modal--packs');
       if (overlayBody) overlayBody.replaceChildren();
       if (overlayTitle) overlayTitle.textContent = '';
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
       const canvas = document.getElementById('webgl');
       if (canvas) canvas.classList.remove('dim-3d');
     }
 
+    // --- mount --------------------------------------------------------------
     async function mountPacksInOverlay() {
       if (!overlayBody) return;
+
+      // Make sure widget assets are truly ready
       await whenWidgetDefined();
       await whenWidgetCSSLoaded();
 
-      overlayTitle && (overlayTitle.textContent = '');
+      // Clear any prior content and title spacing
+      if (overlayTitle) overlayTitle.textContent = '';
 
-      const el = document.createElement('packs-widget');
-      el.style.display  = 'block';
-      el.style.width    = '100%';
-      el.style.maxWidth = '1100px';  // desktop cap
-      el.style.margin   = '0 auto';
+      // Create (or reuse) a single packs-widget
+      let el = overlayBody.querySelector('packs-widget');
+      if (!el) {
+        el = document.createElement('packs-widget');
+        // Optional: constrain width so it matches diagnose page
+        el.style.display  = 'block';
+        el.style.width    = '100%';
+        el.style.maxWidth = '1060px';
+        el.style.margin   = '0 auto';
+        overlayBody.replaceChildren(el);
+      }
 
-      // Apply initial vars and keep them updated on resize/orientation
-      applyWidgetVars(el);
-      const onResize = () => applyWidgetVars(el);
-      window.addEventListener('resize', onResize);
-      // Clean up when closing overlay
-      el.addEventListener('DOMNodeRemoved', () => {
-        window.removeEventListener('resize', onResize);
-      }, { once: true });
-
-      overlayBody.replaceChildren(el);
-      openOverlay();
+      openOverlay(); // show and center after we’ve inserted the element
     }
 
+    // --- router -------------------------------------------------------------
     async function onRouteChange() {
       if (location.hash.startsWith(HASH)) {
         await mountPacksInOverlay();
