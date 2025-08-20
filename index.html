@@ -67,76 +67,90 @@
 
   <!-- Minimal hash-router to mount/unmount the widget -->
   <script>
-  (function () {
-    const HASH = '#/explore/packs';
+    (function () {
+      const HASH = '#/explore/packs';
 
-    const overlay      = document.getElementById('overlay');
-    const overlayBody  = document.getElementById('overlay-body');
-    const overlayTitle = document.getElementById('overlay-title');
-    const overlayClose = document.getElementById('overlay-close');
+      const overlay      = document.getElementById('overlay');
+      const overlayBody  = document.getElementById('overlay-body');
+      const overlayTitle = document.getElementById('overlay-title');
+      const overlayClose = document.getElementById('overlay-close');
 
-    // Ensure the custom element is defined before we insert it
-    function whenWidgetDefined() {
-      return customElements.get('packs-widget')
-        ? Promise.resolve()
-        : customElements.whenDefined('packs-widget');
-    }
-
-    // (Optional) wait for the widget CSS to load so layout is correct on first paint
-    function whenWidgetCSSLoaded() {
-      const link = document.querySelector('link[href*="packs-widget.css"]');
-      if (!link) return Promise.resolve();
-      if (link.sheet) return Promise.resolve();
-      return new Promise(res => link.addEventListener('load', res, { once: true }));
-    }
-
-    function openOverlay() {
-      if (!overlay) return;
-      overlay.classList.add('modal--packs');  // IMPORTANT: gives the modal the wide layout
-      overlay.removeAttribute('hidden');
-      const canvas = document.getElementById('webgl');
-      if (canvas) canvas.classList.add('dim-3d');
-    }
-
-    function closeOverlay() {
-      if (!overlay) return;
-      overlay.setAttribute('hidden', '');
-      overlay.classList.remove('modal--packs');
-      if (overlayBody) overlayBody.replaceChildren();
-      if (overlayTitle) overlayTitle.textContent = '';
-      const canvas = document.getElementById('webgl');
-      if (canvas) canvas.classList.remove('dim-3d');
-    }
-
-    async function mountPacksInOverlay() {
-      if (!overlayBody) return;
-      await whenWidgetDefined();
-      await whenWidgetCSSLoaded();
-
-      overlayTitle && (overlayTitle.textContent = '');
-      const el = document.createElement('packs-widget');
-      el.style.display  = 'block';
-      el.style.width    = '100%';
-      el.style.maxWidth = '1100px';
-      el.style.margin   = '0 auto';
-
-      overlayBody.replaceChildren(el);
-      openOverlay();
-    }
-
-    async function onRouteChange() {
-      if (location.hash.startsWith(HASH)) {
-        await mountPacksInOverlay();
-      } else {
-        closeOverlay();
+      function whenWidgetDefined() {
+        return customElements.get('packs-widget')
+          ? Promise.resolve()
+          : customElements.whenDefined('packs-widget');
       }
-    }
+      function whenWidgetCSSLoaded() {
+        const link = document.querySelector('link[href*="packs-widget.css"]');
+        if (!link) return Promise.resolve();
+        if (link.sheet) return Promise.resolve();
+        return new Promise(res => link.addEventListener('load', res, { once: true }));
+      }
 
-    overlayClose && overlayClose.addEventListener('click', closeOverlay);
-    window.addEventListener('hashchange', onRouteChange);
-    window.addEventListener('load', onRouteChange);
-    onRouteChange();
-  })();
+      function openOverlay() {
+        if (!overlay) return;
+        overlay.classList.add('modal--packs');
+        overlay.removeAttribute('hidden');
+        const canvas = document.getElementById('webgl');
+        if (canvas) canvas.classList.add('dim-3d');
+      }
+      function closeOverlay() {
+        if (!overlay) return;
+        overlay.setAttribute('hidden', '');
+        overlay.classList.remove('modal--packs');
+        if (overlayBody) overlayBody.replaceChildren();
+        if (overlayTitle) overlayTitle.textContent = '';
+        const canvas = document.getElementById('webgl');
+        if (canvas) canvas.classList.remove('dim-3d');
+      }
+
+      async function mountPacksInOverlay() {
+        if (!overlayBody) return;
+        await whenWidgetDefined();
+        await whenWidgetCSSLoaded();
+
+        overlayTitle && (overlayTitle.textContent = '');
+
+        const el = document.createElement('packs-widget');
+        el.style.display  = 'block';
+        el.style.width    = '100%';
+        el.style.maxWidth = '1100px';
+        el.style.margin   = '0 auto';
+
+        // 🔒 Force the mobile-friendly sizing & tight gaps via CSS vars
+        // (Inline styles beat all stylesheets.)
+        if (window.matchMedia('(max-width: 600px)').matches) {
+          el.style.setProperty('--packW',     '240px');  // smaller pack on phones
+          el.style.setProperty('--cardW',     '200px');
+          el.style.setProperty('--trayCardW', '130px');
+
+          // keep tray off the edges and keep gaps tight
+          el.style.setProperty('--stagePad',  '10px');
+          el.style.setProperty('--trayGapX',  '8px');
+          el.style.setProperty('--trayGapY',  '8px');    // == col gap as requested
+
+          // 🟢 These two are the critical ones you asked about:
+          el.style.setProperty('--actionsGap','2px');    // CTA row almost touching stage
+          el.style.setProperty('--metaGap',   '2px');    // balance/price almost touching pack
+        }
+
+        overlayBody.replaceChildren(el);
+        openOverlay();
+      }
+
+      async function onRouteChange() {
+        if (location.hash.startsWith(HASH)) {
+          await mountPacksInOverlay();
+        } else {
+          closeOverlay();
+        }
+      }
+
+      overlayClose && overlayClose.addEventListener('click', closeOverlay);
+      window.addEventListener('hashchange', onRouteChange);
+      window.addEventListener('load', onRouteChange);
+      onRouteChange();
+    })();
   </script>
 </body>
 </html>

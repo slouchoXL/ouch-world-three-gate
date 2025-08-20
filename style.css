@@ -289,3 +289,37 @@ packs-widget .pack-topbar{
     border-radius: 0;
   }
 }
+/* Tighten the action row under the stage (honor the var) */
+.modal.modal--packs .modal-body packs-widget .stage-actions {
+  margin-top: var(--actionsGap, 4px) !important;
+}
+
+/* Tighten the meta block above the pack (honor the var) */
+.modal.modal--packs .modal-body packs-widget .pack-card,
+.modal.modal--packs .modal-body packs-widget .pack-meta,
+.modal.modal--packs .modal-body packs-widget .pack-topbar {
+  margin-bottom: var(--metaGap, 4px) !important;
+  text-align: center;
+}
+
+/* Equalize tray gaps & keep it centered (uses the vars we set inline) */
+.modal.modal--packs .modal-body packs-widget .tray-grid {
+  column-gap: var(--trayGapX, 12px) !important;
+  row-gap:    var(--trayGapY, 12px) !important;
+  justify-content: center !important;
+}
+
+/* Guard rails so nothing can squish or scroll sideways on mobile */
+.modal.modal--packs,
+.modal.modal--packs .modal-card,
+.modal.modal--packs .modal-body,
+.modal.modal--packs .modal-body packs-widget {
+  overflow-x: hidden !important;
+}
+.modal.modal--packs .modal-body packs-widget img {
+  max-width: 100%; height: auto;
+}
+.modal.modal--packs .modal-body packs-widget .card-img,
+.modal.modal--packs .modal-body packs-widget .tray-card img {
+  width: 100%; height: 100%; object-fit: cover;
+}
