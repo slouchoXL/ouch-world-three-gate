@@ -90,54 +90,76 @@
     // Scale variables for the widget based on viewport
     function applyWidgetVars(el){
         const w = window.innerWidth;
+           const isTab = w <= 900;
+           const isPhone = w <= 600;
 
-        // Base sizes (desktop defaults)
-        let packW = 420, cardW = 320, stagePad = 0, actionsGap = 6, metaGap = 6;
-        let gapX = 12; // column gap (we'll mirror to row gap)
+           // Defaults (desktop)
+           let packW = 420;
+           let cardW = 320;
+           let stagePad = 0;
+           let gapX = 12;      // column gap
+           let actionsGap = 10; // space under the stage to the button
+           let metaGap = 10;    // space above the stage to the balance/price
 
-        if (w <= 900) {                  // tablet
-          packW = 320;
-          cardW = 240;
-          stagePad = 8;
-          actionsGap = 6;
-          metaGap = 6;
-          gapX = 10;
-        }
-        if (w <= 600) {                  // phone
-          packW = 240;                   // smaller as requested
-          cardW = 200;
-          stagePad = 10;                 // keep tray away from screen edges
-          actionsGap = 2;                // button directly under pack
-          metaGap = 2;                   // balance directly above pack
-          gapX = 8;                      // tighter gaps on phones
-        }
+           if (isTab){
+             packW = 320;
+             cardW = 240;
+             stagePad = 8;
+             gapX = 10;
+             actionsGap = 6;
+             metaGap = 6;
+           }
+           if (isPhone){
+             packW = 240;      // you said pack is still large; drop more if needed (e.g. 220)
+             cardW = 200;
+             stagePad = 10;    // keep tray off the edges
+             gapX = 8;         // tighter grid gaps
+             actionsGap = 2;   // button almost touching pack
+             metaGap = 2;      // balance almost touching pack
+           }
 
-        // Compute a tray card width that fits 3 columns inside pack width minus side paddings
-        const cols = 3;
-        const inner = packW - (stagePad * 2) - (gapX * (cols - 1));
-        let trayCardW = Math.floor(inner / cols);
+           // Fit 3 columns inside pack width with padding + gaps
+           const cols = 3;
+           const inner = packW - (stagePad * 2) - (gapX * (cols - 1));
+           let trayCardW = Math.floor(inner / cols);
+           trayCardW = Math.max(98, Math.min(trayCardW, 160)); // sanity bounds
 
-        // Safety bounds so they don't look weird
-        trayCardW = Math.max(98, Math.min(trayCardW, 160));
+           // Apply — these flow into Shadow DOM
+           el.style.setProperty('--packW', packW + 'px');
+           el.style.setProperty('--cardW', cardW + 'px');
+           el.style.setProperty('--stagePad', stagePad + 'px');
 
-        // Apply variables
-        el.style.setProperty('--packW', packW + 'px');
-        el.style.setProperty('--cardW', cardW + 'px');
-        el.style.setProperty('--stagePad', stagePad + 'px');
+           el.style.setProperty('--trayCardW', trayCardW + 'px');
+           el.style.setProperty('--trayGapX', gapX + 'px');
+           el.style.setProperty('--trayGapY', gapX + 'px');  // row gap == column gap
 
-        el.style.setProperty('--trayCardW', trayCardW + 'px');
-        el.style.setProperty('--trayGapX', gapX + 'px');
-        el.style.setProperty('--trayGapY', gapX + 'px');   // <-- row gap equals column gap
+           el.style.setProperty('--actionsGap', actionsGap + 'px');
+           el.style.setProperty('--metaGap', metaGap + 'px');
+         }
 
-        el.style.setProperty('--actionsGap', actionsGap + 'px');
-        el.style.setProperty('--metaGap', metaGap + 'px');
-      }
+         async function mountPacksInOverlay() {
+           // wait for element definition + CSS load (your existing code does this)
+           const overlayBody = document.getElementById('overlay-body');
+           if (!overlayBody) return;
 
-      // Keep it responsive
-      window.addEventListener('resize', () => {
-        const el = document.querySelector('packs-widget');
-        if (el) applyWidgetVars(el);
-      }, { passive: true });
+           // ensure custom element is defined (your earlier whenDefined helper is fine)
+           if (!customElements.get('packs-widget')) {
+             await customElements.whenDefined('packs-widget');
+           }
+
+           // create and apply variables BEFORE inserting (to avoid first-frame wrong size)
+           const el = document.createElement('packs-widget');
+           setPacksVars(el);
+           overlayBody.replaceChildren(el);
+
+           // open modal etc… (your existing openOverlay)
+         }
+
+         // keep it responsive
+         window.addEventListener('resize', () => {
+           const el = document.querySelector('packs-widget');
+           if (el) setPacksVars(el);
+         }, { passive: true });
 
     function openOverlay() {
       if (!overlay) return;
