@@ -89,46 +89,55 @@
 
     // Scale variables for the widget based on viewport
     function applyWidgetVars(el){
-      const w = window.innerWidth;
+        const w = window.innerWidth;
 
-      // Base sizes (desktop defaults)
-      let packW = 420, cardW = 320;
+        // Base sizes (desktop defaults)
+        let packW = 420, cardW = 320, stagePad = 0, actionsGap = 6, metaGap = 6;
+        let gapX = 12; // column gap (we'll mirror to row gap)
 
-      if (w <= 900) {               // tablet
-        packW = 320;                // synced with CSS tablet
-        cardW = 250;
+        if (w <= 900) {                  // tablet
+          packW = 320;
+          cardW = 240;
+          stagePad = 8;
+          actionsGap = 6;
+          metaGap = 6;
+          gapX = 10;
+        }
+        if (w <= 600) {                  // phone
+          packW = 240;                   // smaller as requested
+          cardW = 200;
+          stagePad = 10;                 // keep tray away from screen edges
+          actionsGap = 2;                // button directly under pack
+          metaGap = 2;                   // balance directly above pack
+          gapX = 8;                      // tighter gaps on phones
+        }
+
+        // Compute a tray card width that fits 3 columns inside pack width minus side paddings
+        const cols = 3;
+        const inner = packW - (stagePad * 2) - (gapX * (cols - 1));
+        let trayCardW = Math.floor(inner / cols);
+
+        // Safety bounds so they don't look weird
+        trayCardW = Math.max(98, Math.min(trayCardW, 160));
+
+        // Apply variables
+        el.style.setProperty('--packW', packW + 'px');
+        el.style.setProperty('--cardW', cardW + 'px');
+        el.style.setProperty('--stagePad', stagePad + 'px');
+
+        el.style.setProperty('--trayCardW', trayCardW + 'px');
+        el.style.setProperty('--trayGapX', gapX + 'px');
+        el.style.setProperty('--trayGapY', gapX + 'px');   // <-- row gap equals column gap
+
+        el.style.setProperty('--actionsGap', actionsGap + 'px');
+        el.style.setProperty('--metaGap', metaGap + 'px');
       }
-      if (w <= 600) {               // phone
-        packW = 260;                // synced with CSS phone (smaller pack)
-        cardW = 210;
-      }
 
-      // Tray sizing: fit 3 columns within pack width
-      const cols = 3;
-      const gapX = (w <= 600) ? 10 : 12;  // tighter gaps on phone
-      const inner = packW - gapX * (cols - 1);
-      let trayCardW = Math.floor(inner / cols);
-
-      // Safety caps so cards don't get absurdly big/small
-      trayCardW = Math.max(110, Math.min(trayCardW, 180));
-
-      // Apply sizes
-      el.style.setProperty('--packW', packW + 'px');
-      el.style.setProperty('--cardW', cardW + 'px');
-      el.style.setProperty('--trayCardW', trayCardW + 'px');
-
-      // Tighten gaps & spacing
-      el.style.setProperty('--trayGapX', gapX + 'px');
-      el.style.setProperty('--trayGapY', (w <= 600 ? 6 : 10) + 'px');
-      el.style.setProperty('--actionsGap', (w <= 600 ? 6 : 10) + 'px');
-      el.style.setProperty('--metaGap', (w <= 600 ? 6 : 10) + 'px');
-    }
-
-    // Make sure this runs after you insert <packs-widget> (you already call this)
-    window.addEventListener('resize', () => {
-      const el = document.querySelector('packs-widget');
-      if (el) applyWidgetVars(el);
-    }, { passive: true });
+      // Keep it responsive
+      window.addEventListener('resize', () => {
+        const el = document.querySelector('packs-widget');
+        if (el) applyWidgetVars(el);
+      }, { passive: true });
 
     function openOverlay() {
       if (!overlay) return;

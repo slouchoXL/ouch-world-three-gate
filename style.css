@@ -429,9 +429,9 @@ packs-widget .pack-topbar {
   /* Tighten spacing */
   packs-widget .card-stage { margin-bottom: 6px !important; }
   packs-widget {
-    --actionsGap: 6px;
-    --metaGap: 6px;
-    --trayGapY: 6px;     /* smaller row gap (top↔bottom row) */
+    --actionsGap: 1px;
+    --metaGap: 1px;
+    --trayGapY: 1px;     /* smaller row gap (top↔bottom row) */
   }
 }
 
@@ -440,5 +440,80 @@ packs-widget .pack-topbar {
   packs-widget {
     --packW: 320px;
     --cardW: 250px;
+  }
+}
+
+/* ====== Packs widget mobile fixes (tight spacing + tray fit) ====== */
+
+/* Never distort images */
+packs-widget img { max-width: 100%; height: auto; }
+
+/* Keep actions tight under the stage */
+packs-widget .stage-actions {
+  margin-top: var(--actionsGap, 4px) !important; /* default tighter */
+}
+
+/* Pull the balance/price block tight above the pack (whatever element your build uses) */
+packs-widget .pack-card,
+packs-widget .pack-meta,
+packs-widget .pack-topbar {
+  margin-bottom: var(--metaGap, 4px) !important;
+  text-align: center;
+}
+
+/* The tray grid uses CSS variables for gaps and side padding */
+packs-widget .tray-wrap { padding-inline: var(--stagePad, 0px); }
+packs-widget .tray-grid {
+  column-gap: var(--trayGapX, 12px);
+  row-gap: var(--trayGapY, 12px);      /* will be set equal to trayGapX in JS */
+  justify-content: center;
+}
+
+/* Make sure the cards preserve aspect */
+packs-widget .card-abs,
+packs-widget .tray-card,
+packs-widget .stage-modal-img { aspect-ratio: 5 / 7; }
+packs-widget .card-img,
+packs-widget .tray-card img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+/* Respect the pack/card size variables */
+packs-widget .pack-img {
+  width: var(--packW);
+  height: calc(var(--packW) * 1.4286);
+  object-fit: contain;
+}
+packs-widget .card-abs {
+  width: var(--cardW);
+  height: calc(var(--cardW) * 1.4);
+}
+packs-widget .tray-card {
+  width: var(--trayCardW);
+  height: calc(var(--trayCardW) * 1.4);
+}
+
+/* PHONE: much tighter spacing + smaller pack; keep tray off edges */
+@media (max-width: 600px){
+  packs-widget {
+    --packW: 240px;       /* ↓ smaller pack */
+    --cardW: 200px;       /* stacked card width */
+    --stagePad: 10px;     /* side padding inside the stage so tray never kisses edges */
+    --actionsGap: 2px;    /* button almost touching the stage */
+    --metaGap: 2px;       /* balance almost touching the pack */
+  }
+
+  /* Reduce any default stage bottom margin if your build has it */
+  packs-widget .card-stage { margin-bottom: 0 !important; }
+}
+
+/* TABLET: moderate scale */
+@media (max-width: 900px){
+  packs-widget {
+    --packW: 320px;
+    --cardW: 240px;
+    --stagePad: 8px;
+    --actionsGap: 6px;
+    --metaGap: 6px;
   }
 }
