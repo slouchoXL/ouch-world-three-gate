@@ -12,60 +12,14 @@
       "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
       "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
     }
-    
   }
-     
-  </script>
-  <!-- Your site CSS -->
-  <link rel="stylesheet" href="style.css" />
-
-  <!-- PACKS WIDGET assets -->
-  <link rel="stylesheet" href="/assets/widget/packs-widget.css" />
-  <script>
-    // Set your backend base BEFORE the widget runs
-    window.__PACKS_API_BASE = 'https://backend-o9ot.onrender.com';
-  </script>
-  <!-- Load the built IIFE bundle (common filename we generated) -->
-  <script src="/assets/widget/packs-widget-element.js"></script>
-
-  <!-- (optional) sanity check: log whether the element is defined -->
-  <script>
-    window.addEventListener('load', () => {
-      console.log('[packs] defined?', !!customElements.get('packs-widget'));
-    });
   </script>
   
-  <style>
-    /* Packs overlay: roomy & centered */
-    .modal.modal--packs .modal-card{
-      position: fixed; left: 50%; top: 50%;
-      transform: translate(-50%, -50%);
-      margin: 0; padding: 0;
-      width: min(1100px, 92vw);
-      height: min(92vh, 100svh);
-      background: #0b0b0b; color: #fff; border-radius: 12px;
-      display: flex; flex-direction: column; overflow: hidden;
-    }
-    .modal.modal--packs .modal-body{
-      flex: 1; display: flex;
-      justify-content: center; align-items: flex-start;
-      padding: 0;                /* important: zero padding so the iframe centers cleanly */
-      overflow-x: hidden; overflow-y: auto;
-    }
-    .modal.modal--packs .modal-body > iframe{
-      display: block; width: 100%;
-      border: 0;                  /* tidy */
-      height: 70vh;               /* fallback height (will be overridden by auto-resize) */
-    }
-    @media (max-width: 600px){
-      .modal.modal--packs .modal-card{ width: 100vw; height: 100svh; border-radius: 0; }
-      .modal.modal--packs .modal-body > iframe{ height: 88vh; } /* mobile fallback */
-    }
-  </style>
-
+  <!-- Your site CSS -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- 3D -->
+  <!-- 3D Canvas -->
   <canvas id="webgl"></canvas>
 
   <!-- Hover lanes container (JS will build lanes based on layoutchange) -->
@@ -77,121 +31,17 @@
   <!-- Single pills rail (ui.js renders pills + moves its anchor) -->
   <div id="pillsRail" class="pills-rail" aria-live="polite"></div>
 
-  <!-- Overlay -->
+  <!-- Basic overlay for future use -->
   <div id="overlay" class="modal" hidden>
     <div class="modal-card">
-        
       <button id="overlay-close" class="modal-close" aria-label="Close">×</button>
       <h2 id="overlay-title"></h2>
       <div id="overlay-body" class="modal-body"></div>
     </div>
   </div>
 
-  <!-- Packs widget mount point (only used on #/explore/packs) -->
-  <div id="packs-root" aria-live="polite"></div>
-
   <!-- Scripts: main first (emits layoutchange), then ui (listens & renders UI) -->
   <script type="module" src="main.module.js"></script>
   <script type="module" src="ui.js"></script>
-
-  <!-- Minimal hash-router to mount/unmount the widget -->
-  <script>
-    (function () {
-      const HASH = '#/explore/packs';
-
-      const overlay      = document.getElementById('overlay');
-      const overlayBody  = document.getElementById('overlay-body');
-      const overlayTitle = document.getElementById('overlay-title');
-      const overlayClose = document.getElementById('overlay-close');
-
-      // 🔧 POINT THIS TO YOUR WIDGET SITE + BACKEND
-      const WIDGET_ORIGIN = 'https://your-widget-site.netlify.app';        // <— change me
-      const API_BASE      = 'https://backend-o9ot.onrender.com';           // <— your Render backend
-      const WIDGET_URL    = `${WIDGET_ORIGIN}/?apiBase=${encodeURIComponent(API_BASE)}`;
-
-      let removeMessageListener = null;
-
-      function whenWidgetCSSLoaded() {
-        // If you’re loading extra host CSS for the modal, wait for it (optional)
-        return Promise.resolve();
-      }
-
-      function openOverlay() {
-        if (!overlay) return;
-        overlay.classList.add('modal--packs');     // important for wide layout
-        overlay.removeAttribute('hidden');
-        const canvas = document.getElementById('webgl');
-        if (canvas) canvas.classList.add('dim-3d');
-      }
-
-      function closeOverlay() {
-        if (!overlay) return;
-        overlay.setAttribute('hidden', '');
-        overlay.classList.remove('modal--packs');
-        if (overlayBody) overlayBody.replaceChildren();
-        if (overlayTitle) overlayTitle.textContent = '';
-        const canvas = document.getElementById('webgl');
-        if (canvas) canvas.classList.remove('dim-3d');
-        if (removeMessageListener) { removeMessageListener(); removeMessageListener = null; }
-      }
-
-      function mountPacksIframe() {
-        if (!overlayBody) return;
-
-        // Create the iframe
-        const iframe = document.createElement('iframe');
-        iframe.id    = 'packs-frame';
-        iframe.src   = WIDGET_URL;
-        iframe.style.width  = '100%';
-        iframe.style.height = '1px';        // start tiny; we’ll auto-size it
-        iframe.style.border = '0';
-        iframe.setAttribute('allow', 'clipboard-write');   // optional
-
-        // Insert + open
-        overlayTitle && (overlayTitle.textContent = '');   // no title
-        overlayBody.replaceChildren(iframe);
-        openOverlay();
-
-        // Auto-resize via postMessage from the widget
-        function onMessage(e){
-          if (e.origin !== WIDGET_ORIGIN) return;
-          const data = e.data || {};
-          if (data.type === 'packs:height' && typeof data.height === 'number'){
-            // clamp to modal height so we don’t blow past it
-            const maxH = Math.round(window.innerHeight * 0.92);
-            iframe.style.height = Math.min(data.height, maxH) + 'px';
-          }
-        }
-        window.addEventListener('message', onMessage);
-        removeMessageListener = () => window.removeEventListener('message', onMessage);
-      }
-
-      async function onRouteChange() {
-        if (location.hash.startsWith(HASH)) {
-          await whenWidgetCSSLoaded();
-          mountPacksIframe();
-        } else {
-          closeOverlay();
-        }
-      }
-
-      overlayClose && overlayClose.addEventListener('click', closeOverlay);
-      window.addEventListener('hashchange', onRouteChange);
-      window.addEventListener('load', onRouteChange);
-      onRouteChange();
-    })();
-  </script>
-  <div class="modal-body">
-    <iframe
-      src="https://your-widget-site.netlify.app"
-      style="
-        width: 100%;
-        height: 600px;   /* adjust to fit */
-        border: none;
-        overflow: hidden;
-      "
-      allow="clipboard-write"
-    ></iframe>
-  </div>
 </body>
 </html>
