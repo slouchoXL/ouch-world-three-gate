@@ -1,4 +1,4 @@
-/* ===== Base site styles (kept minimal) =============================== */
+/* ===== Base site styles =============================== */
 :root{
   --bg:#000;
   --text:#d3d3d3;
@@ -113,77 +113,66 @@ body{
   background:none; border:0; color:#fff; cursor:pointer;
 }
 
-/* ===== Packs overlay (the one hosting <packs-widget>) ================= */
-
-/* Host modal container: full center, no accidental margins */
+/* ===== Packs overlay ================================================= */
 .modal.modal--packs .modal-card{
-  position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
-  margin:0; padding:0;
-  width:min(1100px, 92vw);
-  height:min(92vh, 100svh);
-  background:#0b0b0b; color:#fff; border-radius:12px;
-  display:flex; flex-direction:column; overflow:hidden;
+  position: fixed; left:50%; top:50%; transform: translate(-50%,-50%);
+  width: min(1100px, 92vw); height: min(92vh, 100svh);
+  margin: 0; padding: 0; border-radius: 12px;
+  display: flex; flex-direction: column; overflow: hidden;
+  background: #0b0b0b;
 }
 
-/* Body: center the widget and prevent sideways scroll */
 .modal.modal--packs .modal-body{
-  flex:1; display:flex; align-items:flex-start; justify-content:center;
-  padding:16px; min-height:0; overflow:auto; overflow-x:hidden;
+  flex: 1; padding: 0; margin: 0;
+  display: block;
+  overflow: hidden;
 }
 
-/* Make the custom element fill nicely */
-.modal.modal--packs .modal-body > packs-widget{
-  display:block; width:100%; max-width:1060px; margin:0 auto; overflow:hidden;
+.modal.modal--packs .modal-body > iframe{
+  display: block; width: 100%; height: 100%; border: 0;
 }
 
-
+/* Packs widget styling */
 @media (max-width: 600px){
+  .modal.modal--packs .modal-card{ 
+    width:100vw; height:100svh; border-radius:0; 
+  }
+  
   packs-widget{
-    --packW: 240px;   /* smaller pack on phones */
+    --packW: 240px;
     --cardW: 200px;
     --trayCardW: 130px;
-    --stagePad: 10px; /* keep tray away from edges */
-    --actionsGap: 2px;/* CTA almost touching stage */
-    --metaGap: 2px;   /* balance almost touching pack */
-    --trayGapX: 8px;  /* slightly tighter grid */
+    --stagePad: 10px;
+    --actionsGap: 2px;
+    --metaGap: 2px;
+    --trayGapX: 8px;
     --trayGapY: var(--trayGapX);
   }
-  /* reduce any default stage spacing from widget */
-  packs-widget .card-stage{ margin-bottom:0 !important; }
 }
 
-/* ===== Widget-safe rules (no duplicates, no conflicting heights) ===== */
-
-/* NEVER distort images */
+/* Widget-safe rules */
 packs-widget img{ max-width:100%; height:auto; }
 
-/* Pack image: maintain ratio via aspect-ratio (no height calc needed) */
 packs-widget .pack-img{
   width:var(--packW);
-  aspect-ratio: 10 / 7 * 1;           /* 1400x2000 -> 2000/1400 = 10/7 ≈ 1.4286 */
+  aspect-ratio: 10 / 7 * 1;
   object-fit:contain;
 }
 
-/* Cards & tray thumbs: enforce 5:7 ratio */
 packs-widget .card-abs,
 packs-widget .tray-card,
 packs-widget .stage-modal-img{
   aspect-ratio: 5 / 7;
 }
-packs-widget .card-abs{
-  width:var(--cardW);
-}
-packs-widget .tray-card{
-  width:var(--trayCardW);
-}
 
-/* Card/tray images always cover their containers */
+packs-widget .card-abs{ width:var(--cardW); }
+packs-widget .tray-card{ width:var(--trayCardW); }
+
 packs-widget .card-img,
 packs-widget .tray-card img{
   width:100%; height:100%; object-fit:cover;
 }
 
-/* Tray layout uses variables for equal gaps + side padding */
 packs-widget .tray-wrap{ padding-inline: var(--stagePad); }
 packs-widget .tray-grid{
   column-gap: var(--trayGapX);
@@ -191,10 +180,8 @@ packs-widget .tray-grid{
   justify-content:center;
 }
 
-/* Actions row sits close under the stage */
 packs-widget .stage-actions{ margin-top: var(--actionsGap) !important; }
 
-/* Price/balance block sits tight above the pack and stays centered */
 packs-widget .pack-card,
 packs-widget .pack-meta,
 packs-widget .pack-topbar{
@@ -202,160 +189,22 @@ packs-widget .pack-topbar{
   text-align:center;
 }
 
-/* Prevent any sideways scroll anywhere in the modal/widget stack */
+/* Prevent sideways scroll */
 .modal, .modal-card, .modal-body, packs-widget{
   overscroll-behavior:contain;
   overflow-x:hidden;
 }
 
-/* ===== Packs overlay: center & contain ===== */
-.modal.modal--packs {
-  /* optional: no extra padding on the outer overlay */
-  padding: 0;
-}
-
-.modal.modal--packs .modal-card{
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);   /* perfect center */
-  margin: 0;                          /* kill auto margins */
-  padding: 0;                         /* IMPORTANT: no side padding */
-  width: min(1100px, 92vw);           /* generous width, respects viewport */
-  height: min(92vh, 100svh);          /* generous height */
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;                   /* contain content */
-  background: #0b0b0b;
-  color: #fff;
-  box-sizing: border-box;
-}
-
-/* Body fills the card and centers the widget */
-.modal.modal--packs .modal-body{
-  flex: 1;
-  display: flex;
-  justify-content: center;            /* horizontal centering */
-  align-items: flex-start;            /* sit at top */
-  padding: 0;                         /* IMPORTANT: no padding here */
-  overflow-x: hidden;                 /* no side scroll */
-  overflow-y: auto;
-}
-
-/* The widget element: full width but contained */
-.modal.modal--packs .modal-body > packs-widget{
-  display: block;
-  width: 100%;
-  max-width: 1060px;                  /* matches diagnose page */
-  margin: 0 auto;
-  overflow: hidden;
-}
-
-/* Mobile: make the modal full-screen, no rounding */
-@media (max-width: 600px){
-  .modal.modal--packs .modal-card{
-    width: 100vw;
-    height: 100svh;
-    border-radius: 0;
-  }
-}
-/* Tighten the action row under the stage (honor the var) */
-.modal.modal--packs .modal-body packs-widget .stage-actions {
-  margin-top: var(--actionsGap, 4px) !important;
-}
-
-/* Tighten the meta block above the pack (honor the var) */
-.modal.modal--packs .modal-body packs-widget .pack-card,
-.modal.modal--packs .modal-body packs-widget .pack-meta,
-.modal.modal--packs .modal-body packs-widget .pack-topbar {
-  margin-bottom: var(--metaGap, 4px) !important;
-  text-align: center;
-}
-
-/* Equalize tray gaps & keep it centered (uses the vars we set inline) */
-.modal.modal--packs .modal-body packs-widget .tray-grid {
-  column-gap: var(--trayGapX, 12px) !important;
-  row-gap:    var(--trayGapY, 12px) !important;
-  justify-content: center !important;
-}
-
-/* Guard rails so nothing can squish or scroll sideways on mobile */
-.modal.modal--packs,
-.modal.modal--packs .modal-card,
-.modal.modal--packs .modal-body,
-.modal.modal--packs .modal-body packs-widget {
-  overflow-x: hidden !important;
-}
-.modal.modal--packs .modal-body packs-widget img {
-  max-width: 100%; height: auto;
-}
-.modal.modal--packs .modal-body packs-widget .card-img,
-.modal.modal--packs .modal-body packs-widget .tray-card img {
-  width: 100%; height: 100%; object-fit: cover;
-}
-
-/* --- Packs mobile spacing overrides (high specificity) --- */
-@media (max-width: 600px){
-  /* Kill any default bottom space under the stage */
-  .modal.modal--packs .modal-body > packs-widget .card-stage{
-    margin-bottom: 0 !important;
-  }
-
-  /* Button row immediately under the stage (support both class names) */
-  .modal.modal--packs .modal-body > packs-widget .stage-actions,
-  .modal.modal--packs .modal-body > packs-widget .tray-actions{
-    margin-top: var(--actionsGap, -120px) !important;
-  }
-
-  /* Meta/balance block sits tight above the pack; cover multiple structures */
-  .modal.modal--packs .modal-body > packs-widget .pack-card,
-  .modal.modal--packs .modal-body > packs-widget .pack-meta,
-  .modal.modal--packs .modal-body > packs-widget .header,
-  .modal.modal--packs .modal-body > packs-widget .balance{
-    margin-bottom: var(--metaGap, -80px) !important;
-    text-align: center;
-  }
-
-  /* Tray grid gaps equalized */
-  .modal.modal--packs .modal-body > packs-widget .tray-grid{
-    column-gap: var(--trayGapX, 8px) !important;
-    row-gap:    var(--trayGapY, 8px) !important;
-    justify-content: center;
-  }
-}
-
+/* Stage shell for better button positioning */
 .stage-shell{
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap: var(--actionsGap, 10px);   /* controls the button distance */
+  gap: var(--actionsGap, 10px);
 }
 .stage-shell .card-stage{ margin-bottom: 0 !important; }
 .stage-shell .stage-actions{ margin: 0 !important; }
 
 @media (max-width: 600px){
-  .stage-shell{ gap: 6px; }       /* nice tight mobile spacing */
-}
-
-.modal.modal--packs .modal-card{
-  position: fixed; left:50%; top:50%; transform: translate(-50%,-50%);
-  width: min(1100px, 92vw);
-  height: min(92vh, 100svh);
-  margin: 0; padding: 0; border-radius: 12px;
-  display: flex; flex-direction: column; overflow: hidden;
-  background: #0b0b0b;
-}
-@media (max-width: 600px){
-  .modal.modal--packs .modal-card{ width:100vw; height:100svh; border-radius:0; }
-}
-.modal.modal--packs .modal-body{
-  flex: 1; padding: 0; margin: 0;
-  display: block;                /* important: no flex centering here */
-  overflow: hidden;              /* iframe will fill it */
-}
-.modal.modal--packs .modal-body > iframe{
-  display: block;
-  width: 100%; height: 100%;
-  border: 0;
+  .stage-shell{ gap: 6px; }
 }
