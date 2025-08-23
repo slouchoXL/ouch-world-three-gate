@@ -1,5 +1,5 @@
 :root{
-    --vh: 1vh;
+   
   /* core sizing the whole layout reads */
   --packW: 420px;        /* desktop visual width of the stage/pack */
   --gapX: 16px;          /* tray column gap AND row gap */
@@ -42,10 +42,10 @@ html,body{
   padding: 12px;
   /*background: var(--card);
   border: 1px solid #000;
-  border-radius: 12px;*/
+  border-radius: 12px;
   height: 100%;
   min-height: 100%;
-  max-height: none;
+  max-height: none;*/
   
 }
 

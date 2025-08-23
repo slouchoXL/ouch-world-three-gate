@@ -161,47 +161,25 @@
   <!-- Resize notifier for parent iframe (optional) -->
   <script>
     (function () {
-      // 1) Mobile-safe viewport unit
-      function setVH() {
-        const vh = window.visualViewport
-          ? window.visualViewport.height * 0.01
-          : window.innerHeight * 0.01;
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-      }
-      setVH();
-
-      // Update on viewport changes (mobile address bar show/hide)
-      window.addEventListener('resize', setVH);
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', setVH);
-      }
-
-      // 2) Report height to parent (so the iframe snaps immediately)
-      function postHeight() {
-        const h = Math.ceil(document.documentElement.getBoundingClientRect().height);
-        if (window.parent && window.parent !== window) {
-          window.parent.postMessage({ type: 'packs:height', height: h }, '*');
+      function postHeight(){
+        const h = Math.max(
+          document.documentElement.scrollHeight,
+          document.body?.scrollHeight || 0
+        );
+        if (window.parent && window.parent !== window){
+          window.parent.postMessage({ type:'packs:height', height:h }, '*');
         }
       }
-
-      // Post fast on load, then after layout settles, then on mutations
-      window.addEventListener('load', () => {
-        postHeight();
-        // micro & macro ticks to catch late layout shifts
-        requestAnimationFrame(postHeight);
-        setTimeout(postHeight, 50);
-        setTimeout(postHeight, 200);
-      });
+      window.addEventListener('load', postHeight);
       window.addEventListener('resize', postHeight);
+      const mo = new MutationObserver(postHeight);
+      mo.observe(document.documentElement, { childList:true, subtree:true, attributes:true });
 
-      // Observe DOM changes and re-post (throttled)
-      const mo = new MutationObserver(() => {
-        if (postHeight._t) return;
-        postHeight._t = setTimeout(() => { postHeight._t = null; postHeight(); }, 32);
+      // respond to parent “probe”
+      window.addEventListener('message', (e) => {
+        if ((e.data || {}).type === 'packs:probe') postHeight();
       });
-      mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
 
-      // Initial ping
       postHeight();
     })();
   </script>
