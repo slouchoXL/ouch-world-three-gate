@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Packs Widget</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <style>
+    /* keep the iframe/page from side-scrolling */
+    html, body { overflow-x: hidden; }
+  </style>
+
+  <!-- Supabase SDK (must load before we create a client) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- Supabase project config: set URL & anon key on window -->
+  <script>
+    // These are safe to expose on the client.
+    window.__SUPABASE_URL = 'https://srdwkfjterotzjwzoauj.supabase.co';
+    window.__SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ';
+  </script>
+
+  <!-- Backend base (define BEFORE app.js so app.js can read it) -->
+  <script>
+    (function () {
+      const params = new URLSearchParams(location.search);
+      let apiBase = params.get('api') || 'https://backend-o9ot.onrender.com';
+      apiBase = String(apiBase || '').trim()
+        .replace(/\/+$/, '')
+        .replace(/\/api$/i, '');
+      window.__PACKS_API_BASE = apiBase; // e.g. "https://backend-o9ot.onrender.com"
+    })();
+  </script>
+
+  <!-- Create ONE global Supabase client everyone can reuse -->
+  <script>
+    if (!window.supabase) {
+      console.error('Supabase CDN failed to load');
+    } else {
+      window.supa = window.supabase.createClient(
+        window.__SUPABASE_URL,
+        window.__SUPABASE_ANON_KEY
+      );
+    }
+  </script>
+
+  <!-- If we returned from a magic link, just clean the hash (v2 needs no parsing here) -->
+  <!-- Handle magic-link returns (hash with access_token), then clean URL -->
+  <script>
+    (async function () {
+      try {
+        if (window.supa && location.hash && location.hash.includes('access_token')) {
+          const params = new URLSearchParams(location.hash.slice(1)); // strip #
+          const access_token  = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+
+          if (access_token && refresh_token) {
+            // v2: set the session explicitly
+            const { data, error } = await window.supa.auth.setSession({ access_token, refresh_token });
+            if (error) console.warn('[supabase] setSession error:', error);
+          }
+
+          // Strip the hash so we don’t keep reprocessing it
+          history.replaceState({}, '', location.pathname + location.search);
+        }
+      } catch (e) {
+        console.warn('[supabase] magic-link processing failed:', e);
+      }
+    })();
+  </script>
+</head>
+<body>
+  <!-- Simple auth UI (must be in BODY, after client is created) -->
+  <div id="auth" style="margin: 12px 12px 0; display:flex; gap:8px; align-items:center;">
+    <input type="email" id="emailInput" placeholder="Enter email" autocomplete="email" />
+    <button id="loginBtn">Send Magic Link</button>
+    <button id="logoutBtn" hidden>Log out</button>
+  </div>
+
+  <script>
+    (function () {
+      if (window.__AUTH_WIRED__) return;
+      window.__AUTH_WIRED__ = true;
+
+      const emailInput = document.getElementById('emailInput');
+      const loginBtn   = document.getElementById('loginBtn');
+      const logoutBtn  = document.getElementById('logoutBtn');
+
+      function updateButtons(session){
+        const signedIn = !!session?.user;
+        loginBtn.hidden  = signedIn;
+        logoutBtn.hidden = !signedIn;
+      }
+
+      loginBtn.addEventListener('click', async () => {
+        const email = (emailInput.value || '').trim();
+        if (!email) return alert('Enter your email');
+        if (!window.supa?.auth) return alert('Auth not initialized');
+
+        // 👇 Force redirect back to the *same tab + URL* user is already on
+        const emailRedirectTo = location.href;
+
+        const { error } = await window.supa.auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo }
+        });
+        if (error) alert(error.message);
+        else alert('Check your email for the magic link!');
+      });
+
+      logoutBtn.addEventListener('click', async () => {
+        if (!window.supa?.auth) return;
+        await window.supa.auth.signOut();
+        updateButtons(null);
+        alert('Logged out');
+      });
+
+      if (window.supa?.auth) {
+        window.supa.auth.getSession().then(({ data: { session } }) => updateButtons(session));
+        window.supa.auth.onAuthStateChange((_event, session) => updateButtons(session));
+      }
+    })();
+  </script>
+
+  <!-- Widget UI -->
+  <div id="app" class="widget" aria-live="polite">
+    <div class="topbar">
+      <div class="meta">
+        <div class="balance" id="balance">Balance: —</div>
+        <div class="price"   id="price">Price: —</div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="anchor">
+        <img class="pack-img" src="./assets/pack.png" alt="Pack" id="packImg" />
+        <div class="stack" id="stack" hidden></div>
+        <div class="tray"  id="tray"  hidden></div>
+
+        <!-- overlay lives INSIDE the stage so it appears on top (not below) -->
+        <div id="overlay" class="overlay" hidden>
+          <div class="overlay-backdrop"></div>
+          <div class="overlay-card">
+            <img id="overlay-img" alt="" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="cta" class="btn">Open Packs</button>
+    </div>
+
+    <div id="error" class="error" hidden></div>
+  </div>
+
+  <!-- Your app (module so we can use top-level await); after client + auth UI -->
+  <script type="module" src="app.js"></script>
+
+  <!-- Resize notifier for parent iframe (optional) -->
+  <script>
+    (function () {
+      function postHeight(){
+        const h = Math.max(
+          document.documentElement.scrollHeight,
+          document.body ? document.body.scrollHeight : 0
+        );
+        if (window.parent && window.parent !== window){
+          window.parent.postMessage({ type: 'packs:height', height: h }, '*');
+        }
+      }
+      window.addEventListener('load', postHeight);
+      window.addEventListener('resize', postHeight);
+      const mo = new MutationObserver(() => postHeight());
+      mo.observe(document.documentElement, { childList:true, subtree:true, attributes:true });
+      postHeight();
+    })();
+  </script>
+</body>
+</html>

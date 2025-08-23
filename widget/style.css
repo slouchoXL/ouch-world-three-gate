@@ -1,0 +1,227 @@
+:root{
+  /* core sizing the whole layout reads */
+  --packW: 420px;        /* desktop visual width of the stage/pack */
+  --gapX: 16px;          /* tray column gap AND row gap */
+  --pad:  10px;          /* side padding inside stage (safety on small) */
+
+  /* NEW: scale the tray grid down relative to the stage */
+  --trayScale: 0.82;     /* 0.82 means the 3x2 tray uses 82% of stage width */
+
+  /* derived (fits 3 columns + 2 gaps inside the scaled width) */
+  --thumbW: calc((var(--packW) * var(--trayScale) - 2*var(--pad) - 2*var(--gapX)) / 3);
+
+  /* stack card size (as % of stage); smaller by default */
+  --stackW: 60%;
+
+  /* typography/colors */
+  --bg:#0a0a0a; --card:#121212; --text:#eaeaea; --muted:#9aa0a6; --btn:#3b82f6;
+}
+
+*{ box-sizing: border-box; }
+html,body{
+  height: 100%;
+  margin:0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background:#000;
+  color:var(--text);
+  font-family:system-ui, -apple-system, Inter, Roboto, Arial, sans-serif;
+}
+
+/* widget shell */
+.widget{
+  display:grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px;
+  width: min(1200px, 96vw);
+  margin: 0 auto;
+  padding: 12px;
+  /*background: var(--card);
+  border: 1px solid #000;
+  border-radius: 12px;*/
+}
+
+/* ---- Rarity tag on STACK cards ---- */
+.stack .tag{
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: #444; /* default */
+  text-transform: capitalize;
+  pointer-events: none;
+}
+
+/* Color by rarity */
+.tag.common    { background:#64748b; }
+.tag.rare      { background:#3b82f6; }
+.tag.epic      { background:#a855f7; }
+.tag.legendary { background:#f59e0b; }
+
+/* meta tight ABOVE the pack */
+.meta{
+  display:grid; gap: 2px; text-align:center; margin-bottom: 2px;
+}
+.meta .balance, .meta .price{ color:var(--muted); font-size:14px; }
+
+/* stage centers pack and animations; fixed width by --packW */
+.stage{ display:grid; place-items:center; }
+/* The stage box the overlay must fit inside */
+.anchor{
+    /* outline: 1px dashed red;*/
+  position: relative;
+  width: calc(var(--packW) + 2*var(--pad));
+  height: calc(var(--packW) * 1.4286); /* 2000/1400 ≈ 1.4286 */
+  padding-inline: var(--pad);
+  margin: 0 auto;
+  isolation: isolate; /* z-index layers behave */
+}
+
+/* pack image */
+.pack-img{
+  display:block; width:100%; height:100%; object-fit:contain;
+  filter: drop-shadow(0 20px 40px rgba(0,0,0,.45));
+}
+.pack-img[hidden]{ display:none; }
+
+/* actions tight BELOW */
+.actions{ display:grid; place-items:center; margin-top: 4px; }
+.btn{
+  padding:.6rem 1rem; border-radius:9px; border:1px solid #2a2a2a;
+  background:var(--btn); color:#fff; font-weight:700; cursor:pointer;
+}
+.btn:disabled{ opacity:.6; cursor:not-allowed; filter:saturate(.6); }
+
+/* ----- STACK (5 cards layered, centered in anchor) ----- */
+#stack{
+  position: absolute; inset: 0; z-index: 20;
+}
+#stack[hidden]{ display:none; }
+#stack .stack-card{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width: var(--stackW);                /* smaller by default now */
+  aspect-ratio: 5 / 7;
+ border-radius:0;
+  overflow:hidden;
+  border: none;
+  background: transparent;
+  cursor:pointer;
+}
+#stack .stack-card img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  pointer-events:none;
+  display: block;
+}
+
+/* ----- TRAY (3 on top, 2 centered below, fits the stage) ----- */
+#tray{
+  position: absolute; inset: 0; z-index: 10;
+  display:grid; place-items:center;
+  grid-template-columns: repeat(3, var(--thumbW));
+  grid-auto-rows: calc(var(--thumbW) * 1.4);
+  gap: var(--gapX);
+  justify-content:center; align-content:center;
+}
+#tray[hidden]{ display:none; }
+
+#tray .tray-card{
+  width: var(--thumbW);
+  height: calc(var(--thumbW) * 1.4);
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  overflow:visible;
+  padding:0; 
+  cursor:pointer;
+  
+}
+#tray .tray-card img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display: block;
+}
+
+/* 3 on first row */
+#tray .tray-card[data-pos="1"]{ grid-column:1; grid-row:1; }
+#tray .tray-card[data-pos="2"]{ grid-column:2; grid-row:1; }
+#tray .tray-card[data-pos="3"]{ grid-column:3; grid-row:1; }
+/* 2 centered second row */
+#tray .tray-card[data-pos="4"]{ grid-column:1 / span 2; grid-row:2; justify-self:center; }
+#tray .tray-card[data-pos="5"]{ grid-column:2 / span 2; grid-row:2; justify-self:center; }
+
+/* dim non-active cards when preview is open */
+#tray.has-preview .tray-card{ opacity:.35; filter:saturate(.8); pointer-events:none; }
+#tray.has-preview .tray-card.is-active{ opacity:1; filter:none; pointer-events:auto; z-index:50; }
+
+/* the overlay fills the stage, but the card is capped by stage size */
+.overlay{
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 50;               /* above tray/stack */
+}
+.overlay[hidden]{ display: none; }
+.overlay-backdrop{
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(2px);
+}
+
+/* Card container stays within the stage */
+.overlay-card{
+  position: relative;
+  z-index: 51;
+  box-sizing: border-box;
+  padding: 8px;
+  border-radius: 12px;
+  background: #000;
+  /*border: 1px solid #2a2a2a;*/
+
+  /* Fit INSIDE the stage with a little breathing room */
+  max-height: calc(100% - 24px);
+  max-width:  calc(100% - 24px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Image uses the height cap; width follows 5:7 */
+.overlay-card img{
+  height: 100%;          /* fill container vertically */
+  width: auto;           /* keep ratio from height */
+  max-height: calc(100% - 8px);  /* tiny inner padding safety */
+  max-width:  calc(100% - 8px);
+  aspect-ratio: 5 / 7;
+  object-fit: contain;   /* never crop, never squish */
+  display: block;
+}
+
+/* error toast */
+.error[hidden]{ display:none; }
+.error{
+  margin-top:8px; padding:10px 12px; border-radius:8px;
+  border:1px solid #4a1d1d; background:#2a1111; color:#ffb4b4; text-align:center;
+}
+
+/* responsive suggestions */
+@media (max-width: 900px){
+  :root{ --packW: 340px; --gapX: 12px; --pad: 8px; --stackW: 80%; --trayScale: 0.95; }
+}
+@media (max-width: 600px){
+  :root{ --packW: 300px; --gapX: 8px;  --pad: 10px; --stackW: 80%; --trayScale: 1.1; }
+}
+
+
