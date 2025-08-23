@@ -29,74 +29,42 @@
     <header>
       <div class="brand"><a href="/" style="color:inherit;text-decoration:none">OUCH</a></div>
       <nav>
-       
-        <a href="/packs/" aria-current="page">Packs</a>
       
       </nav>
     </header>
 
-    <main>
-      <div class="iframe-shell">
+    <main class="iframe-shell">
         <!-- Because widget is in the same site, use a RELATIVE src -->
         <!-- Pass your backend origin via ?api=... so the widget knows where to call -->
         <iframe
           id="packsFrame" id="packsFrame"
           src="/widget/index.html"
+          loading="eager"
+          scrolling="no"
           referrerpolicy="no-referrer-when-downgrade"
           allow="clipboard-read; clipboard-write">
         </iframe>
-      </div>
-      
-      <script>
-        (function () {
-          const frame = document.getElementById('packs-frame');
-          if (!frame) return;
-
-          // Optional: ensure initial height while we wait for first message
-          function setMinVH() {
-            frame.style.height = '100dvh';
-          }
-          setMinVH();
-          window.addEventListener('resize', setMinVH);
-
-          // Handle widget height messages
-          window.addEventListener('message', (e) => {
-            // Optionally restrict by origin: if (e.origin !== 'https://YOUR-WIDGET-ORIGIN') return;
-            const msg = e.data || {};
-            if (msg.type === 'packs:height' && Number.isFinite(msg.height)) {
-              // Cap between some sensible bounds if you want:
-              const h = Math.max(200, Math.min(msg.height, window.innerHeight));
-              frame.style.height = h + 'px';
-            }
-          });
-        })();
-      </script>
     </main>
+
+    <style>
+      html, body {
+        margin: 0;
+        height: 100%;
+      }
+      .iframe-shell {
+        width: 100%;
+        height: 100dvh;     /* fill the visible viewport */
+        overflow: hidden;   /* prevent outer page scrollbars */
+      }
+      #packsFrame {
+        display: block;
+        width: 100%;
+        height: 100%;       /* exactly the viewport height via the shell */
+        border: none;
+      }
+    </style>
 
     <footer>© OUCH — Packs</footer>
   </div>
-
-  <script>
-    // Resize the iframe when the widget posts its height
-    (function () {
-      const frame = document.getElementById('packsFrame');
-
-      function onMessage(e){
-        // Optional: enforce same-origin check if you like:
-        // if (e.origin !== location.origin) return;
-        const data = e.data || {};
-        if (data.type === 'packs:height' && typeof data.height === 'number') {
-          const h = Math.max(300, Math.min(2000, Math.round(data.height + 4)));
-          frame.style.height = h + 'px';
-        }
-      }
-      window.addEventListener('message', onMessage, false);
-
-      // nudge the child to report height on parent resizes
-      window.addEventListener('resize', () => {
-        frame.contentWindow?.postMessage({ type:'packs:probe' }, '*');
-      });
-    })();
-  </script>
 </body>
 </html>

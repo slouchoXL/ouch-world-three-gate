@@ -71,8 +71,8 @@
   </script>
 </head>
 <body>
-  <!-- Simple auth UI (must be in BODY, after client is created) -->
-  <div id="auth" style="margin: 12px 12px 0; display:flex; gap:8px; align-items:center;">
+  <!-- Simple auth UI (must be in BODY, after client is created) 
+<div id="auth" style="margin: 12px 12px 0; display:flex; gap:8px; align-items:center;">
     <input type="email" id="emailInput" placeholder="Enter email" autocomplete="email" />
     <button id="loginBtn">Send Magic Link</button>
     <button id="logoutBtn" hidden>Log out</button>
@@ -121,7 +121,7 @@
         window.supa.auth.onAuthStateChange((_event, session) => updateButtons(session));
       }
     })();
-  </script>
+  </script> -->
 
   <!-- Widget UI -->
   <div id="app" class="widget" aria-live="polite">

@@ -20,16 +20,14 @@
 
 *{ box-sizing: border-box; }
 html,body{
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  /* display: flex;
-  justify-content: center;
-  align-items: center;
-  background:#000;
-  color:var(--text);
-  font-family:system-ui, -apple-system, Inter, Roboto, Arial, sans-serif;/*
+    height: 100%;
+    margin:0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background:none;
+    color:var(--text);
+    font-family:system-ui, -apple-system, Inter, Roboto, Arial, sans-serif;
 }
 
 /* widget shell */
