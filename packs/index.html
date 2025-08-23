@@ -40,12 +40,39 @@
         <!-- Because widget is in the same site, use a RELATIVE src -->
         <!-- Pass your backend origin via ?api=... so the widget knows where to call -->
         <iframe
-          id="packsFrame"
-          src="/widget/index.html?api=https://backend-o9ot.onrender.com"
+          id="packsFrame" id="packsFrame" style="position:relative; width:100%; min-height:100dvh; overflow:hidden;"
+          src="/widget/index.html"
+ title="Packs"
+ style="display:block; width:100%; border:0; height:100dvh;"
           referrerpolicy="no-referrer-when-downgrade"
           allow="clipboard-read; clipboard-write">
         </iframe>
       </div>
+      
+      <script>
+        (function () {
+          const frame = document.getElementById('packs-frame');
+          if (!frame) return;
+
+          // Optional: ensure initial height while we wait for first message
+          function setMinVH() {
+            frame.style.height = '100dvh';
+          }
+          setMinVH();
+          window.addEventListener('resize', setMinVH);
+
+          // Handle widget height messages
+          window.addEventListener('message', (e) => {
+            // Optionally restrict by origin: if (e.origin !== 'https://YOUR-WIDGET-ORIGIN') return;
+            const msg = e.data || {};
+            if (msg.type === 'packs:height' && Number.isFinite(msg.height)) {
+              // Cap between some sensible bounds if you want:
+              const h = Math.max(200, Math.min(msg.height, window.innerHeight));
+              frame.style.height = h + 'px';
+            }
+          });
+        })();
+      </script>
     </main>
 
     <footer>© OUCH — Packs</footer>
