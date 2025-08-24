@@ -123,13 +123,21 @@
         if (!email) return alert('Enter your email');
         if (!window.supa?.auth) return alert('Auth not initialized');
 
-        // Redirect back to the *same tab + URL* user is already on
-        const emailRedirectTo = location.href;
+        // Check if we're inside an iframe
+        const isInIframe = window !== window.top;
+        
+        // Set redirect URL - prioritize /packs
+        const emailRedirectTo = isInIframe
+          ? 'https://ouchworld.netlify.app/packs'  // Force redirect to /packs when in iframe
+          : `${location.origin}/packs`;            // Also redirect to /packs for direct access
+
+        console.log('Magic link will redirect to:', emailRedirectTo); // Debug
 
         const { error } = await window.supa.auth.signInWithOtp({
           email,
           options: { emailRedirectTo }
         });
+        
         if (error) alert(error.message);
         else alert('Check your email for the magic link!');
       });
