@@ -23,19 +23,11 @@ if (!PLAYER_ID) {
   localStorage.setItem(PLAYER_ID_KEY, PLAYER_ID);
 }
 
-// If signed in, prefer a stable namespaced supabase id
+/* ========= CHANGED: no-op; do NOT rewrite PLAYER_ID to 'u_<uuid>' anymore ========= */
 async function maybeUpgradePlayerIdToUser(){
-  if (!supa) return;
-  try {
-    const { data: { session } } = await supa.auth.getSession();
-    if (session?.user?.id) {
-      const uid = 'u_' + session.user.id;
-      if (PLAYER_ID !== uid) {
-        PLAYER_ID = uid;
-        localStorage.setItem(PLAYER_ID_KEY, uid);
-      }
-    }
-  } catch {}
+  // We no longer mirror Supabase user id into PLAYER_ID.
+  // Real identity is sent via Authorization: Bearer <JWT>.
+  return;
 }
 await maybeUpgradePlayerIdToUser();
 
@@ -254,34 +246,40 @@ overlay.addEventListener('click', closeOverlay);
 // ===== init / flow =====
 
 // (Optional) require sign-in to open packs:
-// async function requireSignedInOrPrompt() {
-//   if (!supa) return false;
-//   const { data: { session } } = await supa.auth.getSession();
-//   if (session?.user) return true;
-//   cta.textContent = 'Sign in to open packs';
-//   cta.hidden = false;
-//   cta.disabled = false;
-//   cta.onclick = async () => {
-//     const email = prompt('Enter your email to sign in');
-//     if (!email) return;
-//     const { error } = await supa.auth.signInWithOtp({ email, options:{ emailRedirectTo: `${location.origin}${location.pathname}` } });
-//     if (error) return showError(error.message || 'Sign-in failed');
-//     alert('Check your email for the magic link, then return here.');
-//   };
-//   return false;
-// }
+async function requireSignedInOrPrompt() {
+  if (!supa) return false;
+  const { data: { session } } = await supa.auth.getSession();
+  if (session?.user) return true;
+
+  cta.textContent = 'Sign in to open packs';
+  cta.hidden = false;
+  cta.disabled = false;
+  cta.onclick = async () => {
+    const email = prompt('Enter your email to sign in');
+    if (!email) return;
+    const { error } = await supa.auth.signInWithOtp({
+      email,
+      options:{ emailRedirectTo: `${location.origin}${location.pathname}` }
+    });
+    if (error) return showError(error.message || 'Sign-in failed');
+    alert('Check your email for the magic link, then return here.');
+  };
+  return false;
+}
 
 // Live-reload balance/meta on auth changes without creating loops
 if (supa?.auth) {
   supa.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session?.user) {
-      await maybeUpgradePlayerIdToUser();
+      // no PLAYER_ID rewrite; JWT drives identity
       try {
         const fresh = await jfetch('/api/inventory');
         inv = normalizeInventory(fresh);
         renderMeta();
       } catch {}
+      // keep CTA as-is; user can open packs now
     } else if (event === 'SIGNED_OUT') {
+      // fall back to anon id for testing only
       let anon = localStorage.getItem(PLAYER_ID_KEY);
       if (!anon) {
         anon = makeUuid();
@@ -293,6 +291,10 @@ if (supa?.auth) {
         inv = normalizeInventory(fresh);
         renderMeta();
       } catch {}
+      // encourage sign-in for pack opening
+      cta.textContent = 'Sign in to open packs';
+      cta.hidden = false;
+      cta.disabled = false;
     }
   });
 }
@@ -302,11 +304,11 @@ async function init(){
     const packsResp = await jfetch('/api/packs'); // public
     packs = packsResp.packs || [];
 
-    // If you want to *require* sign-in, uncomment:
-    // const ok = await requireSignedInOrPrompt();
-    // if (!ok) return;
+    // ===== CHANGED: require sign-in before inventory/open =====
+    const ok = await requireSignedInOrPrompt();
+    if (!ok) return;
 
-    const invResp = await jfetch('/api/inventory'); // works signed or anon (header differs)
+    const invResp = await jfetch('/api/inventory'); // DB-backed when signed in
     inv   = normalizeInventory(invResp);
     renderMeta();
 
@@ -323,6 +325,18 @@ async function onOpenClick(){
   try{
     const pack = packs[0];
     if (!pack) return;
+
+    // ===== NEW: hard guard to ensure JWT is present =====
+    if (supa?.auth) {
+      const { data: { session } } = await supa.auth.getSession();
+      if (!session?.user) {
+        showError('Please sign in to open packs.');
+        cta.hidden = false;
+        cta.disabled = false;
+        cta.textContent = 'Sign in to open packs';
+        return;
+      }
+    }
 
     cta.hidden = true;
     cta.disabled = true;
