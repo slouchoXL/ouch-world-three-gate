@@ -357,7 +357,7 @@ async function requireSignedInOrPrompt() {
     if (!email) return;
     const { error } = await supa.auth.signInWithOtp({
       email,
-      options:{ emailRedirectTo: `${location.origin}/packs` }
+      options:{ emailRedirectTo: `https://ouchworld.netlify.app/packs` }
     });
     if (error) return showError(error.message || 'Sign-in failed');
     alert('Check your email for the magic link, then return here.');
