@@ -32,15 +32,45 @@ async function maybeUpgradePlayerIdToUser(){
 await maybeUpgradePlayerIdToUser();
 
 // ---- Auth header helper (Supabase if signed-in, else X-Player-Id) ----
+// FIXED: Auth header helper that works even when Supabase auth calls hang
 async function getAuthHeader() {
   try {
+    // First try the normal Supabase way (with timeout)
     if (supa?.auth) {
-      const { data: { session } } = await supa.auth.getSession();
-      if (session?.access_token) {
-        return { Authorization: `Bearer ${session.access_token}` };
+      const sessionPromise = supa.auth.getSession();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout')), 1000)
+      );
+      
+      try {
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+        if (session?.access_token) {
+          return { Authorization: `Bearer ${session.access_token}` };
+        }
+      } catch (e) {
+        console.log('Supabase auth call timed out, falling back to localStorage');
       }
     }
-  } catch {}
+    
+    // Fallback: Read directly from localStorage when Supabase auth hangs
+    const authKey = 'sb-srdwkfjterotzjwzoauj-auth-token';
+    const authData = localStorage.getItem(authKey);
+    if (authData) {
+      try {
+        const parsed = JSON.parse(authData);
+        if (parsed.access_token && parsed.expires_at && parsed.expires_at > Date.now() / 1000) {
+          console.log('Using localStorage auth token');
+          return { Authorization: `Bearer ${parsed.access_token}` };
+        }
+      } catch (e) {
+        console.log('Failed to parse localStorage auth token:', e);
+      }
+    }
+  } catch (e) {
+    console.log('Auth header error:', e);
+  }
+  
+  // Final fallback to anonymous
   return { 'X-Player-Id': PLAYER_ID };
 }
 
