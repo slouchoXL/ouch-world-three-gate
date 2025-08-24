@@ -289,9 +289,24 @@ async function onCollectClick(){
       body: JSON.stringify({ itemIds }),
     });
 
+    console.log('🔍 Collection response:', res); // DEBUG: See what backend returns
+
     if (res) {
       inv = normalizeInventory(res);
+      console.log('📦 Normalized inv after collection:', inv); // DEBUG: Check normalized data
       renderMeta();
+      console.log('🖥️ UI updated after collection'); // DEBUG: Confirm UI update
+    }
+
+    // IMPORTANT: Refresh inventory from backend like you do after pack opening
+    try {
+      console.log('🔄 Refreshing inventory from backend after collection...');
+      const fresh = await jfetch('/api/inventory');
+      inv = normalizeInventory(fresh);
+      renderMeta();
+      console.log('✅ Inventory refreshed after collection:', inv.balance?.COIN);
+    } catch (e) {
+      console.error('❌ Failed to refresh inventory after collection:', e);
     }
 
     opening = null;
@@ -311,7 +326,6 @@ async function onCollectClick(){
     cta.addEventListener('click', onOpenClick, { once:true });
   }
 }
-
 // ===== OVERLAY =====
 function openOverlay(cardBtn, src){
   overlayImg.src = src;
