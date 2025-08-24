@@ -4,41 +4,97 @@
   <meta charset="utf-8">
   <title>Packs · OUCH</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+      
+      <style>
+          :root{
+              --bg:#000; --card:#000; --text:#eaeaea; --muted:#9aa0a6; --maxw:1200px;
+          }
+          html,body {
+              margin:0;
+              height:100%;
+              background:var(--bg);
+              color:var(--text);
+              font-family:system-ui,-apple-system,Inter,Roboto,Arial,sans-serif;
+              overflow:hidden; /* prevent outer scrollbars */
+          }
+          .page {
+              height:100%;
+              display:grid;
+              grid-template-rows:auto 1fr auto;
+          }
+          main.iframe-shell {
+              width:100%;
+              height:100dvh;     /* lock to viewport height */
+              overflow:hidden;   /* no scroll inside shell */
+              background:var(--card);
+          }
+          main.iframe-shell > iframe {
+              display:block;
+              width:100%;
+              height:100%;       /* fill shell */
+              border:0;
+              background:#000;
+          }
+          header, footer {
+              display:none;      /* optional: hide header/footer if you want pure fullscreen */
+          }
+      </style>
+      
+      <!-- Add this script to your /packs page (the parent page with the iframe) -->
+      <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+      <script>
+      // Create Supabase client on parent page
+      window.supa = window.supabase.createClient(
+        'https://srdwkfjterotzjwzoauj.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ'
+      );
 
-  <style>
-    :root{
-      --bg:#000; --card:#000; --text:#eaeaea; --muted:#9aa0a6; --maxw:1200px;
-    }
-    html,body {
-      margin:0;
-      height:100%;
-      background:var(--bg);
-      color:var(--text);
-      font-family:system-ui,-apple-system,Inter,Roboto,Arial,sans-serif;
-      overflow:hidden; /* prevent outer scrollbars */
-    }
-    .page {
-      height:100%;
-      display:grid;
-      grid-template-rows:auto 1fr auto;
-    }
-    main.iframe-shell {
-      width:100%;
-      height:100dvh;     /* lock to viewport height */
-      overflow:hidden;   /* no scroll inside shell */
-      background:var(--card);
-    }
-    main.iframe-shell > iframe {
-      display:block;
-      width:100%;
-      height:100%;       /* fill shell */
-      border:0;
-      background:#000;
-    }
-    header, footer {
-      display:none;      /* optional: hide header/footer if you want pure fullscreen */
-    }
-  </style>
+      // Handle magic link tokens on parent page
+      (async function () {
+        try {
+          if (location.hash && location.hash.includes('access_token')) {
+            console.log('[Parent] Processing magic link tokens...');
+            
+            const params = new URLSearchParams(location.hash.slice(1));
+            const access_token = params.get('access_token');
+            const refresh_token = params.get('refresh_token');
+            const error = params.get('error');
+
+            if (error) {
+              console.error('[Parent] Auth error:', error);
+              alert(`Authentication error: ${params.get('error_description') || error}`);
+            } else if (access_token && refresh_token) {
+              console.log('[Parent] Setting session from magic link...');
+              
+              const { data, error } = await window.supa.auth.setSession({
+                access_token,
+                refresh_token
+              });
+              
+              if (error) {
+                console.error('[Parent] Session error:', error);
+                alert(`Session error: ${error.message}`);
+              } else {
+                console.log('[Parent] ✅ Authentication successful!');
+                
+                // Find the iframe and tell it to refresh
+                const iframe = document.querySelector('iframe');
+                if (iframe) {
+                  console.log('[Parent] Notifying iframe of successful auth...');
+                  // The iframe will detect the auth state change automatically
+                  iframe.contentWindow.postMessage({ type: 'auth-success' }, '*');
+                }
+              }
+            }
+            
+            // Clean the URL hash (remove tokens from address bar)
+            history.replaceState({}, '', location.pathname + location.search);
+          }
+        } catch (e) {
+          console.error('[Parent] Magic link processing failed:', e);
+        }
+      })();
+      </script>
 </head>
 <body>
   <div class="page">
