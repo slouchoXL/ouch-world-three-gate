@@ -63,6 +63,60 @@ async function jfetch(path, options = {}) {
   return r.json();
 }
 
+// ===== DEBUG FUNCTION =====
+async function testAuthFlow() {
+  console.log('=== AUTH DEBUG START ===');
+  
+  // 1. Check Supabase session
+  if (supa?.auth) {
+    const { data: { session }, error: sessionError } = await supa.auth.getSession();
+    console.log('Current session:', session ? 'Present' : 'None');
+    console.log('Session error:', sessionError);
+    console.log('User ID:', session?.user?.id || 'None');
+    console.log('Access token present:', !!session?.access_token);
+    
+    if (session?.access_token) {
+      // 2. Test backend auth
+      try {
+        console.log('Testing backend authentication...');
+        const response = await fetch(`${BASE}/api/debug/auth-test`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Backend auth test SUCCESS:', result);
+        } else {
+          const errorText = await response.text();
+          console.error('❌ Backend auth test FAILED:', response.status, errorText);
+        }
+      } catch (e) {
+        console.error('❌ Backend auth test ERROR:', e);
+      }
+    } else {
+      console.log('⚠️ No access token - skipping backend test');
+    }
+  } else {
+    console.log('❌ Supabase client not available');
+  }
+  
+  // 3. Test current auth header
+  try {
+    const authHeader = await getAuthHeader();
+    console.log('Current auth header:', authHeader);
+  } catch (e) {
+    console.error('Auth header error:', e);
+  }
+  
+  console.log('=== AUTH DEBUG END ===');
+}
+
+// Make testAuthFlow available globally for console access
+window.testAuthFlow = testAuthFlow;
+
 // ===== tiny DOM helpers =====
 const $  = (sel, root=document) => root.querySelector(sel);
 const el = (tag, className) => { const n = document.createElement(tag); if (className) n.className = className; return n; };
@@ -270,13 +324,21 @@ async function requireSignedInOrPrompt() {
 // Live-reload balance/meta on auth changes without creating loops
 if (supa?.auth) {
   supa.auth.onAuthStateChange(async (event, session) => {
+    console.log(`Auth state changed: ${event}`, session?.user?.id || 'no user');
+    
     if (event === 'SIGNED_IN' && session?.user) {
       // no PLAYER_ID rewrite; JWT drives identity
       try {
         const fresh = await jfetch('/api/inventory');
         inv = normalizeInventory(fresh);
         renderMeta();
-      } catch {}
+        console.log('✅ Inventory refreshed after sign-in');
+        
+        // DEBUG: Test auth flow after successful sign-in
+        setTimeout(() => testAuthFlow(), 1000);
+      } catch (e) {
+        console.error('❌ Failed to refresh inventory after sign-in:', e);
+      }
       // keep CTA as-is; user can open packs now
     } else if (event === 'SIGNED_OUT') {
       // fall back to anon id for testing only
@@ -290,7 +352,10 @@ if (supa?.auth) {
         const fresh = await jfetch('/api/inventory');
         inv = normalizeInventory(fresh);
         renderMeta();
-      } catch {}
+        console.log('✅ Fell back to anonymous inventory');
+      } catch (e) {
+        console.error('❌ Failed to load anonymous inventory:', e);
+      }
       // encourage sign-in for pack opening
       cta.textContent = 'Sign in to open packs';
       cta.hidden = false;
@@ -306,7 +371,10 @@ async function init(){
 
     // ===== CHANGED: require sign-in before inventory/open =====
     const ok = await requireSignedInOrPrompt();
-    if (!ok) return;
+    if (!ok) {
+      console.log('⚠️ User not signed in - showing sign-in prompt');
+      return;
+    }
 
     const invResp = await jfetch('/api/inventory'); // DB-backed when signed in
     inv   = normalizeInventory(invResp);
@@ -316,7 +384,13 @@ async function init(){
     cta.hidden = false;
     cta.disabled = false;
     cta.addEventListener('click', onOpenClick, { once:true });
+    
+    console.log('✅ App initialized successfully');
+    
+    // DEBUG: Test auth flow on initial load (after a delay)
+    setTimeout(() => testAuthFlow(), 2000);
   } catch(e){
+    console.error('❌ App initialization failed:', e);
     showError(String(e.message || e));
   }
 }
@@ -344,21 +418,26 @@ async function onOpenClick(){
     packImg.hidden = true;
     trayEl.hidden  = true;
 
+    console.log('🎁 Opening pack...');
     const res = await jfetch('/api/packs/open', {
       method: 'POST',
       body: JSON.stringify({ packId: pack.id, idempotencyKey: uuid4() })
     });
 
     opening = { ...res, results: padToFive(res.results || []) };
+    console.log('✅ Pack opened successfully:', opening);
 
     try {
       const fresh = await jfetch('/api/inventory');
       inv = normalizeInventory(fresh);
       renderMeta();
-    } catch {}
+    } catch (e) {
+      console.error('❌ Failed to refresh inventory after pack opening:', e);
+    }
 
     showStack(opening.results);
   } catch(e){
+    console.error('❌ Pack opening failed:', e);
     showError(String(e.message || e));
     cta.hidden = false;
     cta.disabled = false;

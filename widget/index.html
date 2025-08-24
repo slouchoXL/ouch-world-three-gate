@@ -48,34 +48,50 @@
 
   <!-- Handle magic-link returns (hash with access_token), then clean URL -->
   <script>
-     (async function () {
-       try {
-         if (window.supa && location.hash && location.hash.includes('access_token')) {
-           const params = new URLSearchParams(location.hash.slice(1)); // strip #
-           const access_token  = params.get('access_token');
-           const refresh_token = params.get('refresh_token');
+  (async function () {
+    try {
+      if (window.supa && location.hash && location.hash.includes('access_token')) {
+        console.log('[supabase] Processing magic link hash...');
+        
+        const params = new URLSearchParams(location.hash.slice(1));
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        const error = params.get('error');
+        const error_description = params.get('error_description');
 
-           if (access_token && refresh_token) {
-             console.log('[supabase] magic link detected, setting session…');
-             const { data, error } = await window.supa.auth.setSession({
-               access_token,
-               refresh_token
-             });
-             if (error) {
-               console.warn('[supabase] setSession error:', error);
-             } else {
-               console.log('[supabase] session set:', data);
-             }
-           }
+        // Check for errors first
+        if (error) {
+          console.error('[supabase] Auth error:', error, error_description);
+          alert(`Authentication error: ${error_description || error}`);
+          history.replaceState({}, '', location.pathname + location.search);
+          return;
+        }
 
-           // Strip the hash so we don’t keep reprocessing it
-           history.replaceState({}, '', location.pathname + location.search);
-         }
-       } catch (e) {
-         console.warn('[supabase] magic-link processing failed:', e);
-       }
-     })();
-   </script>
+        if (access_token && refresh_token) {
+          console.log('[supabase] Setting session from magic link...');
+          const { data, error } = await window.supa.auth.setSession({
+            access_token,
+            refresh_token
+          });
+          
+          if (error) {
+            console.error('[supabase] setSession error:', error);
+            alert(`Session error: ${error.message}`);
+          } else {
+            console.log('[supabase] Session set successfully:', data);
+            // Optionally reload the app or update UI
+            window.location.reload();
+          }
+        }
+
+        // Clean URL regardless of success/failure
+        history.replaceState({}, '', location.pathname + location.search);
+      }
+    } catch (e) {
+      console.error('[supabase] Magic link processing failed:', e);
+    }
+  })();
+  </script>
 </head>
 
 
