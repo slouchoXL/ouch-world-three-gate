@@ -21,6 +21,7 @@
     window.__SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ';
   </script>
 
+  
   <!-- Backend base (define BEFORE app.js so app.js can read it) -->
   <script>
     (function () {
@@ -47,28 +48,37 @@
 
   <!-- Handle magic-link returns (hash with access_token), then clean URL -->
   <script>
-    (async function () {
-      try {
-        if (window.supa && location.hash && location.hash.includes('access_token')) {
-          const params = new URLSearchParams(location.hash.slice(1)); // strip #
-          const access_token  = params.get('access_token');
-          const refresh_token = params.get('refresh_token');
+     (async function () {
+       try {
+         if (window.supa && location.hash && location.hash.includes('access_token')) {
+           const params = new URLSearchParams(location.hash.slice(1)); // strip #
+           const access_token  = params.get('access_token');
+           const refresh_token = params.get('refresh_token');
 
-          if (access_token && refresh_token) {
-            // v2: set the session explicitly
-            const { error } = await window.supa.auth.setSession({ access_token, refresh_token });
-            if (error) console.warn('[supabase] setSession error:', error);
-          }
+           if (access_token && refresh_token) {
+             console.log('[supabase] magic link detected, setting session…');
+             const { data, error } = await window.supa.auth.setSession({
+               access_token,
+               refresh_token
+             });
+             if (error) {
+               console.warn('[supabase] setSession error:', error);
+             } else {
+               console.log('[supabase] session set:', data);
+             }
+           }
 
-          // Strip the hash so we don’t keep reprocessing it
-          history.replaceState({}, '', location.pathname + location.search);
-        }
-      } catch (e) {
-        console.warn('[supabase] magic-link processing failed:', e);
-      }
-    })();
-  </script>
+           // Strip the hash so we don’t keep reprocessing it
+           history.replaceState({}, '', location.pathname + location.search);
+         }
+       } catch (e) {
+         console.warn('[supabase] magic-link processing failed:', e);
+       }
+     })();
+   </script>
 </head>
+
+
 <body>
   <!-- Simple auth UI (must be in BODY, after client is created) -->
   <div id="auth" style="margin: 12px 12px 0; display:flex; gap:8px; align-items:center;">
@@ -154,10 +164,7 @@
     <div id="error" class="error" hidden></div>
   </div>
   
-  await window.supa.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: location.href } // exact iframe URL
-  });
+ 
 
   <!-- Your app (module so we can use top-level await); after client + auth UI -->
   <script type="module" src="./app.js"></script>
