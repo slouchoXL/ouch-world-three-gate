@@ -45,7 +45,6 @@
     }
   </script>
 
-  <!-- If we returned from a magic link, just clean the hash (v2 needs no parsing here) -->
   <!-- Handle magic-link returns (hash with access_token), then clean URL -->
   <script>
     (async function () {
@@ -57,7 +56,7 @@
 
           if (access_token && refresh_token) {
             // v2: set the session explicitly
-            const { data, error } = await window.supa.auth.setSession({ access_token, refresh_token });
+            const { error } = await window.supa.auth.setSession({ access_token, refresh_token });
             if (error) console.warn('[supabase] setSession error:', error);
           }
 
@@ -71,8 +70,8 @@
   </script>
 </head>
 <body>
- Simple auth UI (must be in BODY, after client is created)
-<div id="auth" style="margin: 12px 12px 0; display:flex; gap:8px; align-items:center;">
+  <!-- Simple auth UI (must be in BODY, after client is created) -->
+  <div id="auth" style="margin: 12px 12px 0; display:flex; gap:8px; align-items:center;">
     <input type="email" id="emailInput" placeholder="Enter email" autocomplete="email" />
     <button id="loginBtn">Send Magic Link</button>
     <button id="logoutBtn" hidden>Log out</button>
@@ -98,7 +97,7 @@
         if (!email) return alert('Enter your email');
         if (!window.supa?.auth) return alert('Auth not initialized');
 
-        // 👇 Force redirect back to the *same tab + URL* user is already on
+        // Redirect back to the *same tab + URL* user is already on
         const emailRedirectTo = location.href;
 
         const { error } = await window.supa.auth.signInWithOtp({
@@ -121,7 +120,7 @@
         window.supa.auth.onAuthStateChange((_event, session) => updateButtons(session));
       }
     })();
-  </script> 
+  </script>
 
   <!-- Widget UI -->
   <div id="app" class="widget" aria-live="polite">
