@@ -46,7 +46,17 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; overflow: hidden; font-family: Arial, sans-serif; background: #000; color: #fff; }
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background: #000; color: #fff;
+        touch-action: none;
+        -ms-touch-action: none;
+        
+    }
+      
+      
     .container { width: 100vw; height: 100vh; position: relative; }
     #scene-container { position: absolute; inset: 0; z-index: 1; }
     #scene-container canvas { display: block; cursor: pointer; }
@@ -78,7 +88,7 @@
     /* Menu tray */
     .menu-tray {
       position: fixed; top: 60px; left: 20px; width: 130px;
-      background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(20px);
+      background: rgba(0, 0, 0, 1); backdrop-filter: blur(20px);
       border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; z-index: 200;
       transform: translateY(-20px); opacity: 0; visibility: hidden; transition: all .3s ease; padding: 10px 0;
     }
@@ -873,6 +883,34 @@
       lastTouchEnd = now;
     }, { passive: false });
   })();
+</script>
+<script>
+// 1) Kill iOS pinch gestures (Safari fires these)
+document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
+document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
+
+// 2) Block multi-touch zoom attempts
+document.addEventListener('touchstart', function (e) {
+  if (e.touches && e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('touchmove', function (e) {
+  // Some iOS versions expose e.scale during pinch; block when not neutral
+  if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault();
+}, { passive: false });
+
+// 3) Stop double-tap-to-zoom without breaking single taps
+(function () {
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', function (e) {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) {
+      e.preventDefault(); // suppress the second tap
+    }
+    lastTouchEnd = now;
+  }, { passive: false });
+})();
 </script>
 
 </body>
