@@ -121,13 +121,13 @@
     .character-actions { display: flex; justify-content: center; }
     .character-confirm { background: rgba(255,255,255,.92); color: #000; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; font-weight: 600; }
     
-    /* Hide the selector bar entirely */
+    /* Hide the selector bar entirely
     #characterControls { display: none !important; }
 
-    /* If you ever show it again, these remove chrome: */
+    /* If you ever show it again, these remove chrome:
     .character-name { background: none !important; padding: 0 !important; }
     .arrow-btn, .character-actions { display: none !important; }
-
+     */
 
     /* Chat (unchanged styles trimmed for brevity)
     .chatbot-container { position: fixed; right: 16px; bottom: 16px; width: 320px; height: 420px; background: rgba(0,0,0,.8); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; display: none; flex-direction: column; z-index: 260; }
@@ -238,8 +238,8 @@
   };
     
     // Carousel layout + tween parameters (safe at top-level)
-    carousel.radius     = 1.25;
-    carousel.anglePer   = Math.PI / 12;
+    carousel.radius     = 1.9;
+    carousel.anglePer   = Math.PI / 10;
     carousel.camHome    = null;        // set on first enterCarousel()
     carousel.dragOffset = 0;
     carousel.animFrom   = 0;
@@ -384,6 +384,14 @@
         centerAndScaleToHeight(root, targetHeight);
         if (cfg.scaleMul) root.scale.multiplyScalar(cfg.scaleMul);
 
+        // 🔧 Apply per-character Y offset ONCE and cache the stable baseY for carousel/layout
+        root.userData = root.userData || {};
+        if (cfg.y != null && !root.userData.yApplied) {
+          root.position.y += cfg.y;
+          root.userData.yApplied = true;
+        }
+        root.userData.baseY = root.position.y; // used by carousel to avoid Y "jumps"
+
         // ✅ Make meshes raycast-friendly (do this BEFORE animations & adding to scene)
         root.traverse(o => {
           if (o.isMesh) {
@@ -444,32 +452,52 @@
     );
   };
 
+
     function layoutCarousel(offsetInItems) {
       if (!carousel.group) return;
       const n = carousel.cache.length;
+      const half = n / 2;
+
+      // helper: shortest signed distance i→active on a ring
+      const rel = (i, active) => {
+        let d = ((i - active) % n + n) % n; // 0..n-1
+        if (d > n / 2) d -= n;              // now in (-n/2 .. n/2]
+        return d;
+      };
+
       for (let i = 0; i < n; i++) {
         const entry = carousel.cache[i]; if (!entry) continue;
-        // k is relative slot index from center, including drag offset
-        const k = (i - carousel.activeIndex) - offsetInItems;
-        const ang = k * carousel.anglePer;
 
-        const y = entry.root.position.y;     // keep your y offset from scaling
-        const x = Math.sin(ang) * carousel.radius;
-        const z = (1 - Math.cos(ang)) * (carousel.radius * 0.9); // push back slightly
+        // use cached baseY so Y never “jumps”
+        const baseY = entry.baseY ?? 0;
 
-        entry.root.position.set(x, y, z);
+        // k is the wrapped slot index from center, including drag offset
+        const k = rel(i, carousel.activeIndex) - offsetInItems;
+        const ang = k * (carousel.anglePer ?? (Math.PI / 10)); // ~18° default
+
+        const x = Math.sin(ang) * (carousel.radius ?? 1.8);
+        const z = (1 - Math.cos(ang)) * ((carousel.radius ?? 1.8) * 0.9);
+
+        entry.root.position.set(x, baseY, z);
         entry.root.rotation.y = -ang * 0.6;  // toe-in toward center
       }
 
-      // Subtle camera parallax, always looking at origin (or your chosen focus)
-      const camSlide = Math.sin(-offsetInItems * carousel.anglePer) * 0.28;
-      const camDepth = carousel.camHome.z + (1 - Math.cos(-offsetInItems * carousel.anglePer)) * 0.18;
+      // Camera parallax, always looking near center
+      const anglePer = carousel.anglePer ?? (Math.PI / 10);
+      const rad = carousel.radius ?? 1.8;
+      const camSlide = Math.sin(-offsetInItems * anglePer) * 0.35;
+      const camDepth = carousel.camHome
+        ? carousel.camHome.z + (1 - Math.cos(-offsetInItems * anglePer)) * (rad * 0.12)
+        : camera.position.z;
 
-      camera.position.x = THREE.MathUtils.lerp(camera.position.x, camSlide, 0.08);
-      camera.position.z = THREE.MathUtils.lerp(camera.position.z, camDepth, 0.08);
-      camera.position.y = THREE.MathUtils.lerp(camera.position.y, carousel.camHome.y, 0.08);
-      camera.lookAt(0, carousel.camHome.y * 0.6, 0); // slight down-tilt
+      camera.position.x = THREE.MathUtils.lerp(camera.position.x, camSlide, 0.1);
+      if (carousel.camHome) {
+        camera.position.y = THREE.MathUtils.lerp(camera.position.y, carousel.camHome.y, 0.1);
+      }
+      camera.position.z = THREE.MathUtils.lerp(camera.position.z, camDepth, 0.1);
+      camera.lookAt(0, (carousel.camHome?.y || 0) * 0.6, 0);
     }
+
 
     // Drive easing each frame (call from your animate loop)
     function updateCarouselTween() {
@@ -492,11 +520,11 @@
 
   // ===== Carousel implementation =====
   function enterCarousel() {
-    // show overlay (even if you hide it via CSS later)
+    // Show overlay (even if you hide it via CSS later)
     const c = document.getElementById('characterControls');
     if (c) c.classList.add('show');
 
-    // remember camera "home" once (used for parallax + exit)
+    // Remember camera "home" once (used for parallax + exit)
     if (!carousel.camHome) {
       carousel.camHome = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
     }
@@ -509,22 +537,32 @@
       carousel.group.name = 'CHAR_CAROUSEL_GROUP';
     }
 
-    // preload all entries, then build the carousel
+    // Preload all entries, then build the carousel
     preloadAll().then(() => {
-      // remove single root; we’ll show via the group
+      // Remove single root; we’ll show via the group
       if (currentModel) scene.remove(currentModel);
 
-      // ensure dimming light is present during carousel
+      // Ensure every entry has a stable baseY (prevents vertical "pop")
+      for (let i = 0; i < carousel.cache.length; i++) {
+        const entry = carousel.cache[i];
+        if (!entry || !entry.root) continue;
+        if (typeof entry.baseY !== 'number') {
+          entry.baseY = entry.root.userData?.baseY ?? entry.root.position.y;
+        }
+      }
+
+      // Ensure dimming light is present during carousel (height uses baseY)
       if (!carousel.centerLight) {
-        const yTop = (carousel.cache[carousel.activeIndex]?.root?.position.y || 0) + 0.9;
-        const pl = new THREE.PointLight(0xffffff, 1.2, 2.2, 2.0); // intensity, distance, decay
-        pl.position.set(0, yTop, 0.6);
+        const yTop = (carousel.cache[carousel.activeIndex]?.baseY || 0) + 1.0;
+        const pl = new THREE.PointLight(0xffffff, 1.15, 2.4, 2.2); // intensity, distance, decay
+        pl.position.set(0, yTop, 0.7);
         pl.castShadow = false;
         scene.add(pl);
         carousel.centerLight = pl;
       } else if (!carousel.centerLight.parent) {
         scene.add(carousel.centerLight);
       }
+
 
       // (Re)build the group
       carousel.group.clear();
@@ -533,17 +571,22 @@
       for (let i = 0; i < carousel.cache.length; i++) {
         const entry = carousel.cache[i];
         if (!entry) continue;
+
         entry.root.visible = true;
-        // no need to pre-position linearly; layoutCarousel() will do arc placement
+
+        // Reset to a clean pose so arc layout starts from known state
+        entry.root.position.set(0, entry.baseY ?? entry.root.position.y, 0);
+        entry.root.rotation.set(0, 0, 0);
+
         carousel.group.add(entry.root);
       }
 
       scene.add(carousel.group);
 
-      // drive animations for all items while in carousel
+      // Drive animations for all items while in carousel
       startCarouselAnimations();
 
-      // input + state
+      // Input + state
       carousel.dragOffset = 0;
       carousel.animFrom = 0;
       carousel.animTo = 0;
@@ -552,7 +595,7 @@
       window.updateCharacterInfo?.();
       attachCarouselInput();
 
-      // ✅ do the initial arc layout NOW that everything is in the scene
+      // Initial arc layout NOW that everything is in the scene
       layoutCarousel(0);
     });
   }
@@ -650,60 +693,85 @@
     return Promise.all(jobs);
   }
 
-  function loadEntry(index) {
-    const cfg = window.characterConfigs[index];
-    if (!cfg) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-      gltfLoader.load(
-        cfg.url,
-        (gltf) => {
-          const root = gltf.scene || gltf.scenes?.[0];
-          if (!root) { resolve(); return; }
-          const targetHeight = cfg.targetHeight ?? 1.4;
-          centerAndScaleToHeight(root, targetHeight);
-          if (cfg.scaleMul) root.scale.multiplyScalar(cfg.scaleMul);
-          if (cfg.y) root.position.y += cfg.y; // add this
-          root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    function loadEntry(index) {
+      const cfg = window.characterConfigs[index];
+      if (!cfg) return Promise.resolve();
 
-          // animation
-          let mixer = null;
-          if (gltf.animations && gltf.animations.length) {
-            mixer = new THREE.AnimationMixer(root);
-            const clips = gltf.animations;
-            const baseClip =
-              THREE.AnimationClip.findByName(clips, 'Idle') ||
-              THREE.AnimationClip.findByName(clips, 'idle') ||
-              clips[0];
-            const trimStart = Math.max(0, cfg.trimStart ?? 1.5);
-            const trimEnd   = Math.max(0, cfg.trimEnd   ?? 2.0);
-            const minDur = 0.05;
-            const startSec = Math.min(trimStart, Math.max(0, baseClip.duration - minDur));
-            const endSec   = Math.max(baseClip.duration - trimEnd, startSec + minDur);
-            const fps = 30;
-            const startFrame = Math.max(0, Math.floor(startSec * fps));
-            const endFrame   = Math.max(startFrame + 1, Math.ceil(endSec * fps));
-            const sub = THREE.AnimationUtils.subclip(baseClip, (baseClip.name || 'clip') + '_trim', startFrame, endFrame, fps);
-            const action = mixer.clipAction(sub);
-            action.setLoop(THREE.LoopPingPong, Infinity).reset().setEffectiveWeight(1).play();
-            action.time = 1/60; mixer.update(0);
-          }
-          
-          root.traverse(o => {
-            if (o.isMesh) {
-              o.castShadow = o.receiveShadow = true;
-              o.raycast = THREE.Mesh.prototype.raycast; // ensure default raycast
-              o.frustumCulled = false;                  // prevents “vanished” hits on tight FOVs
+      return new Promise((resolve, reject) => {
+        gltfLoader.load(
+          cfg.url,
+          (gltf) => {
+            const root = gltf.scene || gltf.scenes?.[0];
+            if (!root) { resolve(); return; }
+
+            const targetHeight = cfg.targetHeight ?? 1.4;
+
+            // Center/scale
+            centerAndScaleToHeight(root, targetHeight);
+            if (cfg.scaleMul) root.scale.multiplyScalar(cfg.scaleMul);
+
+            // Apply per-character Y offset ONCE and cache stable baseY
+            root.userData = root.userData || {};
+            if (cfg.y != null && !root.userData.yApplied) {
+              root.position.y += cfg.y;
+              root.userData.yApplied = true;
             }
-          });
-          root.visible = false; // not shown until we enter carousel or commit
-          carousel.cache[index] = { root, mixer, targetHeight, cfg };
-          resolve();
-        },
-        undefined,
-        reject
-      );
-    });
-  }
+            root.userData.baseY = root.position.y;
+
+            // Mesh setup (single traverse)
+            root.traverse(o => {
+              if (o.isMesh) {
+                o.castShadow = true;
+                o.receiveShadow = true;
+                o.raycast = THREE.Mesh.prototype.raycast; // robust raycast
+                o.frustumCulled = false;                  // avoid cull-related miss clicks
+              }
+            });
+
+            root.updateMatrixWorld(true);
+
+            // Animation
+            let mixer = null;
+            if (gltf.animations && gltf.animations.length) {
+              mixer = new THREE.AnimationMixer(root);
+              const clips = gltf.animations;
+              const baseClip =
+                THREE.AnimationClip.findByName(clips, 'Idle') ||
+                THREE.AnimationClip.findByName(clips, 'idle') ||
+                clips[0];
+
+              const trimStart = Math.max(0, cfg.trimStart ?? 1.5);
+              const trimEnd   = Math.max(0, cfg.trimEnd   ?? 2.0);
+              const minDur = 0.05;
+              const startSec = Math.min(trimStart, Math.max(0, baseClip.duration - minDur));
+              const endSec   = Math.max(baseClip.duration - trimEnd, startSec + minDur);
+              const fps = 30;
+              const startFrame = Math.max(0, Math.floor(startSec * fps));
+              const endFrame   = Math.max(startFrame + 1, Math.ceil(endSec * fps));
+              const sub = THREE.AnimationUtils.subclip(
+                baseClip, (baseClip.name || 'clip') + '_trim', startFrame, endFrame, fps
+              );
+
+              const action = mixer.clipAction(sub);
+              action.setLoop(THREE.LoopPingPong, Infinity).reset().setEffectiveWeight(1).play();
+              action.time = 1/60;
+              mixer.update(0);
+            }
+
+            root.visible = false; // only shown in carousel or when committed
+
+            // Store baseY on the cache entry so layout uses a stable Y
+            const baseY = root.userData.baseY;
+            carousel.cache[index] = { root, mixer, targetHeight, cfg, baseY };
+
+            resolve();
+          },
+          undefined,
+          reject
+        );
+      });
+    }
+
 
   function startCarouselAnimations() {
     carousel.mixers = [];
@@ -785,17 +853,21 @@
   }
 
     function setGroupOffset(offsetInItems) {
-      // Negative offset drags to the left, positive to the right.
       carousel.dragOffset = offsetInItems;
-      layoutCarousel(offsetInItems);  // <- new helper below
-      // Pick nearest model for name/state while dragging
+      layoutCarousel(offsetInItems);
+
+      // choose nearest index purely by offset direction
       const nearest = Math.round(carousel.activeIndex - offsetInItems);
-      const clamped = THREE.MathUtils.clamp(nearest, 0, (window.characterConfigs?.length || 1) - 1);
+      const n = (window.characterConfigs?.length || 1);
+      const clamp = (v) => THREE.MathUtils.clamp(v, 0, n - 1);
+      const clamped = clamp(nearest);
+
       if (clamped !== window.currentCharacterIndex) {
         window.currentCharacterIndex = clamped;
         window.updateCharacterInfo?.();
       }
     }
+
 
 
   function nearestIndex() {
