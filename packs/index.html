@@ -8,13 +8,10 @@
       <style>
           :root{
               --bg:#000; --card:#000; --text:#eaeaea; --muted:#9aa0a6; --maxw:1200px;
-          }
-          
-          :root {
-            --msg-font-size: 11px;
-            --msg-line-h: 1.3;
-            --msg-vpad: 6px;
-            --msg-gap: 6px;
+              --msg-font-size: 11px;
+              --msg-line-h: 1.3;
+              --msg-vpad: 6px;
+              --msg-gap: 6px;
           }
           
           .page {
@@ -36,7 +33,7 @@
           main.iframe-shell > iframe {
               /* display:block;
               width:100%;
-              height:100%;        fill shell 
+              height:100%;        fill shell
               border:0;
               background:#000;*/
               
@@ -562,14 +559,13 @@
   <div class="page">
     <header></header>
 
-    <main class="iframe-shell">
+    <main style="background: red; min-height: 500px; padding: 20px;">
+      <h2 style="color: white;">IFRAME TEST</h2>
       <iframe
-        id="packsFrame"
         src="../widget/index.html"
-        loading="eager"
-        scrolling="no"
-        referrerpolicy="no-referrer-when-downgrade"
-        allow="clipboard-read; clipboard-write">
+        width="100%"
+        height="400px"
+        style="border: 5px solid green; background: blue;">
       </iframe>
     </main>
 
