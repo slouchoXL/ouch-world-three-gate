@@ -227,7 +227,7 @@
     root.scale.multiplyScalar(s);
   }
 
-    function frameCameraOnTargetHeight(camera, targetHeight = 1.8, pad = 1.4, centerYFactor = 0.6) {
+    function frameCameraOnTargetHeight(camera, targetHeight = 1.8, pad = 1.4, centerYFactor = 0.1) {
       // pad > 1 adds margin around the model's height; 1.4 is a safe default
       const fovRad = (camera.fov * Math.PI) / 180;
       const halfH  = (targetHeight * pad) / 2;
@@ -368,7 +368,7 @@
         currentModel = root;
         window.character = root;
 
-        frameCameraOnTargetHeight(camera, targetHeight, 1.4, 0.7);
+        frameCameraOnTargetHeight(camera, targetHeight, 1.4, 0.1);
         window.updateCharacterInfo?.();
       },
       undefined,
