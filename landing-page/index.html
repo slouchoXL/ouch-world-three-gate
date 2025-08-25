@@ -211,7 +211,7 @@
   }
 
   window.characterConfigs = [
-    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, scaleMul: 0.6, trimStart: 1.5, trimEnd: 2.0 },
+    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, y: -0.08, scaleMul: 0.6, trimStart: 1.5, trimEnd: 2.0 },
     { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     targetHeight: 1.4, scaleMul: 0.95, trimStart: 0.12, trimEnd: 0.10 },
     { name: "Super Maramu 2000", status: "Locked", url: "/assets/models/maramu.glb", targetHeight: 1.4, scaleMul: 0.95, trimStart: 0.12, trimEnd: 0.10 }
   ];
@@ -405,6 +405,12 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    
+    // Make PBR/glTF materials look right and a bit brighter
+    renderer.outputEncoding = THREE.sRGBEncoding;              // correct gamma
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;        // nicer rolloff
+    renderer.toneMappingExposure = 1.25;                       // bump global exposure (try 1.2–1.5)
+
 
     // ✅ append the canvas so it’s visible
     const container = document.getElementById('scene-container');
@@ -412,13 +418,28 @@
     container.appendChild(renderer.domElement);
 
     // Lights
-    scene.add(new THREE.AmbientLight(0x404040, 0.6));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-    dir.position.set(10,10,5);
-    dir.castShadow = true;
-    scene.add(dir);
-    const rim = new THREE.DirectionalLight(0x4444ff, 0.3);
-    rim.position.set(-5,0,-5);
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a2a, 0.7);
+    scene.add(hemi);
+
+    // Key light: main light from front-right, casts shadows
+    const key = new THREE.DirectionalLight(0xffffff, 1.6);
+    key.position.set(5, 8, 6);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.camera.near = 0.1;
+    key.shadow.camera.far = 50;
+    scene.add(key);
+
+    // Fill light: softens shadows from front-left, no shadows
+    const fill = new THREE.DirectionalLight(0xffffff, 0.7);
+    fill.position.set(-4, 5, 6);
+    fill.castShadow = false;
+    scene.add(fill);
+
+    // Rim/back light: subtle colored edge from behind
+    const rim = new THREE.DirectionalLight(0x88aaff, 0.5);
+    rim.position.set(-5, 2, -6);
+    rim.castShadow = false;
     scene.add(rim);
 
     // Raycasting
