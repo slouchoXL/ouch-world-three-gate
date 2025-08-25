@@ -42,7 +42,7 @@
             * { margin: 0; padding: 0; box-sizing: border-box; }
             html, body { height: 100%; overflow: hidden; font-family: Arial, sans-serif; background: #000; color: #fff; }
             .container { width: 100vw; height: 100vh; position: relative; }
-            #scene-container { position: absolute; inset: 0; z-index: 1; }
+            /*   #scene-container { position: absolute; inset: 0; z-index: 1; }
             #scene-container canvas { display: block; cursor: pointer; }
 
             /* Top navigation */
@@ -316,18 +316,235 @@
             }
           </style>
         </head>
+        <body>
+
+        <div class="container">
+          <div id="scene-container"></div>
+
+          <!-- Top Navigation -->
+          <div class="top-nav">
+            <button class="menu-button" onclick="toggleMenu()">
+              <div class="menu-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            </button>
+            <button class="login-button" onclick="handleLogin()">
+              <div class="user-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+              </div>
+            </button>
+          </div>
+
+          <!-- Menu Tray -->
+          <div class="menu-tray" id="menuTray">
+            <a href="#" class="menu-item"><span class="menu-pill">Home</span></a>
+            <a href="#" class="menu-item"><span class="menu-pill">Label</span></a>
+            <a href="#" class="menu-item"><span class="menu-pill">Merch</span></a>
+            <a href="#" class="menu-item"><span class="menu-pill">Packs</span></a>
+            <a href="#" class="menu-item"><span class="menu-pill">Inventory</span></a>
+          </div>
+
+          <!-- Character Selector -->
+          <div class="character-controls" id="characterControls">
+            <div class="character-info">
+              <div class="character-header">
+                <button class="arrow-btn" id="prevArrow" title="Previous">‹</button>
+                <div class="character-name" id="characterName">Default Character</div>
+                <button class="arrow-btn" id="nextArrow" title="Next">›</button>
+              </div>
+              <div class="character-actions">
+                <button class="character-confirm" onclick="window.confirmCharacter()">Select</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Login Modal -->
+          <div class="modal-overlay" id="loginModal">
+            <div class="login-modal">
+              <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+              <div class="modal-tabs">
+                <button class="modal-tab active" onclick="switchTab('login')">Account</button>
+              </div>
+              <div id="loginForm">
+                <div class="form-group"><input type="email" class="form-input" placeholder="Email"></div>
+                <button class="form-button">Create / Login</button>
+              </div>
+              <div id="signupForm" style="display:none;">
+                <div class="form-group"><input type="text" class="form-input" placeholder="Username"></div>
+                <div class="form-group"><input type="email" class="form-input" placeholder="Email"></div>
+                <button class="form-button">Sign Up</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chatbot -->
+          <div class="chatbot-container">
+            <div class="chat-messages" id="chatMessages"><div class="message bot">Hi there, how can I help?</div></div>
+            <div class="chat-input-container">
+              <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." onkeypress="handleKeyPress(event)"/>
+              <button class="send-button" onclick="sendMessage()">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Chat toggle button -->
+          <button class="chat-toggle" id="chatToggle" aria-label="Toggle chat">💱</button>
+        </div>
+    
+      </style>
+      
+      <!-- Add this script to your /packs page (the parent page with the iframe) -->
+      <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+      <script>
+      // Create Supabase client on parent page
+      window.supa = window.supabase.createClient(
+        'https://srdwkfjterotzjwzoauj.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ'
+      );
+
+      // Handle magic link tokens on parent page
+      (async function () {
+        try {
+          if (location.hash && location.hash.includes('access_token')) {
+            console.log('[Parent] Processing magic link tokens...');
+            
+            const params = new URLSearchParams(location.hash.slice(1));
+            const access_token = params.get('access_token');
+            const refresh_token = params.get('refresh_token');
+            const error = params.get('error');
+
+            if (error) {
+              console.error('[Parent] Auth error:', error);
+              alert(`Authentication error: ${params.get('error_description') || error}`);
+            } else if (access_token && refresh_token) {
+              console.log('[Parent] Setting session from magic link...');
+              
+              const { data, error } = await window.supa.auth.setSession({
+                access_token,
+                refresh_token
+              });
+              
+              if (error) {
+                console.error('[Parent] Session error:', error);
+                alert(`Session error: ${error.message}`);
+              } else {
+                console.log('[Parent] ✅ Authentication successful!');
+                
+                // Find the iframe and tell it to refresh
+                const iframe = document.querySelector('iframe');
+                if (iframe) {
+                  console.log('[Parent] Notifying iframe of successful auth...');
+                  // The iframe will detect the auth state change automatically
+                  iframe.contentWindow.postMessage({ type: 'auth-success' }, '*');
+                }
+              }
+            }
+            
+            // Clean the URL hash (remove tokens from address bar)
+            history.replaceState({}, '', location.pathname + location.search);
+          }
+        } catch (e) {
+          console.error('[Parent] Magic link processing failed:', e);
+        }
+      })();
+      </script>
+      
+      <script>
+      
+      // ===== UI: Menu & Login =====
+      function toggleMenu() {
+          document.getElementById('menuTray').classList.toggle('open');
+      }
+      function handleLogin() {
+          document.getElementById('loginModal').classList.add('show');
+      }
+      function closeLoginModal() {
+          document.getElementById('loginModal').classList.remove('show');
+      }
+      function switchTab(tab) {
+          const tabs = document.querySelectorAll('.modal-tab');
+          const loginForm = document.getElementById('loginForm');
+          const signupForm = document.getElementById('signupForm');
+          tabs.forEach(t => t.classList.remove('active'));
+          if (tab === 'login') {
+              tabs[0].classList.add('active');
+              loginForm.style.display = 'block';
+              signupForm.style.display = 'none';
+          } else {
+              tabs[1].classList.add('active');
+              loginForm.style.display = 'none';
+              signupForm.style.display = 'block';
+          }
+      }
+
+      // Close menu when clicking outside
+      document.addEventListener('click', function(e) {
+          const tray = document.getElementById('menuTray');
+          const btn = document.querySelector('.menu-button');
+          if (tray && !tray.contains(e.target) && !btn.contains(e.target)) {
+              tray.classList.remove('open');
+          }
+      });
+
+      // Close modal when clicking outside
+      document.getElementById('loginModal').addEventListener('click', function(e) {
+          if (e.target === this) closeLoginModal();
+      });
+
+      // Chatbot functions
+      function handleKeyPress(e) {
+          if (e.key === 'Enter') sendMessage();
+      }
+      
+      function sendMessage() {
+          const input = document.getElementById('chatInput');
+          const text = input.value.trim();
+          if (!text) return;
+          addMessage(text, 'user');
+          input.value = '';
+          setTimeout(() => addMessage(generateBotResponse(text), 'bot'), 500);
+      }
+      
+      function addMessage(text, sender) {
+          const box = document.getElementById('chatMessages');
+          if (!box) return;
+          const div = document.createElement('div');
+          div.className = `message ${sender}`;
+          div.textContent = text;
+          box.appendChild(div);
+          box.scrollTop = box.scrollHeight;
+      }
+      
+      function generateBotResponse(msg) {
+          const m = msg.toLowerCase();
+          if (m.includes('hello')) return "Hello! Welcome to the character showcase. How can I help you today?";
+          if (m.includes('hi')) return "Hi there! I'm here to help you navigate the site. What would you like to know?";
+          if (m.includes('help')) return "I can help you with information about the character, navigation, or features of this site.";
+          if (m.includes('character')) return "This is a 3D character model you can click to open the selector.";
+          if (m.includes('website')) return "This website showcases 3D character models with interactive features.";
+          if (m.includes('menu')) return "Click the three dots in the top-left to open the menu.";
+          if (m.includes('login')) return "Click the user icon in the top-right to open login.";
+          return "Thanks for your message! Ask about the character, website features, or navigation.";
+      }
+
+      // Chat toggle functionality
+      const chatEl = document.querySelector('.chatbot-container');
+      const chatToggleBtn = document.getElementById('chatToggle');
+
+      function setChatOpen(open) {
+          chatEl.classList.toggle('open', open);
+          chatToggleBtn.setAttribute('aria-expanded', String(open));
+      }
+
+      // Start closed by default
+      setChatOpen(false);
+
+      chatToggleBtn.addEventListener('click', () => {
+          setChatOpen(!chatEl.classList.contains('open'));
+      });
+
+      </script>
+</head>
 <body>
-  <h1 style="color: white; background: red; padding: 20px;">BASIC TEST</h1>
-  
-  <iframe
-    src="../widget/index.html"
-    width="800px"
-    height="600px"
-    style="border: 5px solid green; display: block; margin: 20px;">
-  </iframe>
-  
-  <p style="color: white; background: blue; padding: 10px;">Text after iframe</p>
-</body>
   <div class="page">
     <header></header>
 
