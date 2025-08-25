@@ -355,9 +355,7 @@
             .reset()
             .setEffectiveWeight(1)   // full weight immediately
             .play();
-
-          // Force the skeleton into the first keyed pose before the next render
-          action.time = 1/60;        // or 0 if your first keyed frame is fine
+          action.time = 1/60;       
           currentMixer.update(0);
 
           console.log('Clips:', clips.map(c => c.name), 'Trimmed:', { startSec, endSec, duration: sub.duration });
