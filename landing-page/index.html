@@ -4,6 +4,42 @@
   <meta charset="UTF-8">
       <meta name="viewport"
             content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+            <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+            <script>
+              // Safe to expose in client
+              window.__SUPABASE_URL = 'https://srdwkfjterotzjwzoauj.supabase.co';
+              window.__SUPABASE_ANON_KEY = '...anon key...';
+            </script>
+            <script>
+              window.supa = window.supabase.createClient(
+                window.__SUPABASE_URL,
+                window.__SUPABASE_ANON_KEY
+              );
+            </script>
+            <script>
+            (async function () {
+              try {
+                if (window.supa && location.hash && location.hash.includes('access_token')) {
+                  const params = new URLSearchParams(location.hash.slice(1));
+                  const access_token = params.get('access_token');
+                  const refresh_token = params.get('refresh_token');
+                  const error = params.get('error');
+                  const error_description = params.get('error_description');
+
+                  if (error) {
+                    alert(`Authentication error: ${error_description || error}`);
+                    history.replaceState({}, '', location.pathname + location.search);
+                    return;
+                  }
+                  if (access_token && refresh_token) {
+                    const { error } = await window.supa.auth.setSession({ access_token, refresh_token });
+                    if (error) alert(`Session error: ${error.message}`); else window.location.reload();
+                  }
+                  history.replaceState({}, '', location.pathname + location.search);
+                }
+              } catch (e) { console.error('[supabase] Magic link processing failed:', e); }
+            })();
+            </script>
 
   <title>landing-page</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -41,7 +77,7 @@
     /* Menu tray */
     .menu-tray {
       position: fixed; top: 60px; left: 20px; width: 130px;
-      background: rgba(255, 255, 255, 0); backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(20px);
       border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; z-index: 200;
       transform: translateY(-20px); opacity: 0; visibility: hidden; transition: all .3s ease; padding: 10px 0;
     }
@@ -347,9 +383,12 @@
         <button class="modal-tab active" onclick="switchTab('login')">Account</button>
       </div>
       <div id="loginForm">
-        <div class="form-group"><input type="email" class="form-input" placeholder="Email"></div>
-        <button class="form-button">Create / Login</button>
+        <div class="form-group">
+          <input type="email" id="loginEmail" class="form-input" placeholder="Email" required>
+        </div>
+        <button id="loginSubmit" class="form-button">Create / Login</button>
       </div>
+
       <div id="signupForm" style="display:none;">
         <div class="form-group"><input type="text" class="form-input" placeholder="Username"></div>
         <div class="form-group"><input type="email" class="form-input" placeholder="Email"></div>
@@ -785,6 +824,40 @@
         document.getElementById('prevArrow')?.addEventListener('click', window.previousCharacter);
         document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
     });
+</script>
+
+<script>
+(function () {
+  const emailInput = document.getElementById('loginEmail');   // your modal email input
+  const loginBtn   = document.getElementById('loginSubmit');  // your modal button
+
+  if (!emailInput || !loginBtn) return; // modal not on this page
+
+  function magicRedirect() {
+    const isInIframe = window !== window.top;
+    // Same logic as your working page: always return to /packs
+    return isInIframe
+      ? 'https://ouchworld.netlify.app/packs'
+      : `${location.origin}/packs`;
+  }
+
+  loginBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = (emailInput.value || '').trim();
+    if (!email) return alert('Enter your email');
+    if (!window.supa?.auth) return alert('Auth not initialized');
+
+    loginBtn.disabled = true; const old = loginBtn.textContent; loginBtn.textContent = 'Sending…';
+    const { error } = await window.supa.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: magicRedirect() }
+    });
+    loginBtn.disabled = false; loginBtn.textContent = old;
+
+    if (error) alert(error.message);
+    else alert('Check your email for the magic link!');
+  });
+})();
 </script>
 
 <script>
