@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="viewport"
+            content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
   <title>landing-page</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
@@ -126,6 +128,14 @@
       display: flex; align-items: center; justify-content: center;
       transition: all .2s ease;
     }
+      input, textarea, select {
+           font-size: 16px;
+         }
+      /* Tell browsers these elements trigger only taps/clicks (no zooming gestures) */
+      button, a, .menu-button, .login-button, .chat-toggle, .send-button, .arrow-btn, .character-confirm {
+        touch-action: manipulation;
+      }
+
     .modal-close:hover { color: #fff; background: none; }
     .modal-title { font-size: 24px; font-weight: 300; margin-bottom: 20px; text-align: center; }
     .modal-tabs { display: flex; gap: 20px; margin-bottom: 20px; justify-content: center; }
@@ -135,7 +145,7 @@
     .form-input {
       width: 100%; background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
-      padding: 12px 15px; color: #fff; font-size: 14px; outline: none;
+      padding: 12px 15px; color: #fff; font-size: 16px; outline: none;
     }
     .form-input::placeholder { color: rgba(255,255,255,0.5); }
     .form-button {
@@ -211,7 +221,7 @@
       display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1);
       border-radius: 8px; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1);
     }
-    .chat-input { flex: 1; background: none; border: none; outline: none; color: #fff; font-size: 12px; }
+    .chat-input { flex: 1; background: none; border: none; outline: none; color: #fff; font-size: 16px; }
     .chat-input::placeholder { color: rgba(255,255,255,0.6); }
     .send-button { background: none; border: none; color: rgba(255,255,255,0.8); cursor: pointer; padding: 4px; border-radius: 4px; transition: color .2s ease; display: flex; align-items: center; justify-content: center; }
     .send-button:hover { color: #fff; }
@@ -308,10 +318,10 @@
 
   <!-- Menu Tray -->
   <div class="menu-tray" id="menuTray">
-    <a href="#" class="menu-item"><span class="menu-pill">Home</span></a>
+    <a href="/landing-page/" class="menu-item"><span class="menu-pill">Home</span></a>
     <a href="#" class="menu-item"><span class="menu-pill">Label</span></a>
     <a href="#" class="menu-item"><span class="menu-pill">Merch</span></a>
-    <a href="#" class="menu-item"><span class="menu-pill">Packs</span></a>
+    <a href="/packs/" class="menu-item"><span class="menu-pill">Packs</span></a>
     <a href="#" class="menu-item"><span class="menu-pill">Inventory</span></a>
   </div>
 
@@ -775,6 +785,20 @@
         document.getElementById('prevArrow')?.addEventListener('click', window.previousCharacter);
         document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
     });
+</script>
+
+<script>
+  // Prevent double-tap zoom
+  (function () {
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (e) {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        e.preventDefault(); // cancel the second tap
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
+  })();
 </script>
 
 </body>

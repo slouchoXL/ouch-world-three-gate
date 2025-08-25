@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <title>Packs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
       <title>packs</title>
       <style>
           :root{
@@ -149,6 +151,15 @@
               position: relative;
               color: #fff;
             }
+          
+          input, textarea, select {
+               font-size: 16px;
+             }
+          /* Tell browsers these elements trigger only taps/clicks (no zooming gestures) */
+          button, a, .menu-button, .login-button, .chat-toggle, .send-button, .arrow-btn, .character-confirm {
+            touch-action: manipulation;
+          }
+
             .modal-close {
               position: absolute;
               top: 8px; right: 15px;
@@ -168,7 +179,7 @@
             .form-input {
               width: 100%; background: rgba(255,255,255,0.1);
               border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
-              padding: 12px 15px; color: #fff; font-size: 14px; outline: none;
+              padding: 12px 15px; color: #fff; font-size: 16px; outline: none;
             }
             .form-input::placeholder { color: rgba(255,255,255,0.5); }
             .form-button {
@@ -210,7 +221,7 @@
             }
             .arrow-btn:hover { opacity: 0.8; }
             .character-actions { display: flex; justify-content: center; margin-top: 8px; }
-            .character-confirm { background: rgba(255,255,255,0.92); color: #000; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; transition: background .2s ease; }
+            .character-confirm { background: rgba(255,255,255,0.92); color: #000; border: none; border-radius: 8px; padding: 6px 12px; font-size: 16px; cursor: pointer; transition: background .2s ease; }
             .character-confirm:hover { background: #fff; }
 
             @media (max-width: 420px) {
@@ -242,11 +253,11 @@
 
           <!-- Menu Tray -->
           <div class="menu-tray" id="menuTray">
-            <a href="#" class="menu-item"><span class="menu-pill">Home</span></a>
-            <a href="#" class="menu-item"><span class="menu-pill">Label</span></a>
-            <a href="#" class="menu-item"><span class="menu-pill">Merch</span></a>
-            <a href="#" class="menu-item"><span class="menu-pill">Packs</span></a>
-            <a href="#" class="menu-item"><span class="menu-pill">Inventory</span></a>
+              <a href="/landing-page/" class="menu-item"><span class="menu-pill">Home</span></a>
+              <a href="#" class="menu-item"><span class="menu-pill">Label</span></a>
+              <a href="#" class="menu-item"><span class="menu-pill">Merch</span></a>
+              <a href="/packs/" class="menu-item"><span class="menu-pill">Packs</span></a>
+              <a href="#" class="menu-item"><span class="menu-pill">Inventory</span></a>
           </div>
 
           <!-- Character Selector -->
@@ -491,7 +502,19 @@
       </iframe>
     </main>
 
-    <footer>© OUCH — Packs</footer>
   </div>
+  <script>
+    // Prevent double-tap zoom
+    (function () {
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function (e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+          e.preventDefault(); // cancel the second tap
+        }
+        lastTouchEnd = now;
+      }, { passive: false });
+    })();
+  </script>
 </body>
 </html>
