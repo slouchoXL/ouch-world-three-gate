@@ -44,6 +44,10 @@
 
   <title>landing-page</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  
+  <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+  
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -430,6 +434,10 @@
     let hoverActive = false;
     let lastHoverState = false;
     let hoverLight = null;
+    let gltfLoader, dracoLoader;
+    let currentModel = null;     // store the active GLB's root
+    let currentMixer = null;    
+    const clock = new THREE.Clock();// (optional) for animations
 
     // ===== Character Data =====
     window.scene = null;
@@ -437,14 +445,24 @@
     window.renderer = null;
     window.character = null;
     window.currentCharacterIndex = 0;
+    
+    function initLoaders() {
+      gltfLoader = new THREE.GLTFLoader();
+
+      // If your GLBs are DRACO-compressed, enable this:
+      dracoLoader = new THREE.DRACOLoader();
+      // Use Google's CDN (works fine for prod); or host your own decoders
+      dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+      gltfLoader.setDRACOLoader(dracoLoader);
+    }
 
     window.characterConfigs = [
-        { name: "Default Character",  status: "Unlocked", colors: { shirt: 0xE5E5E5, pants: 0x222222, skin: 0x8B7355 } },
-        { name: "Casual Explorer",   status: "Unlocked", colors: { shirt: 0x4A90E2, pants: 0x2C3E50, skin: 0x8B7355 } },
-        { name: "Street Artist",     status: "Locked",   colors: { shirt: 0xFF6B6B, pants: 0x4ECDC4, skin: 0x8B7355 } },
-        { name: "Tech Ninja",        status: "Unlocked", colors: { shirt: 0x2C2C2C, pants: 0x000000, skin: 0x8B7355 } },
-        { name: "Retro Vibe",        status: "Locked",   colors: { shirt: 0xF39C12, pants: 0x8E44AD, skin: 0x8B7355 } }
+      { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", scale: 1.0, y: 0 },
+      { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     scale: 1.0, y: 0 },
+      { name: "Maramu",  status: "Locked",   url: "/assets/models/maramu.glb",  scale: 1.0, y: 0 }
     ];
+
+    
 
     // ===== Character UI Logic =====
     window.updateCharacterInfo = function() {
@@ -487,97 +505,122 @@
             window.updateCharacterInfo();
         }
     };
+    
+    
 
     // ===== Character Factory =====
-    window.createCharacter = function() {
-        if (!window.scene) {
-            console.error('Scene not initialized');
-            return;
+    window.createCharacter = function () {
+      if (!window.scene || !gltfLoader) {
+        console.error('Loaders/scene not ready');
+        return;
+      }
+
+      // 1) Stop any previous animations and dispose previous model
+      if (currentMixer) {
+        try { currentMixer.stopAllAction(); } catch (_) {}
+        if (currentModel) {
+          try { currentMixer.uncacheRoot(currentModel); } catch (_) {}
         }
-        try {
-            if (window.character) window.scene.remove(window.character);
-            const config = window.characterConfigs[window.currentCharacterIndex];
-            if (!config) return;
+        currentMixer = null;
+      }
+      if (currentModel) {
+        window.scene.remove(currentModel);
+        disposeObject(currentModel);
+        currentModel = null;
+      }
 
-            const group = new THREE.Group();
+      // 2) Resolve the config for the currently selected character
+      const cfgList = window.characterConfigs || [];
+      const idx = (window.currentCharacterIndex ?? 0) % (cfgList.length || 1);
+      const cfg = cfgList[idx];
+      if (!cfg || !cfg.url) return;
 
-            // Head
-            const head = new THREE.Mesh(
-                new THREE.SphereGeometry(0.3,16,16),
-                new THREE.MeshLambertMaterial({ color: config.colors.skin, emissive: 0x000000 })
-            );
-            head.position.y = 1.5;
-            head.castShadow = true;
-            group.add(head);
+      // 3) Load the GLB and set it up
+      gltfLoader.load(
+        cfg.url,
+        (gltf) => {
+          const root = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          if (!root) return;
 
-            // Cap
-            const cap = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.35,0.35,0.1,16),
-                new THREE.MeshLambertMaterial({ color: 0x333333, emissive: 0x000000 })
-            );
-            cap.position.y = 1.75;
-            cap.castShadow = true;
-            group.add(cap);
+          // Placement & scale
+          root.position.set(0, cfg.y ?? 0, 0);
+          const s = cfg.scale ?? 1;
+          root.scale.setScalar ? root.scale.setScalar(s) : root.scale.set(s, s, s);
 
-            // Sunglasses
-            const glasses = new THREE.Mesh(
-                new THREE.BoxGeometry(0.4,0.1,0.05),
-                new THREE.MeshLambertMaterial({ color: 0x111111, emissive: 0x000000 })
-            );
-            glasses.position.set(0,1.55,0.25);
-            group.add(glasses);
+          // Mesh flags (optional)
+          root.traverse((obj) => {
+            if (obj.isMesh) {
+              obj.castShadow = true;
+              obj.receiveShadow = true;
+              // If you have transparency issues, you can also do:
+              // obj.frustumCulled = false;
+            }
+          });
 
-            // Body
-            const body = new THREE.Mesh(
-                new THREE.BoxGeometry(0.8,1.2,0.3),
-                new THREE.MeshLambertMaterial({ color: config.colors.shirt, emissive: 0x000000 })
-            );
-            body.position.y = 0.5;
-            body.castShadow = true;
-            group.add(body);
+          // 4) Animations (play "Idle" if available, else first clip)
+          if (gltf.animations && gltf.animations.length) {
+            currentMixer = new THREE.AnimationMixer(root);
+            const idleClip =
+              THREE.AnimationClip.findByName(gltf.animations, 'Idle') ||
+              gltf.animations[0];
 
-            // Arms
-            const armGeo = new THREE.CylinderGeometry(0.08,0.08,0.8,8);
-            const armMat = new THREE.MeshLambertMaterial({ color: config.colors.skin, emissive: 0x000000 });
-            const leftArm = new THREE.Mesh(armGeo, armMat);
-            leftArm.position.set(-0.5,0.5,0);
-            leftArm.castShadow = true;
-            group.add(leftArm);
-            const rightArm = new THREE.Mesh(armGeo, armMat);
-            rightArm.position.set(0.5,0.5,0);
-            rightArm.castShadow = true;
-            group.add(rightArm);
+            const action = currentMixer.clipAction(idleClip);
+            action.reset().fadeIn(0.2).play();
+          } else {
+            currentMixer = null;
+          }
 
-            // Legs
-            const legGeo = new THREE.CylinderGeometry(0.12,0.12,1.0,8);
-            const legMat = new THREE.MeshLambertMaterial({ color: config.colors.pants, emissive: 0x000000 });
-            const leftLeg = new THREE.Mesh(legGeo, legMat);
-            leftLeg.position.set(-0.2,-0.5,0);
-            leftLeg.castShadow = true;
-            group.add(leftLeg);
-            const rightLeg = new THREE.Mesh(legGeo, legMat);
-            rightLeg.position.set(0.2,-0.5,0);
-            rightLeg.castShadow = true;
-            group.add(rightLeg);
+          // 5) Add to scene and remember it
+          window.scene.add(root);
+          currentModel = root;
 
-            // Shoes
-            const shoeGeo = new THREE.BoxGeometry(0.25,0.1,0.4);
-            const shoeMat = new THREE.MeshLambertMaterial({ color: 0x654321, emissive: 0x000000 });
-            const leftShoe = new THREE.Mesh(shoeGeo, shoeMat);
-            leftShoe.position.set(-0.2,-1.05,0.1);
-            leftShoe.castShadow = true;
-            group.add(leftShoe);
-            const rightShoe = new THREE.Mesh(shoeGeo, shoeMat);
-            rightShoe.position.set(0.2,-1.05,0.1);
-            rightShoe.castShadow = true;
-            group.add(rightShoe);
-
-            window.character = group;
-            window.scene.add(window.character);
-        } catch (e) {
-            console.error('createCharacter error:', e);
-        }
+          // 6) Update your UI label/etc.
+          window.updateCharacterInfo?.();
+        },
+        undefined,
+        (err) => console.error('GLB load error:', err)
+      );
     };
+
+    // Helper to free GPU memory when swapping models
+    function disposeObject(obj) {
+      obj.traverse((node) => {
+        if (node.isMesh) {
+          node.geometry?.dispose?.();
+          if (node.material) {
+            if (Array.isArray(node.material)) node.material.forEach(m => m.map?.dispose?.());
+            else node.material.map?.dispose?.();
+            if (Array.isArray(node.material)) node.material.forEach(m => m.dispose?.());
+            else node.material.dispose?.();
+          }
+        }
+      });
+    }
+
+    function disposeObject(obj) {
+      obj.traverse((node) => {
+        if (node.isMesh) {
+          node.geometry?.dispose?.();
+          if (node.material) {
+            if (Array.isArray(node.material)) node.material.forEach(m => m.map?.dispose?.());
+            else node.material.map?.dispose?.();
+            if (Array.isArray(node.material)) node.material.forEach(m => m.dispose?.());
+            else node.material.dispose?.();
+          }
+        }
+      });
+    }
+    
+    
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.033); // ~30fps clamp to avoid big jumps
+      if (currentMixer) currentMixer.update(dt);
+      renderer.render(scene, camera);
+    }
+
+
 
     // ===== Three.js Setup =====
     function initThreeJS() {
@@ -831,7 +874,11 @@
             console.error('Three.js not loaded');
             return;
         }
-        initThreeJS();
+        initLoaders();      // ✅ NEW: set up GLTFLoader (+ DRACOLoader if used)
+          initThreeJS();      // your scene/camera/renderer/lights
+          createCharacter();  // ✅ NEW: load the first GLB (based on currentCharacterIndex)
+          animate?.();
+        
         document.getElementById('prevArrow')?.addEventListener('click', window.previousCharacter);
         document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
     });
