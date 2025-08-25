@@ -122,7 +122,7 @@
     .character-actions { display: flex; justify-content: center; }
     .character-confirm { background: rgba(255,255,255,.92); color: #000; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; font-weight: 600; }
 
-    /* Chat (unchanged styles trimmed for brevity) */
+    /* Chat (unchanged styles trimmed for brevity)
     .chatbot-container { position: fixed; right: 16px; bottom: 16px; width: 320px; height: 420px; background: rgba(0,0,0,.8); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; display: none; flex-direction: column; z-index: 260; }
     .chatbot-container.open { display: flex; }
     .chat-messages { flex: 1; overflow: auto; padding: 10px; }
@@ -131,7 +131,7 @@
     .chat-input-container { display: flex; padding: 8px; gap: 8px; }
     .chat-input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.1); color: #fff; }
     .send-button { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.15); color: #fff; }
-    .chat-toggle { position: fixed; right: 16px; bottom: 16px; z-index: 261; border: none; background: #111; color: #fff; padding: 10px 12px; border-radius: 50%; }
+    .chat-toggle { position: fixed; right: 16px; bottom: 16px; z-index: 261; border: none; background: #111; color: #fff; padding: 10px 12px; border-radius: 50%; } */
 
   </style>
 </head>
@@ -196,7 +196,7 @@
     </div>
   </div>
 
-  <!-- Chatbot -->
+  <!-- Chatbot
   <div class="chatbot-container">
     <div class="chat-messages" id="chatMessages"><div class="message bot">Hi there, how can I help?</div></div>
     <div class="chat-input-container">
@@ -207,7 +207,7 @@
     </div>
   </div>
   <button class="chat-toggle" id="chatToggle" aria-label="Toggle chat">💱</button>
-</div>
+</div>-->
 
 <script>
   // ===== Globals =====
@@ -389,6 +389,14 @@
         } else {
           currentMixer = null;
         }
+        
+        root.traverse(o => {
+          if (o.isMesh) {
+            o.castShadow = o.receiveShadow = true;
+            o.raycast = THREE.Mesh.prototype.raycast; // ensure default raycast
+            o.frustumCulled = false;                  // prevents “vanished” hits on tight FOVs
+          }
+        });
 
         root.name = 'CHARACTER';
         scene.add(root);
@@ -516,7 +524,14 @@
             action.setLoop(THREE.LoopPingPong, Infinity).reset().setEffectiveWeight(1).play();
             action.time = 1/60; mixer.update(0);
           }
-
+          
+          root.traverse(o => {
+            if (o.isMesh) {
+              o.castShadow = o.receiveShadow = true;
+              o.raycast = THREE.Mesh.prototype.raycast; // ensure default raycast
+              o.frustumCulled = false;                  // prevents “vanished” hits on tight FOVs
+            }
+          });
           root.visible = false; // not shown until we enter carousel or commit
           carousel.cache[index] = { root, mixer, targetHeight, cfg };
           resolve();
@@ -712,24 +727,38 @@
     renderer.render(scene, camera);
   }
 
-  function onCanvasClick(e) {
-    if (performance.now() < _clickPreventUntil) return; // ignore post-swipe clicks
-    if (!window.character || !camera || !renderer) return;
-    const rect = renderer.domElement.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    raycaster.setFromCamera({ x, y }, camera);
-    const roots = (carousel.mode === 'carousel' && carousel.group) ? carousel.group.children : (window.character ? [window.character] : []);
-    const hits = raycaster.intersectObjects(roots, true);
-    if (hits.length > 0) {
-      if (carousel.mode === 'view') { window.onCharacterClick(); }
-      else {
-        // in carousel, tap = commit (if not locked)
+    function onCanvasClick(e) {
+      // ignore clicks right after a swipe
+      if (performance.now() < _clickPreventUntil) return;
+
+      // if we’re already in carousel, a tap commits the centered one (if unlocked)
+      if (carousel.mode === 'carousel') {
         const cfg = window.characterConfigs[window.currentCharacterIndex];
         if (cfg?.status !== 'Locked') exitCarousel(true);
+        return;
+      }
+
+      // must have a model to hit-test
+      const root = currentModel || window.character;
+      if (!root || !camera || !renderer) return;
+
+      // precise NDC using a Vector2 to avoid oddities on some browsers
+      const rect = renderer.domElement.getBoundingClientRect();
+      const ndc = mouseNDC; // reuse the Vector2 you already declared globally
+      ndc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      ndc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(ndc, camera);
+
+      // Raycast against the actual model root (recursive)
+      const hits = raycaster.intersectObject(root, /* recursive */ true);
+
+      if (hits.length > 0) {
+        // we hit the character → enter carousel
+        enterCarousel();
       }
     }
-  }
+
 
   function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -817,7 +846,7 @@
   });
   document.getElementById('loginModal').addEventListener('click', function(e) { if (e.target === this) closeLoginModal(); });
 
-  function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
+ /* function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
   function sendMessage() {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
@@ -851,7 +880,7 @@
   const chatToggleBtn = document.getElementById('chatToggle');
   function setChatOpen(open) { chatEl.classList.toggle('open', open); chatToggleBtn.setAttribute('aria-expanded', String(open)); }
   setChatOpen(false);
-  chatToggleBtn.addEventListener('click', () => { setChatOpen(!chatEl.classList.contains('open')); });
+  chatToggleBtn.addEventListener('click', () => { setChatOpen(!chatEl.classList.contains('open')); });*/
 
   // ===== Start =====
   window.addEventListener('load', () => {
