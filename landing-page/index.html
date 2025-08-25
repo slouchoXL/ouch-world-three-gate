@@ -461,6 +461,38 @@
       { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     scale: 1.0, y: 0 },
       { name: "Super Maramu 2000",  status: "Locked",   url: "/assets/models/maramu.glb",  scale: 1.0, y: 0 }
     ];
+    
+    function centerAndScaleToHeight(root, targetHeight = 1.8) {
+      const box = new THREE.Box3().setFromObject(root);
+      const size = new THREE.Vector3(); box.getSize(size);
+      const center = new THREE.Vector3(); box.getCenter(center);
+
+      // Recenter: move model so its center sits at (0, targetHeight*0.5, 0)
+      root.position.sub(center);
+      root.position.y += targetHeight * 0.5;
+
+      // Avoid divide-by-zero
+      const modelHeight = Math.max(size.y, 1e-6);
+      const scale = targetHeight / modelHeight;
+      root.scale.multiplyScalar(scale);
+    }
+
+    /** Keep camera nicely framed on a human-sized model at the origin. */
+    function frameCameraOnTargetHeight(camera, targetHeight = 1.8, pad = 1.2) {
+      const fovRad = (camera.fov * Math.PI) / 180;
+      const halfH = (targetHeight * pad) / 2;
+      const dist = halfH / Math.tan(fovRad / 2);
+
+      camera.position.set(0, targetHeight * 0.6, dist); // eye-height-ish
+      camera.lookAt(0, targetHeight * 0.6, 0);
+      camera.updateProjectionMatrix();
+    }
+
+    /** Make sure animations advance each frame. Call this from your animate() loop. */
+    function tickAnimations() {
+      const dt = Math.min(clock.getDelta(), 0.033);
+      if (currentMixer) currentMixer.update(dt);
+    }
 
     // ===== Character UI Logic =====
     window.updateCharacterInfo = function() {
@@ -513,12 +545,10 @@
         return;
       }
 
-      // 1) Stop any previous animations and dispose previous model
+      // 1) Stop previous animations + remove previous model
       if (currentMixer) {
-        try { currentMixer.stopAllAction(); } catch (_) {}
-        if (currentModel) {
-          try { currentMixer.uncacheRoot(currentModel); } catch (_) {}
-        }
+        try { currentMixer.stopAllAction(); } catch {}
+        try { if (currentModel) currentMixer.uncacheRoot(currentModel); } catch {}
         currentMixer = null;
       }
       if (currentModel) {
@@ -527,57 +557,69 @@
         currentModel = null;
       }
 
-      // 2) Resolve the config for the currently selected character
-      const cfgList = window.characterConfigs || [];
-      const idx = (window.currentCharacterIndex ?? 0) % (cfgList.length || 1);
-      const cfg = cfgList[idx];
+      // 2) Resolve current config
+      const list = window.characterConfigs || [];
+      const idx = (window.currentCharacterIndex ?? 0) % (list.length || 1);
+      const cfg = list[idx];
       if (!cfg || !cfg.url) return;
 
-      // 3) Load the GLB and set it up
+      console.log('Loading GLB:', cfg.url);
+
+      // 3) Load GLB
       gltfLoader.load(
         cfg.url,
         (gltf) => {
-          const root = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          const root = gltf.scene || gltf.scenes?.[0];
           if (!root) return;
 
-          // Placement & scale
-          root.position.set(0, cfg.y ?? 0, 0);
-          const s = cfg.scale ?? 1;
-          root.scale.setScalar ? root.scale.setScalar(s) : root.scale.set(s, s, s);
+          // 3a) Normalize size + center so it's never tiny/far
+          const targetHeight = cfg.targetHeight ?? 1.8; // meters-ish in your scene units
+          centerAndScaleToHeight(root, targetHeight);
 
-          // Mesh flags (optional)
-          root.traverse((obj) => {
-            if (obj.isMesh) {
-              obj.castShadow = true;
-              obj.receiveShadow = true;
-              // If you have transparency issues, you can also do:
-              // obj.frustumCulled = false;
-            }
+          // 3b) Optional fine offsets from config
+          if (typeof cfg.y === 'number') root.position.y += cfg.y;
+          if (typeof cfg.x === 'number') root.position.x += cfg.x;
+          if (typeof cfg.z === 'number') root.position.z += cfg.z;
+
+          // 3c) Nice defaults
+          root.traverse((o) => {
+            if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
           });
 
-          // 4) Animations (play "Idle" if available, else first clip)
+          // 3d) Animations
           if (gltf.animations && gltf.animations.length) {
             currentMixer = new THREE.AnimationMixer(root);
-            const idleClip =
-              THREE.AnimationClip.findByName(gltf.animations, 'Idle') ||
-              gltf.animations[0];
 
-            const action = currentMixer.clipAction(idleClip);
-            action.reset().fadeIn(0.2).play();
+            // Prefer an "Idle" clip if present; else play the first
+            const clips = gltf.animations;
+            const idle =
+              THREE.AnimationClip.findByName(clips, 'Idle') ||
+              THREE.AnimationClip.findByName(clips, 'idle') ||
+              clips[0];
+
+            const action = currentMixer.clipAction(idle);
+            action.reset().setLoop(THREE.LoopRepeat).fadeIn(0.2).play();
+
+            // (Debug) See available clip names in the console
+            console.log('Clips:', clips.map(c => c.name));
           } else {
             currentMixer = null;
+            console.warn('No animations found in GLB:', cfg.url);
           }
 
-          // 5) Add to scene and remember it
+          // 3e) Add to scene
           window.scene.add(root);
           currentModel = root;
-          window.character = root;
+          window.character = root; // if your click/hover logic expects this
 
-          // 6) Update your UI label/etc.
+          // 3f) Ensure camera frames a human-sized model nicely (once per load)
+          frameCameraOnTargetHeight(camera, targetHeight, 1.25);
+
+          // 3g) Update UI
           window.updateCharacterInfo?.();
         },
         undefined,
-        (err) => console.error('GLB load error:', err)
+        (err) => console.error('GLB load error for', cfg.url, err)
       );
     };
 
@@ -601,6 +643,7 @@
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.033); // ~30fps clamp to avoid big jumps
       if (currentMixer) currentMixer.update(dt);
+      tickAnimations();
       renderer.render(scene, camera);
     }
 
