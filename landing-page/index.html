@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>LandingPage</title>
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
@@ -101,7 +100,7 @@
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
     .modal-overlay.show { display: flex; }
     .login-modal { background: rgba(0,0,0,0.9); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 15px; width: 90%; max-width: 400px; position: relative; color: #fff; }
-    .modal-close { position: absolute; top: 8px; right: 15px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 24px; cursor: pointer; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all .2s ease; }
+    .modal-close { position: absolute; top: 8px; right: 15px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 24px; cursor: button; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all .2s ease; }
     input, textarea, select { font-size: 16px; }
     button, a, .menu-button, .login-button, .chat-toggle, .send-button, .arrow-btn, .character-confirm { touch-action: manipulation; }
     .modal-close:hover { color: #fff; }
@@ -113,8 +112,27 @@
     .form-input::placeholder { color: rgba(255,255,255,0.5); }
     .form-button { width: 100%; background: rgba(255,255,255,0.92); color: #000; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; }
 
-    /* Chat + Character selector (unchanged styles) */
-    /* ... (keeping all your existing styles here) ... */
+    /* Character selector overlay */
+    .character-controls { position: fixed; left: 50%; bottom: 8vh; transform: translateX(-50%); z-index: 250; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .character-controls.show { opacity: 1; pointer-events: auto; }
+    .character-info { display: grid; grid-template-rows: auto auto; gap: 8px; justify-items: center; min-width: 260px; }
+    .character-header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+    .character-name { text-align: center; font: 600 14px/1 system-ui, Arial, sans-serif; background: rgba(15,15,20,.7); padding: .35rem .6rem; border-radius: .5rem; min-width: var(--title-width, 200px); }
+    .arrow-btn { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); color: #fff; width: 28px; height: 28px; border-radius: 50%; text-align: center; font-size: 18px; line-height: 26px; cursor: pointer; }
+    .character-actions { display: flex; justify-content: center; }
+    .character-confirm { background: rgba(255,255,255,.92); color: #000; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; font-weight: 600; }
+
+    /* Chat (unchanged styles trimmed for brevity) */
+    .chatbot-container { position: fixed; right: 16px; bottom: 16px; width: 320px; height: 420px; background: rgba(0,0,0,.8); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; display: none; flex-direction: column; z-index: 260; }
+    .chatbot-container.open { display: flex; }
+    .chat-messages { flex: 1; overflow: auto; padding: 10px; }
+    .message { margin: 6px 0; }
+    .message.user { text-align: right; }
+    .chat-input-container { display: flex; padding: 8px; gap: 8px; }
+    .chat-input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.1); color: #fff; }
+    .send-button { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.15); color: #fff; }
+    .chat-toggle { position: fixed; right: 16px; bottom: 16px; z-index: 261; border: none; background: #111; color: #fff; padding: 10px 12px; border-radius: 50%; }
+
   </style>
 </head>
 <body>
@@ -157,7 +175,7 @@
     </div>
   </div>
 
-  <!-- Login Modal (unchanged markup) -->
+  <!-- Login Modal -->
   <div class="modal-overlay" id="loginModal">
     <div class="login-modal">
       <button class="modal-close" onclick="closeLoginModal()">&times;</button>
@@ -178,7 +196,7 @@
     </div>
   </div>
 
-  <!-- Chatbot (unchanged markup) -->
+  <!-- Chatbot -->
   <div class="chatbot-container">
     <div class="chat-messages" id="chatMessages"><div class="message bot">Hi there, how can I help?</div></div>
     <div class="chat-input-container">
@@ -198,6 +216,19 @@
   let gltfLoader, dracoLoader;
   let currentModel = null, currentMixer = null, loadVersion = 0;
   const clock = new THREE.Clock();
+
+  // [CAROUSEL] state
+  const carousel = {
+    mode: 'view',                // 'view' | 'carousel'
+    group: null,                 // THREE.Group holding side-by-side roots
+    spacing: 1.8,                // horizontal spacing (world units)
+    dragging: false,
+    startX: 0,
+    dx: 0,
+    activeIndex: 0,              // which index is centered while in carousel
+    mixers: [],                  // extra mixers for side items
+    cache: []                    // [{root, mixer, targetHeight, cfg}]
+  };
 
   // expose for other code
   window.scene = null; window.camera = null; window.renderer = null; window.character = null;
@@ -227,25 +258,27 @@
     root.scale.multiplyScalar(s);
   }
 
-    function frameCameraOnTargetHeight(camera, targetHeight = 1.8, pad = 1.4, centerYFactor = 0.2) {
-      // pad > 1 adds margin around the model's height; 1.4 is a safe default
-      const fovRad = (camera.fov * Math.PI) / 180;
-      const halfH  = (targetHeight * pad) / 2;
-      const dist   = halfH / Math.tan(fovRad / 2);
-
-      const cy = targetHeight * centerYFactor; // 0.5 = exact mid-height
-      camera.position.set(0, cy, dist);
-      camera.lookAt(0, cy, 0);
-      camera.updateProjectionMatrix();
-    }
-
+  // Adjusted framing baseline (you previously used 0.2 center—keeping consistent)
+  function frameCameraOnTargetHeight(camera, targetHeight = 1.8, pad = 1.4, centerYFactor = 0.2) {
+    const fovRad = (camera.fov * Math.PI) / 180;
+    const halfH  = (targetHeight * pad) / 2;
+    const dist   = halfH / Math.tan(fovRad / 2);
+    const cy = targetHeight * centerYFactor;
+    camera.position.set(0, cy, dist);
+    camera.lookAt(0, cy, 0);
+    camera.updateProjectionMatrix();
+  }
 
   function tickAnimations() {
     const dt = Math.min(clock.getDelta(), 0.033);
     if (currentMixer) currentMixer.update(dt);
+    // [CAROUSEL] drive extra mixers when in carousel
+    if (carousel.mode === 'carousel' && carousel.mixers.length) {
+      for (const m of carousel.mixers) m.update(dt);
+    }
   }
 
-  // ===== Character UI (unchanged) =====
+  // ===== Character UI =====
   window.updateCharacterInfo = function() {
     const config = window.characterConfigs[window.currentCharacterIndex];
     const nameEl = document.getElementById('characterName');
@@ -259,19 +292,42 @@
       confirmBtn.textContent = locked ? 'Locked' : 'Select';
     }
   };
+
+  // These still work in view mode; in carousel they snap between items.
   window.previousCharacter = function() {
+    if (carousel.mode === 'carousel') { snapToIndex(carousel.activeIndex - 1); return; }
     window.currentCharacterIndex = (window.currentCharacterIndex - 1 + window.characterConfigs.length) % window.characterConfigs.length;
     window.createCharacter?.(); window.updateCharacterInfo();
   };
   window.nextCharacter = function() {
+    if (carousel.mode === 'carousel') { snapToIndex(carousel.activeIndex + 1); return; }
     window.currentCharacterIndex = (window.currentCharacterIndex + 1) % window.characterConfigs.length;
     window.createCharacter?.(); window.updateCharacterInfo();
   };
-  window.confirmCharacter = function() { const cfg = window.characterConfigs[window.currentCharacterIndex]; if (cfg && cfg.status === 'Unlocked') window.hideCharacterControls(); };
-  window.hideCharacterControls = function() { document.getElementById('characterControls')?.classList.remove('show'); lastHoverState = null; };
-  window.onCharacterClick = function() { const c = document.getElementById('characterControls'); if (c) { c.classList.add('show'); window.updateCharacterInfo(); } };
 
-  // ===== Character Factory (fixed) =====
+  // Commit selection (closes carousel if open)
+  window.confirmCharacter = function() {
+    const cfg = window.characterConfigs[window.currentCharacterIndex];
+    if (!cfg) return;
+    if (carousel.mode === 'carousel') {
+      if (cfg.status === 'Locked') return; // keep button disabled UI already
+      exitCarousel(true); // commit
+      return;
+    }
+    if (cfg.status === 'Unlocked') window.hideCharacterControls();
+  };
+
+  window.hideCharacterControls = function() {
+    document.getElementById('characterControls')?.classList.remove('show');
+    lastHoverState = null;
+  };
+
+  // Click on model → enter carousel
+  window.onCharacterClick = function() {
+    if (carousel.mode === 'view') enterCarousel();
+  };
+
+  // ===== Character Factory (existing single-model loader) =====
   window.createCharacter = function () {
     if (!window.scene || !gltfLoader) { console.error('Loaders/scene not ready'); return; }
 
@@ -290,80 +346,49 @@
     }
     if (currentModel) { scene.remove(currentModel); disposeObject(currentModel); currentModel = null; }
 
-    // Resolve config
     const list = window.characterConfigs || [];
     const idx = (window.currentCharacterIndex ?? 0) % (list.length || 1);
     const cfg = list[idx];
     if (!cfg || !cfg.url) return;
 
     const myVersion = ++loadVersion;
-    console.log('Loading GLB:', cfg.url);
-
     gltfLoader.load(
       cfg.url,
       (gltf) => {
         if (myVersion !== loadVersion) { if (gltf.scene) disposeObject(gltf.scene); return; }
-
-        // ✅ define root before using it
         const root = gltf.scene || gltf.scenes?.[0];
         if (!root) return;
 
-        // Normalize size + center
         const targetHeight = cfg.targetHeight ?? 1.8;
         centerAndScaleToHeight(root, targetHeight);
-
-        // ✅ optional fine-tune overall size (leave cfg.scaleMul undefined if you don’t need it)
         if (cfg.scaleMul) root.scale.multiplyScalar(cfg.scaleMul);
-
-        // Defaults
         root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
 
-        // --- ✅ Animations (trim start/end + ping-pong loop) ---
         if (gltf.animations && gltf.animations.length) {
           currentMixer = new THREE.AnimationMixer(root);
-
-          // Prefer an "Idle" clip; else first
           const clips = gltf.animations;
           const baseClip =
             THREE.AnimationClip.findByName(clips, 'Idle') ||
             THREE.AnimationClip.findByName(clips, 'idle') ||
             clips[0];
 
-          // Trim a few frames off start/end (seconds)
           const trimStart = Math.max(0, cfg.trimStart ?? 1.5);
           const trimEnd   = Math.max(0, cfg.trimEnd   ?? 2.0);
-
-          const minDur = 0.05; // safety so we never create a 0-length subclip
+          const minDur = 0.05;
           const startSec = Math.min(trimStart, Math.max(0, baseClip.duration - minDur));
           const endSec   = Math.max(baseClip.duration - trimEnd, startSec + minDur);
-
-          // Create a trimmed subclip; use fps so start/end are in seconds
           const fps = 30;
           const startFrame = Math.max(0, Math.floor(startSec * fps));
           const endFrame   = Math.max(startFrame + 1, Math.ceil(endSec * fps));
-          const sub = THREE.AnimationUtils.subclip(
-            baseClip,
-            (baseClip.name || 'clip') + '_trim',
-            startFrame,
-            endFrame,
-            fps
-          );
+          const sub = THREE.AnimationUtils.subclip(baseClip, (baseClip.name || 'clip') + '_trim', startFrame, endFrame, fps);
 
           const action = currentMixer.clipAction(sub);
-          action
-            .setLoop(THREE.LoopPingPong, Infinity) // keep if you like ping-pong
-            .reset()
-            .setEffectiveWeight(1)   // full weight immediately
-            .play();
-          action.time = 1/60;        // or 0 if your first keyed frame is fine
-          currentMixer.update(0);    // evaluate at current time with full weight
-
-          console.log('Clips:', clips.map(c => c.name), 'Trimmed:', { startSec, endSec, duration: sub.duration });
+          action.setLoop(THREE.LoopPingPong, Infinity).reset().setEffectiveWeight(1).play();
+          action.time = 1/60;
+          currentMixer.update(0);
         } else {
           currentMixer = null;
-          console.warn('No animations found in GLB:', cfg.url);
         }
-        // --- end animations ---
 
         root.name = 'CHARACTER';
         scene.add(root);
@@ -377,6 +402,254 @@
       (err) => console.error('GLB load error for', cfg.url, err)
     );
   };
+
+  // ===== Carousel implementation =====
+  function enterCarousel() {
+    // make overlay visible
+    const c = document.getElementById('characterControls');
+    if (c) { c.classList.add('show'); }
+
+    carousel.mode = 'carousel';
+    carousel.activeIndex = window.currentCharacterIndex;
+    if (!carousel.group) {
+      carousel.group = new THREE.Group();
+      carousel.group.name = 'CHAR_CAROUSEL_GROUP';
+    }
+    // preload all entries (promise-ified loader)
+    preloadAll().then(() => {
+      // remove current single root from scene (we'll re-add via group)
+      if (currentModel) { scene.remove(currentModel); }
+      // clear group
+      carousel.group.clear();
+      // add all roots, place them side-by-side, make visible
+      window.character = null;
+      for (let i = 0; i < carousel.cache.length; i++) {
+        const entry = carousel.cache[i];
+        entry.root.visible = true;
+        entry.root.position.set((i - carousel.activeIndex) * carousel.spacing, entry.root.position.y, 0);
+        carousel.group.add(entry.root);
+      }
+      scene.add(carousel.group);
+      // start animations for all (if not already running)
+      startCarouselAnimations();
+      window.updateCharacterInfo();
+      attachCarouselInput(); // pointer handlers
+    });
+  }
+
+  function exitCarousel(commitSelection) {
+    // remove input handlers for drag
+    detachCarouselInput();
+
+    // remove group from scene
+    if (carousel.group && carousel.group.parent) {
+      scene.remove(carousel.group);
+    }
+    // hide non-committed, keep only chosen one in scene as single model
+    const commitIndex = commitSelection ? carousel.activeIndex : window.currentCharacterIndex;
+    const entry = carousel.cache[commitIndex];
+    if (entry) {
+      // ensure only committed is visible
+      for (let i = 0; i < carousel.cache.length; i++) {
+        const e = carousel.cache[i];
+        e.root.visible = (i === commitIndex);
+        e.root.position.set(0, e.root.position.y, 0);
+      }
+      scene.add(entry.root);
+      currentModel = entry.root;
+      window.character = entry.root;
+      currentMixer = entry.mixer || null;
+      window.currentCharacterIndex = commitIndex;
+      frameCameraOnTargetHeight(camera, entry.targetHeight ?? 1.4, 1.4, 0.2);
+    }
+
+    carousel.mode = 'view';
+    carousel.mixers = []; // we keep cache but stop extra driving (single mixer resumes via currentMixer)
+    window.hideCharacterControls();
+  }
+
+  // Preload all models into carousel.cache
+  function preloadAll() {
+    const cfgs = window.characterConfigs || [];
+    const jobs = [];
+    for (let i = 0; i < cfgs.length; i++) {
+      if (!carousel.cache[i]) {
+        jobs.push(loadEntry(i));
+      }
+    }
+    return Promise.all(jobs);
+  }
+
+  function loadEntry(index) {
+    const cfg = window.characterConfigs[index];
+    if (!cfg) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      gltfLoader.load(
+        cfg.url,
+        (gltf) => {
+          const root = gltf.scene || gltf.scenes?.[0];
+          if (!root) { resolve(); return; }
+          const targetHeight = cfg.targetHeight ?? 1.4;
+          centerAndScaleToHeight(root, targetHeight);
+          if (cfg.scaleMul) root.scale.multiplyScalar(cfg.scaleMul);
+          root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+
+          // animation
+          let mixer = null;
+          if (gltf.animations && gltf.animations.length) {
+            mixer = new THREE.AnimationMixer(root);
+            const clips = gltf.animations;
+            const baseClip =
+              THREE.AnimationClip.findByName(clips, 'Idle') ||
+              THREE.AnimationClip.findByName(clips, 'idle') ||
+              clips[0];
+            const trimStart = Math.max(0, cfg.trimStart ?? 1.5);
+            const trimEnd   = Math.max(0, cfg.trimEnd   ?? 2.0);
+            const minDur = 0.05;
+            const startSec = Math.min(trimStart, Math.max(0, baseClip.duration - minDur));
+            const endSec   = Math.max(baseClip.duration - trimEnd, startSec + minDur);
+            const fps = 30;
+            const startFrame = Math.max(0, Math.floor(startSec * fps));
+            const endFrame   = Math.max(startFrame + 1, Math.ceil(endSec * fps));
+            const sub = THREE.AnimationUtils.subclip(baseClip, (baseClip.name || 'clip') + '_trim', startFrame, endFrame, fps);
+            const action = mixer.clipAction(sub);
+            action.setLoop(THREE.LoopPingPong, Infinity).reset().setEffectiveWeight(1).play();
+            action.time = 1/60; mixer.update(0);
+          }
+
+          root.visible = false; // not shown until we enter carousel or commit
+          carousel.cache[index] = { root, mixer, targetHeight, cfg };
+          resolve();
+        },
+        undefined,
+        reject
+      );
+    });
+  }
+
+  function startCarouselAnimations() {
+    carousel.mixers = [];
+    for (let i = 0; i < carousel.cache.length; i++) {
+      const m = carousel.cache[i]?.mixer;
+      if (m) carousel.mixers.push(m);
+    }
+  }
+
+  // Pointer input for carousel
+  let _downHandler, _moveHandler, _upHandler, _clickPreventUntil = 0;
+
+  function attachCarouselInput() {
+    const dom = renderer.domElement;
+    const W = () => window.innerWidth;
+    const thresholdPx = 50;
+
+    _downHandler = (e) => {
+      const x = (e.touches ? e.touches[0].clientX : e.clientX);
+      carousel.dragging = true;
+      carousel.startX = x;
+      carousel.dx = 0;
+    };
+    _moveHandler = (e) => {
+      if (!carousel.dragging) return;
+      const x = (e.touches ? e.touches[0].clientX : e.clientX);
+      carousel.dx = x - carousel.startX;
+      const offset = (carousel.dx / W()) * carousel.spacing * 2.0;
+      setGroupOffset(offset);
+    };
+    _upHandler = () => {
+      if (!carousel.dragging) return;
+      const dx = carousel.dx;
+      carousel.dragging = false;
+      if (Math.abs(dx) > thresholdPx) {
+        const dir = Math.sign(dx);
+        snapToIndex(carousel.activeIndex - dir);
+        _clickPreventUntil = performance.now() + 250; // avoid accidental click-through
+      } else {
+        // light snap back
+        snapToIndex(carousel.activeIndex);
+      }
+    };
+
+    dom.addEventListener('mousedown', _downHandler);
+    window.addEventListener('mousemove', _moveHandler);
+    window.addEventListener('mouseup', _upHandler);
+    dom.addEventListener('touchstart', _downHandler, { passive: true });
+    dom.addEventListener('touchmove', _moveHandler, { passive: true });
+    dom.addEventListener('touchend', _upHandler, { passive: true });
+
+    // show UI title
+    document.getElementById('characterControls')?.classList.add('show');
+    window.updateCharacterInfo();
+  }
+
+  function detachCarouselInput() {
+    const dom = renderer.domElement;
+    if (_downHandler) {
+      dom.removeEventListener('mousedown', _downHandler);
+      window.removeEventListener('mousemove', _moveHandler);
+      window.removeEventListener('mouseup', _upHandler);
+      dom.removeEventListener('touchstart', _downHandler);
+      dom.removeEventListener('touchmove', _moveHandler);
+      dom.removeEventListener('touchend', _upHandler);
+    }
+    _downHandler = _moveHandler = _upHandler = null;
+  }
+
+  function setGroupOffset(offset) {
+    if (!carousel.group) return;
+    for (let i = 0; i < carousel.cache.length; i++) {
+      const e = carousel.cache[i];
+      if (!e) continue;
+      const targetX = (i - carousel.activeIndex) * carousel.spacing + offset;
+      e.root.position.x = targetX;
+      // optional opacity falloff toward sides
+      e.root.traverse(o => {
+        if (o.isMesh) {
+          o.material.transparent = true;
+          const t = Math.min(Math.abs(targetX) / carousel.spacing, 1);
+          o.material.opacity = 1 - 0.4 * t;
+        }
+      });
+    }
+    // update name to nearest
+    const nearest = nearestIndex();
+    if (nearest !== carousel.activeIndex) {
+      carousel.activeIndex = nearest;
+      window.currentCharacterIndex = nearest;
+      window.updateCharacterInfo();
+    }
+  }
+
+  function nearestIndex() {
+    let idx = carousel.activeIndex, best = 1e9;
+    for (let i = 0; i < carousel.cache.length; i++) {
+      const x = carousel.cache[i]?.root.position.x ?? 0;
+      const d = Math.abs(x);
+      if (d < best) { best = d; idx = i; }
+    }
+    return THREE.MathUtils.clamp(idx, 0, (window.characterConfigs?.length || 1) - 1);
+  }
+
+  function snapToIndex(nextIndex) {
+    const max = (window.characterConfigs?.length || 1) - 1;
+    nextIndex = THREE.MathUtils.clamp(nextIndex, 0, max);
+    for (let i = 0; i < carousel.cache.length; i++) {
+      const e = carousel.cache[i];
+      if (!e) continue;
+      const targetX = (i - nextIndex) * carousel.spacing;
+      e.root.position.x = targetX;
+      e.root.traverse(o => {
+        if (o.isMesh) {
+          o.material.transparent = true;
+          const t = Math.min(Math.abs(targetX) / carousel.spacing, 1);
+          o.material.opacity = 1 - 0.4 * t;
+        }
+      });
+    }
+    carousel.activeIndex = nextIndex;
+    window.currentCharacterIndex = nextIndex;
+    window.updateCharacterInfo();
+  }
 
   // Free GPU memory when swapping models
   function disposeObject(obj) {
@@ -407,48 +680,25 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    
-    // Make PBR/glTF materials look right and a bit brighter
-    renderer.outputEncoding = THREE.sRGBEncoding;              // correct gamma
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;        // nicer rolloff
-    renderer.toneMappingExposure = 1.1;                       // bump global exposure (try 1.2–1.5)
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
 
-
-    // ✅ append the canvas so it’s visible
     const container = document.getElementById('scene-container');
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
     // Lights
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a2a, 0.7);
-    scene.add(hemi);
-
-    // Key light: main light from front-right, casts shadows
-    const key = new THREE.DirectionalLight(0xffffff, 1);
-    key.position.set(5, 8, 6);
-    key.castShadow = true;
-    key.shadow.mapSize.set(2048, 2048);
-    key.shadow.camera.near = 0.1;
-    key.shadow.camera.far = 50;
-    scene.add(key);
-
-    // Fill light: softens shadows from front-left, no shadows
-    const fill = new THREE.DirectionalLight(0xffffff, 0.5);
-    fill.position.set(-4, 5, 6);
-    fill.castShadow = false;
-    scene.add(fill);
-
-    // Rim/back light: subtle colored edge from behind
-    const rim = new THREE.DirectionalLight(0x88aaff, 0.5);
-    rim.position.set(-5, 2, -6);
-    rim.castShadow = false;
-    scene.add(rim);
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a2a, 0.7); scene.add(hemi);
+    const key = new THREE.DirectionalLight(0xffffff, 1); key.position.set(5, 8, 6); key.castShadow = true; key.shadow.mapSize.set(2048,2048); key.shadow.camera.near=0.1; key.shadow.camera.far=50; scene.add(key);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(-4, 5, 6); scene.add(fill);
+    const rim  = new THREE.DirectionalLight(0x88aaff, 0.5); rim.position.set(-5, 2, -6); scene.add(rim);
 
     // Raycasting
     raycaster = new THREE.Raycaster();
     mouseNDC = new THREE.Vector2();
 
-    // Events (bind once)
+    // Events
     renderer.domElement.addEventListener('click', onCanvasClick);
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('mousemove', onMouseMove);
@@ -457,20 +707,28 @@
   }
 
   function animate() {
-    // ✅ keep the loop running and update mixer once
     requestAnimationFrame(animate);
     tickAnimations();
     renderer.render(scene, camera);
   }
 
   function onCanvasClick(e) {
+    if (performance.now() < _clickPreventUntil) return; // ignore post-swipe clicks
     if (!window.character || !camera || !renderer) return;
     const rect = renderer.domElement.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera({ x, y }, camera);
-    const hits = raycaster.intersectObjects(window.character.children, true);
-    if (hits.length > 0) window.onCharacterClick();
+    const roots = (carousel.mode === 'carousel' && carousel.group) ? carousel.group.children : (window.character ? [window.character] : []);
+    const hits = raycaster.intersectObjects(roots, true);
+    if (hits.length > 0) {
+      if (carousel.mode === 'view') { window.onCharacterClick(); }
+      else {
+        // in carousel, tap = commit (if not locked)
+        const cfg = window.characterConfigs[window.currentCharacterIndex];
+        if (cfg?.status !== 'Locked') exitCarousel(true);
+      }
+    }
   }
 
   function onWindowResize() {
@@ -482,6 +740,7 @@
   function onMouseMove(e) {
     mouseNDC.x =  (e.clientX / window.innerWidth)  * 2 - 1;
     mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    if (carousel.mode === 'carousel') return; // no hover highlight while carousel open
     checkHover();
   }
 
@@ -599,37 +858,13 @@
     if (typeof THREE === 'undefined') { console.error('Three.js not loaded'); return; }
     initLoaders();
     initThreeJS();
-    createCharacter();   // exactly one initial load
+    createCharacter();   // keep your initial single model
     animate();
     document.getElementById('prevArrow')?.addEventListener('click', window.previousCharacter);
     document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
   });
-</script>
 
-<script>
-  (function () {
-    const emailInput = document.getElementById('loginEmail');
-    const loginBtn   = document.getElementById('loginSubmit');
-    if (!emailInput || !loginBtn) return;
-    function magicRedirect() {
-      const isInIframe = window !== window.top;
-      return isInIframe ? 'https://ouchworld.netlify.app/landing-page' : `${location.origin}/landing-page`;
-    }
-    loginBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const email = (emailInput.value || '').trim();
-      if (!email) return alert('Enter your email');
-      if (!window.supa?.auth) return alert('Auth not initialized');
-      loginBtn.disabled = true; const old = loginBtn.textContent; loginBtn.textContent = 'Sending…';
-      const { error } = await window.supa.auth.signInWithOtp({ email, options: { emailRedirectTo: magicRedirect() } });
-      loginBtn.disabled = false; loginBtn.textContent = old;
-      if (error) alert(error.message); else alert('Check your email for the magic link!');
-    });
-  })();
-</script>
-
-<!-- Mobile zoom suppression (unchanged) -->
-<script>
+  // ===== Mobile zoom suppression (unchanged) =====
   (function () {
     let lastTouchEnd = 0;
     document.addEventListener('touchend', function (e) {
@@ -643,6 +878,7 @@
   document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
   document.addEventListener('touchstart', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   document.addEventListener('touchmove', function (e) { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
+
 </script>
 
 </body>
