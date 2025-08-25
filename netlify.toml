@@ -2,24 +2,40 @@
   publish = "."
   functions = "netlify/functions"
 
+# Global: keep isolation for the rest of the site
 [[headers]]
-  for = "/*"
+for = "/*"
   [headers.values]
-    Cross-Origin-Opener-Policy = "same-origin"
-    Cross-Origin-Embedder-Policy = "require-corp"
-    
-    [[headers]]
-  for = "/assets/widget/*"
+  Cross-Origin-Opener-Policy = "same-origin"
+  Cross-Origin-Embedder-Policy = "require-corp"
+
+# OVERRIDE: no COEP/COOP on landing page (no iframe there anyway)
+[[headers]]
+for = "/landing-page/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+  Cross-Origin-Opener-Policy = "unsafe-none"
+  Cross-Origin-Embedder-Policy = "unsafe-none"
+
+# OVERRIDE: no COEP/COOP on packs (this page embeds the widget iframe)
+[[headers]]
+for = "/packs/*"
+  [headers.values]
+  Cross-Origin-Opener-Policy = "unsafe-none"
+  Cross-Origin-Embedder-Policy = "unsafe-none"
+
+# (Optional) You can keep this long-cache header for widget assets
+[[headers]]
+for = "/assets/widget/*"
+  [headers.values]
+  Cache-Control = "public, max-age=31536000, immutable"
 
 [[redirects]]
-  from = "/api/redeem"
-  to = "/.netlify/functions/redeem"
-  status = 200
-  
+from = "/api/redeem"
+to = "/.netlify/functions/redeem"
+status = 200
+
 [[redirects]]
-  from = "/api/*"
-  to = "https://backend-o9ot.onrender.com/api/:splat"
-  status = 200
-  force = true
+from = "/api/*"
+to = "https://backend-o9ot.onrender.com/api/:splat"
+status = 200
+force = true
