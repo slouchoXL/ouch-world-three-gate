@@ -438,6 +438,7 @@
     let currentModel = null;     // store the active GLB's root
     let currentMixer = null;    
     const clock = new THREE.Clock();// (optional) for animations
+    let loadVersion = 0;
 
     // ===== Character Data =====
     window.scene = null;
@@ -537,7 +538,7 @@
     };
     
     
-
+ 
     // ===== Character Factory =====
     window.createCharacter = function () {
       if (!window.scene || !gltfLoader) {
@@ -570,13 +571,18 @@
       if (!cfg || !cfg.url) return;
 
       console.log('Loading GLB:', cfg.url);
+      
+      const myVersion = ++loadVersion;
 
-      // 3) Load GLB
       gltfLoader.load(
-        cfg.url,
-        (gltf) => {
-          const root = gltf.scene || gltf.scenes?.[0];
-          if (!root) return;
+          cfg.url,
+          (gltf) => {
+            if (myVersion !== loadVersion) {       // a newer request started; drop this one
+              if (gltf.scene) disposeObject(gltf.scene);
+              return;
+            }
+            // (optional) extra safety: remove any existing model right before adding the new one
+            if (currentModel) { scene.remove(currentModel); disposeObject(currentModel); }
 
           // 3a) Normalize size + center so it's never tiny/far
           const targetHeight = cfg.targetHeight ?? 1.8; // meters-ish in your scene units
@@ -647,7 +653,7 @@
     
 
     function animate() {
-      requestAnimationFrame(animate);
+      
       const dt = Math.min(clock.getDelta(), 0.033); // ~30fps clamp to avoid big jumps
       if (currentMixer) currentMixer.update(dt);
       tickAnimations();
@@ -675,11 +681,6 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         
         
-        const container = document.getElementById('scene-container');
-        if (container) {
-          container.innerHTML = '';                 // prevents multiple canvases
-          container.appendChild(renderer.domElement);
-        }
 
         window.renderer = renderer;
         
@@ -696,7 +697,7 @@
         scene.add(rim);
 
         // Character
-        if (typeof window.createCharacter === 'function') window.createCharacter();
+  
 
         // Raycaster for hover highlight
         raycaster = new THREE.Raycaster();
