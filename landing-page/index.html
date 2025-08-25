@@ -838,8 +838,8 @@
     const isInIframe = window !== window.top;
     // Same logic as your working page: always return to /packs
     return isInIframe
-      ? 'https://ouchworld.netlify.app/packs'
-      : `${location.origin}/packs`;
+      ? 'https://ouchworld.netlify.app/landing-page'
+      : `${location.origin}/landing-page`;
   }
 
   loginBtn.addEventListener('click', async (e) => {

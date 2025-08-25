@@ -264,10 +264,7 @@
               :root { --arrow-size-w: 30px; --arrow-size-h: 28px; --modal-padding-x: 8px; }
             }
 
-            @media (prefers-reduced-motion: reduce) {
-              .chatbot-container { transition: none; transform: translateX(-50%); }
-              .chatbot-container.open { transition: none; }
-            }
+           
           </style>
         </head>
         <body>
@@ -431,58 +428,6 @@
       // Close modal when clicking outside
       document.getElementById('loginModal').addEventListener('click', function(e) {
           if (e.target === this) closeLoginModal();
-      });
-
-      // Chatbot functions
-      function handleKeyPress(e) {
-          if (e.key === 'Enter') sendMessage();
-      }
-      
-      function sendMessage() {
-          const input = document.getElementById('chatInput');
-          const text = input.value.trim();
-          if (!text) return;
-          addMessage(text, 'user');
-          input.value = '';
-          setTimeout(() => addMessage(generateBotResponse(text), 'bot'), 500);
-      }
-      
-      function addMessage(text, sender) {
-          const box = document.getElementById('chatMessages');
-          if (!box) return;
-          const div = document.createElement('div');
-          div.className = `message ${sender}`;
-          div.textContent = text;
-          box.appendChild(div);
-          box.scrollTop = box.scrollHeight;
-      }
-      
-      function generateBotResponse(msg) {
-          const m = msg.toLowerCase();
-          if (m.includes('hello')) return "Hello! Welcome to the character showcase. How can I help you today?";
-          if (m.includes('hi')) return "Hi there! I'm here to help you navigate the site. What would you like to know?";
-          if (m.includes('help')) return "I can help you with information about the character, navigation, or features of this site.";
-          if (m.includes('character')) return "This is a 3D character model you can click to open the selector.";
-          if (m.includes('website')) return "This website showcases 3D character models with interactive features.";
-          if (m.includes('menu')) return "Click the three dots in the top-left to open the menu.";
-          if (m.includes('login')) return "Click the user icon in the top-right to open login.";
-          return "Thanks for your message! Ask about the character, website features, or navigation.";
-      }
-
-      // Chat toggle functionality
-      const chatEl = document.querySelector('.chatbot-container');
-      const chatToggleBtn = document.getElementById('chatToggle');
-
-      function setChatOpen(open) {
-          chatEl.classList.toggle('open', open);
-          chatToggleBtn.setAttribute('aria-expanded', String(open));
-      }
-
-      // Start closed by default
-      setChatOpen(false);
-
-      chatToggleBtn.addEventListener('click', () => {
-          setChatOpen(!chatEl.classList.contains('open'));
       });
           
           // Wire up the login modal form
