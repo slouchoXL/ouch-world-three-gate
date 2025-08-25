@@ -241,7 +241,7 @@
     
     // Carousel layout + tween parameters (safe at top-level)
     carousel.radius     = 3;
-    carousel.anglePer   = Math.PI / 5;
+    carousel.anglePer   = Math.PI / 8;
     carousel.camHome    = null;        // set on first enterCarousel()
     carousel.dragOffset = 0;
     carousel.animFrom   = 0;
@@ -263,7 +263,7 @@
   }
 
   window.characterConfigs = [
-    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, y: -0.1, scaleMul: 0.6, trimStart: 1.5, trimEnd: 2.0 },
+    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, y: -0.08, scaleMul: 0.6, trimStart: 1.5, trimEnd: 2.0 },
     { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     targetHeight: 1.4, y: -0.08, scaleMul: 0.6, trimStart: 0.12, trimEnd: 0.10 },
     { name: "Super Maramu 2000", status: "Unlocked", url: "/assets/models/maramu.glb", targetHeight: 1.4, y: -0.3, scaleMul: 0.55, trimStart: 0.12, trimEnd: 0.10 }
   ];
@@ -520,7 +520,14 @@
         const off = THREE.MathUtils.lerp(carousel.animFrom, carousel.animTo, u);
         layoutCarousel(off);
         carousel.animT = t;
-        if (t === 1) { carousel.dragOffset = 0; } // finished
+        if (t === 1) {
+          carousel.dragOffset = 0;         // finished
+          if (typeof carousel.pendingIndex === 'number') {
+            carousel.activeIndex = carousel.pendingIndex;  // now commit the center
+            carousel.pendingIndex = null;
+          }
+        }
+
       } else {
         // while dragging, continuously lay out
         layoutCarousel(carousel.dragOffset || 0);
@@ -950,6 +957,9 @@
       const n = (window.characterConfigs?.length || 1);
       nextIndex = wrapIndex(nextIndex, n);
 
+      // If we’re already animating, ignore this snap to prevent double-hops
+      if (carousel.animT < 1) return;
+
       const from = carousel.activeIndex;
       const deltaItems = ringDelta(from, nextIndex, n) - (carousel.dragOffset || 0);
 
@@ -959,10 +969,14 @@
       carousel.animDur   = 300;
       carousel.animStart = performance.now();
 
-      carousel.activeIndex = nextIndex;
+      // Defer committing the new center until the tween completes
+      carousel.pendingIndex = nextIndex;
+
+      // UI can update the name immediately (optional)
       window.currentCharacterIndex = nextIndex;
       window.updateCharacterInfo?.();
     }
+
 
 
   // Free GPU memory when swapping models
