@@ -211,7 +211,7 @@
   }
 
   window.characterConfigs = [
-    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, scaleMul: 0.95, trimStart: 1.5, trimEnd: 2.0 },
+    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, scaleMul: 0.6, trimStart: 1.5, trimEnd: 2.0 },
     { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     targetHeight: 1.4, scaleMul: 0.95, trimStart: 0.12, trimEnd: 0.10 },
     { name: "Super Maramu 2000", status: "Locked", url: "/assets/models/maramu.glb", targetHeight: 1.4, scaleMul: 0.95, trimStart: 0.12, trimEnd: 0.10 }
   ];
@@ -368,7 +368,7 @@
         currentModel = root;
         window.character = root;
 
-        frameCameraOnTargetHeight(camera, targetHeight, 0.9, 0.5);
+        frameCameraOnTargetHeight(camera, targetHeight, 1.4, 0.5);
         window.updateCharacterInfo?.();
       },
       undefined,
