@@ -117,7 +117,7 @@
     .character-info { display: grid; grid-template-rows: auto auto; gap: 8px; justify-items: center; min-width: 260px; }
     .character-header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
     .character-name { text-align: center; font: 600 14px/1 system-ui, Arial, sans-serif; background: none; padding: .35rem .6rem; border-radius: .5rem; min-width: var(--title-width, 200px); }
-    .arrow-btn { background: rgba(255,255,255,.1); border: none; color: #fff; width: 28px; height: 28px; text-align: center; font-size: 18px; line-height: 26px; cursor: pointer; }
+    .arrow-btn { background: none; border: none; color: #fff; width: 28px; height: 28px; text-align: center; font-size: 18px; line-height: 26px; cursor: pointer; }
     .character-actions { display: flex; justify-content: center; }
     .character-confirm { background: rgba(255,255,255,.92); color: #000; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; font-weight: 600; pointer-events: auto;
         z-index: 9999; touch-action: manipulation; }
@@ -240,8 +240,8 @@
   };
     
     // Carousel layout + tween parameters (safe at top-level)
-    carousel.radius     = 1.9;
-    carousel.anglePer   = Math.PI / 10;
+    carousel.radius     = 3;
+    carousel.anglePer   = Math.PI / 5;
     carousel.camHome    = null;        // set on first enterCarousel()
     carousel.dragOffset = 0;
     carousel.animFrom   = 0;
@@ -480,25 +480,21 @@
         entry.root.rotation.y = -ang * 0.6;
 
         // ✅ DIMMING — keep this INSIDE the loop so k/entry are in scope
-        const dist  = Math.min(Math.abs(k), 1);                 // 0 center → 1 side
-        const alpha = THREE.MathUtils.lerp(1, 0.55, dist);      // 1 → 0.55
-        entry.root.traverse(o => {
-          if (o.isMesh && o.material) {
-            if (Array.isArray(o.material)) {
-              o.material.forEach(m => { m.transparent = alpha < 1; m.opacity = alpha; });
-            } else {
-              o.material.transparent = alpha < 1;
-              o.material.opacity     = alpha;
-            }
-          }
-        });
+        // Put the centered item on layer 1 so only it gets hit by the point light
+        const isCenter = Math.abs(k) < 0.5;  // halfway-to-next slot threshold
+        if (isCenter) {
+          entry.root.layers.enable(1);
+        } else {
+          entry.root.layers.disable(1);
+        }
+
       }
 
 
       // Camera parallax, always looking near center
       const anglePer = carousel.anglePer ?? (Math.PI / 10);
       const rad = carousel.radius ?? 1.8;
-      const camSlide = Math.sin(-offsetInItems * anglePer) * 0.35;
+      const camSlide = Math.sin(-offsetInItems * anglePer) * 0.5;
       const camDepth = carousel.camHome
         ? carousel.camHome.z + (1 - Math.cos(-offsetInItems * anglePer)) * (rad * 0.12)
         : camera.position.z;
@@ -582,10 +578,12 @@
         const pl = new THREE.PointLight(0xffffff, 1.15, 2.4, 2.2); // intensity, distance, decay
         pl.position.set(0, yTop, 0.7);
         pl.castShadow = false;
+        pl.layers.set(1);
         scene.add(pl);
         carousel.centerLight = pl;
       } else if (!carousel.centerLight.parent) {
         scene.add(carousel.centerLight);
+        carousel.centerLight.layers.set(1);
       }
 
 
@@ -667,6 +665,7 @@
         // Reset local transforms so the active model faces forward
         e.root.position.set(0, e.root.position.y, 0);
         e.root.rotation.set(0, 0, 0);
+        e.root.layers.disable(1);
       }
 
       // Keep only the committed model in the scene
@@ -990,6 +989,7 @@
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 0, 5);
     window.camera = camera;
+    camera.layers.enable(1);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
