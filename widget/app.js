@@ -349,19 +349,18 @@ async function requireSignedInOrPrompt() {
   const { data: { session } } = await supa.auth.getSession();
   if (session?.user) return true;
 
-  cta.textContent = 'Sign in to open packs';
+  // Redirect to parent for authentication
+  if (window.parent !== window) {
+    // We're in iframe - tell parent to show login modal
+    window.parent.postMessage({ type: 'show_login_modal' }, '*');
+  } else {
+    // Direct access - redirect to packs page
+    window.location.href = '/packs';
+  }
+  
+  cta.textContent = 'Sign in required';
   cta.hidden = false;
-  cta.disabled = false;
-  cta.onclick = async () => {
-    const email = prompt('Enter your email to sign in');
-    if (!email) return;
-    const { error } = await supa.auth.signInWithOtp({
-      email,
-      options:{ emailRedirectTo: `https://ouchworld.netlify.app/packs` }
-    });
-    if (error) return showError(error.message || 'Sign-in failed');
-    alert('Check your email for the magic link, then return here.');
-  };
+  cta.disabled = true;
   return false;
 }
 

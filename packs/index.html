@@ -541,6 +541,44 @@
       chatToggleBtn.addEventListener('click', () => {
           setChatOpen(!chatEl.classList.contains('open'));
       });
+          
+          // Wire up the login modal form
+          document.addEventListener('DOMContentLoaded', () => {
+            const formButton = document.querySelector('#loginForm .form-button');
+            const emailInput = document.querySelector('#loginForm .form-input');
+            
+            formButton.addEventListener('click', async () => {
+              const email = emailInput.value.trim();
+              if (!email) return alert('Please enter your email');
+              
+              formButton.disabled = true;
+              formButton.textContent = 'Sending...';
+              
+              try {
+                const { error } = await window.supa.auth.signInWithOtp({
+                  email,
+                  options: { emailRedirectTo: window.location.href }
+                });
+                
+                if (error) throw error;
+                
+                alert('Check your email for the magic link!');
+                closeLoginModal();
+              } catch (error) {
+                alert('Error: ' + error.message);
+              } finally {
+                formButton.disabled = false;
+                formButton.textContent = 'Create / Login';
+              }
+            });
+            
+            // Listen for iframe requesting login
+            window.addEventListener('message', (event) => {
+              if (event.data?.type === 'show_login_modal') {
+                handleLogin();
+              }
+            });
+          });
 
       </script>
 </head>

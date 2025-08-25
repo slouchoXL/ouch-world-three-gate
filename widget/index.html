@@ -97,64 +97,7 @@
 
 <body>
   <!-- Simple auth UI (must be in BODY, after client is created) -->
-  <div id="auth" style="margin: 12px 12px 0; display:flex; gap:8px; align-items:center;">
-    <input type="email" id="emailInput" placeholder="Enter email" autocomplete="email" />
-    <button id="loginBtn">Send Magic Link</button>
-    <button id="logoutBtn" hidden>Log out</button>
-  </div>
-
-  <script>
-    (function () {
-      if (window.__AUTH_WIRED__) return;
-      window.__AUTH_WIRED__ = true;
-
-      const emailInput = document.getElementById('emailInput');
-      const loginBtn   = document.getElementById('loginBtn');
-      const logoutBtn  = document.getElementById('logoutBtn');
-
-      function updateButtons(session){
-        const signedIn = !!session?.user;
-        loginBtn.hidden  = signedIn;
-        logoutBtn.hidden = !signedIn;
-      }
-
-      loginBtn.addEventListener('click', async () => {
-        const email = (emailInput.value || '').trim();
-        if (!email) return alert('Enter your email');
-        if (!window.supa?.auth) return alert('Auth not initialized');
-
-        // Check if we're inside an iframe
-        const isInIframe = window !== window.top;
-        
-        // Set redirect URL - prioritize /packs
-        const emailRedirectTo = isInIframe
-          ? 'https://ouchworld.netlify.app/packs'  // Force redirect to /packs when in iframe
-          : `${location.origin}/packs`;            // Also redirect to /packs for direct access
-
-        console.log('Magic link will redirect to:', emailRedirectTo); // Debug
-
-        const { error } = await window.supa.auth.signInWithOtp({
-          email,
-          options: { emailRedirectTo }
-        });
-        
-        if (error) alert(error.message);
-        else alert('Check your email for the magic link!');
-      });
-
-      logoutBtn.addEventListener('click', async () => {
-        if (!window.supa?.auth) return;
-        await window.supa.auth.signOut();
-        updateButtons(null);
-        alert('Logged out');
-      });
-
-      if (window.supa?.auth) {
-        window.supa.auth.getSession().then(({ data: { session } }) => updateButtons(session));
-        window.supa.auth.onAuthStateChange((_event, session) => updateButtons(session));
-      }
-    })();
-  </script>
+  
 
   <!-- Widget UI -->
   <div id="app" class="widget" aria-live="polite">
