@@ -230,6 +230,8 @@
     activeIndex: 0,              // which index is centered while in carousel
     mixers: [],                  // extra mixers for side items
     cache: []                    // [{root, mixer, targetHeight, cfg}]
+  };
+    
     carousel.radius    = 1.25;               // arc radius
     carousel.anglePer  = Math.PI / 12;       // ~15° per slot
     carousel.camHome   = { x: 0, z: camera.position.z, y: camera.position.y };
@@ -239,7 +241,6 @@
     carousel.animT     = 1;
     carousel.animDur   = 300;
     carousel.animStart = 0;
-  };
 
   // expose for other code
   window.scene = null; window.camera = null; window.renderer = null; window.character = null;
