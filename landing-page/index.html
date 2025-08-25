@@ -470,32 +470,17 @@
 
         // use cached baseY so Y never “jumps”
         const baseY = entry.baseY ?? 0;
-        
 
         // k is the wrapped slot index from center, including drag offset
         const k = rel(i, carousel.activeIndex) - offsetInItems;
         const ang = k * (carousel.anglePer ?? (Math.PI / 10)); // ~18° default
 
         const x = Math.sin(ang) * (carousel.radius ?? 1.8);
-        const z = -(1 - Math.cos(ang)) * ((carousel.radius ?? 1.8) * 0.9);
+        const z = (1 - Math.cos(ang)) * ((carousel.radius ?? 1.8) * 0.9);
 
         entry.root.position.set(x, baseY, z);
         entry.root.rotation.y = -ang * 0.6;  // toe-in toward center
       }
-      
-      // After entry.root.rotation.y = -ang * 0.6;
-      const dist = Math.min(Math.abs(k), 1);     // 0 when centered, ~1 at side slots
-      const alpha = THREE.MathUtils.lerp(1, 0.55, dist);  // 1 → 0.55
-      entry.root.traverse(o => {
-        if (o.isMesh && o.material) {
-          if (Array.isArray(o.material)) {
-            o.material.forEach(m => { m.transparent = alpha < 1; m.opacity = alpha; });
-          } else {
-            o.material.transparent = alpha < 1; o.material.opacity = alpha;
-          }
-        }
-      });
-
 
       // Camera parallax, always looking near center
       const anglePer = carousel.anglePer ?? (Math.PI / 10);
@@ -545,19 +530,7 @@
     }
 
     carousel.mode = 'carousel';
-    // Add inside enterCarousel(), after you set carousel.mode = 'carousel':
-    {
-      const L = scene.userData?.lights, LV = scene.userData?.lightLevels;
-      if (L && LV) {
-        L.hemi.intensity = LV.hemi * 0.25;
-        L.key.intensity  = LV.key  * 0.35;
-        L.fill.intensity = LV.fill * 0.25;
-        L.rim.intensity  = LV.rim  * 0.25;
-      }
-    }
-
     carousel.activeIndex = window.currentCharacterIndex;
-    
 
     if (!carousel.group) {
       carousel.group = new THREE.Group();
@@ -638,20 +611,46 @@
       }
 
       // Remove the side-by-side group from the scene
-      if (carousel.group) {
-        try { carousel.group.clear(); } catch {}
-        if (carousel.group.parent) scene.remove(carousel.group);
+      if (carousel.group && carousel.group.parent) {
+        scene.remove(carousel.group);
       }
 
       // Decide which index to commit
       const commitIndex = commitSelection ? carousel.activeIndex : window.currentCharacterIndex;
       const entry = carousel.cache[commitIndex];
 
-      // Safety: ensure all materials are fully opaque again
+      
+    // Reset materials to fully opaque and ensure transforms/visibility are sane on exit
+    for (let i = 0; i < carousel.cache.length; i++) {
+      const e = carousel.cache[i];
+      if (!e) continue;
+      // Reset material opacity for all meshes
+      e.root.traverse(o => {
+        if (o.isMesh && o.material) {
+          if (Array.isArray(o.material)) {
+            o.material.forEach(m => { m.transparent = false; m.opacity = 1; });
+          } else {
+            o.material.transparent = false;
+            o.material.opacity = 1;
+          }
+        }
+      });
+      // Default: hide non-committed entries, center committed one
+      if (typeof commitIndex !== 'undefined') {
+        e.root.visible = (i === commitIndex);
+      }
+      // Reset local transforms so the active model faces forward
+      e.root.position.set(0, e.root.position.y, 0);
+      e.root.rotation.set(0, 0, 0);
+    }
+    // Ensure the committed root is present in the scene
+    if (entry && entry.root && entry.root.parent !== scene) {
+      scene.add(entry.root);
+    }
+    // Safety: ensure all materials are fully opaque again
       for (let i = 0; i < carousel.cache.length; i++) {
         const e = carousel.cache[i];
         if (!e) continue;
-        // Reset material opacity for all meshes
         e.root.traverse(o => {
           if (o.isMesh && o.material) {
             if (Array.isArray(o.material)) {
@@ -662,13 +661,6 @@
             }
           }
         });
-        // Default: hide non-committed entries, center committed one
-        if (typeof commitIndex !== 'undefined') {
-          e.root.visible = (i === commitIndex);
-        }
-        // Reset local transforms so the active model faces forward
-        e.root.position.set(0, e.root.position.y, 0);
-        e.root.rotation.set(0, 0, 0);
       }
 
       // Keep only the committed model in the scene
@@ -711,17 +703,6 @@
       carousel.animFrom = 0;
       carousel.animTo = 0;
       carousel.animT = 1;
-
-      // Add inside exitCarousel(), near the end before hiding controls:
-      {
-        const L = scene.userData?.lights, LV = scene.userData?.lightLevels;
-        if (L && LV) {
-          L.hemi.intensity = LV.hemi;
-          L.key.intensity  = LV.key;
-          L.fill.intensity = LV.fill;
-          L.rim.intensity  = LV.rim;
-        }
-      }
 
       // Hide any selector UI (if visible)
       window.hideCharacterControls();
@@ -899,20 +880,28 @@
     _downHandler = _moveHandler = _upHandler = null;
   }
 
-    function setGroupOffset(offsetInItems) {
+    function wrapIndex(i, n) { return ((i % n) + n) % n; }
+
+function setGroupOffset(offsetInItems) {
       carousel.dragOffset = offsetInItems;
       layoutCarousel(offsetInItems);
 
+      // Determine which index is visually centered (nearest to zero offset)
       const n = (window.characterConfigs?.length || 1);
       const nearest = Math.round(carousel.activeIndex - offsetInItems);
       const wrapped = wrapIndex(nearest, n);
 
+      // If the displayed (center) index changed during swipe, sync both the label and the model
       if (wrapped !== window.currentCharacterIndex) {
         window.currentCharacterIndex = wrapped;
+        // Keep the *model* aligned with the label while dragging
+        carousel.activeIndex = wrapped;
+        // Because activeIndex changed, re-layout using the same drag offset to preserve continuity
+        layoutCarousel(offsetInItems);
         window.updateCharacterInfo?.();
       }
     }
-
+    }
 
 
 
@@ -925,33 +914,23 @@
     }
     return THREE.MathUtils.clamp(idx, 0, (window.characterConfigs?.length || 1) - 1);
   }
-    
-    function wrapIndex(i, n) { return ((i % n) + n) % n; }
-    function ringDelta(a, b, n) {  // shortest signed steps from a → b
-      let d = ((b - a) % n + n) % n;
-      if (d > n / 2) d -= n;
-      return d;
-    }
-
 
     function snapToIndex(nextIndex) {
-      const n = (window.characterConfigs?.length || 1);
-      nextIndex = wrapIndex(nextIndex, n);
+      const max = (window.characterConfigs?.length || 1) - 1;
+      nextIndex = THREE.MathUtils.clamp(nextIndex, 0, max);
 
-      const from = carousel.activeIndex;
-      const deltaItems = ringDelta(from, nextIndex, n) - (carousel.dragOffset || 0);
-
-      carousel.animFrom  = carousel.dragOffset || 0;
-      carousel.animTo    = carousel.animFrom + deltaItems;
-      carousel.animT     = 0;
-      carousel.animDur   = 300;
-      carousel.animStart = performance.now();
+      // Target offset (in “items”) from current visual state to the desired index
+      const delta = carousel.activeIndex - nextIndex - (carousel.dragOffset || 0);
+      carousel.animFrom = carousel.dragOffset || 0;
+      carousel.animTo   = carousel.animFrom + delta;
+      carousel.animT    = 0;                 // 0..1
+      carousel.animDur  = 300;               // ms
+      carousel.animStart= performance.now();
 
       carousel.activeIndex = nextIndex;
       window.currentCharacterIndex = nextIndex;
       window.updateCharacterInfo?.();
     }
-
 
   // Free GPU memory when swapping models
   function disposeObject(obj) {
@@ -995,11 +974,6 @@
     const key = new THREE.DirectionalLight(0xffffff, 1); key.position.set(5, 8, 6); key.castShadow = true; key.shadow.mapSize.set(2048,2048); key.shadow.camera.near=0.1; key.shadow.camera.far=50; scene.add(key);
     const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(-4, 5, 6); scene.add(fill);
     const rim  = new THREE.DirectionalLight(0x88aaff, 0.5); rim.position.set(-5, 2, -6); scene.add(rim);
-    // In initThreeJS(), after you create hemi/key/fill/rim:
-    scene.userData.lights = { hemi, key, fill, rim };
-    scene.userData.lightLevels = {
-      hemi: hemi.intensity, key: key.intensity, fill: fill.intensity, rim: rim.intensity
-    };
 
     // Raycasting
     raycaster = new THREE.Raycaster();
@@ -1216,12 +1190,6 @@
     document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
   });
 
-    window.addEventListener('keydown', (e) => {
-      if (carousel.mode !== 'carousel') return;
-      if (e.key === 'ArrowLeft')  snapToIndex(carousel.activeIndex - 1);
-      if (e.key === 'ArrowRight') snapToIndex(carousel.activeIndex + 1);
-    });
-    
   // ===== Mobile zoom suppression (unchanged) =====
   (function () {
     let lastTouchEnd = 0;

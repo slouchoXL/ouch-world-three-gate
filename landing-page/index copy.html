@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>LandingPage</title>
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
@@ -42,7 +41,6 @@
     })();
   </script>
 
-  <title>landing-page</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
@@ -101,7 +99,7 @@
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
     .modal-overlay.show { display: flex; }
     .login-modal { background: rgba(0,0,0,0.9); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 15px; width: 90%; max-width: 400px; position: relative; color: #fff; }
-    .modal-close { position: absolute; top: 8px; right: 15px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 24px; cursor: pointer; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all .2s ease; }
+    .modal-close { position: absolute; top: 8px; right: 15px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 24px; cursor: button; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all .2s ease; }
     input, textarea, select { font-size: 16px; }
     button, a, .menu-button, .login-button, .chat-toggle, .send-button, .arrow-btn, .character-confirm { touch-action: manipulation; }
     .modal-close:hover { color: #fff; }
@@ -113,8 +111,35 @@
     .form-input::placeholder { color: rgba(255,255,255,0.5); }
     .form-button { width: 100%; background: rgba(255,255,255,0.92); color: #000; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; }
 
-    /* Chat + Character selector (unchanged styles) */
-    /* ... (keeping all your existing styles here) ... */
+    /* Character selector overlay */
+    .character-controls { position: fixed; left: 50%; bottom: 8vh; transform: translateX(-50%); z-index: 250; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .character-controls.show { opacity: 1; pointer-events: auto; }
+    .character-info { display: grid; grid-template-rows: auto auto; gap: 8px; justify-items: center; min-width: 260px; }
+    .character-header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+    .character-name { text-align: center; font: 600 14px/1 system-ui, Arial, sans-serif; background: rgba(15,15,20,.7); padding: .35rem .6rem; border-radius: .5rem; min-width: var(--title-width, 200px); }
+    .arrow-btn { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); color: #fff; width: 28px; height: 28px; border-radius: 50%; text-align: center; font-size: 18px; line-height: 26px; cursor: pointer; }
+    .character-actions { display: flex; justify-content: center; }
+    .character-confirm { background: rgba(255,255,255,.92); color: #000; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; font-weight: 600; }
+    
+    /* Hide the selector bar entirely
+    #characterControls { display: none !important; }
+
+    /* If you ever show it again, these remove chrome:
+    .character-name { background: none !important; padding: 0 !important; }
+    .arrow-btn, .character-actions { display: none !important; }
+     */
+
+    /* Chat (unchanged styles trimmed for brevity)
+    .chatbot-container { position: fixed; right: 16px; bottom: 16px; width: 320px; height: 420px; background: rgba(0,0,0,.8); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; display: none; flex-direction: column; z-index: 260; }
+    .chatbot-container.open { display: flex; }
+    .chat-messages { flex: 1; overflow: auto; padding: 10px; }
+    .message { margin: 6px 0; }
+    .message.user { text-align: right; }
+    .chat-input-container { display: flex; padding: 8px; gap: 8px; }
+    .chat-input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.1); color: #fff; }
+    .send-button { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.15); color: #fff; }
+    .chat-toggle { position: fixed; right: 16px; bottom: 16px; z-index: 261; border: none; background: #111; color: #fff; padding: 10px 12px; border-radius: 50%; } */
+
   </style>
 </head>
 <body>
@@ -157,7 +182,7 @@
     </div>
   </div>
 
-  <!-- Login Modal (unchanged markup) -->
+  <!-- Login Modal -->
   <div class="modal-overlay" id="loginModal">
     <div class="login-modal">
       <button class="modal-close" onclick="closeLoginModal()">&times;</button>
@@ -178,7 +203,7 @@
     </div>
   </div>
 
-  <!-- Chatbot (unchanged markup) -->
+  <!-- Chatbot
   <div class="chatbot-container">
     <div class="chat-messages" id="chatMessages"><div class="message bot">Hi there, how can I help?</div></div>
     <div class="chat-input-container">
@@ -188,7 +213,7 @@
       </button>
     </div>
   </div>
-  <button class="chat-toggle" id="chatToggle" aria-label="Toggle chat">💱</button>
+  <button class="chat-toggle" id="chatToggle" aria-label="Toggle chat">💱</button>-->
 </div>
 
 <script>
@@ -198,6 +223,31 @@
   let gltfLoader, dracoLoader;
   let currentModel = null, currentMixer = null, loadVersion = 0;
   const clock = new THREE.Clock();
+
+  // [CAROUSEL] state
+  const carousel = {
+    mode: 'view',                // 'view' | 'carousel'
+    group: null,                 // THREE.Group holding side-by-side roots
+    spacing: 1.8,                // horizontal spacing (world units)
+    dragging: false,
+    startX: 0,
+    dx: 0,
+    activeIndex: 0,              // which index is centered while in carousel
+    mixers: [],                  // extra mixers for side items
+    cache: []                    // [{root, mixer, targetHeight, cfg}]
+  };
+    
+    // Carousel layout + tween parameters (safe at top-level)
+    carousel.radius     = 1.9;
+    carousel.anglePer   = Math.PI / 10;
+    carousel.camHome    = null;        // set on first enterCarousel()
+    carousel.dragOffset = 0;
+    carousel.animFrom   = 0;
+    carousel.animTo     = 0;
+    carousel.animT      = 1;
+    carousel.animDur    = 300;
+    carousel.animStart  = 0;
+
 
   // expose for other code
   window.scene = null; window.camera = null; window.renderer = null; window.character = null;
@@ -211,9 +261,9 @@
   }
 
   window.characterConfigs = [
-    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, y: -0.08, scaleMul: 0.6, trimStart: 1.5, trimEnd: 2.0 },
-    { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     targetHeight: 1.4, scaleMul: 0.95, trimStart: 0.12, trimEnd: 0.10 },
-    { name: "Super Maramu 2000", status: "Locked", url: "/assets/models/maramu.glb", targetHeight: 1.4, scaleMul: 0.95, trimStart: 0.12, trimEnd: 0.10 }
+    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, y: -0.06, scaleMul: 0.6, trimStart: 1.5, trimEnd: 2.0 },
+    { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     targetHeight: 1.4, y: -0.08, scaleMul: 0.6, trimStart: 0.12, trimEnd: 0.10 },
+    { name: "Super Maramu 2000", status: "Unlocked", url: "/assets/models/maramu.glb", targetHeight: 1.4, y: -0.15, scaleMul: 0.4, trimStart: 0.12, trimEnd: 0.10 }
   ];
 
   function centerAndScaleToHeight(root, targetHeight = 1.8) {
@@ -227,25 +277,27 @@
     root.scale.multiplyScalar(s);
   }
 
-    function frameCameraOnTargetHeight(camera, targetHeight = 1.8, pad = 1.4, centerYFactor = 0.2) {
-      // pad > 1 adds margin around the model's height; 1.4 is a safe default
-      const fovRad = (camera.fov * Math.PI) / 180;
-      const halfH  = (targetHeight * pad) / 2;
-      const dist   = halfH / Math.tan(fovRad / 2);
-
-      const cy = targetHeight * centerYFactor; // 0.5 = exact mid-height
-      camera.position.set(0, cy, dist);
-      camera.lookAt(0, cy, 0);
-      camera.updateProjectionMatrix();
-    }
-
+  // Adjusted framing baseline (you previously used 0.2 center—keeping consistent)
+  function frameCameraOnTargetHeight(camera, targetHeight = 1.8, pad = 1.4, centerYFactor = 0.2) {
+    const fovRad = (camera.fov * Math.PI) / 180;
+    const halfH  = (targetHeight * pad) / 2;
+    const dist   = halfH / Math.tan(fovRad / 2);
+    const cy = targetHeight * centerYFactor;
+    camera.position.set(0, cy, dist);
+    camera.lookAt(0, cy, 0);
+    camera.updateProjectionMatrix();
+  }
 
   function tickAnimations() {
     const dt = Math.min(clock.getDelta(), 0.033);
     if (currentMixer) currentMixer.update(dt);
+    // [CAROUSEL] drive extra mixers when in carousel
+    if (carousel.mode === 'carousel' && carousel.mixers.length) {
+      for (const m of carousel.mixers) m.update(dt);
+    }
   }
 
-  // ===== Character UI (unchanged) =====
+  // ===== Character UI =====
   window.updateCharacterInfo = function() {
     const config = window.characterConfigs[window.currentCharacterIndex];
     const nameEl = document.getElementById('characterName');
@@ -259,19 +311,42 @@
       confirmBtn.textContent = locked ? 'Locked' : 'Select';
     }
   };
+
+  // These still work in view mode; in carousel they snap between items.
   window.previousCharacter = function() {
+    if (carousel.mode === 'carousel') { snapToIndex(carousel.activeIndex - 1); return; }
     window.currentCharacterIndex = (window.currentCharacterIndex - 1 + window.characterConfigs.length) % window.characterConfigs.length;
     window.createCharacter?.(); window.updateCharacterInfo();
   };
   window.nextCharacter = function() {
+    if (carousel.mode === 'carousel') { snapToIndex(carousel.activeIndex + 1); return; }
     window.currentCharacterIndex = (window.currentCharacterIndex + 1) % window.characterConfigs.length;
     window.createCharacter?.(); window.updateCharacterInfo();
   };
-  window.confirmCharacter = function() { const cfg = window.characterConfigs[window.currentCharacterIndex]; if (cfg && cfg.status === 'Unlocked') window.hideCharacterControls(); };
-  window.hideCharacterControls = function() { document.getElementById('characterControls')?.classList.remove('show'); lastHoverState = null; };
-  window.onCharacterClick = function() { const c = document.getElementById('characterControls'); if (c) { c.classList.add('show'); window.updateCharacterInfo(); } };
 
-  // ===== Character Factory (fixed) =====
+  // Commit selection (closes carousel if open)
+  window.confirmCharacter = function() {
+    const cfg = window.characterConfigs[window.currentCharacterIndex];
+    if (!cfg) return;
+    if (carousel.mode === 'carousel') {
+      if (cfg.status === 'Locked') return; // keep button disabled UI already
+      exitCarousel(true); // commit
+      return;
+    }
+    if (cfg.status === 'Unlocked') window.hideCharacterControls();
+  };
+
+  window.hideCharacterControls = function() {
+    document.getElementById('characterControls')?.classList.remove('show');
+    lastHoverState = null;
+  };
+
+  // Click on model → enter carousel
+  window.onCharacterClick = function() {
+    if (carousel.mode === 'view') enterCarousel();
+  };
+
+  // ===== Character Factory (existing single-model loader) =====
   window.createCharacter = function () {
     if (!window.scene || !gltfLoader) { console.error('Loaders/scene not ready'); return; }
 
@@ -290,81 +365,80 @@
     }
     if (currentModel) { scene.remove(currentModel); disposeObject(currentModel); currentModel = null; }
 
-    // Resolve config
     const list = window.characterConfigs || [];
     const idx = (window.currentCharacterIndex ?? 0) % (list.length || 1);
     const cfg = list[idx];
     if (!cfg || !cfg.url) return;
 
     const myVersion = ++loadVersion;
-    console.log('Loading GLB:', cfg.url);
-
     gltfLoader.load(
       cfg.url,
       (gltf) => {
         if (myVersion !== loadVersion) { if (gltf.scene) disposeObject(gltf.scene); return; }
-
-        // ✅ define root before using it
         const root = gltf.scene || gltf.scenes?.[0];
         if (!root) return;
 
-        // Normalize size + center
         const targetHeight = cfg.targetHeight ?? 1.8;
-        centerAndScaleToHeight(root, targetHeight);
 
-        // ✅ optional fine-tune overall size (leave cfg.scaleMul undefined if you don’t need it)
+        // Center/scale first
+        centerAndScaleToHeight(root, targetHeight);
         if (cfg.scaleMul) root.scale.multiplyScalar(cfg.scaleMul);
 
-        // Defaults
-        root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+        // 🔧 Apply per-character Y offset ONCE and cache the stable baseY for carousel/layout
+        root.userData = root.userData || {};
+        if (cfg.y != null && !root.userData.yApplied) {
+          root.position.y += cfg.y;
+          root.userData.yApplied = true;
+        }
+        root.userData.baseY = root.position.y; // used by carousel to avoid Y "jumps"
 
-        // --- ✅ Animations (trim start/end + ping-pong loop) ---
+        // ✅ Make meshes raycast-friendly (do this BEFORE animations & adding to scene)
+        root.traverse(o => {
+          if (o.isMesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+            o.raycast = THREE.Mesh.prototype.raycast; // force default triangle raycast
+            o.frustumCulled = false;                  // avoid “visible but not hittable” cases
+          }
+        });
+        // ✅ Ensure transforms are fresh for first-frame raycasts
+        root.updateMatrixWorld(true);
+
+        // Animations (unchanged)
         if (gltf.animations && gltf.animations.length) {
           currentMixer = new THREE.AnimationMixer(root);
-
-          // Prefer an "Idle" clip; else first
           const clips = gltf.animations;
           const baseClip =
             THREE.AnimationClip.findByName(clips, 'Idle') ||
             THREE.AnimationClip.findByName(clips, 'idle') ||
             clips[0];
 
-          // Trim a few frames off start/end (seconds)
           const trimStart = Math.max(0, cfg.trimStart ?? 1.5);
           const trimEnd   = Math.max(0, cfg.trimEnd   ?? 2.0);
-
-          const minDur = 0.05; // safety so we never create a 0-length subclip
+          const minDur = 0.05;
           const startSec = Math.min(trimStart, Math.max(0, baseClip.duration - minDur));
           const endSec   = Math.max(baseClip.duration - trimEnd, startSec + minDur);
-
-          // Create a trimmed subclip; use fps so start/end are in seconds
           const fps = 30;
           const startFrame = Math.max(0, Math.floor(startSec * fps));
           const endFrame   = Math.max(startFrame + 1, Math.ceil(endSec * fps));
           const sub = THREE.AnimationUtils.subclip(
             baseClip,
             (baseClip.name || 'clip') + '_trim',
-            startFrame,
-            endFrame,
-            fps
+            startFrame, endFrame, fps
           );
 
           const action = currentMixer.clipAction(sub);
-          action
-            .setLoop(THREE.LoopPingPong, Infinity) // keep if you like ping-pong
-            .reset()
-            .setEffectiveWeight(1)   // full weight immediately
-            .play();
-          action.time = 1/60;        // or 0 if your first keyed frame is fine
-          currentMixer.update(0);    // evaluate at current time with full weight
-
-          console.log('Clips:', clips.map(c => c.name), 'Trimmed:', { startSec, endSec, duration: sub.duration });
+          action.setLoop(THREE.LoopPingPong, Infinity)
+                .reset()
+                .setEffectiveWeight(1)
+                .play();
+          action.time = 1/60;      // pre-roll one frame
+          currentMixer.update(0);  // pre-evaluate pose
         } else {
           currentMixer = null;
-          console.warn('No animations found in GLB:', cfg.url);
         }
-        // --- end animations ---
 
+        // Add to scene & keep refs
         root.name = 'CHARACTER';
         scene.add(root);
         currentModel = root;
@@ -377,6 +451,507 @@
       (err) => console.error('GLB load error for', cfg.url, err)
     );
   };
+
+
+    function layoutCarousel(offsetInItems) {
+      if (!carousel.group) return;
+      const n = carousel.cache.length;
+      const half = n / 2;
+
+      // helper: shortest signed distance i→active on a ring
+      const rel = (i, active) => {
+        let d = ((i - active) % n + n) % n; // 0..n-1
+        if (d > n / 2) d -= n;              // now in (-n/2 .. n/2]
+        return d;
+      };
+
+      for (let i = 0; i < n; i++) {
+        const entry = carousel.cache[i]; if (!entry) continue;
+
+        // use cached baseY so Y never “jumps”
+        const baseY = entry.baseY ?? 0;
+        
+
+        // k is the wrapped slot index from center, including drag offset
+        const k = rel(i, carousel.activeIndex) - offsetInItems;
+        const ang = k * (carousel.anglePer ?? (Math.PI / 10)); // ~18° default
+
+        const x = Math.sin(ang) * (carousel.radius ?? 1.8);
+        const z = -(1 - Math.cos(ang)) * ((carousel.radius ?? 1.8) * 0.9);
+
+        entry.root.position.set(x, baseY, z);
+        entry.root.rotation.y = -ang * 0.6;  // toe-in toward center
+      }
+      
+      // After entry.root.rotation.y = -ang * 0.6;
+      const dist = Math.min(Math.abs(k), 1);     // 0 when centered, ~1 at side slots
+      const alpha = THREE.MathUtils.lerp(1, 0.55, dist);  // 1 → 0.55
+      entry.root.traverse(o => {
+        if (o.isMesh && o.material) {
+          if (Array.isArray(o.material)) {
+            o.material.forEach(m => { m.transparent = alpha < 1; m.opacity = alpha; });
+          } else {
+            o.material.transparent = alpha < 1; o.material.opacity = alpha;
+          }
+        }
+      });
+
+
+      // Camera parallax, always looking near center
+      const anglePer = carousel.anglePer ?? (Math.PI / 10);
+      const rad = carousel.radius ?? 1.8;
+      const camSlide = Math.sin(-offsetInItems * anglePer) * 0.35;
+      const camDepth = carousel.camHome
+        ? carousel.camHome.z + (1 - Math.cos(-offsetInItems * anglePer)) * (rad * 0.12)
+        : camera.position.z;
+
+      camera.position.x = THREE.MathUtils.lerp(camera.position.x, camSlide, 0.1);
+      if (carousel.camHome) {
+        camera.position.y = THREE.MathUtils.lerp(camera.position.y, carousel.camHome.y, 0.1);
+      }
+      camera.position.z = THREE.MathUtils.lerp(camera.position.z, camDepth, 0.1);
+      camera.lookAt(0, (carousel.camHome?.y || 0) * 0.6, 0);
+    }
+
+
+    // Drive easing each frame (call from your animate loop)
+    function updateCarouselTween() {
+      if (carousel.mode !== 'carousel') return;
+      // active easing?
+      if (carousel.animT < 1) {
+        const now = performance.now();
+        const t = Math.min(1, (now - carousel.animStart) / carousel.animDur);
+        // smoothstep-ish ease
+        const u = t * t * (3 - 2 * t);
+        const off = THREE.MathUtils.lerp(carousel.animFrom, carousel.animTo, u);
+        layoutCarousel(off);
+        carousel.animT = t;
+        if (t === 1) { carousel.dragOffset = 0; } // finished
+      } else {
+        // while dragging, continuously lay out
+        layoutCarousel(carousel.dragOffset || 0);
+      }
+    }
+
+  // ===== Carousel implementation =====
+  function enterCarousel() {
+    // Show overlay (even if you hide it via CSS later)
+    const c = document.getElementById('characterControls');
+    if (c) c.classList.add('show');
+
+    // Remember camera "home" once (used for parallax + exit)
+    if (!carousel.camHome) {
+      carousel.camHome = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
+    }
+
+    carousel.mode = 'carousel';
+    // Add inside enterCarousel(), after you set carousel.mode = 'carousel':
+    {
+      const L = scene.userData?.lights, LV = scene.userData?.lightLevels;
+      if (L && LV) {
+        L.hemi.intensity = LV.hemi * 0.25;
+        L.key.intensity  = LV.key  * 0.35;
+        L.fill.intensity = LV.fill * 0.25;
+        L.rim.intensity  = LV.rim  * 0.25;
+      }
+    }
+
+    carousel.activeIndex = window.currentCharacterIndex;
+    
+
+    if (!carousel.group) {
+      carousel.group = new THREE.Group();
+      carousel.group.name = 'CHAR_CAROUSEL_GROUP';
+    }
+
+    // Preload all entries, then build the carousel
+    preloadAll().then(() => {
+      // Remove single root; we’ll show via the group
+      if (currentModel) scene.remove(currentModel);
+
+      // Ensure every entry has a stable baseY (prevents vertical "pop")
+      for (let i = 0; i < carousel.cache.length; i++) {
+        const entry = carousel.cache[i];
+        if (!entry || !entry.root) continue;
+        if (typeof entry.baseY !== 'number') {
+          entry.baseY = entry.root.userData?.baseY ?? entry.root.position.y;
+        }
+      }
+
+      // Ensure dimming light is present during carousel (height uses baseY)
+      if (!carousel.centerLight) {
+        const yTop = (carousel.cache[carousel.activeIndex]?.baseY || 0) + 1.0;
+        const pl = new THREE.PointLight(0xffffff, 1.15, 2.4, 2.2); // intensity, distance, decay
+        pl.position.set(0, yTop, 0.7);
+        pl.castShadow = false;
+        scene.add(pl);
+        carousel.centerLight = pl;
+      } else if (!carousel.centerLight.parent) {
+        scene.add(carousel.centerLight);
+      }
+
+
+      // (Re)build the group
+      carousel.group.clear();
+      window.character = null;
+
+      for (let i = 0; i < carousel.cache.length; i++) {
+        const entry = carousel.cache[i];
+        if (!entry) continue;
+
+        entry.root.visible = true;
+
+        // Reset to a clean pose so arc layout starts from known state
+        entry.root.position.set(0, entry.baseY ?? entry.root.position.y, 0);
+        entry.root.rotation.set(0, 0, 0);
+
+        carousel.group.add(entry.root);
+      }
+
+      scene.add(carousel.group);
+
+      // Drive animations for all items while in carousel
+      startCarouselAnimations();
+
+      // Input + state
+      carousel.dragOffset = 0;
+      carousel.animFrom = 0;
+      carousel.animTo = 0;
+      carousel.animT = 1;
+
+      window.updateCharacterInfo?.();
+      attachCarouselInput();
+
+      // Initial arc layout NOW that everything is in the scene
+      layoutCarousel(0);
+    });
+  }
+
+
+    function exitCarousel(commitSelection) {
+      // Stop swipe handlers
+      detachCarouselInput();
+
+      // Remove the focus/dimming light (only used in carousel)
+      if (carousel.centerLight && carousel.centerLight.parent) {
+        scene.remove(carousel.centerLight);
+      }
+
+      // Remove the side-by-side group from the scene
+      if (carousel.group) {
+        try { carousel.group.clear(); } catch {}
+        if (carousel.group.parent) scene.remove(carousel.group);
+      }
+
+      // Decide which index to commit
+      const commitIndex = commitSelection ? carousel.activeIndex : window.currentCharacterIndex;
+      const entry = carousel.cache[commitIndex];
+
+      // Safety: ensure all materials are fully opaque again
+      for (let i = 0; i < carousel.cache.length; i++) {
+        const e = carousel.cache[i];
+        if (!e) continue;
+        // Reset material opacity for all meshes
+        e.root.traverse(o => {
+          if (o.isMesh && o.material) {
+            if (Array.isArray(o.material)) {
+              o.material.forEach(m => { m.transparent = false; m.opacity = 1; });
+            } else {
+              o.material.transparent = false;
+              o.material.opacity = 1;
+            }
+          }
+        });
+        // Default: hide non-committed entries, center committed one
+        if (typeof commitIndex !== 'undefined') {
+          e.root.visible = (i === commitIndex);
+        }
+        // Reset local transforms so the active model faces forward
+        e.root.position.set(0, e.root.position.y, 0);
+        e.root.rotation.set(0, 0, 0);
+      }
+
+      // Keep only the committed model in the scene
+      if (entry) {
+        for (let i = 0; i < carousel.cache.length; i++) {
+          const e = carousel.cache[i];
+          if (!e) continue;
+          e.root.visible = (i === commitIndex);
+          // Reset X/Z so the committed model is centered again
+          e.root.position.set(0, e.root.position.y, 0);
+        }
+
+        // Ensure the committed root is attached to the scene
+        if (!entry.root.parent) scene.add(entry.root);
+
+        // Update references to the active model + mixer
+        currentModel = entry.root;
+        window.character = entry.root;
+        currentMixer = entry.mixer || null;
+
+        // Persist the selection in your local state
+        window.currentCharacterIndex = commitIndex;
+
+        // Reframe camera for the committed model's height
+        frameCameraOnTargetHeight(camera, entry.targetHeight ?? 1.4, 1.4, 0.2);
+
+        // Return camera to its "home" slide position if defined
+        if (carousel.camHome) {
+          camera.position.x = carousel.camHome.x;
+          camera.position.y = carousel.camHome.y;
+          camera.position.z = carousel.camHome.z;
+          camera.lookAt(0, carousel.camHome.y * 0.6, 0);
+        }
+      }
+
+      // Reset carousel state
+      carousel.mode = 'view';
+      carousel.mixers = [];          // only drive the committed model's mixer via currentMixer
+      carousel.dragOffset = 0;
+      carousel.animFrom = 0;
+      carousel.animTo = 0;
+      carousel.animT = 1;
+
+      // Add inside exitCarousel(), near the end before hiding controls:
+      {
+        const L = scene.userData?.lights, LV = scene.userData?.lightLevels;
+        if (L && LV) {
+          L.hemi.intensity = LV.hemi;
+          L.key.intensity  = LV.key;
+          L.fill.intensity = LV.fill;
+          L.rim.intensity  = LV.rim;
+        }
+      }
+
+      // Hide any selector UI (if visible)
+      window.hideCharacterControls();
+    }
+
+
+  // Preload all models into carousel.cache
+  function preloadAll() {
+    const cfgs = window.characterConfigs || [];
+    const jobs = [];
+    for (let i = 0; i < cfgs.length; i++) {
+      if (!carousel.cache[i]) {
+        jobs.push(loadEntry(i));
+      }
+    }
+    return Promise.all(jobs);
+  }
+
+    function loadEntry(index) {
+      const cfg = window.characterConfigs[index];
+      if (!cfg) return Promise.resolve();
+
+      return new Promise((resolve, reject) => {
+        gltfLoader.load(
+          cfg.url,
+          (gltf) => {
+            const root = gltf.scene || gltf.scenes?.[0];
+            if (!root) { resolve(); return; }
+
+            const targetHeight = cfg.targetHeight ?? 1.4;
+
+            // Center/scale
+            centerAndScaleToHeight(root, targetHeight);
+            if (cfg.scaleMul) root.scale.multiplyScalar(cfg.scaleMul);
+
+            // Apply per-character Y offset ONCE and cache stable baseY
+            root.userData = root.userData || {};
+            if (cfg.y != null && !root.userData.yApplied) {
+              root.position.y += cfg.y;
+              root.userData.yApplied = true;
+            }
+            root.userData.baseY = root.position.y;
+
+            // Mesh setup (single traverse)
+            root.traverse(o => {
+              if (o.isMesh) {
+                o.castShadow = true;
+                o.receiveShadow = true;
+                o.raycast = THREE.Mesh.prototype.raycast; // robust raycast
+                o.frustumCulled = false;                  // avoid cull-related miss clicks
+              }
+            });
+
+            root.updateMatrixWorld(true);
+
+            // Animation
+            let mixer = null;
+            if (gltf.animations && gltf.animations.length) {
+              mixer = new THREE.AnimationMixer(root);
+              const clips = gltf.animations;
+              const baseClip =
+                THREE.AnimationClip.findByName(clips, 'Idle') ||
+                THREE.AnimationClip.findByName(clips, 'idle') ||
+                clips[0];
+
+              const trimStart = Math.max(0, cfg.trimStart ?? 1.5);
+              const trimEnd   = Math.max(0, cfg.trimEnd   ?? 2.0);
+              const minDur = 0.05;
+              const startSec = Math.min(trimStart, Math.max(0, baseClip.duration - minDur));
+              const endSec   = Math.max(baseClip.duration - trimEnd, startSec + minDur);
+              const fps = 30;
+              const startFrame = Math.max(0, Math.floor(startSec * fps));
+              const endFrame   = Math.max(startFrame + 1, Math.ceil(endSec * fps));
+              const sub = THREE.AnimationUtils.subclip(
+                baseClip, (baseClip.name || 'clip') + '_trim', startFrame, endFrame, fps
+              );
+
+              const action = mixer.clipAction(sub);
+              action.setLoop(THREE.LoopPingPong, Infinity).reset().setEffectiveWeight(1).play();
+              action.time = 1/60;
+              mixer.update(0);
+            }
+
+            root.visible = false; // only shown in carousel or when committed
+
+            // Store baseY on the cache entry so layout uses a stable Y
+            const baseY = root.userData.baseY;
+            carousel.cache[index] = { root, mixer, targetHeight, cfg, baseY };
+
+            resolve();
+          },
+          undefined,
+          reject
+        );
+      });
+    }
+
+
+  function startCarouselAnimations() {
+    carousel.mixers = [];
+    for (let i = 0; i < carousel.cache.length; i++) {
+      const m = carousel.cache[i]?.mixer;
+      if (m) carousel.mixers.push(m);
+    }
+  }
+
+  // Pointer input for carousel
+  let _downHandler, _moveHandler, _upHandler, _clickPreventUntil = 0;
+
+  function attachCarouselInput() {
+    const dom = renderer.domElement;
+    const W = () => window.innerWidth;
+    const thresholdPx = 50;
+
+    _downHandler = (e) => {
+      const x = (e.touches ? e.touches[0].clientX : e.clientX);
+      carousel.dragging = true;
+      carousel.startX = x;
+      carousel.dx = 0;
+    };
+
+    _moveHandler = (e) => {
+      if (!carousel.dragging) return;
+      const x = (e.touches ? e.touches[0].clientX : e.clientX);
+      carousel.dx = x - carousel.startX;
+
+      // Map pixels → "items" for consistent feel across sizes
+      const itemsPerScreen = 1.5; // increase for more sensitivity
+      const offset = (carousel.dx / W()) * itemsPerScreen;
+
+      setGroupOffset(offset);
+    };
+
+    _upHandler = () => {
+      if (!carousel.dragging) return;
+      const dx = carousel.dx;
+      carousel.dragging = false;
+
+      if (Math.abs(dx) > thresholdPx) {
+        const dir = Math.sign(dx);
+        snapToIndex(carousel.activeIndex - dir);
+        _clickPreventUntil = performance.now() + 250; // avoid accidental click-through
+      } else {
+        // light snap back
+        snapToIndex(carousel.activeIndex);
+      }
+    };
+
+    // Mouse
+    dom.addEventListener('mousedown', _downHandler);
+    window.addEventListener('mousemove', _moveHandler);
+    window.addEventListener('mouseup', _upHandler);
+
+    // Touch
+    dom.addEventListener('touchstart', _downHandler, { passive: true });
+    dom.addEventListener('touchmove', _moveHandler, { passive: true });
+    dom.addEventListener('touchend', _upHandler, { passive: true });
+
+    // (Optional) show UI label if you still use it
+    document.getElementById('characterControls')?.classList.add('show');
+    window.updateCharacterInfo?.();
+  }
+
+
+  function detachCarouselInput() {
+    const dom = renderer.domElement;
+    if (_downHandler) {
+      dom.removeEventListener('mousedown', _downHandler);
+      window.removeEventListener('mousemove', _moveHandler);
+      window.removeEventListener('mouseup', _upHandler);
+      dom.removeEventListener('touchstart', _downHandler);
+      dom.removeEventListener('touchmove', _moveHandler);
+      dom.removeEventListener('touchend', _upHandler);
+    }
+    _downHandler = _moveHandler = _upHandler = null;
+  }
+
+    function setGroupOffset(offsetInItems) {
+      carousel.dragOffset = offsetInItems;
+      layoutCarousel(offsetInItems);
+
+      const n = (window.characterConfigs?.length || 1);
+      const nearest = Math.round(carousel.activeIndex - offsetInItems);
+      const wrapped = wrapIndex(nearest, n);
+
+      if (wrapped !== window.currentCharacterIndex) {
+        window.currentCharacterIndex = wrapped;
+        window.updateCharacterInfo?.();
+      }
+    }
+
+
+
+
+  function nearestIndex() {
+    let idx = carousel.activeIndex, best = 1e9;
+    for (let i = 0; i < carousel.cache.length; i++) {
+      const x = carousel.cache[i]?.root.position.x ?? 0;
+      const d = Math.abs(x);
+      if (d < best) { best = d; idx = i; }
+    }
+    return THREE.MathUtils.clamp(idx, 0, (window.characterConfigs?.length || 1) - 1);
+  }
+    
+    function wrapIndex(i, n) { return ((i % n) + n) % n; }
+    function ringDelta(a, b, n) {  // shortest signed steps from a → b
+      let d = ((b - a) % n + n) % n;
+      if (d > n / 2) d -= n;
+      return d;
+    }
+
+
+    function snapToIndex(nextIndex) {
+      const n = (window.characterConfigs?.length || 1);
+      nextIndex = wrapIndex(nextIndex, n);
+
+      const from = carousel.activeIndex;
+      const deltaItems = ringDelta(from, nextIndex, n) - (carousel.dragOffset || 0);
+
+      carousel.animFrom  = carousel.dragOffset || 0;
+      carousel.animTo    = carousel.animFrom + deltaItems;
+      carousel.animT     = 0;
+      carousel.animDur   = 300;
+      carousel.animStart = performance.now();
+
+      carousel.activeIndex = nextIndex;
+      window.currentCharacterIndex = nextIndex;
+      window.updateCharacterInfo?.();
+    }
+
 
   // Free GPU memory when swapping models
   function disposeObject(obj) {
@@ -407,48 +982,30 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    
-    // Make PBR/glTF materials look right and a bit brighter
-    renderer.outputEncoding = THREE.sRGBEncoding;              // correct gamma
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;        // nicer rolloff
-    renderer.toneMappingExposure = 1.1;                       // bump global exposure (try 1.2–1.5)
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
 
-
-    // ✅ append the canvas so it’s visible
     const container = document.getElementById('scene-container');
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
     // Lights
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a2a, 0.7);
-    scene.add(hemi);
-
-    // Key light: main light from front-right, casts shadows
-    const key = new THREE.DirectionalLight(0xffffff, 1);
-    key.position.set(5, 8, 6);
-    key.castShadow = true;
-    key.shadow.mapSize.set(2048, 2048);
-    key.shadow.camera.near = 0.1;
-    key.shadow.camera.far = 50;
-    scene.add(key);
-
-    // Fill light: softens shadows from front-left, no shadows
-    const fill = new THREE.DirectionalLight(0xffffff, 0.5);
-    fill.position.set(-4, 5, 6);
-    fill.castShadow = false;
-    scene.add(fill);
-
-    // Rim/back light: subtle colored edge from behind
-    const rim = new THREE.DirectionalLight(0x88aaff, 0.5);
-    rim.position.set(-5, 2, -6);
-    rim.castShadow = false;
-    scene.add(rim);
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a2a, 0.7); scene.add(hemi);
+    const key = new THREE.DirectionalLight(0xffffff, 1); key.position.set(5, 8, 6); key.castShadow = true; key.shadow.mapSize.set(2048,2048); key.shadow.camera.near=0.1; key.shadow.camera.far=50; scene.add(key);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(-4, 5, 6); scene.add(fill);
+    const rim  = new THREE.DirectionalLight(0x88aaff, 0.5); rim.position.set(-5, 2, -6); scene.add(rim);
+    // In initThreeJS(), after you create hemi/key/fill/rim:
+    scene.userData.lights = { hemi, key, fill, rim };
+    scene.userData.lightLevels = {
+      hemi: hemi.intensity, key: key.intensity, fill: fill.intensity, rim: rim.intensity
+    };
 
     // Raycasting
     raycaster = new THREE.Raycaster();
     mouseNDC = new THREE.Vector2();
 
-    // Events (bind once)
+    // Events
     renderer.domElement.addEventListener('click', onCanvasClick);
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('mousemove', onMouseMove);
@@ -457,21 +1014,74 @@
   }
 
   function animate() {
-    // ✅ keep the loop running and update mixer once
     requestAnimationFrame(animate);
     tickAnimations();
+    updateCarouselTween();
     renderer.render(scene, camera);
   }
 
-  function onCanvasClick(e) {
-    if (!window.character || !camera || !renderer) return;
-    const rect = renderer.domElement.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    raycaster.setFromCamera({ x, y }, camera);
-    const hits = raycaster.intersectObjects(window.character.children, true);
-    if (hits.length > 0) window.onCharacterClick();
-  }
+    function onCanvasClick(e) {
+      // Ignore clicks right after a swipe gesture to prevent accidental commits
+      if (typeof _clickPreventUntil !== 'undefined' && performance.now() < _clickPreventUntil) return;
+
+      // If we're already in carousel mode: a tap commits the centered character (if unlocked)
+      if (carousel && carousel.mode === 'carousel') {
+        const cfg = window.characterConfigs?.[window.currentCharacterIndex];
+        if (cfg && cfg.status !== 'Locked') exitCarousel(true);
+        return;
+      }
+
+      // Hit-test current character root
+      const root = currentModel || window.character;
+      if (!root || !camera || !renderer) return;
+
+      // Ensure transforms are up to date before raycasting
+      root.updateMatrixWorld(true);
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      const ndc = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      );
+
+      raycaster.setFromCamera(ndc, camera);
+
+      // ✅ robust: intersect the root recursively (covers all meshes/skins)
+      const hits = raycaster.intersectObject(root, true);
+      if (hits.length > 0) {
+        window.onCharacterClick(); // enter carousel
+        return;
+      }
+
+      // --- Fallback: screen-space AABB check (for odd exporters/materials) ---
+      const box = new THREE.Box3().setFromObject(root);
+      if (!box.isEmpty()) {
+        const corners = [
+          new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+          new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+          new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+          new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+          new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+          new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+          new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+          new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+        ];
+        let minX =  Infinity, minY =  Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const v of corners) {
+          v.project(camera);
+          const sx = (v.x * 0.5 + 0.5) * rect.width  + rect.left;
+          const sy = (-v.y * 0.5 + 0.5) * rect.height + rect.top;
+          minX = Math.min(minX, sx); maxX = Math.max(maxX, sx);
+          minY = Math.min(minY, sy); maxY = Math.max(maxY, sy);
+        }
+        if (e.clientX >= minX && e.clientX <= maxX && e.clientY >= minY && e.clientY <= maxY) {
+          window.onCharacterClick(); // enter carousel
+        }
+      }
+    }
+
+
+
 
   function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -482,6 +1092,7 @@
   function onMouseMove(e) {
     mouseNDC.x =  (e.clientX / window.innerWidth)  * 2 - 1;
     mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    if (carousel.mode === 'carousel') return; // no hover highlight while carousel open
     checkHover();
   }
 
@@ -558,7 +1169,7 @@
   });
   document.getElementById('loginModal').addEventListener('click', function(e) { if (e.target === this) closeLoginModal(); });
 
-  function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
+ /* function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
   function sendMessage() {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
@@ -592,44 +1203,26 @@
   const chatToggleBtn = document.getElementById('chatToggle');
   function setChatOpen(open) { chatEl.classList.toggle('open', open); chatToggleBtn.setAttribute('aria-expanded', String(open)); }
   setChatOpen(false);
-  chatToggleBtn.addEventListener('click', () => { setChatOpen(!chatEl.classList.contains('open')); });
+  chatToggleBtn.addEventListener('click', () => { setChatOpen(!chatEl.classList.contains('open')); });*/
 
   // ===== Start =====
   window.addEventListener('load', () => {
     if (typeof THREE === 'undefined') { console.error('Three.js not loaded'); return; }
     initLoaders();
     initThreeJS();
-    createCharacter();   // exactly one initial load
+    createCharacter();   // keep your initial single model
     animate();
     document.getElementById('prevArrow')?.addEventListener('click', window.previousCharacter);
     document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
   });
-</script>
 
-<script>
-  (function () {
-    const emailInput = document.getElementById('loginEmail');
-    const loginBtn   = document.getElementById('loginSubmit');
-    if (!emailInput || !loginBtn) return;
-    function magicRedirect() {
-      const isInIframe = window !== window.top;
-      return isInIframe ? 'https://ouchworld.netlify.app/landing-page' : `${location.origin}/landing-page`;
-    }
-    loginBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const email = (emailInput.value || '').trim();
-      if (!email) return alert('Enter your email');
-      if (!window.supa?.auth) return alert('Auth not initialized');
-      loginBtn.disabled = true; const old = loginBtn.textContent; loginBtn.textContent = 'Sending…';
-      const { error } = await window.supa.auth.signInWithOtp({ email, options: { emailRedirectTo: magicRedirect() } });
-      loginBtn.disabled = false; loginBtn.textContent = old;
-      if (error) alert(error.message); else alert('Check your email for the magic link!');
+    window.addEventListener('keydown', (e) => {
+      if (carousel.mode !== 'carousel') return;
+      if (e.key === 'ArrowLeft')  snapToIndex(carousel.activeIndex - 1);
+      if (e.key === 'ArrowRight') snapToIndex(carousel.activeIndex + 1);
     });
-  })();
-</script>
-
-<!-- Mobile zoom suppression (unchanged) -->
-<script>
+    
+  // ===== Mobile zoom suppression (unchanged) =====
   (function () {
     let lastTouchEnd = 0;
     document.addEventListener('touchend', function (e) {
@@ -643,6 +1236,7 @@
   document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
   document.addEventListener('touchstart', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   document.addEventListener('touchmove', function (e) { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
+
 </script>
 
 </body>
