@@ -176,100 +176,7 @@
               border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer;
             }
 
-            /* Chat popup */
-            .chatbot-container {
-              position: fixed;
-              left: 50%;
-              transform: translateX(-50%) translateY(8px);
-              bottom: calc(var(--chat-toggle-bottom) + var(--chat-toggle-size) + var(--chat-gap));
-              z-index: 50;
-              opacity: 0;
-              visibility: hidden;
-              pointer-events: none;
-              transition: opacity .25s ease, transform .25s ease, visibility 0s linear .25s;
-              width: 300px;
-              min-width: 300px;
-              max-width: 300px;
-              box-sizing: border-box;
-              display: flex;
-              flex-direction: column;
-            }
-
-            .chatbot-container.open {
-              opacity: 1;
-              transform: translateX(-50%) translateY(0);
-              visibility: visible;
-              pointer-events: auto;
-              transition: opacity .25s ease, transform .25s ease;
-            }
-
-          
-            .chat-messages {
-              display: flex;
-              flex-direction: column;
-              align-items: flex-start;
-              gap: var(--msg-gap);
-              height: 72px;
-              overflow-y: auto;
-              padding-right: 5px;
-              margin-bottom: 10px;
-            }
-
-            .message {
-              display: inline-block;
-              width: auto;
-              max-width: 85%;
-              font-size: var(--msg-font-size);
-              line-height: var(--msg-line-h);
-              padding: var(--msg-vpad) 10px;
-              overflow-wrap: anywhere;
-              background: rgba(255,255,255,0.1);
-              border-radius: 8px;
-              margin-bottom: 6px;
-              word-wrap: break-word;
-            }
-            .message.user { align-self: flex-end; text-align: left; background: rgba(255,255,255,0.2); }
-            .message.bot { background: rgba(100,100,100,0.3); }
-
-            .chat-messages::-webkit-scrollbar { width: 4px; }
-            .chat-messages::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 2px; }
-            .chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 2px; }
-            .chat-input-container {
-              display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1);
-              border-radius: 8px; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1);
-            }
-            .chat-input { flex: 1; background: none; border: none; outline: none; color: #fff; font-size: 12px; }
-            .chat-input::placeholder { color: rgba(255,255,255,0.6); }
-            .send-button { background: none; border: none; color: rgba(255,255,255,0.8); cursor: pointer; padding: 4px; border-radius: 4px; transition: color .2s ease; display: flex; align-items: center; justify-content: center; }
-            .send-button:hover { color: #fff; }
-            .send-button svg { width: 14px; height: 14px; }
-
-            /* Chat toggle button */
-            :root {
-              --chat-toggle-size: 30px;
-              --chat-toggle-bottom: 16px;
-              --chat-gap: 14px;
-            }
-
-            .chat-toggle {
-              position: fixed;
-              bottom: var(--chat-toggle-bottom);
-              left: 50%;
-              transform: translateX(-50%);
-              z-index: 60;
-              width: var(--chat-toggle-size);
-              height: var(--chat-toggle-size);
-              border-radius: 50%;
-              border: 1px solid rgba(255,255,255,0.25);
-              background: #000;
-              color: white;
-              font-size: 12px;
-              display: flex; align-items: center; justify-content: center;
-              cursor: pointer;
-              transition: border-color .2s ease, background .2s ease;
-            }
-
-            .chat-toggle:hover { border-color: rgba(255,255,255,0.45); }
+       
 
             /* Character selector */
             :root {
@@ -375,20 +282,7 @@
             </div>
           </div>
 
-          <!-- Chatbot -->
-          <div class="chatbot-container">
-            <div class="chat-messages" id="chatMessages"><div class="message bot">Hi there, how can I help?</div></div>
-            <div class="chat-input-container">
-              <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." onkeypress="handleKeyPress(event)"/>
-              <button class="send-button" onclick="sendMessage()">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Chat toggle button -->
-          <button class="chat-toggle" id="chatToggle" aria-label="Toggle chat">💱</button>
-        </div>
+         
     
       </style>
       
