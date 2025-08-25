@@ -544,6 +544,12 @@
         console.error('Loaders/scene not ready');
         return;
       }
+      // Remove any older placeholder/group that wasn't tracked in currentModel
+      if (window.character && window.character !== currentModel) {
+        try { scene.remove(window.character); } catch {}
+        try { disposeObject(window.character); } catch {}
+        window.character = null;
+      }
 
       // 1) Stop previous animations + remove previous model
       if (currentMixer) {
@@ -609,8 +615,9 @@
 
           // 3e) Add to scene
           window.scene.add(root);
-          currentModel = root;
+          root.name = 'CHARACTER';
           window.character = root; // if your click/hover logic expects this
+          currentModel = root;
 
           // 3f) Ensure camera frames a human-sized model nicely (once per load)
           frameCameraOnTargetHeight(camera, targetHeight, 1.25);
@@ -666,8 +673,17 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        document.getElementById('scene-container').appendChild(renderer.domElement);
+        
+        
+        const container = document.getElementById('scene-container');
+        if (container) {
+          container.innerHTML = '';                 // prevents multiple canvases
+          container.appendChild(renderer.domElement);
+        }
+
         window.renderer = renderer;
+        
+        renderer.domElement.addEventListener('click', onCanvasClick);
 
         // Lights
         scene.add(new THREE.AmbientLight(0x404040, 0.6));
