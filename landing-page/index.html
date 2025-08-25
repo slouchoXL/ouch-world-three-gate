@@ -462,15 +462,6 @@
       { name: "Super Maramu 2000",  status: "Locked",   url: "/assets/models/maramu.glb",  scale: 1.0, y: 0 }
     ];
 
-    gltfLoader.load(
-      cfg.url,
-      (gltf) => { /* ...onLoad... */ },
-      undefined,
-      (err) => {
-        console.error('GLB load error for URL:', cfg.url, err);
-      }
-    );
-
     // ===== Character UI Logic =====
     window.updateCharacterInfo = function() {
         const config = window.characterConfigs[window.currentCharacterIndex];
@@ -580,6 +571,7 @@
           // 5) Add to scene and remember it
           window.scene.add(root);
           currentModel = root;
+          window.character = root;
 
           // 6) Update your UI label/etc.
           window.updateCharacterInfo?.();
@@ -603,21 +595,6 @@
         }
       });
     }
-
-    function disposeObject(obj) {
-      obj.traverse((node) => {
-        if (node.isMesh) {
-          node.geometry?.dispose?.();
-          if (node.material) {
-            if (Array.isArray(node.material)) node.material.forEach(m => m.map?.dispose?.());
-            else node.material.map?.dispose?.();
-            if (Array.isArray(node.material)) node.material.forEach(m => m.dispose?.());
-            else node.material.dispose?.();
-          }
-        }
-      });
-    }
-    
     
 
     function animate() {
@@ -753,10 +730,6 @@
         }
     }
 
-    function animate() {
-        requestAnimationFrame(animate);
-        renderer.render(scene, camera);
-    }
 
     function setFixedTitleWidth(ghostString) {
         const nameEl = document.getElementById('characterName');
