@@ -337,11 +337,9 @@
     exitCarousel(true);
     return;
   }
-  if (cfg.status === 'Unlocked') window.hideCharacterControls();
-}
     if (cfg.status === 'Unlocked') window.hideCharacterControls();
   };
-
+    
   window.hideCharacterControls = function() {
     document.getElementById('characterControls')?.classList.remove('show');
     lastHoverState = null;
@@ -405,8 +403,20 @@
             o.receiveShadow = true;
             o.raycast = THREE.Mesh.prototype.raycast; // force default triangle raycast
             o.frustumCulled = false;                  // avoid “visible but not hittable” cases
+
+            // Cache original emissive color so we can restore later
+            const mats = Array.isArray(o.material) ? o.material : [o.material];
+            for (const m of mats) {
+              if (m && 'emissive' in m) {
+                m.userData = m.userData || {};
+                if (typeof m.userData.__emissive === 'undefined') {
+                  try { m.userData.__emissive = m.emissive.getHex(); } catch {}
+                }
+              }
+            }
           }
         });
+
         // ✅ Ensure transforms are fresh for first-frame raycasts
         root.updateMatrixWorld(true);
 
@@ -786,10 +796,22 @@
               if (o.isMesh) {
                 o.castShadow = true;
                 o.receiveShadow = true;
-                o.raycast = THREE.Mesh.prototype.raycast; // robust raycast
-                o.frustumCulled = false;                  // avoid cull-related miss clicks
+                o.raycast = THREE.Mesh.prototype.raycast; // force default triangle raycast
+                o.frustumCulled = false;                  // avoid “visible but not hittable” cases
+
+                // Cache original emissive color so we can restore later
+                const mats = Array.isArray(o.material) ? o.material : [o.material];
+                for (const m of mats) {
+                  if (m && 'emissive' in m) {
+                    m.userData = m.userData || {};
+                    if (typeof m.userData.__emissive === 'undefined') {
+                      try { m.userData.__emissive = m.emissive.getHex(); } catch {}
+                    }
+                  }
+                }
               }
             });
+
 
             root.updateMatrixWorld(true);
 
@@ -932,15 +954,15 @@
     }
 
     function onSwipeEnd() {
-  if (carousel.mode !== 'carousel') return;
-  if (!carousel.dragging) return;  // only finish if we were dragging
-  const n = (window.characterConfigs?.length || 1);
-  const nearest = Math.round(carousel.activeIndex - (carousel.dragOffset || 0));
-  const wrapped = wrapIndex(nearest, n);
-  snapToIndex(wrapped);
-  carousel.dragOffset = 0;
-  carousel.dragging = false;
-}
+      if (carousel.mode !== 'carousel') return;
+      if (!carousel.dragging) return;
+      const n = (window.characterConfigs?.length || 1);
+      const nearest = Math.round(carousel.activeIndex - (carousel.dragOffset || 0));
+      const wrapped = wrapIndex(nearest, n);
+      snapToIndex(wrapped);          // animate to final resting spot (shortest arc)
+      carousel.dragOffset = 0;    
+      carousel.dragging = false; // clear live drag
+    }
 
     // Attach once, wherever you wire up input:
     window.addEventListener('pointerup', onSwipeEnd);
@@ -968,20 +990,28 @@
 
 
     function snapToIndex(nextIndex) {
-  const n = (window.characterConfigs?.length || 1);
-  nextIndex = wrapIndex(nextIndex, n);
-  if (carousel.animT < 1) return; // don't queue during active tween
-  const from = carousel.activeIndex;
-  const deltaItems = ringDelta(from, nextIndex, n) - (carousel.dragOffset || 0);
-  carousel.animFrom  = carousel.dragOffset || 0;
-  carousel.animTo    = carousel.animFrom + deltaItems;
-  carousel.animT     = 0;
-  carousel.animDur   = 300;
-  carousel.animStart = performance.now();
-  carousel.pendingIndex = nextIndex;      // commit after tween finishes
-  window.currentCharacterIndex = nextIndex; // update label immediately
-  window.updateCharacterInfo?.();
-}
+      const n = (window.characterConfigs?.length || 1);
+      nextIndex = wrapIndex(nextIndex, n);
+
+      // If we’re already animating, ignore this snap to prevent double-hops
+      if (carousel.animT < 1) return;
+
+      const from = carousel.activeIndex;
+      const deltaItems = ringDelta(from, nextIndex, n) - (carousel.dragOffset || 0);
+
+      carousel.animFrom  = carousel.dragOffset || 0;
+      carousel.animTo    = carousel.animFrom + deltaItems;
+      carousel.animT     = 0;
+      carousel.animDur   = 300;
+      carousel.animStart = performance.now();
+
+      // Defer committing the new center until the tween completes
+      carousel.pendingIndex = nextIndex;
+
+      // UI can update the name immediately (optional)
+      window.currentCharacterIndex = nextIndex;
+      window.updateCharacterInfo?.();
+    }
 
 
 
@@ -1145,30 +1175,30 @@
     if (hoverActive !== lastHoverState) { setCharacterHighlight(hoverActive); lastHoverState = hoverActive; }
   }
 
-  function setCharacterHighlight(active) {
-    if (!window.scene || !window.character) return;
-    if (active) {
-      if (!hoverLight) {
-        hoverLight = new THREE.PointLight(0x88aaff, 0.35, 3, 2);
-        hoverLight.castShadow = false;
-        hoverLight.position.set(0, 1.2, 1.6);
-        window.character.add(hoverLight);
-      }
-    } else {
-      if (hoverLight) { hoverLight.parent?.remove(hoverLight); hoverLight = null; }
-      window.character.traverse(obj => {
-        if (obj.isMesh && obj.material && 'emissive' in obj.material) {
-          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-          for (const mtl of mats) {
-            if (mtl && 'emissive' in mtl) {
-              const hex = mtl.userData && typeof mtl.userData.__emissive === 'number' ? mtl.userData.__emissive : 0x000000;
-              try { mtl.emissive.setHex(hex); } catch {}
+    function setCharacterHighlight(active) {
+      if (!window.scene || !window.character) return;
+      if (active) {
+        if (!hoverLight) {
+          hoverLight = new THREE.PointLight(0x88aaff, 0.35, 3, 2);
+          hoverLight.castShadow = false;
+          hoverLight.position.set(0, 1.2, 1.6);
+          window.character.add(hoverLight);
+        }
+      } else {
+        if (hoverLight) { hoverLight.parent?.remove(hoverLight); hoverLight = null; }
+        window.character.traverse(obj => {
+          if (obj.isMesh && obj.material && 'emissive' in obj.material) {
+            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+            for (const mtl of mats) {
+              if (mtl && 'emissive' in mtl) {
+                const hex = mtl.userData && typeof mtl.userData.__emissive === 'number' ? mtl.userData.__emissive : 0x000000;
+                try { mtl.emissive.setHex(hex); } catch {}
+              }
             }
           }
-        }
-      });
+        });
+      }
     }
-  }
 
   function setFixedTitleWidth(ghostString) {
     const nameEl = document.getElementById('characterName');
