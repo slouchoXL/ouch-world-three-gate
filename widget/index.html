@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Packs Widget</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <link rel="stylesheet" href="./style.css" />
 
   <style>
@@ -161,5 +162,34 @@
       postHeight();
     })();
   </script>
+  <script>
+  // iOS Safari fires "gesture*" events for pinch — block them
+  document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
+  document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+  document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
+
+  // Block multi-touch zoom attempts (two+ fingers)
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches && e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+
+  // Some iOS versions expose e.scale during pinch — block when not neutral
+  document.addEventListener('touchmove', function (e) {
+    if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault();
+  }, { passive: false });
+
+  // Stop double-tap-to-zoom without breaking single taps
+  (function () {
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (e) {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        e.preventDefault(); // suppress second tap zoom
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
+  })();
+  </script>
+
 </body>
 </html>

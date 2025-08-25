@@ -31,7 +31,11 @@ html,body{
     background:none;
     color:var(--text);
     font-family:system-ui, -apple-system, Inter, Roboto, Arial, sans-serif;
+    touch-action: none;     /* disables pinch/double-tap zoom */
+       -ms-touch-action: none;
 }
+
+input, textarea, select { font-size: 16px; }
 
 /* widget shell */
 .widget{
