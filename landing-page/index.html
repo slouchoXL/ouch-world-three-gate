@@ -360,10 +360,24 @@
         if (!root) return;
 
         const targetHeight = cfg.targetHeight ?? 1.8;
+
+        // Center/scale first
         centerAndScaleToHeight(root, targetHeight);
         if (cfg.scaleMul) root.scale.multiplyScalar(cfg.scaleMul);
-        root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
 
+        // ✅ Make meshes raycast-friendly (do this BEFORE animations & adding to scene)
+        root.traverse(o => {
+          if (o.isMesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+            o.raycast = THREE.Mesh.prototype.raycast; // force default triangle raycast
+            o.frustumCulled = false;                  // avoid “visible but not hittable” cases
+          }
+        });
+        // ✅ Ensure transforms are fresh for first-frame raycasts
+        root.updateMatrixWorld(true);
+
+        // Animations (unchanged)
         if (gltf.animations && gltf.animations.length) {
           currentMixer = new THREE.AnimationMixer(root);
           const clips = gltf.animations;
@@ -380,24 +394,24 @@
           const fps = 30;
           const startFrame = Math.max(0, Math.floor(startSec * fps));
           const endFrame   = Math.max(startFrame + 1, Math.ceil(endSec * fps));
-          const sub = THREE.AnimationUtils.subclip(baseClip, (baseClip.name || 'clip') + '_trim', startFrame, endFrame, fps);
+          const sub = THREE.AnimationUtils.subclip(
+            baseClip,
+            (baseClip.name || 'clip') + '_trim',
+            startFrame, endFrame, fps
+          );
 
           const action = currentMixer.clipAction(sub);
-          action.setLoop(THREE.LoopPingPong, Infinity).reset().setEffectiveWeight(1).play();
-          action.time = 1/60;
-          currentMixer.update(0);
+          action.setLoop(THREE.LoopPingPong, Infinity)
+                .reset()
+                .setEffectiveWeight(1)
+                .play();
+          action.time = 1/60;      // pre-roll one frame
+          currentMixer.update(0);  // pre-evaluate pose
         } else {
           currentMixer = null;
         }
-        
-        root.traverse(o => {
-          if (o.isMesh) {
-            o.castShadow = o.receiveShadow = true;
-            o.raycast = THREE.Mesh.prototype.raycast; // ensure default raycast
-            o.frustumCulled = false;                  // prevents “vanished” hits on tight FOVs
-          }
-        });
 
+        // Add to scene & keep refs
         root.name = 'CHARACTER';
         scene.add(root);
         currentModel = root;
@@ -410,6 +424,7 @@
       (err) => console.error('GLB load error for', cfg.url, err)
     );
   };
+
 
   // ===== Carousel implementation =====
   function enterCarousel() {
@@ -728,36 +743,66 @@
   }
 
     function onCanvasClick(e) {
-      // ignore clicks right after a swipe
-      if (performance.now() < _clickPreventUntil) return;
+      // Ignore clicks right after a swipe gesture to prevent accidental commits
+      if (typeof _clickPreventUntil !== 'undefined' && performance.now() < _clickPreventUntil) return;
 
-      // if we’re already in carousel, a tap commits the centered one (if unlocked)
-      if (carousel.mode === 'carousel') {
-        const cfg = window.characterConfigs[window.currentCharacterIndex];
-        if (cfg?.status !== 'Locked') exitCarousel(true);
+      // If we're already in carousel mode: a tap commits the centered character (if unlocked)
+      if (carousel && carousel.mode === 'carousel') {
+        const cfg = window.characterConfigs?.[window.currentCharacterIndex];
+        if (cfg && cfg.status !== 'Locked') exitCarousel(true);
         return;
       }
 
-      // must have a model to hit-test
+      // Hit-test current character root
       const root = currentModel || window.character;
       if (!root || !camera || !renderer) return;
 
-      // precise NDC using a Vector2 to avoid oddities on some browsers
+      // Ensure transforms are up to date before raycasting
+      root.updateMatrixWorld(true);
+
       const rect = renderer.domElement.getBoundingClientRect();
-      const ndc = mouseNDC; // reuse the Vector2 you already declared globally
-      ndc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      ndc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      const ndc = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      );
 
       raycaster.setFromCamera(ndc, camera);
 
-      // Raycast against the actual model root (recursive)
-      const hits = raycaster.intersectObject(root, /* recursive */ true);
-
+      // ✅ robust: intersect the root recursively (covers all meshes/skins)
+      const hits = raycaster.intersectObject(root, true);
       if (hits.length > 0) {
-        // we hit the character → enter carousel
-        enterCarousel();
+        window.onCharacterClick(); // enter carousel
+        return;
+      }
+
+      // --- Fallback: screen-space AABB check (for odd exporters/materials) ---
+      const box = new THREE.Box3().setFromObject(root);
+      if (!box.isEmpty()) {
+        const corners = [
+          new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+          new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+          new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+          new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+          new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+          new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+          new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+          new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+        ];
+        let minX =  Infinity, minY =  Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const v of corners) {
+          v.project(camera);
+          const sx = (v.x * 0.5 + 0.5) * rect.width  + rect.left;
+          const sy = (-v.y * 0.5 + 0.5) * rect.height + rect.top;
+          minX = Math.min(minX, sx); maxX = Math.max(maxX, sx);
+          minY = Math.min(minY, sy); maxY = Math.max(maxY, sy);
+        }
+        if (e.clientX >= minX && e.clientX <= maxX && e.clientY >= minY && e.clientY <= maxY) {
+          window.onCharacterClick(); // enter carousel
+        }
       }
     }
+
+
 
 
   function onWindowResize() {
