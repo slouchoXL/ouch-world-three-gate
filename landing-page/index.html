@@ -211,9 +211,9 @@
   }
 
   window.characterConfigs = [
-    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.8 },
-    { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     targetHeight: 1.8 },
-    { name: "Super Maramu 2000", status: "Locked", url: "/assets/models/maramu.glb", targetHeight: 2.0 }
+    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, scaleMul: 0.95, trimStart: 0.12, trimEnd: 0.10 },
+    { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     targetHeight: 1.4, scaleMul: 0.95, trimStart: 0.12, trimEnd: 0.10 },
+    { name: "Super Maramu 2000", status: "Locked", url: "/assets/models/maramu.glb", targetHeight: 1.4, scaleMul: 0.95, trimStart: 0.12, trimEnd: 0.10 }
   ];
 
   function centerAndScaleToHeight(root, targetHeight = 1.8) {
@@ -300,7 +300,7 @@
       (gltf) => {
         if (myVersion !== loadVersion) { if (gltf.scene) disposeObject(gltf.scene); return; }
 
-        // ✅ define root before using it (this was missing)
+        // ✅ define root before using it
         const root = gltf.scene || gltf.scenes?.[0];
         if (!root) return;
 
@@ -308,22 +308,56 @@
         const targetHeight = cfg.targetHeight ?? 1.8;
         centerAndScaleToHeight(root, targetHeight);
 
+        // ✅ optional fine-tune overall size (leave cfg.scaleMul undefined if you don’t need it)
+        if (cfg.scaleMul) root.scale.multiplyScalar(cfg.scaleMul);
+
         // Defaults
         root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
 
-        // Animations
+        // --- ✅ Animations (trim start/end + ping-pong loop) ---
         if (gltf.animations && gltf.animations.length) {
           currentMixer = new THREE.AnimationMixer(root);
+
+          // Prefer an "Idle" clip; else first
           const clips = gltf.animations;
-          const idle = THREE.AnimationClip.findByName(clips, 'Idle') ||
-                       THREE.AnimationClip.findByName(clips, 'idle') ||
-                       clips[0];
-          currentMixer.clipAction(idle).reset().setLoop(THREE.LoopRepeat).fadeIn(0.2).play();
-          console.log('Clips:', clips.map(c => c.name));
+          const baseClip =
+            THREE.AnimationClip.findByName(clips, 'Idle') ||
+            THREE.AnimationClip.findByName(clips, 'idle') ||
+            clips[0];
+
+          // Trim a few frames off start/end (seconds)
+          const trimStart = Math.max(0, cfg.trimStart ?? 0.12);
+          const trimEnd   = Math.max(0, cfg.trimEnd   ?? 0.10);
+
+          const minDur = 0.05; // safety so we never create a 0-length subclip
+          const startSec = Math.min(trimStart, Math.max(0, baseClip.duration - minDur));
+          const endSec   = Math.max(baseClip.duration - trimEnd, startSec + minDur);
+
+          // Create a trimmed subclip; use fps so start/end are in seconds
+          const fps = 30;
+          const startFrame = Math.max(0, Math.floor(startSec * fps));
+          const endFrame   = Math.max(startFrame + 1, Math.ceil(endSec * fps));
+          const sub = THREE.AnimationUtils.subclip(
+            baseClip,
+            (baseClip.name || 'clip') + '_trim',
+            startFrame,
+            endFrame,
+            fps
+          );
+
+          const action = currentMixer.clipAction(sub);
+          action
+            .setLoop(THREE.LoopPingPong, Infinity) // ← ping-pong removes end→start jump
+            .reset()
+            .fadeIn(0.25)
+            .play();
+
+          console.log('Clips:', clips.map(c => c.name), 'Trimmed:', { startSec, endSec, duration: sub.duration });
         } else {
           currentMixer = null;
           console.warn('No animations found in GLB:', cfg.url);
         }
+        // --- end animations ---
 
         root.name = 'CHARACTER';
         scene.add(root);
