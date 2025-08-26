@@ -116,10 +116,12 @@
     .character-controls.show { opacity: 1; pointer-events: auto; }
     .character-info { display: grid; grid-template-rows: auto auto; gap: 8px; justify-items: center; min-width: 260px; }
     .character-header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
-    .character-name { text-align: center; font: 600 14px/1 system-ui, Arial, sans-serif; background: rgba(15,15,20,.7); padding: .35rem .6rem; border-radius: .5rem; min-width: var(--title-width, 200px); }
-    .arrow-btn { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); color: #fff; width: 28px; height: 28px; border-radius: 50%; text-align: center; font-size: 18px; line-height: 26px; cursor: pointer; }
+    .character-name { text-align: center; font: 600 14px/1 system-ui, Arial, sans-serif; background: none; padding: .35rem .6rem; border-radius: .5rem; min-width: var(--title-width, 200px); }
+    .arrow-btn { background: none; border: none; color: #fff; width: 28px; height: 28px; text-align: center; font-size: 18px; line-height: 26px; cursor: pointer; }
     .character-actions { display: flex; justify-content: center; }
-    .character-confirm { background: rgba(255,255,255,.92); color: #000; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; font-weight: 600; }
+    .character-confirm { background: rgba(255,255,255,.92); color: #000; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; font-weight: 600; pointer-events: auto;
+        z-index: 9999; touch-action: manipulation; }
+    
     
     /* Hide the selector bar entirely
     #characterControls { display: none !important; }
@@ -238,8 +240,8 @@
   };
     
     // Carousel layout + tween parameters (safe at top-level)
-    carousel.radius     = 1.9;
-    carousel.anglePer   = Math.PI / 10;
+    carousel.radius     = 3;
+    carousel.anglePer   = Math.PI / 9.5;
     carousel.camHome    = null;        // set on first enterCarousel()
     carousel.dragOffset = 0;
     carousel.animFrom   = 0;
@@ -261,9 +263,9 @@
   }
 
   window.characterConfigs = [
-    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, y: -0.06, scaleMul: 0.6, trimStart: 1.5, trimEnd: 2.0 },
-    { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     targetHeight: 1.4, y: -0.08, scaleMul: 0.6, trimStart: 0.12, trimEnd: 0.10 },
-    { name: "Super Maramu 2000", status: "Unlocked", url: "/assets/models/maramu.glb", targetHeight: 1.4, y: -0.15, scaleMul: 0.4, trimStart: 0.12, trimEnd: 0.10 }
+    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, y: 0.02, scaleMul: 0.6, trimStart: 1.5, trimEnd: 2.0 },
+    { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     targetHeight: 1.4, y: 0.05, scaleMul: 0.6, trimStart: 0.12, trimEnd: 0.10 },
+    { name: "Super Maramu 2000", status: "Unlocked", url: "/assets/models/maramu.glb", targetHeight: 1.4, y: -0.15, scaleMul: 0.5, trimStart: 0.12, trimEnd: 0.10 }
   ];
 
   function centerAndScaleToHeight(root, targetHeight = 1.8) {
@@ -393,14 +395,30 @@
         root.userData.baseY = root.position.y; // used by carousel to avoid Y "jumps"
 
         // ✅ Make meshes raycast-friendly (do this BEFORE animations & adding to scene)
-        root.traverse(o => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            o.raycast = THREE.Mesh.prototype.raycast; // force default triangle raycast
-            o.frustumCulled = false;                  // avoid “visible but not hittable” cases
+        // ✅ Make meshes raycast-friendly + cache original emissive (BEFORE animations & add to scene)
+        root.traverse((o) => {
+          if (!o.isMesh) return;
+
+          o.castShadow = true;
+          o.receiveShadow = true;
+          o.raycast = THREE.Mesh.prototype.raycast; // robust triangle raycast
+          o.frustumCulled = false;                  // avoid cull-related miss clicks
+
+          // Save original emissive so we can restore after hover/selection
+          const store = (m) => {
+            if (!m) return;
+            m.userData = m.userData || {};
+            if ('emissive' in m && !m.userData._origEmissive) {
+              m.userData._origEmissive = m.emissive.clone();
+            }
+          };
+          if (Array.isArray(o.material)) {
+            o.material.forEach(store);
+          } else {
+            store(o.material);
           }
         });
+
         // ✅ Ensure transforms are fresh for first-frame raycasts
         root.updateMatrixWorld(true);
 
@@ -456,61 +474,54 @@
     function layoutCarousel(offsetInItems) {
       if (!carousel.group) return;
       const n = carousel.cache.length;
-      const half = n / 2;
 
-      // helper: shortest signed distance i→active on a ring
       const rel = (i, active) => {
         let d = ((i - active) % n + n) % n; // 0..n-1
-        if (d > n / 2) d -= n;              // now in (-n/2 .. n/2]
+        if (d > n / 2) d -= n;              // (-n/2 .. n/2]
         return d;
       };
 
       for (let i = 0; i < n; i++) {
         const entry = carousel.cache[i]; if (!entry) continue;
-
-        // use cached baseY so Y never “jumps”
         const baseY = entry.baseY ?? 0;
-        
 
-        // k is the wrapped slot index from center, including drag offset
-        const k = rel(i, carousel.activeIndex) - offsetInItems;
-        const ang = k * (carousel.anglePer ?? (Math.PI / 10)); // ~18° default
+        // k = wrapped slot index from center, including drag offset
+        const k   = rel(i, carousel.activeIndex) - offsetInItems;
+        const ang = k * (carousel.anglePer ?? (Math.PI / 10));
 
         const x = Math.sin(ang) * (carousel.radius ?? 1.8);
         const z = -(1 - Math.cos(ang)) * ((carousel.radius ?? 1.8) * 0.9);
 
         entry.root.position.set(x, baseY, z);
-        entry.root.rotation.y = -ang * 0.6;  // toe-in toward center
-      }
-      
-      // After entry.root.rotation.y = -ang * 0.6;
-      const dist = Math.min(Math.abs(k), 1);     // 0 when centered, ~1 at side slots
-      const alpha = THREE.MathUtils.lerp(1, 0.55, dist);  // 1 → 0.55
-      entry.root.traverse(o => {
-        if (o.isMesh && o.material) {
-          if (Array.isArray(o.material)) {
-            o.material.forEach(m => { m.transparent = alpha < 1; m.opacity = alpha; });
-          } else {
-            o.material.transparent = alpha < 1; o.material.opacity = alpha;
-          }
+        entry.root.rotation.y = -ang * 0.6;
+
+       
+     const isCenter = Math.abs(k) <= 0.499; // halfway-to-next slot threshold
+        if (isCenter) {
+          entry.root.layers.enable(1);
+        } else {
+          entry.root.layers.disable(1);
         }
-      });
+        // NEW: hide everything except the centered/active slot
+        entry.root.visible = isCenter;
+      }
 
 
       // Camera parallax, always looking near center
       const anglePer = carousel.anglePer ?? (Math.PI / 10);
       const rad = carousel.radius ?? 1.8;
-      const camSlide = Math.sin(-offsetInItems * anglePer) * 0.35;
+      const camSlide = Math.sin(-offsetInItems * anglePer) * 0.5;
       const camDepth = carousel.camHome
         ? carousel.camHome.z + (1 - Math.cos(-offsetInItems * anglePer)) * (rad * 0.12)
         : camera.position.z;
 
-      camera.position.x = THREE.MathUtils.lerp(camera.position.x, camSlide, 0.1);
+      camera.position.x = THREE.MathUtils.lerp(camera.position.x, camSlide, 0.08);
       if (carousel.camHome) {
-        camera.position.y = THREE.MathUtils.lerp(camera.position.y, carousel.camHome.y, 0.1);
+        camera.position.y = THREE.MathUtils.lerp(camera.position.y, carousel.camHome.y, 0.08);
       }
-      camera.position.z = THREE.MathUtils.lerp(camera.position.z, camDepth, 0.1);
-      camera.lookAt(0, (carousel.camHome?.y || 0) * 0.6, 0);
+      camera.position.z = THREE.MathUtils.lerp(camera.position.z, camDepth, 0.08);
+      const lookY = carousel.camHome ? carousel.camHome.y : 0;
+     camera.lookAt(0, lookY, 0);
     }
 
 
@@ -522,11 +533,19 @@
         const now = performance.now();
         const t = Math.min(1, (now - carousel.animStart) / carousel.animDur);
         // smoothstep-ish ease
-        const u = t * t * (3 - 2 * t);
+        const u = t < 0.5
+            ? 16 * t * t * t * t * t: 1 - Math.pow(-2 * t + 2, 5) / 2;
         const off = THREE.MathUtils.lerp(carousel.animFrom, carousel.animTo, u);
         layoutCarousel(off);
         carousel.animT = t;
-        if (t === 1) { carousel.dragOffset = 0; } // finished
+        if (t === 1) {
+          carousel.dragOffset = 0;         // finished
+          if (typeof carousel.pendingIndex === 'number') {
+            carousel.activeIndex = carousel.pendingIndex;  // now commit the center
+            carousel.pendingIndex = null;
+          }
+        }
+
       } else {
         // while dragging, continuously lay out
         layoutCarousel(carousel.dragOffset || 0);
@@ -584,10 +603,12 @@
         const pl = new THREE.PointLight(0xffffff, 1.15, 2.4, 2.2); // intensity, distance, decay
         pl.position.set(0, yTop, 0.7);
         pl.castShadow = false;
+        pl.layers.set(1);
         scene.add(pl);
         carousel.centerLight = pl;
       } else if (!carousel.centerLight.parent) {
         scene.add(carousel.centerLight);
+        carousel.centerLight.layers.set(1);
       }
 
 
@@ -599,7 +620,7 @@
         const entry = carousel.cache[i];
         if (!entry) continue;
 
-        entry.root.visible = true;
+        entry.root.visible = false;
 
         // Reset to a clean pose so arc layout starts from known state
         entry.root.position.set(0, entry.baseY ?? entry.root.position.y, 0);
@@ -655,10 +676,18 @@
         e.root.traverse(o => {
           if (o.isMesh && o.material) {
             if (Array.isArray(o.material)) {
-              o.material.forEach(m => { m.transparent = false; m.opacity = 1; });
+                o.material.forEach(m => {
+                            m.transparent = false; m.opacity = 1;
+                            if ('emissive' in m && m.userData && m.userData._origEmissive) {
+                              m.emissive.copy(m.userData._origEmissive);
+                            }
+                          });
             } else {
               o.material.transparent = false;
               o.material.opacity = 1;
+              if ('emissive' in o.material && o.material.userData && o.material.userData._origEmissive) {
+                          o.material.emissive.copy(o.material.userData._origEmissive);
+                    }
             }
           }
         });
@@ -669,6 +698,7 @@
         // Reset local transforms so the active model faces forward
         e.root.position.set(0, e.root.position.y, 0);
         e.root.rotation.set(0, 0, 0);
+        e.root.layers.disable(1);
       }
 
       // Keep only the committed model in the scene
@@ -700,7 +730,7 @@
           camera.position.x = carousel.camHome.x;
           camera.position.y = carousel.camHome.y;
           camera.position.z = carousel.camHome.z;
-          camera.lookAt(0, carousel.camHome.y * 0.6, 0);
+          camera.lookAt(0, carousel.camHome.y, 0);
         }
       }
 
@@ -771,7 +801,15 @@
                 o.castShadow = true;
                 o.receiveShadow = true;
                 o.raycast = THREE.Mesh.prototype.raycast; // robust raycast
-                o.frustumCulled = false;                  // avoid cull-related miss clicks
+                o.frustumCulled = false;     
+                const store = (m) => {
+                    if (!m) return;
+                      m.userData = m.userData || {};
+                      if ('emissive' in m && !m.userData._origEmissive) {
+                        m.userData._origEmissive = m.emissive.clone();
+                      }
+                    };
+                    if (Array.isArray(o.material)) o.material.forEach(store); else store(o.material);// avoid cull-related miss clicks
               }
             });
 
@@ -835,12 +873,14 @@
     const dom = renderer.domElement;
     const W = () => window.innerWidth;
     const thresholdPx = 50;
+    carousel.dragSign = 1; // +1 desktop/mouse, -1 touch/mobile
 
     _downHandler = (e) => {
       const x = (e.touches ? e.touches[0].clientX : e.clientX);
       carousel.dragging = true;
       carousel.startX = x;
       carousel.dx = 0;
+      carousel.dragSign = e.touches ? -1 : 1;
     };
 
     _moveHandler = (e) => {
@@ -850,8 +890,7 @@
 
       // Map pixels → "items" for consistent feel across sizes
       const itemsPerScreen = 1.5; // increase for more sensitivity
-      const offset = (carousel.dx / W()) * itemsPerScreen;
-
+      const offset = (carousel.dx / W()) * itemsPerScreen * (carousel.dragSign || 1);
       setGroupOffset(offset);
     };
 
@@ -861,7 +900,7 @@
       carousel.dragging = false;
 
       if (Math.abs(dx) > thresholdPx) {
-        const dir = Math.sign(dx);
+          const dir = Math.sign(dx * (carousel.dragSign || 1));
         snapToIndex(carousel.activeIndex - dir);
         _clickPreventUntil = performance.now() + 250; // avoid accidental click-through
       } else {
@@ -908,11 +947,27 @@
       const wrapped = wrapIndex(nearest, n);
 
       if (wrapped !== window.currentCharacterIndex) {
-        window.currentCharacterIndex = wrapped;
-        window.updateCharacterInfo?.();
+        window.currentCharacterIndex = wrapped;   // updates the label
+        carousel.activeIndex = wrapped;           // updates the model selection
+        layoutCarousel(offsetInItems);            // re-layout so the model switches now
+        window.updateCharacterInfo?.();           // refresh any UI text
       }
     }
 
+    function onSwipeEnd() {
+      if (carousel.mode !== 'carousel') return;
+      if (!carousel.dragging) return;
+      const n = (window.characterConfigs?.length || 1);
+      const nearest = Math.round(carousel.activeIndex - (carousel.dragOffset || 0));
+      const wrapped = wrapIndex(nearest, n);
+      snapToIndex(wrapped);          // animate to final resting spot (shortest arc)
+      carousel.dragOffset = 0;    
+      carousel.dragging = false; // clear live drag
+    }
+
+    // Attach once, wherever you wire up input:
+    window.addEventListener('pointerup', onSwipeEnd);
+    window.addEventListener('touchend', onSwipeEnd);
 
 
 
@@ -927,6 +982,7 @@
   }
     
     function wrapIndex(i, n) { return ((i % n) + n) % n; }
+    
     function ringDelta(a, b, n) {  // shortest signed steps from a → b
       let d = ((b - a) % n + n) % n;
       if (d > n / 2) d -= n;
@@ -938,19 +994,26 @@
       const n = (window.characterConfigs?.length || 1);
       nextIndex = wrapIndex(nextIndex, n);
 
+      // If we’re already animating, ignore this snap to prevent double-hops
+      if (carousel.animT < 1) return;
+
       const from = carousel.activeIndex;
       const deltaItems = ringDelta(from, nextIndex, n) - (carousel.dragOffset || 0);
 
       carousel.animFrom  = carousel.dragOffset || 0;
       carousel.animTo    = carousel.animFrom + deltaItems;
       carousel.animT     = 0;
-      carousel.animDur   = 300;
+      carousel.animDur   = 500;
       carousel.animStart = performance.now();
 
-      carousel.activeIndex = nextIndex;
+      // Defer committing the new center until the tween completes
+      carousel.pendingIndex = nextIndex;
+
+      // UI can update the name immediately (optional)
       window.currentCharacterIndex = nextIndex;
       window.updateCharacterInfo?.();
     }
+
 
 
   // Free GPU memory when swapping models
@@ -977,6 +1040,7 @@
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 0, 5);
     window.camera = camera;
+    camera.layers.enable(1);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -1124,10 +1188,16 @@
     } else {
       if (hoverLight) { hoverLight.parent?.remove(hoverLight); hoverLight = null; }
       window.character.traverse(obj => {
-        if (obj.isMesh && obj.material && 'emissive' in obj.material) {
-          obj.material.emissive.setHex(0x000000);
-        }
-      });
+           if (!obj.isMesh || !obj.material) return;
+           const restore = (m) => {
+             if (!m) return;
+             if ('emissive' in m) {
+               const orig = m.userData && m.userData._origEmissive;
+               if (orig) m.emissive.copy(orig);
+             }
+           };
+           if (Array.isArray(obj.material)) obj.material.forEach(restore); else restore(obj.material);
+         });
     }
   }
 

@@ -122,25 +122,6 @@
     .character-confirm { background: rgba(255,255,255,.92); color: #000; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; font-weight: 600; pointer-events: auto;
         z-index: 9999; touch-action: manipulation; }
     
-    
-    /* Hide the selector bar entirely
-    #characterControls { display: none !important; }
-
-    /* If you ever show it again, these remove chrome:
-    .character-name { background: none !important; padding: 0 !important; }
-    .arrow-btn, .character-actions { display: none !important; }
-     */
-
-    /* Chat (unchanged styles trimmed for brevity)
-    .chatbot-container { position: fixed; right: 16px; bottom: 16px; width: 320px; height: 420px; background: rgba(0,0,0,.8); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; display: none; flex-direction: column; z-index: 260; }
-    .chatbot-container.open { display: flex; }
-    .chat-messages { flex: 1; overflow: auto; padding: 10px; }
-    .message { margin: 6px 0; }
-    .message.user { text-align: right; }
-    .chat-input-container { display: flex; padding: 8px; gap: 8px; }
-    .chat-input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.1); color: #fff; }
-    .send-button { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.15); color: #fff; }
-    .chat-toggle { position: fixed; right: 16px; bottom: 16px; z-index: 261; border: none; background: #111; color: #fff; padding: 10px 12px; border-radius: 50%; } */
 
   </style>
 </head>
@@ -204,18 +185,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Chatbot
-  <div class="chatbot-container">
-    <div class="chat-messages" id="chatMessages"><div class="message bot">Hi there, how can I help?</div></div>
-    <div class="chat-input-container">
-      <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." onkeypress="handleKeyPress(event)"/>
-      <button class="send-button" onclick="sendMessage()">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-      </button>
-    </div>
-  </div>
-  <button class="chat-toggle" id="chatToggle" aria-label="Toggle chat">💱</button>-->
 </div>
 
 <script>
@@ -228,19 +197,31 @@
 
   // [CAROUSEL] state
   const carousel = {
-    mode: 'view',                // 'view' | 'carousel'
-    group: null,                 // THREE.Group holding side-by-side roots
-    spacing: 1.8,                // horizontal spacing (world units)
+    mode: 'view',
+    group: null,
+    spacing: 1.8,
     dragging: false,
     startX: 0,
-    dx: 0,
-    activeIndex: 0,              // which index is centered while in carousel
-    mixers: [],                  // extra mixers for side items
-    cache: []                    // [{root, mixer, targetHeight, cfg}]
+    lastX: 0,        // NEW
+    totalDelta: 0,   // NEW
+    activeIndex: 0,
+    mixers: [],
+    cache: [],
+    radius: 3,
+    anglePer: Math.PI / 9.5,
+    camHome: null,
+    dragOffset: 0,
+    animFrom: 0,
+    animTo: 0,
+    animT: 1,
+    animDur: 300,
+    animStart: 0,
+    isAnimating: false,  // NEW
+    lastUpdateTime: 0    // NEW
   };
     
     // Carousel layout + tween parameters (safe at top-level)
-    carousel.radius     = 3;
+    /*carousel.radius     = 3;
     carousel.anglePer   = Math.PI / 9.5;
     carousel.camHome    = null;        // set on first enterCarousel()
     carousel.dragOffset = 0;
@@ -248,7 +229,7 @@
     carousel.animTo     = 0;
     carousel.animT      = 1;
     carousel.animDur    = 300;
-    carousel.animStart  = 0;
+    carousel.animStart  = 0;*/
 
 
   // expose for other code
@@ -316,14 +297,23 @@
 
   // These still work in view mode; in carousel they snap between items.
   window.previousCharacter = function() {
-    if (carousel.mode === 'carousel') { snapToIndex(carousel.activeIndex - 1); return; }
+    if (carousel.mode === 'carousel') {
+      if (!carousel.isAnimating) snapToIndex(carousel.activeIndex - 1);
+      return;
+    }
     window.currentCharacterIndex = (window.currentCharacterIndex - 1 + window.characterConfigs.length) % window.characterConfigs.length;
-    window.createCharacter?.(); window.updateCharacterInfo();
+    window.createCharacter?.();
+    window.updateCharacterInfo();
   };
+
   window.nextCharacter = function() {
-    if (carousel.mode === 'carousel') { snapToIndex(carousel.activeIndex + 1); return; }
+    if (carousel.mode === 'carousel') {
+      if (!carousel.isAnimating) snapToIndex(carousel.activeIndex + 1);
+      return;
+    }
     window.currentCharacterIndex = (window.currentCharacterIndex + 1) % window.characterConfigs.length;
-    window.createCharacter?.(); window.updateCharacterInfo();
+    window.createCharacter?.();
+    window.updateCharacterInfo();
   };
 
   // Commit selection (closes carousel if open)
@@ -528,26 +518,33 @@
     // Drive easing each frame (call from your animate loop)
     function updateCarouselTween() {
       if (carousel.mode !== 'carousel') return;
-      // active easing?
-      if (carousel.animT < 1) {
-        const now = performance.now();
+      
+      const now = performance.now();
+      
+      // Prevent too frequent updates
+      if (now - carousel.lastUpdateTime < 16) return; // ~60fps limit
+      carousel.lastUpdateTime = now;
+      
+      if (carousel.animT < 1 && carousel.isAnimating) {
         const t = Math.min(1, (now - carousel.animStart) / carousel.animDur);
-        // smoothstep-ish ease
         const u = t < 0.5
-            ? 16 * t * t * t * t * t: 1 - Math.pow(-2 * t + 2, 5) / 2;
+          ? 16 * t * t * t * t * t
+          : 1 - Math.pow(-2 * t + 2, 5) / 2;
+        
         const off = THREE.MathUtils.lerp(carousel.animFrom, carousel.animTo, u);
         layoutCarousel(off);
         carousel.animT = t;
+        
         if (t === 1) {
-          carousel.dragOffset = 0;         // finished
+          carousel.dragOffset = 0;
+          carousel.isAnimating = false;
           if (typeof carousel.pendingIndex === 'number') {
-            carousel.activeIndex = carousel.pendingIndex;  // now commit the center
+            carousel.activeIndex = carousel.pendingIndex;
             carousel.pendingIndex = null;
+            window.updateCharacterInfo?.();
           }
         }
-
-      } else {
-        // while dragging, continuously lay out
+      } else if (!carousel.isAnimating) {
         layoutCarousel(carousel.dragOffset || 0);
       }
     }
@@ -639,6 +636,7 @@
       carousel.animFrom = 0;
       carousel.animTo = 0;
       carousel.animT = 1;
+      carousel.isAnimating = false;
 
       window.updateCharacterInfo?.();
       attachCarouselInput();
@@ -741,6 +739,7 @@
       carousel.animFrom = 0;
       carousel.animTo = 0;
       carousel.animT = 1;
+      carousel.isAnimating = false;
 
       // Add inside exitCarousel(), near the end before hiding controls:
       {
@@ -867,108 +866,146 @@
   }
 
   // Pointer input for carousel
-  let _downHandler, _moveHandler, _upHandler, _clickPreventUntil = 0;
+  //let _downHandler, _moveHandler, _upHandler;
+  let clickPreventUntil = 0;
+
+  // COMPLETELY REWRITTEN mobile input handling
+  let carouselInput = {
+    active: false,
+    startX: 0,
+    lastX: 0,
+    startTime: 0,
+    velocity: 0,
+    thresholdPx: 50,
+    sensitivity: 1.5
+  };
 
   function attachCarouselInput() {
+    if (carouselInput.active) return; // Prevent double attachment
+    
     const dom = renderer.domElement;
-    const W = () => window.innerWidth;
-    const thresholdPx = 50;
-    carousel.dragSign = 1; // +1 desktop/mouse, -1 touch/mobile
+    carouselInput.active = true;
 
-    _downHandler = (e) => {
-      const x = (e.touches ? e.touches[0].clientX : e.clientX);
+    function getX(e) {
+      return e.touches ? e.touches[0].clientX : e.clientX;
+    }
+
+    function onStart(e) {
+      if (carousel.isAnimating) return; // Ignore input during animation
+      
+      const x = getX(e);
       carousel.dragging = true;
-      carousel.startX = x;
-      carousel.dx = 0;
-      carousel.dragSign = e.touches ? -1 : 1;
-    };
+      carouselInput.startX = x;
+      carouselInput.lastX = x;
+      carouselInput.startTime = performance.now();
+      carouselInput.velocity = 0;
+      
+      // Stop any ongoing animation
+      carousel.animT = 1;
+      carousel.isAnimating = false;
+    }
 
-    _moveHandler = (e) => {
+    function onMove(e) {
+      if (!carousel.dragging || carousel.isAnimating) return;
+      
+      const x = getX(e);
+      const deltaX = x - carouselInput.startX;
+      const currentTime = performance.now();
+      const deltaTime = Math.max(1, currentTime - carouselInput.startTime);
+      
+      // Calculate velocity for momentum
+      carouselInput.velocity = (x - carouselInput.lastX) / Math.max(1, currentTime - (carouselInput.lastTime || currentTime));
+      carouselInput.lastX = x;
+      carouselInput.lastTime = currentTime;
+      
+      // Convert pixel movement to item offset with controlled sensitivity
+      const screenWidth = window.innerWidth;
+      const rawOffset = (deltaX / screenWidth) * carouselInput.sensitivity;
+      
+      // Apply the offset but don't update activeIndex yet
+      carousel.dragOffset = rawOffset;
+      
+      // Update layout immediately for smooth dragging
+      layoutCarousel(rawOffset);
+    }
+
+    function onEnd(e) {
       if (!carousel.dragging) return;
-      const x = (e.touches ? e.touches[0].clientX : e.clientX);
-      carousel.dx = x - carousel.startX;
-
-      // Map pixels → "items" for consistent feel across sizes
-      const itemsPerScreen = 1.5; // increase for more sensitivity
-      const offset = (carousel.dx / W()) * itemsPerScreen * (carousel.dragSign || 1);
-      setGroupOffset(offset);
-    };
-
-    _upHandler = () => {
-      if (!carousel.dragging) return;
-      const dx = carousel.dx;
+      
       carousel.dragging = false;
-
-      if (Math.abs(dx) > thresholdPx) {
-          const dir = Math.sign(dx * (carousel.dragSign || 1));
-        snapToIndex(carousel.activeIndex - dir);
-        _clickPreventUntil = performance.now() + 250; // avoid accidental click-through
-      } else {
-        // light snap back
-        snapToIndex(carousel.activeIndex);
+      const endTime = performance.now();
+      const totalTime = endTime - carouselInput.startTime;
+      const totalDelta = carouselInput.lastX - carouselInput.startX;
+      
+      // Determine if we should snap to next/previous based on distance and velocity
+      let targetIndex = carousel.activeIndex;
+      
+      if (Math.abs(totalDelta) > carouselInput.thresholdPx || Math.abs(carouselInput.velocity) > 0.5) {
+        const direction = totalDelta > 0 ? -1 : 1; // Inverted for natural swipe feel
+        targetIndex = carousel.activeIndex + direction;
       }
-    };
+      
+      // Clamp to valid range
+      const maxIndex = (window.characterConfigs?.length || 1) - 1;
+      targetIndex = Math.max(0, Math.min(maxIndex, targetIndex));
+      
+      // Animate to target
+      snapToIndex(targetIndex);
+    }
 
-    // Mouse
-    dom.addEventListener('mousedown', _downHandler);
-    window.addEventListener('mousemove', _moveHandler);
-    window.addEventListener('mouseup', _upHandler);
-
-    // Touch
-    dom.addEventListener('touchstart', _downHandler, { passive: true });
-    dom.addEventListener('touchmove', _moveHandler, { passive: true });
-    dom.addEventListener('touchend', _upHandler, { passive: true });
-
-    // (Optional) show UI label if you still use it
-    document.getElementById('characterControls')?.classList.add('show');
-    window.updateCharacterInfo?.();
+    // Attach events with proper cleanup
+    dom.addEventListener('mousedown', onStart, { passive: false });
+    dom.addEventListener('mousemove', onMove, { passive: false });
+    dom.addEventListener('mouseup', onEnd, { passive: false });
+    
+    dom.addEventListener('touchstart', onStart, { passive: false });
+    dom.addEventListener('touchmove', onMove, { passive: false });
+    dom.addEventListener('touchend', onEnd, { passive: false });
+    
+    // Store handlers for cleanup
+    carouselInput.handlers = { onStart, onMove, onEnd, dom };
   }
-
 
   function detachCarouselInput() {
-    const dom = renderer.domElement;
-    if (_downHandler) {
-      dom.removeEventListener('mousedown', _downHandler);
-      window.removeEventListener('mousemove', _moveHandler);
-      window.removeEventListener('mouseup', _upHandler);
-      dom.removeEventListener('touchstart', _downHandler);
-      dom.removeEventListener('touchmove', _moveHandler);
-      dom.removeEventListener('touchend', _upHandler);
-    }
-    _downHandler = _moveHandler = _upHandler = null;
+    if (!carouselInput.active || !carouselInput.handlers) return;
+    
+    const { onStart, onMove, onEnd, dom } = carouselInput.handlers;
+    
+    dom.removeEventListener('mousedown', onStart);
+    dom.removeEventListener('mousemove', onMove);
+    dom.removeEventListener('mouseup', onEnd);
+    
+    dom.removeEventListener('touchstart', onStart);
+    dom.removeEventListener('touchmove', onMove);
+    dom.removeEventListener('touchend', onEnd);
+    
+    carouselInput.active = false;
+    carouselInput.handlers = null;
+    carousel.dragging = false;
   }
 
-    function setGroupOffset(offsetInItems) {
-      carousel.dragOffset = offsetInItems;
-      layoutCarousel(offsetInItems);
+  function snapToIndex(nextIndex) {
+    const n = (window.characterConfigs?.length || 1);
+    nextIndex = wrapIndex(nextIndex, n);
 
-      const n = (window.characterConfigs?.length || 1);
-      const nearest = Math.round(carousel.activeIndex - offsetInItems);
-      const wrapped = wrapIndex(nearest, n);
+    // Prevent overlapping animations
+    if (carousel.isAnimating) return;
+    
+    const currentOffset = carousel.dragOffset || 0;
+    const targetOffset = carousel.activeIndex - nextIndex;
+    
+    carousel.animFrom = currentOffset;
+    carousel.animTo = targetOffset;
+    carousel.animT = 0;
+    carousel.animDur = 400; // Slightly longer for smoother feel
+    carousel.animStart = performance.now();
+    carousel.isAnimating = true;
+    carousel.pendingIndex = nextIndex;
 
-      if (wrapped !== window.currentCharacterIndex) {
-        window.currentCharacterIndex = wrapped;   // updates the label
-        carousel.activeIndex = wrapped;           // updates the model selection
-        layoutCarousel(offsetInItems);            // re-layout so the model switches now
-        window.updateCharacterInfo?.();           // refresh any UI text
-      }
-    }
-
-    function onSwipeEnd() {
-      if (carousel.mode !== 'carousel') return;
-      if (!carousel.dragging) return;
-      const n = (window.characterConfigs?.length || 1);
-      const nearest = Math.round(carousel.activeIndex - (carousel.dragOffset || 0));
-      const wrapped = wrapIndex(nearest, n);
-      snapToIndex(wrapped);          // animate to final resting spot (shortest arc)
-      carousel.dragOffset = 0;    
-      carousel.dragging = false; // clear live drag
-    }
-
-    // Attach once, wherever you wire up input:
-    window.addEventListener('pointerup', onSwipeEnd);
-    window.addEventListener('touchend', onSwipeEnd);
-
+    // Update UI immediately for responsiveness
+    window.currentCharacterIndex = nextIndex;
+    window.updateCharacterInfo?.();
+  }
 
 
   function nearestIndex() {
@@ -988,32 +1025,6 @@
       if (d > n / 2) d -= n;
       return d;
     }
-
-
-    function snapToIndex(nextIndex) {
-      const n = (window.characterConfigs?.length || 1);
-      nextIndex = wrapIndex(nextIndex, n);
-
-      // If we’re already animating, ignore this snap to prevent double-hops
-      if (carousel.animT < 1) return;
-
-      const from = carousel.activeIndex;
-      const deltaItems = ringDelta(from, nextIndex, n) - (carousel.dragOffset || 0);
-
-      carousel.animFrom  = carousel.dragOffset || 0;
-      carousel.animTo    = carousel.animFrom + deltaItems;
-      carousel.animT     = 0;
-      carousel.animDur   = 500;
-      carousel.animStart = performance.now();
-
-      // Defer committing the new center until the tween completes
-      carousel.pendingIndex = nextIndex;
-
-      // UI can update the name immediately (optional)
-      window.currentCharacterIndex = nextIndex;
-      window.updateCharacterInfo?.();
-    }
-
 
 
   // Free GPU memory when swapping models
@@ -1085,8 +1096,7 @@
   }
 
     function onCanvasClick(e) {
-      // Ignore clicks right after a swipe gesture to prevent accidental commits
-      if (typeof _clickPreventUntil !== 'undefined' && performance.now() < _clickPreventUntil) return;
+      if (performance.now() < clickPreventUntil) return;  // Remove underscore
 
       // If we're already in carousel mode: a tap commits the centered character (if unlocked)
       if (carousel && carousel.mode === 'carousel') {
@@ -1239,41 +1249,6 @@
   });
   document.getElementById('loginModal').addEventListener('click', function(e) { if (e.target === this) closeLoginModal(); });
 
- /* function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
-  function sendMessage() {
-    const input = document.getElementById('chatInput');
-    const text = input.value.trim();
-    if (!text) return;
-    addMessage(text, 'user');
-    input.value = '';
-    setTimeout(() => addMessage(generateBotResponse(text), 'bot'), 500);
-  }
-  function addMessage(text, sender) {
-    const box = document.getElementById('chatMessages');
-    if (!box) return;
-    const div = document.createElement('div');
-    div.className = `message ${sender}`;
-    div.textContent = text;
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
-  }
-  function generateBotResponse(msg) {
-    const m = msg.toLowerCase();
-    if (m.includes('hello')) return "Hello! Welcome to the character showcase. How can I help you today?";
-    if (m.includes('hi')) return "Hi there! I'm here to help you navigate the site. What would you like to know?";
-    if (m.includes('help')) return "I can help you with information about the character, navigation, or features of this site.";
-    if (m.includes('character')) return "This is a 3D character model you can click to open the selector.";
-    if (m.includes('website')) return "This website showcases 3D character models with interactive features.";
-    if (m.includes('menu')) return "Click the three dots in the top-left to open the menu.";
-    if (m.includes('login')) return "Click the user icon in the top-right to open login.";
-    return "Thanks for your message! Ask about the character, website features, or navigation.";
-  }
-
-  const chatEl = document.querySelector('.chatbot-container');
-  const chatToggleBtn = document.getElementById('chatToggle');
-  function setChatOpen(open) { chatEl.classList.toggle('open', open); chatToggleBtn.setAttribute('aria-expanded', String(open)); }
-  setChatOpen(false);
-  chatToggleBtn.addEventListener('click', () => { setChatOpen(!chatEl.classList.contains('open')); });*/
 
   // ===== Start =====
   window.addEventListener('load', () => {
@@ -1287,7 +1262,7 @@
   });
 
     window.addEventListener('keydown', (e) => {
-      if (carousel.mode !== 'carousel') return;
+      if (carousel.mode !== 'carousel' || carousel.isAnimating) return;  // Add animation check
       if (e.key === 'ArrowLeft')  snapToIndex(carousel.activeIndex - 1);
       if (e.key === 'ArrowRight') snapToIndex(carousel.activeIndex + 1);
     });
