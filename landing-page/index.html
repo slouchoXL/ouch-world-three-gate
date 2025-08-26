@@ -284,19 +284,21 @@
   // Enhanced preload function with progress tracking
   function preloadAllCharacters() {
     if (carousel.preloadComplete) {
+      console.log('✅ Characters already preloaded');
       return Promise.resolve();
     }
 
     const configs = window.characterConfigs || [];
     if (configs.length === 0) return Promise.resolve();
 
+    console.log('🚀 Starting character preload...');
     showLoading();
     updateLoadingProgress(0, configs.length);
 
     const loadPromises = configs.map((config, index) => {
       return loadCharacterToCache(index).then(() => {
         updateLoadingProgress(index + 1, configs.length);
-        console.log(`✅ Preloaded: ${config.name}`);
+        console.log(`✅ Preloaded: ${config.name} (index: ${index})`);
       }).catch(err => {
         console.error(`❌ Failed to preload ${config.name}:`, err);
         updateLoadingProgress(index + 1, configs.length);
@@ -306,7 +308,13 @@
     return Promise.all(loadPromises).then(() => {
       carousel.preloadComplete = true;
       hideLoading();
-      console.log('🎉 All characters preloaded!');
+      console.log('🎉 All characters preloaded! Cache state:', carousel.cache.length);
+      // Debug: log what's in the cache
+      carousel.cache.forEach((entry, i) => {
+        if (entry) {
+          console.log(`Cache[${i}]: ${entry.config.name}, has animations: ${!!entry.originalAnimations}`);
+        }
+      });
     }).catch(err => {
       console.error('Preloading failed:', err);
       hideLoading();
@@ -445,94 +453,121 @@
       return;
     }
 
-    // Clean up current model
-    if (window.character && window.character !== currentModel) {
-      try { scene.remove(window.character); } catch {}
-      try { disposeObject(window.character); } catch {}
-      window.character = null;
-    }
-
+    // Clean up current model properly
     if (currentMixer) {
-      try { currentMixer.stopAllAction(); } catch {}
-      try { if (currentModel) currentMixer.uncacheRoot(currentModel); } catch {}
+      try {
+        currentMixer.stopAllAction();
+        currentMixer.uncacheRoot(currentModel);
+      } catch(e) { console.log('Mixer cleanup:', e); }
       currentMixer = null;
     }
     
     if (currentModel) {
       scene.remove(currentModel);
-      disposeObject(currentModel);
+      // Don't dispose if it's from cache - we want to keep the cache intact
+      if (!isFromCache(currentModel)) {
+        disposeObject(currentModel);
+      }
       currentModel = null;
+    }
+
+    if (window.character && window.character !== currentModel) {
+      try { scene.remove(window.character); } catch {}
+      window.character = null;
     }
 
     const index = window.currentCharacterIndex ?? 0;
     
     // Try to get from cache first
     const cached = getCharacterFromCache(index);
-    if (cached) {
-      // Clone from cache for immediate display
-      const { root, mixer, targetHeight, config, originalAnimations } = cached;
-      
-      // Clone the model (we need a new instance for the scene)
-      const clonedRoot = root.clone();
-      clonedRoot.visible = true;
-      
-      // Properly setup animations for cloned model using original GLTF data
-      let clonedMixer = null;
-      if (originalAnimations && originalAnimations.length > 0) {
-        clonedMixer = new THREE.AnimationMixer(clonedRoot);
-        
-        // Find the base clip from original animations
-        const clips = originalAnimations;
-        const baseClip =
-          THREE.AnimationClip.findByName(clips, 'Idle') ||
-          THREE.AnimationClip.findByName(clips, 'idle') ||
-          clips[0];
-        
-        if (baseClip) {
-          // Apply the same trimming logic as the original
-          const trimStart = Math.max(0, config.trimStart ?? 1.5);
-          const trimEnd = Math.max(0, config.trimEnd ?? 2.0);
-          const minDur = 0.05;
-          const startSec = Math.min(trimStart, Math.max(0, baseClip.duration - minDur));
-          const endSec = Math.max(baseClip.duration - trimEnd, startSec + minDur);
-          const fps = 30;
-          const startFrame = Math.max(0, Math.floor(startSec * fps));
-          const endFrame = Math.max(startFrame + 1, Math.ceil(endSec * fps));
-          
-          // Create the trimmed clip for the cloned model
-          const clonedClip = THREE.AnimationUtils.subclip(
-            baseClip,
-            (baseClip.name || 'clip') + '_trim_clone_' + Date.now(),
-            startFrame, endFrame, fps
-          );
-          
-          // Create and setup the action
-          const clonedAction = clonedMixer.clipAction(clonedClip);
-          clonedAction.setLoop(THREE.LoopPingPong, Infinity)
-                     .reset()
-                     .setEffectiveWeight(1)
-                     .play();
-          clonedAction.time = 1/60;
-          clonedMixer.update(0);
-        }
-      }
-      
-      scene.add(clonedRoot);
-      currentModel = clonedRoot;
-      currentMixer = clonedMixer;
-      window.character = clonedRoot;
-      
-      frameCameraOnTargetHeight(camera, targetHeight, 1.4, 0.2);
-      window.updateCharacterInfo?.();
-      
-      console.log(`📦 Loaded ${config.name} from cache with animations (instant)`);
+    if (cached && carousel.preloadComplete) {
+      console.log(`📦 Loading ${cached.config.name} from cache...`);
+      loadFromCache(index, cached);
       return;
     }
     
-    // Fallback to original loading method if not in cache
-    console.log(`⏳ Loading ${window.characterConfigs[index]?.name} (not cached)`);
+    // Fallback to direct loading
+    console.log(`⏳ Loading ${window.characterConfigs[index]?.name} directly...`);
     loadCharacterDirectly();
   };
+
+  // Helper to check if model is from cache
+  function isFromCache(model) {
+    return model && model.userData && model.userData.fromCache === true;
+  }
+
+  // Load character from cache with proper animation setup
+  function loadFromCache(index, cached) {
+    const { root, targetHeight, config, originalAnimations } = cached;
+    
+    // Create a proper clone of the cached model
+    const clonedRoot = root.clone();
+    clonedRoot.userData.fromCache = true;
+    clonedRoot.visible = true;
+    
+    // Ensure all cloned meshes have proper raycasting setup
+    clonedRoot.traverse(obj => {
+      if (obj.isMesh) {
+        obj.castShadow = true;
+        obj.receiveShadow = true;
+        obj.raycast = THREE.Mesh.prototype.raycast;
+        obj.frustumCulled = false;
+      }
+    });
+    
+    // Create fresh animation mixer for the cloned model
+    let clonedMixer = null;
+    if (originalAnimations && originalAnimations.length > 0) {
+      clonedMixer = new THREE.AnimationMixer(clonedRoot);
+      
+      // Find the base animation clip
+      const baseClip = THREE.AnimationClip.findByName(originalAnimations, 'Idle') ||
+                       THREE.AnimationClip.findByName(originalAnimations, 'idle') ||
+                       originalAnimations[0];
+      
+      if (baseClip) {
+        // Apply trimming settings
+        const trimStart = Math.max(0, config.trimStart ?? 1.5);
+        const trimEnd = Math.max(0, config.trimEnd ?? 2.0);
+        const minDur = 0.05;
+        const startSec = Math.min(trimStart, Math.max(0, baseClip.duration - minDur));
+        const endSec = Math.max(baseClip.duration - trimEnd, startSec + minDur);
+        const fps = 30;
+        const startFrame = Math.max(0, Math.floor(startSec * fps));
+        const endFrame = Math.max(startFrame + 1, Math.ceil(endSec * fps));
+        
+        // Create unique trimmed clip
+        const trimmedClip = THREE.AnimationUtils.subclip(
+          baseClip,
+          `${baseClip.name}_trimmed_${index}_${Date.now()}`,
+          startFrame, endFrame, fps
+        );
+        
+        // Create and start the action
+        const action = clonedMixer.clipAction(trimmedClip);
+        action.setLoop(THREE.LoopPingPong, Infinity);
+        action.reset();
+        action.setEffectiveWeight(1);
+        action.play();
+        action.time = 1/60; // Small offset for natural start
+        clonedMixer.update(0); // Initial update
+        
+        console.log(`✅ Animation setup complete for ${config.name}`);
+      }
+    }
+    
+    // Add to scene and update references
+    scene.add(clonedRoot);
+    currentModel = clonedRoot;
+    currentMixer = clonedMixer;
+    window.character = clonedRoot;
+    
+    // Update camera framing
+    frameCameraOnTargetHeight(camera, targetHeight, 1.4, 0.2);
+    window.updateCharacterInfo?.();
+    
+    console.log(`🎭 ${config.name} loaded from cache with animations`);
+  }
 
   // Original character loading method (fallback)
   function loadCharacterDirectly() {
@@ -658,7 +693,15 @@
 
     function tickAnimations() {
       const dt = Math.min(clock.getDelta(), 0.033);
-      if (currentMixer) currentMixer.update(dt);
+      
+      // Update the current character's mixer
+      if (currentMixer) {
+        try {
+          currentMixer.update(dt);
+        } catch(e) {
+          console.warn('Animation update error:', e);
+        }
+      }
     }
 
   // ===== Character UI =====
@@ -677,13 +720,17 @@
   };
 
   window.previousCharacter = function() {
+    console.log('🔄 Switching to previous character');
     window.currentCharacterIndex = (window.currentCharacterIndex - 1 + window.characterConfigs.length) % window.characterConfigs.length;
+    console.log(`Now showing index: ${window.currentCharacterIndex} (${window.characterConfigs[window.currentCharacterIndex]?.name})`);
     window.createCharacter?.();
     window.updateCharacterInfo();
   };
 
   window.nextCharacter = function() {
+    console.log('🔄 Switching to next character');
     window.currentCharacterIndex = (window.currentCharacterIndex + 1) % window.characterConfigs.length;
+    console.log(`Now showing index: ${window.currentCharacterIndex} (${window.characterConfigs[window.currentCharacterIndex]?.name})`);
     window.createCharacter?.();
     window.updateCharacterInfo();
   };
