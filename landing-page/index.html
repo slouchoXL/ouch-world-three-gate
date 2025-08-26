@@ -198,7 +198,7 @@
   // [CAROUSEL] state
   const carousel = {
     mode: 'view',
-    group: null,
+   /* group: null,
     spacing: 1.8,
     dragging: false,
     startX: 0,
@@ -217,7 +217,7 @@
     animDur: 300,
     animStart: 0,
     isAnimating: false,  // NEW
-    lastUpdateTime: 0    // NEW
+    lastUpdateTime: 0    // NEW*/
   };
     
     // Carousel layout + tween parameters (safe at top-level)
@@ -271,14 +271,11 @@
     camera.updateProjectionMatrix();
   }
 
-  function tickAnimations() {
-    const dt = Math.min(clock.getDelta(), 0.033);
-    if (currentMixer) currentMixer.update(dt);
-    // [CAROUSEL] drive extra mixers when in carousel
-    if (carousel.mode === 'carousel' && carousel.mixers.length) {
-      for (const m of carousel.mixers) m.update(dt);
+    function tickAnimations() {
+      const dt = Math.min(clock.getDelta(), 0.033);
+      if (currentMixer) currentMixer.update(dt);
+      // Remove carousel mixer code since we're not using it
     }
-  }
 
   // ===== Character UI =====
   window.updateCharacterInfo = function() {
@@ -297,24 +294,16 @@
 
   // These still work in view mode; in carousel they snap between items.
   window.previousCharacter = function() {
-    if (carousel.mode === 'carousel') {
-      if (!carousel.isAnimating) snapToIndex(carousel.activeIndex - 1);
-      return;
-    }
     window.currentCharacterIndex = (window.currentCharacterIndex - 1 + window.characterConfigs.length) % window.characterConfigs.length;
     window.createCharacter?.();
     window.updateCharacterInfo();
   };
 
-  window.nextCharacter = function() {
-    if (carousel.mode === 'carousel') {
-      if (!carousel.isAnimating) snapToIndex(carousel.activeIndex + 1);
-      return;
-    }
-    window.currentCharacterIndex = (window.currentCharacterIndex + 1) % window.characterConfigs.length;
-    window.createCharacter?.();
-    window.updateCharacterInfo();
-  };
+    window.nextCharacter = function() {
+      window.currentCharacterIndex = (window.currentCharacterIndex + 1) % window.characterConfigs.length;
+      window.createCharacter?.();
+      window.updateCharacterInfo();
+    };
 
   // Commit selection (closes carousel if open)
   window.confirmCharacter = function() {
@@ -461,64 +450,6 @@
   };
 
 
-    function layoutCarousel(offsetInItems) {
-      if (!carousel.group) return;
-      const n = carousel.cache.length;
-
-      // Debug logging to identify sync issues
-      console.log('Active index:', carousel.activeIndex, 'Current char:', window.currentCharacterIndex);
-      console.log('Offset in items:', offsetInItems);
-
-      const rel = (i, active) => {
-        let d = ((i - active) % n + n) % n; // 0..n-1
-        if (d > n / 2) d -= n;              // (-n/2 .. n/2]
-        return d;
-      };
-
-      for (let i = 0; i < n; i++) {
-        const entry = carousel.cache[i];
-        if (!entry) continue;
-        const baseY = entry.baseY ?? 0;
-
-        // k = wrapped slot index from center, including drag offset
-        const k = rel(i, carousel.activeIndex) - offsetInItems;
-        const ang = k * (carousel.anglePer ?? (Math.PI / 10));
-
-        const x = Math.sin(ang) * (carousel.radius ?? 1.8);
-        const z = -(1 - Math.cos(ang)) * ((carousel.radius ?? 1.8) * 0.9);
-
-        entry.root.position.set(x, baseY, z);
-        entry.root.rotation.y = -ang * 0.6;
-
-        const isCenter = Math.abs(k) <= 0.499; // halfway-to-next slot threshold
-        if (isCenter) {
-          entry.root.layers.enable(1);
-        } else {
-          entry.root.layers.disable(1);
-        }
-        entry.root.visible = isCenter;
-
-        // Debug each model's state
-        console.log(`Cache[${i}] (${entry.cfg.name}): k=${k.toFixed(2)}, isCenter=${isCenter}, visible=${entry.root.visible}`);
-      }
-
-      // Camera parallax code remains the same
-      const anglePer = carousel.anglePer ?? (Math.PI / 10);
-      const rad = carousel.radius ?? 1.8;
-      const camSlide = Math.sin(-offsetInItems * anglePer) * 0.5;
-      const camDepth = carousel.camHome
-        ? carousel.camHome.z + (1 - Math.cos(-offsetInItems * anglePer)) * (rad * 0.12)
-        : camera.position.z;
-
-      camera.position.x = THREE.MathUtils.lerp(camera.position.x, camSlide, 0.08);
-      if (carousel.camHome) {
-        camera.position.y = THREE.MathUtils.lerp(camera.position.y, carousel.camHome.y, 0.08);
-      }
-      camera.position.z = THREE.MathUtils.lerp(camera.position.z, camDepth, 0.08);
-      const lookY = carousel.camHome ? carousel.camHome.y : 0;
-      camera.lookAt(0, lookY, 0);
-    }
-
 
     // Drive easing each frame (call from your animate loop)
     function updateCarouselTween() {
@@ -556,208 +487,36 @@
 
   // ===== Carousel implementation =====
   function enterCarousel() {
-    // Show overlay (even if you hide it via CSS later)
     const c = document.getElementById('characterControls');
     if (c) c.classList.add('show');
-
-    // Remember camera "home" once (used for parallax + exit)
-    if (!carousel.camHome) {
-      carousel.camHome = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
-    }
-
-    carousel.mode = 'carousel';
-    // Add inside enterCarousel(), after you set carousel.mode = 'carousel':
-    {
-      const L = scene.userData?.lights, LV = scene.userData?.lightLevels;
-      if (L && LV) {
-        L.hemi.intensity = LV.hemi * 0.25;
-        L.key.intensity  = LV.key  * 0.35;
-        L.fill.intensity = LV.fill * 0.25;
-        L.rim.intensity  = LV.rim  * 0.25;
-      }
-    }
-
-    carousel.activeIndex = window.currentCharacterIndex;
     
-
-    if (!carousel.group) {
-      carousel.group = new THREE.Group();
-      carousel.group.name = 'CHAR_CAROUSEL_GROUP';
+    // Just dim the lights, no complex group management
+    const L = scene.userData?.lights, LV = scene.userData?.lightLevels;
+    if (L && LV) {
+      L.hemi.intensity = LV.hemi * 0.25;
+      L.key.intensity = LV.key * 0.35;
+      L.fill.intensity = LV.fill * 0.25;
+      L.rim.intensity = LV.rim * 0.25;
     }
-
-    // Preload all entries, then build the carousel
-    preloadAll().then(() => {
-      // Remove single root; we’ll show via the group
-      if (currentModel) scene.remove(currentModel);
-
-      // Ensure every entry has a stable baseY (prevents vertical "pop")
-      for (let i = 0; i < carousel.cache.length; i++) {
-        const entry = carousel.cache[i];
-        if (!entry || !entry.root) continue;
-        if (typeof entry.baseY !== 'number') {
-          entry.baseY = entry.root.userData?.baseY ?? entry.root.position.y;
-        }
-      }
-
-      // Ensure dimming light is present during carousel (height uses baseY)
-      if (!carousel.centerLight) {
-        const yTop = (carousel.cache[carousel.activeIndex]?.baseY || 0) + 1.0;
-        const pl = new THREE.PointLight(0xffffff, 1.15, 2.4, 2.2); // intensity, distance, decay
-        pl.position.set(0, yTop, 0.7);
-        pl.castShadow = false;
-        pl.layers.set(1);
-        scene.add(pl);
-        carousel.centerLight = pl;
-      } else if (!carousel.centerLight.parent) {
-        scene.add(carousel.centerLight);
-        carousel.centerLight.layers.set(1);
-      }
-
-
-      // (Re)build the group
-      carousel.group.clear();
-      window.character = null;
-
-      for (let i = 0; i < carousel.cache.length; i++) {
-        const entry = carousel.cache[i];
-        if (!entry) continue;
-
-        entry.root.visible = false;
-
-        // Reset to a clean pose so arc layout starts from known state
-        entry.root.position.set(0, entry.baseY ?? entry.root.position.y, 0);
-        entry.root.rotation.set(0, 0, 0);
-
-        carousel.group.add(entry.root);
-      }
-
-      scene.add(carousel.group);
-
-      // Drive animations for all items while in carousel
-      startCarouselAnimations();
-
-      // Input + state
-      carousel.dragOffset = 0;
-      carousel.animFrom = 0;
-      carousel.animTo = 0;
-      carousel.animT = 1;
-      carousel.isAnimating = false;
-
-      window.updateCharacterInfo?.();
-      attachCarouselInput();
-
-      // Initial arc layout NOW that everything is in the scene
-      layoutCarousel(0);
-    });
+    
+    carousel.mode = 'carousel';
+    attachSimpleSwipeInput();
   }
 
 
     function exitCarousel(commitSelection) {
-      // Stop swipe handlers
-      detachCarouselInput();
-
-      // Remove the focus/dimming light (only used in carousel)
-      if (carousel.centerLight && carousel.centerLight.parent) {
-        scene.remove(carousel.centerLight);
+      detachSimpleSwipeInput();
+      
+      // Restore lights
+      const L = scene.userData?.lights, LV = scene.userData?.lightLevels;
+      if (L && LV) {
+        L.hemi.intensity = LV.hemi;
+        L.key.intensity = LV.key;
+        L.fill.intensity = LV.fill;
+        L.rim.intensity = LV.rim;
       }
-
-      // Remove the side-by-side group from the scene
-      if (carousel.group) {
-        try { carousel.group.clear(); } catch {}
-        if (carousel.group.parent) scene.remove(carousel.group);
-      }
-
-      // Decide which index to commit
-      const commitIndex = commitSelection ? carousel.activeIndex : window.currentCharacterIndex;
-      const entry = carousel.cache[commitIndex];
-
-      // Safety: ensure all materials are fully opaque again
-      for (let i = 0; i < carousel.cache.length; i++) {
-        const e = carousel.cache[i];
-        if (!e) continue;
-        // Reset material opacity for all meshes
-        e.root.traverse(o => {
-          if (o.isMesh && o.material) {
-            if (Array.isArray(o.material)) {
-                o.material.forEach(m => {
-                            m.transparent = false; m.opacity = 1;
-                            if ('emissive' in m && m.userData && m.userData._origEmissive) {
-                              m.emissive.copy(m.userData._origEmissive);
-                            }
-                          });
-            } else {
-              o.material.transparent = false;
-              o.material.opacity = 1;
-              if ('emissive' in o.material && o.material.userData && o.material.userData._origEmissive) {
-                          o.material.emissive.copy(o.material.userData._origEmissive);
-                    }
-            }
-          }
-        });
-        // Default: hide non-committed entries, center committed one
-        if (typeof commitIndex !== 'undefined') {
-          e.root.visible = (i === commitIndex);
-        }
-        // Reset local transforms so the active model faces forward
-        e.root.position.set(0, e.root.position.y, 0);
-        e.root.rotation.set(0, 0, 0);
-        e.root.layers.disable(1);
-      }
-
-      // Keep only the committed model in the scene
-      if (entry) {
-        for (let i = 0; i < carousel.cache.length; i++) {
-          const e = carousel.cache[i];
-          if (!e) continue;
-          e.root.visible = (i === commitIndex);
-          // Reset X/Z so the committed model is centered again
-          e.root.position.set(0, e.root.position.y, 0);
-        }
-
-        // Ensure the committed root is attached to the scene
-        if (!entry.root.parent) scene.add(entry.root);
-
-        // Update references to the active model + mixer
-        currentModel = entry.root;
-        window.character = entry.root;
-        currentMixer = entry.mixer || null;
-
-        // Persist the selection in your local state
-        window.currentCharacterIndex = commitIndex;
-
-        // Reframe camera for the committed model's height
-        frameCameraOnTargetHeight(camera, entry.targetHeight ?? 1.4, 1.4, 0.2);
-
-        // Return camera to its "home" slide position if defined
-        if (carousel.camHome) {
-          camera.position.x = carousel.camHome.x;
-          camera.position.y = carousel.camHome.y;
-          camera.position.z = carousel.camHome.z;
-          camera.lookAt(0, carousel.camHome.y, 0);
-        }
-      }
-
-      // Reset carousel state
+      
       carousel.mode = 'view';
-      carousel.mixers = [];          // only drive the committed model's mixer via currentMixer
-      carousel.dragOffset = 0;
-      carousel.animFrom = 0;
-      carousel.animTo = 0;
-      carousel.animT = 1;
-      carousel.isAnimating = false;
-
-      // Add inside exitCarousel(), near the end before hiding controls:
-      {
-        const L = scene.userData?.lights, LV = scene.userData?.lightLevels;
-        if (L && LV) {
-          L.hemi.intensity = LV.hemi;
-          L.key.intensity  = LV.key;
-          L.fill.intensity = LV.fill;
-          L.rim.intensity  = LV.rim;
-        }
-      }
-
-      // Hide any selector UI (if visible)
       window.hideCharacterControls();
     }
 
@@ -885,142 +644,50 @@
     sensitivity: 1.5
   };
 
-  function attachCarouselInput() {
-    if (carouselInput.active) return; // Prevent double attachment
-    
-    const dom = renderer.domElement;
-    carouselInput.active = true;
+    let simpleSwipe = { active: false, startX: 0, threshold: 50 };
 
-    function getX(e) {
-      return e.touches ? e.touches[0].clientX : e.clientX;
-    }
-
-    function onStart(e) {
-      if (carousel.isAnimating) return; // Ignore input during animation
+    function attachSimpleSwipeInput() {
+      if (simpleSwipe.active) return;
       
-      const x = getX(e);
-      carousel.dragging = true;
-      carouselInput.startX = x;
-      carouselInput.lastX = x;
-      carouselInput.startTime = performance.now();
-      carouselInput.velocity = 0;
+      const dom = renderer.domElement;
+      simpleSwipe.active = true;
       
-      // Stop any ongoing animation
-      carousel.animT = 1;
-      carousel.isAnimating = false;
-    }
-
-    function onMove(e) {
-      if (!carousel.dragging || carousel.isAnimating) return;
-      
-      const x = getX(e);
-      const deltaX = x - carouselInput.startX;
-      const currentTime = performance.now();
-      
-      carouselInput.velocity = (x - carouselInput.lastX) / Math.max(1, currentTime - (carouselInput.lastTime || currentTime));
-      carouselInput.lastX = x;
-      carouselInput.lastTime = currentTime;
-      
-      const screenWidth = window.innerWidth;
-      const rawOffset = -(deltaX / screenWidth) * carouselInput.sensitivity; // FIXED: Add negative sign
-      
-      carousel.dragOffset = rawOffset;
-      layoutCarousel(rawOffset);
-      
-      // DON'T update window.currentCharacterIndex or carousel.activeIndex here
-      // Let snapToIndex() handle the final character selection
-    }
-
-    function onEnd(e) {
-      if (!carousel.dragging) return;
-      
-      carousel.dragging = false;
-      const totalDelta = carouselInput.lastX - carouselInput.startX;
-      
-      let targetIndex = carousel.activeIndex;
-      
-      if (Math.abs(totalDelta) > carouselInput.thresholdPx || Math.abs(carouselInput.velocity) > 0.5) {
-        const direction = totalDelta > 0 ? 1 : -1; // FIXED: Remove inversion
-        targetIndex = carousel.activeIndex + direction;
+      function onStart(e) {
+        simpleSwipe.startX = e.touches ? e.touches[0].clientX : e.clientX;
       }
       
-      const maxIndex = (window.characterConfigs?.length || 1) - 1;
-      targetIndex = Math.max(0, Math.min(maxIndex, targetIndex));
+      function onEnd(e) {
+        const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+        const deltaX = endX - simpleSwipe.startX;
+        
+        if (Math.abs(deltaX) > simpleSwipe.threshold) {
+          if (deltaX > 0) {
+            window.previousCharacter(); // Swipe right = previous
+          } else {
+            window.nextCharacter(); // Swipe left = next
+          }
+        }
+      }
       
-      snapToIndex(targetIndex);
+      dom.addEventListener('touchstart', onStart);
+      dom.addEventListener('touchend', onEnd);
+      dom.addEventListener('mousedown', onStart);
+      dom.addEventListener('mouseup', onEnd);
+      
+      simpleSwipe.handlers = { onStart, onEnd, dom };
     }
 
-    // Attach events with proper cleanup
-    dom.addEventListener('mousedown', onStart, { passive: false });
-    dom.addEventListener('mousemove', onMove, { passive: false });
-    dom.addEventListener('mouseup', onEnd, { passive: false });
-    
-    dom.addEventListener('touchstart', onStart, { passive: false });
-    dom.addEventListener('touchmove', onMove, { passive: false });
-    dom.addEventListener('touchend', onEnd, { passive: false });
-    
-    // Store handlers for cleanup
-    carouselInput.handlers = { onStart, onMove, onEnd, dom };
-  }
-
-  function detachCarouselInput() {
-    if (!carouselInput.active || !carouselInput.handlers) return;
-    
-    const { onStart, onMove, onEnd, dom } = carouselInput.handlers;
-    
-    dom.removeEventListener('mousedown', onStart);
-    dom.removeEventListener('mousemove', onMove);
-    dom.removeEventListener('mouseup', onEnd);
-    
-    dom.removeEventListener('touchstart', onStart);
-    dom.removeEventListener('touchmove', onMove);
-    dom.removeEventListener('touchend', onEnd);
-    
-    carouselInput.active = false;
-    carouselInput.handlers = null;
-    carousel.dragging = false;
-  }
-
-    function snapToIndex(nextIndex) {
-      const n = (window.characterConfigs?.length || 1);
-      nextIndex = wrapIndex(nextIndex, n);
-
-      if (carousel.isAnimating) return;
+    function detachSimpleSwipeInput() {
+      if (!simpleSwipe.active || !simpleSwipe.handlers) return;
       
-      const currentOffset = carousel.dragOffset || 0;
-      const targetOffset = carousel.activeIndex - nextIndex;
+      const { onStart, onEnd, dom } = simpleSwipe.handlers;
+      dom.removeEventListener('touchstart', onStart);
+      dom.removeEventListener('touchend', onEnd);
+      dom.removeEventListener('mousedown', onStart);
+      dom.removeEventListener('mouseup', onEnd);
       
-      carousel.animFrom = currentOffset;
-      carousel.animTo = targetOffset;
-      carousel.animT = 0;
-      carousel.animDur = 400;
-      carousel.animStart = performance.now();
-      carousel.isAnimating = true;
-      carousel.pendingIndex = nextIndex;
-
-      // ENSURE BOTH ARE UPDATED TOGETHER
-      window.currentCharacterIndex = nextIndex;
-      carousel.activeIndex = nextIndex; // Add this line
-      window.updateCharacterInfo?.();
-    }
-
-
-  function nearestIndex() {
-    let idx = carousel.activeIndex, best = 1e9;
-    for (let i = 0; i < carousel.cache.length; i++) {
-      const x = carousel.cache[i]?.root.position.x ?? 0;
-      const d = Math.abs(x);
-      if (d < best) { best = d; idx = i; }
-    }
-    return THREE.MathUtils.clamp(idx, 0, (window.characterConfigs?.length || 1) - 1);
-  }
-    
-    function wrapIndex(i, n) { return ((i % n) + n) % n; }
-    
-    function ringDelta(a, b, n) {  // shortest signed steps from a → b
-      let d = ((b - a) % n + n) % n;
-      if (d > n / 2) d -= n;
-      return d;
+      simpleSwipe.active = false;
+      simpleSwipe.handlers = null;
     }
 
 
@@ -1085,13 +752,13 @@
     setFixedTitleWidth("Super Maramu 2000");
   }
 
-  function animate() {
-    requestAnimationFrame(animate);
-    tickAnimations();
-    updateCarouselTween();
-    renderer.render(scene, camera);
-  }
-
+    function animate() {
+      requestAnimationFrame(animate);
+      tickAnimations();
+      // Remove updateCarouselTween() call
+      renderer.render(scene, camera);
+    }
+    
     function onCanvasClick(e) {
       if (performance.now() < clickPreventUntil) return;  // Remove underscore
 
@@ -1259,9 +926,9 @@
   });
 
     window.addEventListener('keydown', (e) => {
-      if (carousel.mode !== 'carousel' || carousel.isAnimating) return;  // Add animation check
-      if (e.key === 'ArrowLeft')  snapToIndex(carousel.activeIndex - 1);
-      if (e.key === 'ArrowRight') snapToIndex(carousel.activeIndex + 1);
+      if (carousel.mode !== 'carousel') return;
+      if (e.key === 'ArrowLeft') window.previousCharacter();
+      if (e.key === 'ArrowRight') window.nextCharacter();
     });
     
   // ===== Mobile zoom suppression (unchanged) =====
