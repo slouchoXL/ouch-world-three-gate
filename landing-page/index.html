@@ -266,79 +266,16 @@
           (gltf) => {
             const root = gltf.scene || gltf.scenes?.[0];
             if (root) {
-              // Process the model but don't add to scene yet
-              const targetHeight = cfg.targetHeight ?? 1.8;
-              centerAndScaleToHeight(root, targetHeight);
-              if (cfg.scaleMul) root.scale.multiplyScalar(cfg.scaleMul);
-              
-              root.userData = root.userData || {};
-              if (cfg.y != null && !root.userData.yApplied) {
-                root.position.y += cfg.y;
-                root.userData.yApplied = true;
-              }
-              root.userData.baseY = root.position.y;
-              
-              // Setup materials and raycast
-              root.traverse((o) => {
-                if (!o.isMesh) return;
-                o.castShadow = true;
-                o.receiveShadow = true;
-                o.raycast = THREE.Mesh.prototype.raycast;
-                o.frustumCulled = false;
-                
-                const store = (m) => {
-                  if (!m) return;
-                  m.userData = m.userData || {};
-                  if ('emissive' in m && !m.userData._origEmissive) {
-                    m.userData._origEmissive = m.emissive.clone();
-                  }
-                };
-                if (Array.isArray(o.material)) {
-                  o.material.forEach(store);
-                } else {
-                  store(o.material);
-                }
-              });
-              
-              // Setup animations
-              let mixer = null;
-              if (gltf.animations && gltf.animations.length) {
-                mixer = new THREE.AnimationMixer(root);
-                const clips = gltf.animations;
-                const baseClip =
-                  THREE.AnimationClip.findByName(clips, 'Idle') ||
-                  THREE.AnimationClip.findByName(clips, 'idle') ||
-                  clips[0];
-
-                const trimStart = Math.max(0, cfg.trimStart ?? 1.5);
-                const trimEnd = Math.max(0, cfg.trimEnd ?? 2.0);
-                const minDur = 0.05;
-                const startSec = Math.min(trimStart, Math.max(0, baseClip.duration - minDur));
-                const endSec = Math.max(baseClip.duration - trimEnd, startSec + minDur);
-                const fps = 30;
-                const startFrame = Math.max(0, Math.floor(startSec * fps));
-                const endFrame = Math.max(startFrame + 1, Math.ceil(endSec * fps));
-                const sub = THREE.AnimationUtils.subclip(
-                  baseClip,
-                  (baseClip.name || 'clip') + '_trim',
-                  startFrame, endFrame, fps
-                );
-
-                const action = mixer.clipAction(sub);
-                action.setLoop(THREE.LoopPingPong, Infinity)
-                      .reset()
-                      .setEffectiveWeight(1)
-                      .play();
-                action.time = 1/60;
-                mixer.update(0);
-              }
-              
-              preloadedModels[index] = { root: root.clone(), mixer, cfg };
+              // DON'T process the model here - store the original unprocessed data
+              preloadedModels[index] = {
+                originalGLTF: gltf,  // Store original GLTF
+                cfg: cfg
+              };
             }
             resolve();
           },
           undefined,
-          () => resolve() // Continue even if one model fails
+          () => resolve()
         );
       });
     });
@@ -428,7 +365,7 @@
   window.createCharacter = function () {
     if (!window.scene) { console.error('Scene not ready'); return; }
 
-    // Remove current model
+    // Remove current model (same as before)
     if (window.character && window.character !== currentModel) {
       try { scene.remove(window.character); } catch {}
       try { disposeObject(window.character); } catch {}
@@ -445,15 +382,72 @@
     const idx = (window.currentCharacterIndex ?? 0) % (window.characterConfigs.length || 1);
     const preloaded = preloadedModels[idx];
     
-    if (preloaded) {
-      // Use preloaded model - instant switching!
-      const root = preloaded.root.clone();
+    if (preloaded && preloaded.originalGLTF) {
+      // Create a fresh instance from the original GLTF
+      const gltf = preloaded.originalGLTF;
+      const root = gltf.scene.clone();
       const cfg = preloaded.cfg;
       
-      // Create new mixer for this instance
-      if (preloaded.mixer && preloaded.action) {
+      // Re-apply all transformations to the clone
+      const targetHeight = cfg.targetHeight ?? 1.8;
+      centerAndScaleToHeight(root, targetHeight);
+      if (cfg.scaleMul) root.scale.multiplyScalar(cfg.scaleMul);
+      
+      root.userData = root.userData || {};
+      if (cfg.y != null && !root.userData.yApplied) {
+        root.position.y += cfg.y;
+        root.userData.yApplied = true;
+      }
+      root.userData.baseY = root.position.y;
+      
+      // Re-setup materials for the clone
+      root.traverse((o) => {
+        if (!o.isMesh) return;
+        o.castShadow = true;
+        o.receiveShadow = true;
+        o.raycast = THREE.Mesh.prototype.raycast;
+        o.frustumCulled = false;
+        
+        const store = (m) => {
+          if (!m) return;
+          m.userData = m.userData || {};
+          if ('emissive' in m && !m.userData._origEmissive) {
+            m.userData._origEmissive = m.emissive.clone();
+          }
+        };
+        if (Array.isArray(o.material)) {
+          o.material.forEach(store);
+        } else {
+          store(o.material);
+        }
+      });
+      
+      root.updateMatrixWorld(true);
+      
+      // Re-create animations for the clone
+      if (gltf.animations && gltf.animations.length) {
         currentMixer = new THREE.AnimationMixer(root);
-        const action = currentMixer.clipAction(preloaded.action.getClip());
+        const clips = gltf.animations;
+        const baseClip =
+          THREE.AnimationClip.findByName(clips, 'Idle') ||
+          THREE.AnimationClip.findByName(clips, 'idle') ||
+          clips[0];
+
+        const trimStart = Math.max(0, cfg.trimStart ?? 1.5);
+        const trimEnd = Math.max(0, cfg.trimEnd ?? 2.0);
+        const minDur = 0.05;
+        const startSec = Math.min(trimStart, Math.max(0, baseClip.duration - minDur));
+        const endSec = Math.max(baseClip.duration - trimEnd, startSec + minDur);
+        const fps = 30;
+        const startFrame = Math.max(0, Math.floor(startSec * fps));
+        const endFrame = Math.max(startFrame + 1, Math.ceil(endSec * fps));
+        const sub = THREE.AnimationUtils.subclip(
+          baseClip,
+          (baseClip.name || 'clip') + '_trim',
+          startFrame, endFrame, fps
+        );
+
+        const action = currentMixer.clipAction(sub);
         action.setLoop(THREE.LoopPingPong, Infinity)
               .reset()
               .setEffectiveWeight(1)
@@ -469,9 +463,10 @@
       currentModel = root;
       window.character = root;
 
-      frameCameraOnTargetHeight(camera, cfg.targetHeight ?? 1.4, 1.4, 0.2);
+      frameCameraOnTargetHeight(camera, targetHeight, 1.4, 0.2);
       window.updateCharacterInfo?.();
     } else {
+        
       // Fallback to original loading method
       const cfg = window.characterConfigs[idx];
       if (!cfg || !cfg.url) return;
