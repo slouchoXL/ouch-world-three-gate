@@ -372,8 +372,13 @@
 
           // Setup animations
           let mixer = null;
+          let originalGLTFAnimations = null;
           if (gltf.animations && gltf.animations.length) {
             mixer = new THREE.AnimationMixer(root);
+            
+            // Store original GLTF animations for cloning later
+            originalGLTFAnimations = gltf.animations;
+            
             const clips = gltf.animations;
             const baseClip =
               THREE.AnimationClip.findByName(clips, 'Idle') ||
@@ -401,13 +406,14 @@
           // Keep invisible until needed
           root.visible = false;
           
-          // Cache the processed model
+          // Cache the processed model with original animation data
           carousel.cache[index] = {
             root,
             mixer,
             targetHeight,
             config,
-            baseY: root.userData.baseY
+            baseY: root.userData.baseY,
+            originalAnimations: originalGLTFAnimations  // Store original animations for cloning
           };
 
           resolve();
@@ -464,21 +470,44 @@
     const cached = getCharacterFromCache(index);
     if (cached) {
       // Clone from cache for immediate display
-      const { root, mixer, targetHeight, config } = cached;
+      const { root, mixer, targetHeight, config, originalAnimations } = cached;
       
       // Clone the model (we need a new instance for the scene)
       const clonedRoot = root.clone();
       clonedRoot.visible = true;
       
-      // Setup cloned mixer if original had animations
+      // Properly setup animations for cloned model using original GLTF data
       let clonedMixer = null;
-      if (mixer) {
+      if (originalAnimations && originalAnimations.length > 0) {
         clonedMixer = new THREE.AnimationMixer(clonedRoot);
-        // Copy the animation setup from the original
-        const originalActions = mixer._actions;
-        if (originalActions.length > 0) {
-          const originalClip = originalActions[0]._clip;
-          const clonedAction = clonedMixer.clipAction(originalClip);
+        
+        // Find the base clip from original animations
+        const clips = originalAnimations;
+        const baseClip =
+          THREE.AnimationClip.findByName(clips, 'Idle') ||
+          THREE.AnimationClip.findByName(clips, 'idle') ||
+          clips[0];
+        
+        if (baseClip) {
+          // Apply the same trimming logic as the original
+          const trimStart = Math.max(0, config.trimStart ?? 1.5);
+          const trimEnd = Math.max(0, config.trimEnd ?? 2.0);
+          const minDur = 0.05;
+          const startSec = Math.min(trimStart, Math.max(0, baseClip.duration - minDur));
+          const endSec = Math.max(baseClip.duration - trimEnd, startSec + minDur);
+          const fps = 30;
+          const startFrame = Math.max(0, Math.floor(startSec * fps));
+          const endFrame = Math.max(startFrame + 1, Math.ceil(endSec * fps));
+          
+          // Create the trimmed clip for the cloned model
+          const clonedClip = THREE.AnimationUtils.subclip(
+            baseClip,
+            (baseClip.name || 'clip') + '_trim_clone_' + Date.now(),
+            startFrame, endFrame, fps
+          );
+          
+          // Create and setup the action
+          const clonedAction = clonedMixer.clipAction(clonedClip);
           clonedAction.setLoop(THREE.LoopPingPong, Infinity)
                      .reset()
                      .setEffectiveWeight(1)
@@ -496,7 +525,7 @@
       frameCameraOnTargetHeight(camera, targetHeight, 1.4, 0.2);
       window.updateCharacterInfo?.();
       
-      console.log(`📦 Loaded ${config.name} from cache (instant)`);
+      console.log(`📦 Loaded ${config.name} from cache with animations (instant)`);
       return;
     }
     
