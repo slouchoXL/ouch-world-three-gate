@@ -395,25 +395,30 @@
         root.userData.baseY = root.position.y; // used by carousel to avoid Y "jumps"
 
         // ✅ Make meshes raycast-friendly (do this BEFORE animations & adding to scene)
-        root.traverse(o => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-            o.raycast = THREE.Mesh.prototype.raycast; // force default triangle raycast
-            o.frustumCulled = false;     
-            const store = (m) => {
-                  if (!m) return;
-                  m.userData = m.userData || {};
-                  if ('emissive' in m && !m.userData._origEmissive) {
-                    m.userData._origEmissive = m.emissive.clone();
-                  }
-                };
-                if (Array.isArray(o.material)) o.material.forEach(store); else store(o.material);
-                 }
-            };
-            if (Array.isArray(o.material)) o.material.forEach(store); else store(o.material);// avoid “visible but not hittable” cases
+        // ✅ Make meshes raycast-friendly + cache original emissive (BEFORE animations & add to scene)
+        root.traverse((o) => {
+          if (!o.isMesh) return;
+
+          o.castShadow = true;
+          o.receiveShadow = true;
+          o.raycast = THREE.Mesh.prototype.raycast; // robust triangle raycast
+          o.frustumCulled = false;                  // avoid cull-related miss clicks
+
+          // Save original emissive so we can restore after hover/selection
+          const store = (m) => {
+            if (!m) return;
+            m.userData = m.userData || {};
+            if ('emissive' in m && !m.userData._origEmissive) {
+              m.userData._origEmissive = m.emissive.clone();
+            }
+          };
+          if (Array.isArray(o.material)) {
+            o.material.forEach(store);
+          } else {
+            store(o.material);
           }
         });
+
         // ✅ Ensure transforms are fresh for first-frame raycasts
         root.updateMatrixWorld(true);
 
