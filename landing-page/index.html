@@ -149,11 +149,11 @@
 
   <!-- Loading Indicator -->
   <div class="loading-indicator" id="loadingIndicator" style="display: none;">
-    <div>Loading Characters...</div>
+    <div>Entering OUCH™...</div>
     <div class="loading-progress">
       <div class="loading-bar" id="loadingBar"></div>
     </div>
-    <div id="loadingText">0/3</div>
+    <div id="loadingText">0/100%</div>
   </div>
 
   <!-- Top Navigation -->
@@ -1048,67 +1048,40 @@
   document.addEventListener('touchstart', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   document.addEventListener('touchmove', function (e) { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
   // Login form handler
-  document.addEventListener('DOMContentLoaded', function() {
-    const loginSubmit = document.getElementById('loginSubmit');
-    const loginEmail = document.getElementById('loginEmail');
+  
+  
+  
+  (function () {
+      const emailInput = document.getElementById('loginEmail');   // your modal email input
+      const loginBtn   = document.getElementById('loginSubmit');  // your modal button
 
-    if (loginSubmit) {
-      loginSubmit.addEventListener('click', async function(e) {
+      if (!emailInput || !loginBtn) return; // modal not on this page
+
+      function magicRedirect() {
+        const isInIframe = window !== window.top;
+        // Changed from /packs to /landing-page/
+        return isInIframe
+          ? 'https://ouchworld.netlify.app/landing-page/'
+          : `${location.origin}/landing-page/`;
+      }
+
+      loginBtn.addEventListener('click', async (e) => {
         e.preventDefault();
-        
-        const email = loginEmail.value.trim();
-        
-        if (!email) {
-          alert('Please enter your email address');
-          return;
-        }
+        const email = (emailInput.value || '').trim();
+        if (!email) return alert('Enter your email');
+        if (!window.supa?.auth) return alert('Auth not initialized');
 
-        if (!isValidEmail(email)) {
-          alert('Please enter a valid email address');
-          return;
-        }
+        loginBtn.disabled = true; const old = loginBtn.textContent; loginBtn.textContent = 'Sending…';
+        const { error } = await window.supa.auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo: magicRedirect() }
+        });
+        loginBtn.disabled = false; loginBtn.textContent = old;
 
-        try {
-          // Disable button and show loading state
-          loginSubmit.disabled = true;
-          loginSubmit.textContent = 'Sending...';
-
-          // Send magic link using Supabase
-          const { error } = await window.supa.auth.signInWithOtp({
-            email: email,
-            options: {
-              // Redirect URL after email confirmation
-              redirectTo: window.location.origin + window.location.pathname
-            }
-          });
-
-          if (error) {
-            throw error;
-          }
-
-          // Show success message
-          alert('Check your email for a login link!');
-          
-          // Optionally close the modal
-          closeLoginModal();
-
-        } catch (error) {
-          console.error('Login error:', error);
-          alert('Error sending login email: ' + error.message);
-        } finally {
-          // Re-enable button
-          loginSubmit.disabled = false;
-          loginSubmit.textContent = 'Create / Login';
-        }
+        if (error) alert(error.message);
+        else alert('Check your email for the magic link!');
       });
-    }
-  });
-
-  // Email validation helper function
-  function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
+  })();
 
 </script>
 
