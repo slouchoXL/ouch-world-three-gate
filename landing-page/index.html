@@ -240,8 +240,8 @@
   };
     
     // Carousel layout + tween parameters (safe at top-level)
-    carousel.radius     = 5;
-    carousel.anglePer   = Math.PI / 6;
+    carousel.radius     = 2;
+    carousel.anglePer   = Math.PI / 9;
     carousel.camHome    = null;        // set on first enterCarousel()
     carousel.dragOffset = 0;
     carousel.animFrom   = 0;
@@ -900,7 +900,7 @@
 
       if (Math.abs(dx) > thresholdPx) {
         const dir = Math.sign(dx);
-        snapToIndex(carousel.activeIndex + dir);
+        snapToIndex(carousel.activeIndex - dir);
         _clickPreventUntil = performance.now() + 250; // avoid accidental click-through
       } else {
         // light snap back
