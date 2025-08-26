@@ -264,8 +264,8 @@
 
   window.characterConfigs = [
     { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, y: 0.02, scaleMul: 0.6, trimStart: 1.5, trimEnd: 2.0 },
-    { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     targetHeight: 1.4, y: -0.08, scaleMul: 0.6, trimStart: 0.12, trimEnd: 0.10 },
-    { name: "Super Maramu 2000", status: "Unlocked", url: "/assets/models/maramu.glb", targetHeight: 1.4, y: -0.3, scaleMul: 0.55, trimStart: 0.12, trimEnd: 0.10 }
+    { name: "Ras",     status: "Unlocked", url: "/assets/models/ras.glb",     targetHeight: 1.4, y: 0.02, scaleMul: 0.6, trimStart: 0.12, trimEnd: 0.10 },
+    { name: "Super Maramu 2000", status: "Unlocked", url: "/assets/models/maramu.glb", targetHeight: 1.4, y: 0.02, scaleMul: 0.5, trimStart: 0.12, trimEnd: 0.10 }
   ];
 
   function centerAndScaleToHeight(root, targetHeight = 1.8) {
@@ -400,7 +400,18 @@
             o.castShadow = true;
             o.receiveShadow = true;
             o.raycast = THREE.Mesh.prototype.raycast; // force default triangle raycast
-            o.frustumCulled = false;                  // avoid “visible but not hittable” cases
+            o.frustumCulled = false;     
+            const store = (m) => {
+                  if (!m) return;
+                  m.userData = m.userData || {};
+                  if ('emissive' in m && !m.userData._origEmissive) {
+                    m.userData._origEmissive = m.emissive.clone();
+                  }
+                };
+                if (Array.isArray(o.material)) o.material.forEach(store); else store(o.material);
+                 }
+            };
+            if (Array.isArray(o.material)) o.material.forEach(store); else store(o.material);// avoid “visible but not hittable” cases
           }
         });
         // ✅ Ensure transforms are fresh for first-frame raycasts
@@ -499,11 +510,11 @@
         ? carousel.camHome.z + (1 - Math.cos(-offsetInItems * anglePer)) * (rad * 0.12)
         : camera.position.z;
 
-      camera.position.x = THREE.MathUtils.lerp(camera.position.x, camSlide, 0.1);
+      camera.position.x = THREE.MathUtils.lerp(camera.position.x, camSlide, 0.08);
       if (carousel.camHome) {
-        camera.position.y = THREE.MathUtils.lerp(camera.position.y, carousel.camHome.y, 0.1);
+        camera.position.y = THREE.MathUtils.lerp(camera.position.y, carousel.camHome.y, 0.08);
       }
-      camera.position.z = THREE.MathUtils.lerp(camera.position.z, camDepth, 0.1);
+      camera.position.z = THREE.MathUtils.lerp(camera.position.z, camDepth, 0.08);
       const lookY = carousel.camHome ? carousel.camHome.y : 0;
      camera.lookAt(0, lookY, 0);
     }
@@ -517,7 +528,8 @@
         const now = performance.now();
         const t = Math.min(1, (now - carousel.animStart) / carousel.animDur);
         // smoothstep-ish ease
-        const u = t * t * (3 - 2 * t);
+        const u = t < 0.5
+            ? 16 * t * t * t * t * t: 1 - Math.pow(-2 * t + 2, 5) / 2;
         const off = THREE.MathUtils.lerp(carousel.animFrom, carousel.animTo, u);
         layoutCarousel(off);
         carousel.animT = t;
@@ -659,10 +671,18 @@
         e.root.traverse(o => {
           if (o.isMesh && o.material) {
             if (Array.isArray(o.material)) {
-              o.material.forEach(m => { m.transparent = false; m.opacity = 1; });
+                o.material.forEach(m => {
+                            m.transparent = false; m.opacity = 1;
+                            if ('emissive' in m && m.userData && m.userData._origEmissive) {
+                              m.emissive.copy(m.userData._origEmissive);
+                            }
+                          });
             } else {
               o.material.transparent = false;
               o.material.opacity = 1;
+              if ('emissive' in o.material && o.material.userData && o.material.userData._origEmissive) {
+                          o.material.emissive.copy(o.material.userData._origEmissive);
+                    }
             }
           }
         });
@@ -776,7 +796,15 @@
                 o.castShadow = true;
                 o.receiveShadow = true;
                 o.raycast = THREE.Mesh.prototype.raycast; // robust raycast
-                o.frustumCulled = false;                  // avoid cull-related miss clicks
+                o.frustumCulled = false;     
+                const store = (m) => {
+                    if (!m) return;
+                      m.userData = m.userData || {};
+                      if ('emissive' in m && !m.userData._origEmissive) {
+                        m.userData._origEmissive = m.emissive.clone();
+                      }
+                    };
+                    if (Array.isArray(o.material)) o.material.forEach(store); else store(o.material);// avoid cull-related miss clicks
               }
             });
 
@@ -840,12 +868,14 @@
     const dom = renderer.domElement;
     const W = () => window.innerWidth;
     const thresholdPx = 50;
+    carousel.dragSign = 1; // +1 desktop/mouse, -1 touch/mobile
 
     _downHandler = (e) => {
       const x = (e.touches ? e.touches[0].clientX : e.clientX);
       carousel.dragging = true;
       carousel.startX = x;
       carousel.dx = 0;
+      carousel.dragSign = e.touches ? -1 : 1;
     };
 
     _moveHandler = (e) => {
@@ -855,8 +885,7 @@
 
       // Map pixels → "items" for consistent feel across sizes
       const itemsPerScreen = 1.5; // increase for more sensitivity
-      const offset = (carousel.dx / W()) * itemsPerScreen;
-
+      const offset = (carousel.dx / W()) * itemsPerScreen * (carousel.dragSign || 1);
       setGroupOffset(offset);
     };
 
@@ -866,7 +895,7 @@
       carousel.dragging = false;
 
       if (Math.abs(dx) > thresholdPx) {
-        const dir = Math.sign(dx);
+          const dir = Math.sign(dx * (carousel.dragSign || 1));
         snapToIndex(carousel.activeIndex - dir);
         _clickPreventUntil = performance.now() + 250; // avoid accidental click-through
       } else {
@@ -969,7 +998,7 @@
       carousel.animFrom  = carousel.dragOffset || 0;
       carousel.animTo    = carousel.animFrom + deltaItems;
       carousel.animT     = 0;
-      carousel.animDur   = 300;
+      carousel.animDur   = 500;
       carousel.animStart = performance.now();
 
       // Defer committing the new center until the tween completes
@@ -1154,10 +1183,16 @@
     } else {
       if (hoverLight) { hoverLight.parent?.remove(hoverLight); hoverLight = null; }
       window.character.traverse(obj => {
-        if (obj.isMesh && obj.material && 'emissive' in obj.material) {
-          obj.material.emissive.setHex(0x000000);
-        }
-      });
+           if (!obj.isMesh || !obj.material) return;
+           const restore = (m) => {
+             if (!m) return;
+             if ('emissive' in m) {
+               const orig = m.userData && m.userData._origEmissive;
+               if (orig) m.emissive.copy(orig);
+             }
+           };
+           if (Array.isArray(obj.material)) obj.material.forEach(restore); else restore(obj.material);
+         });
     }
   }
 
