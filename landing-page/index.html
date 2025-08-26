@@ -240,8 +240,8 @@
   };
     
     // Carousel layout + tween parameters (safe at top-level)
-    carousel.radius     = 2;
-    carousel.anglePer   = Math.PI / 9;
+    carousel.radius     = 2.8;
+    carousel.anglePer   = Math.PI / 13;
     carousel.camHome    = null;        // set on first enterCarousel()
     carousel.dragOffset = 0;
     carousel.animFrom   = 0;
@@ -249,6 +249,9 @@
     carousel.animT      = 1;
     carousel.animDur    = 300;
     carousel.animStart  = 0;
+    carousel.orbitMode = true;       // turn on camera-orbit mode
+    carousel.camTheta  = 0;          // camera angle in "items"
+
 
 
   // expose for other code
@@ -471,82 +474,54 @@
 
     function layoutCarousel(offsetInItems) {
       if (!carousel.group) return;
-      const n = carousel.cache.length;
 
-      const rel = (i, active) => {
-        let d = ((i - active) % n + n) % n; // 0..n-1
-        if (d > n / 2) d -= n;              // (-n/2 .. n/2]
-        return d;
-      };
+      const n        = carousel.cache.length;
+      const anglePer = carousel.anglePer ?? (Math.PI / 13);
+      const rad      = carousel.radius ?? 2.8;
 
+      // Fallback: if orbitMode is off, call your old arc layout and return.
+      if (!carousel.orbitMode) {
+        // oldArcLayout(offsetInItems); // <- if you had one
+        return;
+      }
+
+      // Camera angle for the current centre + live drag (in "items")
+      const camTheta = (carousel.activeIndex - offsetInItems) * anglePer;
+      carousel.camTheta = camTheta;
+
+      // Place models at fixed world angles so left/right feel "fixed"
       for (let i = 0; i < n; i++) {
-        const entry = carousel.cache[i]; if (!entry) continue;
-        const baseY = entry.baseY ?? 0;
+        const e = carousel.cache[i];
+        if (!e || !e.root) continue;
 
-        // k = wrapped slot index from center, including drag offset
-        const k   = rel(i, carousel.activeIndex) - offsetInItems;
-        const ang = k * (carousel.anglePer ?? (Math.PI / 10));
+        const th = e.theta;                     // fixed angle stored in loadEntry()
+        const x  = Math.sin(th) * rad;
+        const z  = -(1 - Math.cos(th)) * (rad * 0.9);
 
-        const x = Math.sin(ang) * (carousel.radius ?? 1.8);
-        const z = -(1 - Math.cos(ang)) * ((carousel.radius ?? 1.8) * 0.9);
+        // IMPORTANT: use the stored baseY so no vertical pop
+        const baseY = (typeof e.baseY === 'number') ? e.baseY : 0;
+        e.root.position.set(x, baseY, z);
+        e.root.rotation.y = -th * 0.6;
 
-        entry.root.position.set(x, baseY, z);
-        entry.root.rotation.y = -ang * 0.6;
-
-        // ✅ DIMMING — keep this INSIDE the loop so k/entry are in scope
-        // Put the centered item on layer 1 so only it gets hit by the point light
-        const isCenter = Math.abs(k) < 0.5;  // halfway-to-next slot threshold
-        if (isCenter) {
-          entry.root.layers.enable(1);
-        } else {
-          entry.root.layers.disable(1);
-        }
-
+        // Is this entry centered relative to the camera?
+        const d = Math.atan2(Math.sin(th - camTheta), Math.cos(th - camTheta)); // normalize [-π, π]
+        const isCenter = Math.abs(d) < anglePer * 0.5;
+        if (isCenter) e.root.layers.enable(1); else e.root.layers.disable(1);
       }
 
+      // Put camera on a circle at its saved "home" radius
+      // (ensure you set carousel.camHome once when entering the carousel)
+      const camHome = carousel.camHome || { x: 0, y: camera.position.y, z: camera.position.z };
+      const camR    = Math.hypot(camHome.x, camHome.z) || camHome.z || 3.5;
 
-      // Camera parallax, always looking near center
-      const anglePer = carousel.anglePer ?? (Math.PI / 10);
-      const rad = carousel.radius ?? 1.8;
-      const camSlide = Math.sin(-offsetInItems * anglePer) * 0.5;
-      const camDepth = carousel.camHome
-        ? carousel.camHome.z + (1 - Math.cos(-offsetInItems * anglePer)) * (rad * 0.12)
-        : camera.position.z;
+      camera.position.x = Math.sin(camTheta) * camR;
+      camera.position.z = Math.cos(camTheta) * camR;
+      camera.position.y = camHome.y;
 
-      camera.position.x = THREE.MathUtils.lerp(camera.position.x, camSlide, 0.1);
-      if (carousel.camHome) {
-        camera.position.y = THREE.MathUtils.lerp(camera.position.y, carousel.camHome.y, 0.1);
-      }
-      camera.position.z = THREE.MathUtils.lerp(camera.position.z, camDepth, 0.1);
-      camera.lookAt(0, (carousel.camHome?.y || 0) * 0.6, 0);
+      // Keep vertical anchor identical to view mode to avoid perceived Y jump
+      camera.lookAt(0, (camHome.y || 0), 0);   // <-- no "* 0.6"
     }
 
-
-    // Drive easing each frame (call from your animate loop)
-    function updateCarouselTween() {
-      if (carousel.mode !== 'carousel') return;
-      // active easing?
-      if (carousel.animT < 1) {
-        const now = performance.now();
-        const t = Math.min(1, (now - carousel.animStart) / carousel.animDur);
-        // smoothstep-ish ease
-        const u = t * t * (3 - 2 * t);
-        const off = THREE.MathUtils.lerp(carousel.animFrom, carousel.animTo, u);
-        layoutCarousel(off);
-        carousel.animT = t;
-        if (t === 1) {
-          carousel.dragOffset = 0;         // finished
-          if (typeof carousel.pendingIndex === 'number') {
-            carousel.activeIndex = carousel.pendingIndex;  // now commit the center
-            carousel.pendingIndex = null;
-          }
-        }
-
-      } else {
-        // while dragging, continuously lay out
-        layoutCarousel(carousel.dragOffset || 0);
-      }
-    }
 
   // ===== Carousel implementation =====
   function enterCarousel() {
@@ -582,13 +557,23 @@
     // Preload all entries, then build the carousel
     preloadAll().then(() => {
       // Reuse current single-model instance for the active slot to avoid any Y jump
+      // Reuse current single-model instance for the active slot AND lock its live Y
       if (currentModel && carousel.cache[carousel.activeIndex]) {
         try {
           const e = carousel.cache[carousel.activeIndex];
           if (e.root && e.root !== currentModel) { disposeObject(e.root); }
-          e.root = currentModel; e.mixer = currentMixer || e.mixer; e.baseY = currentModel.userData?.baseY ?? currentModel.position.y;
+
+          e.root  = currentModel;
+          e.mixer = currentMixer || e.mixer;
+
+          // CRITICAL: capture the on-screen Y from view mode and treat it as baseY
+          const liveY = currentModel.position.y;
+          currentModel.userData = currentModel.userData || {};
+          currentModel.userData.baseY = liveY;
+          e.baseY = liveY;
         } catch {}
       }
+
       // Remove single root; we’ll show via the group
       if (currentModel) scene.remove(currentModel);
 
@@ -627,7 +612,10 @@
         entry.root.visible = true;
 
         // Reset to a clean pose so arc layout starts from known state
-        entry.root.position.set(0, entry.baseY ?? entry.root.position.y, 0);
+        if (i === carousel.activeIndex) {
+          entry.baseY = entry.root.userData?.baseY ?? entry.root.position.y;
+        }
+        entry.root.position.set(0, entry.baseY, 0);
         entry.root.rotation.set(0, 0, 0);
 
         carousel.group.add(entry.root);
@@ -719,14 +707,14 @@
         window.currentCharacterIndex = commitIndex;
 
         // Reframe camera for the committed model's height
-        frameCameraOnTargetHeight(camera, entry.targetHeight ?? 1.4, 1.4, 0.2);
+        frameCameraOnTargetHeight(camera, entry.targetHeight ?? 1.4, 0.2);
 
         // Return camera to its "home" slide position if defined
         if (carousel.camHome) {
           camera.position.x = carousel.camHome.x;
           camera.position.y = carousel.camHome.y;
           camera.position.z = carousel.camHome.z;
-          camera.lookAt(0, carousel.camHome.y * 0.6, 0);
+          camera.lookAt(0, (carousel.camHome?.y || 0), 0);
         }
       }
 
@@ -846,8 +834,11 @@
             root.visible = false; // only shown in carousel or when committed
 
             // Store baseY on the cache entry so layout uses a stable Y
+         
             const baseY = root.userData.baseY;
-            carousel.cache[index] = { root, mixer, targetHeight, cfg, baseY };
+            const theta  = index * (carousel.anglePer ?? (Math.PI / 13)); // fixed world angle for this character
+            carousel.cache[index] = { root, mixer, targetHeight, cfg, baseY, theta };
+
 
             resolve();
           },
@@ -886,10 +877,9 @@
       const x = (e.touches ? e.touches[0].clientX : e.clientX);
       carousel.dx = x - carousel.startX;
 
-      // Map pixels → "items" for consistent feel across sizes
-      const itemsPerScreen = 1.5; // increase for more sensitivity
-      const offset = (carousel.dx / W()) * itemsPerScreen;
-
+      // Map pixels → items. Negative sign makes right→left advance (Sloucho → Ras).
+      const itemsPerScreen = 1.0; // 1 screen width ≈ 1 item
+      const offset = -(carousel.dx / W()) * itemsPerScreen;
       setGroupOffset(offset);
     };
 
@@ -900,7 +890,7 @@
 
       if (Math.abs(dx) > thresholdPx) {
         const dir = Math.sign(dx);
-        snapToIndex(carousel.activeIndex - dir);
+        snapToIndex(carousel.activeIndex + dir);
         _clickPreventUntil = performance.now() + 250; // avoid accidental click-through
       } else {
         // light snap back
@@ -938,35 +928,11 @@
   }
 
     function setGroupOffset(offsetInItems) {
-      carousel.dragOffset = offsetInItems;
-      layoutCarousel(offsetInItems);
-
-      const n = (window.characterConfigs?.length || 1);
-      const nearest = Math.round(carousel.activeIndex - offsetInItems);
-      const wrapped = wrapIndex(nearest, n);
-
-      if (wrapped !== window.currentCharacterIndex) {
-        window.currentCharacterIndex = wrapped;   // updates the label
-        carousel.activeIndex = wrapped;           // updates the model selection
-        layoutCarousel(offsetInItems);            // re-layout so the model switches now
-        window.updateCharacterInfo?.();           // refresh any UI text
-      }
+      // Limit live drag so you never get past ~halfway to the next slot
+      const clamped = THREE.MathUtils.clamp(offsetInItems, -0.48, 0.48);
+      carousel.dragOffset = clamped;
+      layoutCarousel(clamped);   // just lay out — do NOT change indices while dragging
     }
-
-    function onSwipeEnd() {
-      if (carousel.mode !== 'carousel') return;
-      if (!carousel.dragging) return;
-      const n = (window.characterConfigs?.length || 1);
-      const nearest = Math.round(carousel.activeIndex - (carousel.dragOffset || 0));
-      const wrapped = wrapIndex(nearest, n);
-      snapToIndex(wrapped);          // animate to final resting spot (shortest arc)
-      carousel.dragOffset = 0;    
-      carousel.dragging = false; // clear live drag
-    }
-
-    // Attach once, wherever you wire up input:
-    window.addEventListener('pointerup', onSwipeEnd);
-    window.addEventListener('touchend', onSwipeEnd);
 
 
 
@@ -991,24 +957,20 @@
 
     function snapToIndex(nextIndex) {
       const n = (window.characterConfigs?.length || 1);
+      if (carousel.animT < 1) return; // ignore re-entrant snaps
       nextIndex = wrapIndex(nextIndex, n);
-
-      // If we’re already animating, ignore this snap to prevent double-hops
-      if (carousel.animT < 1) return;
 
       const from = carousel.activeIndex;
       const deltaItems = ringDelta(from, nextIndex, n) - (carousel.dragOffset || 0);
 
       carousel.animFrom  = carousel.dragOffset || 0;
-      carousel.animTo    = carousel.animFrom + deltaItems;
+      carousel.animTo    = carousel.animFrom + Math.sign(deltaItems) * Math.min(1, Math.abs(deltaItems)); // <= 1 step
       carousel.animT     = 0;
       carousel.animDur   = 300;
       carousel.animStart = performance.now();
 
-      // Defer committing the new center until the tween completes
       carousel.pendingIndex = nextIndex;
 
-      // UI can update the name immediately (optional)
       window.currentCharacterIndex = nextIndex;
       window.updateCharacterInfo?.();
     }
