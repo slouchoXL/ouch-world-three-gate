@@ -479,15 +479,15 @@
         entry.root.position.set(x, baseY, z);
         entry.root.rotation.y = -ang * 0.6;
 
-        // ✅ DIMMING — keep this INSIDE the loop so k/entry are in scope
-        // Put the centered item on layer 1 so only it gets hit by the point light
-        const isCenter = Math.abs(k) < 0.5;  // halfway-to-next slot threshold
+       
+     const isCenter = Math.abs(k) <= 0.499; // halfway-to-next slot threshold
         if (isCenter) {
           entry.root.layers.enable(1);
         } else {
           entry.root.layers.disable(1);
         }
-
+        // NEW: hide everything except the centered/active slot
+        entry.root.visible = isCenter;
       }
 
 
@@ -504,7 +504,8 @@
         camera.position.y = THREE.MathUtils.lerp(camera.position.y, carousel.camHome.y, 0.1);
       }
       camera.position.z = THREE.MathUtils.lerp(camera.position.z, camDepth, 0.1);
-      camera.lookAt(0, (carousel.camHome?.y || 0) * 0.6, 0);
+      const lookY = carousel.camHome ? carousel.camHome.y : 0;
+     camera.lookAt(0, lookY, 0);
     }
 
 
@@ -602,7 +603,7 @@
         const entry = carousel.cache[i];
         if (!entry) continue;
 
-        entry.root.visible = true;
+        entry.root.visible = false;
 
         // Reset to a clean pose so arc layout starts from known state
         entry.root.position.set(0, entry.baseY ?? entry.root.position.y, 0);
@@ -704,7 +705,7 @@
           camera.position.x = carousel.camHome.x;
           camera.position.y = carousel.camHome.y;
           camera.position.z = carousel.camHome.z;
-          camera.lookAt(0, carousel.camHome.y * 0.6, 0);
+          camera.lookAt(0, carousel.camHome.y, 0);
         }
       }
 
