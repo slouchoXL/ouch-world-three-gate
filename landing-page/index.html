@@ -1047,6 +1047,68 @@
   document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
   document.addEventListener('touchstart', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   document.addEventListener('touchmove', function (e) { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
+  // Login form handler
+  document.addEventListener('DOMContentLoaded', function() {
+    const loginSubmit = document.getElementById('loginSubmit');
+    const loginEmail = document.getElementById('loginEmail');
+
+    if (loginSubmit) {
+      loginSubmit.addEventListener('click', async function(e) {
+        e.preventDefault();
+        
+        const email = loginEmail.value.trim();
+        
+        if (!email) {
+          alert('Please enter your email address');
+          return;
+        }
+
+        if (!isValidEmail(email)) {
+          alert('Please enter a valid email address');
+          return;
+        }
+
+        try {
+          // Disable button and show loading state
+          loginSubmit.disabled = true;
+          loginSubmit.textContent = 'Sending...';
+
+          // Send magic link using Supabase
+          const { error } = await window.supa.auth.signInWithOtp({
+            email: email,
+            options: {
+              // Redirect URL after email confirmation
+              redirectTo: window.location.origin + window.location.pathname
+            }
+          });
+
+          if (error) {
+            throw error;
+          }
+
+          // Show success message
+          alert('Check your email for a login link!');
+          
+          // Optionally close the modal
+          closeLoginModal();
+
+        } catch (error) {
+          console.error('Login error:', error);
+          alert('Error sending login email: ' + error.message);
+        } finally {
+          // Re-enable button
+          loginSubmit.disabled = false;
+          loginSubmit.textContent = 'Create / Login';
+        }
+      });
+    }
+  });
+
+  // Email validation helper function
+  function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
 
 </script>
 
