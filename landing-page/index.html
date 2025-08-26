@@ -465,6 +465,10 @@
       if (!carousel.group) return;
       const n = carousel.cache.length;
 
+      // Debug logging to identify sync issues
+      console.log('Active index:', carousel.activeIndex, 'Current char:', window.currentCharacterIndex);
+      console.log('Offset in items:', offsetInItems);
+
       const rel = (i, active) => {
         let d = ((i - active) % n + n) % n; // 0..n-1
         if (d > n / 2) d -= n;              // (-n/2 .. n/2]
@@ -472,11 +476,12 @@
       };
 
       for (let i = 0; i < n; i++) {
-        const entry = carousel.cache[i]; if (!entry) continue;
+        const entry = carousel.cache[i];
+        if (!entry) continue;
         const baseY = entry.baseY ?? 0;
 
         // k = wrapped slot index from center, including drag offset
-        const k   = rel(i, carousel.activeIndex) - offsetInItems;
+        const k = rel(i, carousel.activeIndex) - offsetInItems;
         const ang = k * (carousel.anglePer ?? (Math.PI / 10));
 
         const x = Math.sin(ang) * (carousel.radius ?? 1.8);
@@ -485,19 +490,19 @@
         entry.root.position.set(x, baseY, z);
         entry.root.rotation.y = -ang * 0.6;
 
-       
-     const isCenter = Math.abs(k) <= 0.499; // halfway-to-next slot threshold
+        const isCenter = Math.abs(k) <= 0.499; // halfway-to-next slot threshold
         if (isCenter) {
           entry.root.layers.enable(1);
         } else {
           entry.root.layers.disable(1);
         }
-        // NEW: hide everything except the centered/active slot
         entry.root.visible = isCenter;
+
+        // Debug each model's state
+        console.log(`Cache[${i}] (${entry.cfg.name}): k=${k.toFixed(2)}, isCenter=${isCenter}, visible=${entry.root.visible}`);
       }
 
-
-      // Camera parallax, always looking near center
+      // Camera parallax code remains the same
       const anglePer = carousel.anglePer ?? (Math.PI / 10);
       const rad = carousel.radius ?? 1.8;
       const camSlide = Math.sin(-offsetInItems * anglePer) * 0.5;
@@ -511,7 +516,7 @@
       }
       camera.position.z = THREE.MathUtils.lerp(camera.position.z, camDepth, 0.08);
       const lookY = carousel.camHome ? carousel.camHome.y : 0;
-     camera.lookAt(0, lookY, 0);
+      camera.lookAt(0, lookY, 0);
     }
 
 
@@ -976,28 +981,28 @@
     carousel.dragging = false;
   }
 
-  function snapToIndex(nextIndex) {
-    const n = (window.characterConfigs?.length || 1);
-    nextIndex = wrapIndex(nextIndex, n);
+    function snapToIndex(nextIndex) {
+      const n = (window.characterConfigs?.length || 1);
+      nextIndex = wrapIndex(nextIndex, n);
 
-    // Prevent overlapping animations
-    if (carousel.isAnimating) return;
-    
-    const currentOffset = carousel.dragOffset || 0;
-    const targetOffset = carousel.activeIndex - nextIndex;
-    
-    carousel.animFrom = currentOffset;
-    carousel.animTo = targetOffset;
-    carousel.animT = 0;
-    carousel.animDur = 400; // Slightly longer for smoother feel
-    carousel.animStart = performance.now();
-    carousel.isAnimating = true;
-    carousel.pendingIndex = nextIndex;
+      if (carousel.isAnimating) return;
+      
+      const currentOffset = carousel.dragOffset || 0;
+      const targetOffset = carousel.activeIndex - nextIndex;
+      
+      carousel.animFrom = currentOffset;
+      carousel.animTo = targetOffset;
+      carousel.animT = 0;
+      carousel.animDur = 400;
+      carousel.animStart = performance.now();
+      carousel.isAnimating = true;
+      carousel.pendingIndex = nextIndex;
 
-    // Update UI immediately for responsiveness
-    window.currentCharacterIndex = nextIndex;
-    window.updateCharacterInfo?.();
-  }
+      // ENSURE BOTH ARE UPDATED TOGETHER
+      window.currentCharacterIndex = nextIndex;
+      carousel.activeIndex = nextIndex; // Add this line
+      window.updateCharacterInfo?.();
+    }
 
 
   function nearestIndex() {
