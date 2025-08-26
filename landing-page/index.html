@@ -417,59 +417,67 @@
   function loadFromCache(index, cached) {
     const { gltfData, config, targetHeight } = cached;
     
-    // Get fresh scene from GLTF data (not cloned!)
+    // Use the original scene directly - don't clone!
     const root = gltfData.scene || gltfData.scenes?.[0];
     if (!root) {
       console.error('No scene in cached GLTF data');
       return;
     }
 
-    // Process the model exactly like direct loading
-    const processedRoot = root.clone(); // Fresh clone of the GLTF scene
-    
-    // Center and scale
-    centerAndScaleToHeight(processedRoot, targetHeight);
-    if (config.scaleMul) processedRoot.scale.multiplyScalar(config.scaleMul);
-
-    // Apply Y offset
-    processedRoot.userData = processedRoot.userData || {};
-    if (config.y != null && !processedRoot.userData.yApplied) {
-      processedRoot.position.y += config.y;
-      processedRoot.userData.yApplied = true;
+    // Remove from any previous parent first
+    if (root.parent) {
+      root.parent.remove(root);
     }
-    processedRoot.userData.baseY = processedRoot.position.y;
-    processedRoot.userData.fromCache = true;
-    
-    // Setup mesh properties
-    processedRoot.traverse(obj => {
-      if (obj.isMesh) {
-        obj.castShadow = true;
-        obj.receiveShadow = true;
-        obj.raycast = THREE.Mesh.prototype.raycast;
-        obj.frustumCulled = false;
-        
-        const storeMaterial = (material) => {
-          if (!material) return;
-          material.userData = material.userData || {};
-          if ('emissive' in material && !material.userData._origEmissive) {
-            material.userData._origEmissive = material.emissive.clone();
-          }
-        };
-        
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach(storeMaterial);
-        } else {
-          storeMaterial(obj.material);
-        }
-      }
-    });
 
-    processedRoot.updateMatrixWorld(true);
+    // Only process if not already processed
+    if (!root.userData.processed) {
+      // Center and scale
+      centerAndScaleToHeight(root, targetHeight);
+      if (config.scaleMul) root.scale.multiplyScalar(config.scaleMul);
+
+      // Apply Y offset
+      root.userData = root.userData || {};
+      if (config.y != null && !root.userData.yApplied) {
+        root.position.y += config.y;
+        root.userData.yApplied = true;
+      }
+      root.userData.baseY = root.position.y;
+      
+      // Setup mesh properties
+      root.traverse(obj => {
+        if (obj.isMesh) {
+          obj.castShadow = true;
+          obj.receiveShadow = true;
+          obj.raycast = THREE.Mesh.prototype.raycast;
+          obj.frustumCulled = false;
+          
+          const storeMaterial = (material) => {
+            if (!material) return;
+            material.userData = material.userData || {};
+            if ('emissive' in material && !material.userData._origEmissive) {
+              material.userData._origEmissive = material.emissive.clone();
+            }
+          };
+          
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach(storeMaterial);
+          } else {
+            storeMaterial(obj.material);
+          }
+        }
+      });
+
+      root.updateMatrixWorld(true);
+      root.userData.processed = true;
+    }
+
+    root.userData.fromCache = true;
+    root.visible = true;
     
     // Create fresh animation mixer using original GLTF animations
     let freshMixer = null;
     if (gltfData.animations && gltfData.animations.length) {
-      freshMixer = new THREE.AnimationMixer(processedRoot);
+      freshMixer = new THREE.AnimationMixer(root);
       
       const clips = gltfData.animations;
       const baseClip = THREE.AnimationClip.findByName(clips, 'Idle') ||
@@ -487,10 +495,10 @@
         const startFrame = Math.max(0, Math.floor(startSec * fps));
         const endFrame = Math.max(startFrame + 1, Math.ceil(endSec * fps));
         
-        // Create trimmed clip
+        // Create trimmed clip with unique name
         const trimmedClip = THREE.AnimationUtils.subclip(
           baseClip,
-          `${baseClip.name}_cached_${index}_${Date.now()}`,
+          `${baseClip.name}_${index}_${Date.now()}`,
           startFrame, endFrame, fps
         );
         
@@ -503,21 +511,21 @@
         action.time = 1/60;
         freshMixer.update(0);
         
-        console.log(`Animation created for ${config.name}: playing=${action.isRunning()}, weight=${action.getEffectiveWeight()}`);
+        console.log(`Animation created for ${config.name}: running=${action.isRunning()}, weight=${action.getEffectiveWeight()}`);
       }
     }
     
     // Add to scene and update references
-    scene.add(processedRoot);
-    currentModel = processedRoot;
+    scene.add(root);
+    currentModel = root;
     currentMixer = freshMixer;
-    window.character = processedRoot;
+    window.character = root;
     
     // Update camera framing
     frameCameraOnTargetHeight(camera, targetHeight, 1.4, 0.2);
     window.updateCharacterInfo();
     
-    console.log(`${config.name} loaded from cache with fresh animations`);
+    console.log(`${config.name} loaded from cache with preserved skeleton`);
   }
 
   // Original character loading method (fallback)
