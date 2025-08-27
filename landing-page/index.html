@@ -217,7 +217,7 @@
       @media (max-width: 600px) {
       .item-action-bar {
           position: fixed;
-          bottom: max(12px, env(safe-area-inset-bottom) + 12px); /* stay above home bar */
+          bottom: max(20px, env(safe-area-inset-bottom) + 12px); /* stay above home bar */
           left: 50%;
           transform: translateX(-50%);
           display: flex;
@@ -227,7 +227,7 @@
       }
       
       @media (max-width: 600px) {
-      .character-controls { position: fixed; left: 50%; bottom: 15vh; transform: translateX(-50%); z-index: 250; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+      .character-controls { position: fixed; left: 50%; bottom: 12vh; transform: translateX(-50%); z-index: 250; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
       .character-controls.show { opacity: 1; pointer-events: auto; }
       .modal-close {
           position: absolute;
