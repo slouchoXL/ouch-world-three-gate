@@ -1178,6 +1178,27 @@
           font-size: 20px;
           line-height: 1;
         }
+        /* Make sections in the left column act as scroll containers
+           ONLY when they are direct children (i.e., when no .inventory-content wrapper is used) */
+        .inventory-panel > .section {
+          flex: 1;
+          min-height: 0;
+          overflow: auto;                                /* allow scrolling */
+          padding-bottom: var(--section-safe-bottom, 12px); /* small default gap */
+          -ms-overflow-style: none;                      /* hide scrollbar chrome (IE/Edge legacy) */
+          scrollbar-width: none;                         /* Firefox */
+        }
+        .inventory-panel > .section::-webkit-scrollbar { /* Chrome/Safari */
+          width: 0 !important;
+          height: 0 !important;
+        }
+
+        /* When bottom nav can overlap (mobile/tablet), reserve safe space so last tiles aren't cut off */
+        @media (max-width: 1024px) {
+          .inventory-panel > .section {
+            --section-safe-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+          }
+        }
 
 
     
