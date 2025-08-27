@@ -770,37 +770,29 @@
         input, textarea, select { font-size: 16px; }
         button, a, .menu-button, .login-button, .nav-item, .nav-tab { touch-action: manipulation; }
 
-        /* Mobile layout */
-        /* Mobile layout */
+      
         /* Mobile layout */
         @media (max-width: 480px) {
           .main-container {
             grid-template-columns: 1fr;
             grid-template-rows: 45vh 55vh;   /* 3D ~45%, inventory ~55% */
-            height: 100vh;
+            height: 100dvh;
             overflow: hidden;
           }
           
-          .viewport-panel {
-            order: -1;
-            height: 45vh;                    /* no max-height override */
+          .viewport-panel   { order: -1; height: 45dvh; }
+            .viewport-container{ height: 100%; }
+            .inventory-panel  {
+              padding: 12px 12px 0 12px;
+              height: 55dvh;
+              overflow: hidden;
+              background: #0a0a0a;
+              border-right: none;
+              border-top: 1px solid #1a1a1a;
+            }
+            .desktop-nav { display: none; }
+            .bottom-nav  { display: block; }
           }
-          
-          .viewport-container {
-            height: 100%;
-          }
-          
-          .inventory-panel {
-            padding: 12px 12px 0 12px;       /* remove fixed 80px bottom padding */
-            height: 55vh;                    /* no conflicting max-height */
-            overflow: hidden;
-            background: #0a0a0a;
-            border-right: none;
-            border-top: 1px solid #1a1a1a;
-          }
-          
-          .desktop-nav { display: none; }
-          .bottom-nav  { display: block; }
 
           .collection-section {
             display: grid;
@@ -823,29 +815,22 @@
         @media (max-width: 1024px) and (min-width: 481px) {
           .main-container {
             grid-template-columns: 1fr;
-            grid-template-rows: 50vh 50vh;
-            height: 100vh;
+            grid-template-rows: 50dvh 50dvh;
+            height: 100dvh;
           }
           
-          .viewport-panel {
-            order: -1;
-            height: 50vh;                    /* remove max-height */
+          .viewport-panel   { order: -1; height: 50dvh; }
+            .viewport-container{ height: 100%; }
+            .inventory-panel  {
+              padding: 20px 20px 0 20px;
+              height: 50dvh;
+              overflow: hidden;
+              border-right: none;
+              border-top: 1px solid #1a1a1a;
+            }
+            .desktop-nav { display: none; }
+            .bottom-nav  { display: block; }
           }
-          
-          .viewport-container {
-            height: 100%;
-          }
-          
-          .inventory-panel {
-            padding: 20px 20px 0 20px;       /* remove fixed 80px bottom padding */
-            height: 50vh;                    /* remove max-height */
-            overflow: hidden;
-            border-right: none;
-            border-top: 1px solid #1a1a1a;
-          }
-          
-          .desktop-nav { display: none; }
-          .bottom-nav  { display: block; }
 
           .characters-grid, .unreleased-grid {
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -870,6 +855,32 @@
           .inventory-content {
             /* tweak value if your bottom nav is taller/shorter; env() covers iOS safe area */
             padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+          }
+        }
+
+        :root { --bottom-nav-h: 64px; }  /* default; JS below will measure real height */
+
+        /* Unified scroller rules (Characters included) */
+        .inventory-content,
+        .inventory-panel > .section {
+          flex: 1;
+          min-height: 0;
+          overflow: auto;
+          -ms-overflow-style: none;   /* IE/Edge legacy */
+          scrollbar-width: none;      /* Firefox */
+          padding-bottom: var(--section-safe-bottom, 12px);
+        }
+        .inventory-content::-webkit-scrollbar,
+        .inventory-panel > .section::-webkit-scrollbar {
+          width: 0 !important;
+          height: 0 !important;       /* Chrome/Safari */
+        }
+
+        /* On mobile/tablet, reserve space for bottom nav + iOS safe area */
+        @media (max-width: 1024px) {
+          .inventory-content,
+          .inventory-panel > .section {
+            --section-safe-bottom: calc(var(--bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + 16px);
           }
         }
 
@@ -2529,7 +2540,27 @@
           });
         })();
 
+        (function setBottomNavHeightVar(){
+          const root = document.documentElement;
+          const bn = document.querySelector('.bottom-nav');
+          if (!bn) return;
 
+          function update() {
+            const h = Math.ceil(bn.getBoundingClientRect().height || 64);
+            root.style.setProperty('--bottom-nav-h', h + 'px');
+          }
+
+          // Update on load, resize, orientation, and when the nav resizes
+          window.addEventListener('load', update);
+          window.addEventListener('resize', update);
+          window.addEventListener('orientationchange', update);
+          try {
+            new ResizeObserver(update).observe(bn);
+          } catch(_) { /* older browsers */ }
+
+          update();
+        })();
+        
     </script>
 
 </body>
