@@ -817,12 +817,7 @@
           .menu-tray { top: 55px; left: 15px; }
         }
 
-        @media (max-width: 1024px) {
-          .album-sheet .sheet-body {
-            /* ~64–80px for the nav + safe area if present (tweak if your nav is taller/shorter) */
-            --sheet-safe-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-          }
-        }
+       
         
         /* Tablet responsive */
         @media (max-width: 1024px) and (min-width: 481px) {
@@ -901,6 +896,12 @@
 @media (max-width: 1024px) and (min-width: 481px) {
   .desktop-nav { display: none; }
 }
+        
+        @media (max-width: 1024px) {
+          .album-sheet .sheet-body {
+            --sheet-safe-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+          }
+        }
 
         /* === Collapsible album cards === */
         .collection-card .collection-header {
@@ -1049,7 +1050,8 @@
         .album-sheet {
           pointer-events: auto;               /* keep */
           width: 100%;                        /* ⬅️ fill the content box after overlay paddings */
-          height: calc(100vh - var(--album-pad-top, 24px) - 24px);
+          height: calc(100dvh - var(--album-pad-top, 24px) - 24px); /* ⬅️ key change */
+           max-height: calc(100dvh - var(--album-pad-top, 24px) - 24px); /* belt & braces */
           background: #0b0b0b;
           border: 1px solid #1a1a1a;
           border-radius: 14px;
