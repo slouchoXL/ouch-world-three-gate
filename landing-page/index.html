@@ -990,20 +990,27 @@
   }
 
   // ===== UI bits =====
-  function toggleMenu() { document.getElementById('menuTray').classList.toggle('open'); }
-  function handleLogin() { document.getElementById('loginModal').classList.add('show'); }
-  function closeLoginModal() { document.getElementById('loginModal').classList.remove('show'); }
+  function toggleMenu() { document.getElementById('menuTray').classList.toggle('open');
+      
+  }
+    function handleLogin() { document.getElementById('loginModal').classList.add('show');
+    }
+  
+  function closeLoginModal() { document.getElementById('loginModal').classList.remove('show');
+  }
+  
   function switchTab(tab) {
     const tabs = document.querySelectorAll('.modal-tab');
     const loginForm = document.getElementById('loginForm');
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
     const signupForm = document.getElementById('signupForm');
+    
     tabs.forEach(t => t.classList.remove('active'));
     if (tab === 'login') { tabs[0].classList.add('active'); loginForm.style.display = 'block'; signupForm.style.display = 'none'; }
     else { tabs[1].classList.add('active'); loginForm.style.display = 'none'; signupForm.style.display = 'block'; }
   }
-});
+                               }
 
   document.addEventListener('click', function(e) {
     const tray = document.getElementById('menuTray');
