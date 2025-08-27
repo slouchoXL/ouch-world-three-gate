@@ -989,112 +989,112 @@
     const info = document.querySelector('.character-info'); if (info) { void getComputedStyle(info).width; }
   }
 
-  // ===== UI bits =====
-  function toggleMenu() { document.getElementById('menuTray').classList.toggle('open');
-      
-  }
-    function handleLogin() { document.getElementById('loginModal').classList.add('show');
+    // ===== UI bits =====
+    function toggleMenu() { document.getElementById('menuTray').classList.toggle('open');
+        
     }
-  
-  function closeLoginModal() { document.getElementById('loginModal').classList.remove('show');
-  }
-  
-  function switchTab(tab) {
-    const tabs = document.querySelectorAll('.modal-tab');
-    const loginForm = document.getElementById('loginForm');
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-    const signupForm = document.getElementById('signupForm');
-    
-    tabs.forEach(t => t.classList.remove('active'));
-    if (tab === 'login') { tabs[0].classList.add('active'); loginForm.style.display = 'block'; signupForm.style.display = 'none'; }
-    else { tabs[1].classList.add('active'); loginForm.style.display = 'none'; signupForm.style.display = 'block'; }
-  }
-                               }
-
-  document.addEventListener('click', function(e) {
-    const tray = document.getElementById('menuTray');
-    const btn = document.querySelector('.menu-button');
-    if (tray && !tray.contains(e.target) && !btn.contains(e.target)) tray.classList.remove('open');
-  });
-  document.getElementById('loginModal').addEventListener('click', function(e) { if (e.target === this) closeLoginModal(); });
-
-  // ===== Start =====
-  window.addEventListener('load', async () => {
-    if (typeof THREE === 'undefined') { console.error('Three.js not loaded'); return; }
-    initLoaders();
-    initThreeJS();
-    
-    // Start preloading in background while showing first character
-    createCharacter();
-    animate();
-    
-    // Preload all characters after initial load
-    setTimeout(() => {
-      preloadAllCharacters().then(() => {
-        console.log('🚀 All characters ready for instant switching!');
-      });
-    }, 1000); // Small delay to let initial character load first
-    
-    document.getElementById('prevArrow')?.addEventListener('click', window.previousCharacter);
-    document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
-  });
-
-  window.addEventListener('keydown', (e) => {
-    if (carousel.mode !== 'carousel') return;
-    if (e.key === 'ArrowLeft') window.previousCharacter();
-    if (e.key === 'ArrowRight') window.nextCharacter();
-  });
-
-  // ===== Mobile zoom suppression =====
-  (function () {
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', function (e) {
-      const now = Date.now();
-      if (now - lastTouchEnd <= 300) e.preventDefault();
-      lastTouchEnd = now;
-    }, { passive: false });
-  })();
-  document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
-  document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
-  document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
-  document.addEventListener('touchstart', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
-  document.addEventListener('touchmove', function (e) { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
-  // Login form handler
-  
-  
-  
-  (function () {
-      const emailInput = document.getElementById('loginEmail');   // your modal email input
-      const loginBtn   = document.getElementById('loginSubmit');  // your modal button
-
-      if (!emailInput || !loginBtn) return; // modal not on this page
-
-      function magicRedirect() {
-        const isInIframe = window !== window.top;
-        // Changed from /packs to /landing-page/
-        return isInIframe
-          ? 'https://ouchworld.netlify.app/landing-page/'
-          : `${location.origin}/landing-page/`;
+      function handleLogin() { document.getElementById('loginModal').classList.add('show');
       }
 
-      loginBtn.addEventListener('click', async (e) => {
+    function closeLoginModal() { document.getElementById('loginModal').classList.remove('show');
+    }
+
+    function switchTab(tab) {
+      const tabs = document.querySelectorAll('.modal-tab');
+      const loginForm = document.getElementById('loginForm');
+      loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = (emailInput.value || '').trim();
-        if (!email) return alert('Enter your email');
-        if (!window.supa?.auth) return alert('Auth not initialized');
+        const signupForm = document.getElementById('signupForm');
+        
+        tabs.forEach(t => t.classList.remove('active'));
+        if (tab === 'login') { tabs[0].classList.add('active'); loginForm.style.display = 'block'; signupForm.style.display = 'none'; }
+        else { tabs[1].classList.add('active'); loginForm.style.display = 'none'; signupForm.style.display = 'block'; }
+      }); // <-- fixed closing here
+    }
 
-        loginBtn.disabled = true; const old = loginBtn.textContent; loginBtn.textContent = 'Sending…';
-        const { error } = await window.supa.auth.signInWithOtp({
-          email,
-          options: { emailRedirectTo: magicRedirect() }
+    document.addEventListener('click', function(e) {
+      const tray = document.getElementById('menuTray');
+      const btn = document.querySelector('.menu-button');
+      if (tray && !tray.contains(e.target) && !btn.contains(e.target)) tray.classList.remove('open');
+    });
+    document.getElementById('loginModal').addEventListener('click', function(e) { if (e.target === this) closeLoginModal(); });
+
+    // ===== Start =====
+    window.addEventListener('load', async () => {
+      if (typeof THREE === 'undefined') { console.error('Three.js not loaded'); return; }
+      initLoaders();
+      initThreeJS();
+      
+      // Start preloading in background while showing first character
+      createCharacter();
+      animate();
+      
+      // Preload all characters after initial load
+      setTimeout(() => {
+        preloadAllCharacters().then(() => {
+          console.log('🚀 All characters ready for instant switching!');
         });
-        loginBtn.disabled = false; loginBtn.textContent = old;
+      }, 1000); // Small delay to let initial character load first
+      
+      document.getElementById('prevArrow')?.addEventListener('click', window.previousCharacter);
+      document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
+    });
 
-        if (error) alert(error.message);
-        else alert('Check your email for the magic link!');
-      });
-  })();
+    window.addEventListener('keydown', (e) => {
+      if (carousel.mode !== 'carousel') return;
+      if (e.key === 'ArrowLeft') window.previousCharacter();
+      if (e.key === 'ArrowRight') window.nextCharacter();
+    });
+
+    // ===== Mobile zoom suppression =====
+    (function () {
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function (e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) e.preventDefault();
+        lastTouchEnd = now;
+      }, { passive: false });
+    })();
+    document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+    document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
+    document.addEventListener('touchstart', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+    document.addEventListener('touchmove', function (e) { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
+    // Login form handler
+
+
+
+    (function () {
+        const emailInput = document.getElementById('loginEmail');   // your modal email input
+        const loginBtn   = document.getElementById('loginSubmit');  // your modal button
+
+        if (!emailInput || !loginBtn) return; // modal not on this page
+
+        function magicRedirect() {
+          const isInIframe = window !== window.top;
+          // Changed from /packs to /landing-page/
+          return isInIframe
+            ? 'https://ouchworld.netlify.app/landing-page/'
+            : `${location.origin}/landing-page/`;
+        }
+
+        loginBtn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const email = (emailInput.value || '').trim();
+          if (!email) return alert('Enter your email');
+          if (!window.supa?.auth) return alert('Auth not initialized');
+
+          loginBtn.disabled = true; const old = loginBtn.textContent; loginBtn.textContent = 'Sending…';
+          const { error } = await window.supa.auth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: magicRedirect() }
+          });
+          loginBtn.disabled = false; loginBtn.textContent = old;
+
+          if (error) alert(error.message);
+          else alert('Check your email for the magic link!');
+        });
+    })();
 
 </script>
 
