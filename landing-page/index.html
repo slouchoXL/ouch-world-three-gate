@@ -51,7 +51,8 @@
       height: 100%;
       overflow: hidden;
       font-family: Arial, sans-serif;
-      background: #000; color: #fff;
+      background: #000;
+      color: #fff;
       touch-action: none;
       -ms-touch-action: none;
     }
@@ -944,7 +945,7 @@
   // ===== Three.js Setup =====
   function initThreeJS() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
+    scene.background = new THREE.Color(0x00B140);
     window.scene = scene;
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
