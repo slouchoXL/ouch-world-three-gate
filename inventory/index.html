@@ -247,27 +247,6 @@
             color: #fff;
         }
 
-        .modal-close {
-            position: absolute;
-            top: 8px;
-            right: 15px;
-            background: none;
-            border: none;
-            color: rgba(255,255,255,0.6);
-            font-size: 24px;
-            cursor: pointer;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all .2s ease;
-        }
-
-        .modal-close:hover {
-            color: #fff;
-        }
 
         .modal-tabs {
             display: flex;
@@ -497,25 +476,6 @@
             justify-content: flex-start;
         }
 
-        .play-btn {
-            background: #ffffff;
-            color: #0a0a0a;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .play-btn:hover {
-            background: #f0f0f0;
-            transform: scale(1.05);
-        }
 
         .characters-grid {
             display: grid;
@@ -1023,30 +983,52 @@
             grid-template-columns: 1fr;
         }
 
-        .album-close {
-            background: transparent;
-            border: 1px solid #2a2a2a;
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 8px;
+        /*     .album-close, .modal-close, .popup-close {
+            width: 30px;
+            height: 30px;
+            background-color: rgba(0, 0, 0, 0.8);  Change from background: to background-color:
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color .2s ease;  Remove background from transition
+            backdrop-filter: blur(10px);
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 400;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEgMUwxMSAxMSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTEgMUwxIDExIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 12px 12px;
         }
 
-        .album-close:hover {
-            background: #151515;
+        .modal-close:hover, .album-close:hover, .popup-close:hover {
+            border-color: rgba(255, 255, 255, 0.45);
+           No background changes at all - just the brighter border
+        }
+        */
+        
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
         }
 
+        .popup-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        
         .item-action-bar {
             position: absolute;
-            bottom: 12px;
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 12px;
-            background: rgba(0,0,0,0.7);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 6px 12px;
+            gap: 8px;
             z-index: 1500;
         }
 
@@ -1054,35 +1036,22 @@
             display: none;
         }
 
-        .item-action-bar button {
-            cursor: pointer;
-            border: none;
-            outline: none;
-            font-size: 14px;
-            padding: 6px 10px;
-            border-radius: 6px;
-            background: #1a1a1a;
-            color: #fff;
-            transition: background 0.2s;
-        }
-
-        .item-action-bar button:hover {
-            background: #333;
-        }
-
-        .read-more-popup {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(15,15,15,0.95);
-            border: 1px solid #222;
-            border-radius: 12px;
-            padding: 20px;
-            width: 320px;
-            max-width: 90%;
-            z-index: 2000;
-        }
+  
+  .read-more-popup {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.9);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 16px;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      z-index: 2000;
+      color: #fff;
+  }
 
         .read-more-popup.hidden {
             display: none;
@@ -1106,15 +1075,7 @@
             margin: 0;
         }
 
-        .popup-close {
-            align-self: flex-end;
-            cursor: pointer;
-            background: transparent;
-            border: none;
-            color: #fff;
-            font-size: 20px;
-            line-height: 1;
-        }
+
 
         .inventory-panel, .viewport-panel, .viewport-container {
             min-width: 0;
@@ -1199,7 +1160,90 @@
                 left: 15px;
             }
         }
+        
+        .circular-btn {
+            width: 30px;
+            height: 30px;
+            background-color: rgba(0, 0, 0, 0.8); /* Change from background: to background-color: */
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color .2s ease; /* Remove background from transition */
+            backdrop-filter: blur(10px);
+            touch-action: manipulation;
+            color: #ffffff;
+            font-size: 0;
+            text-indent: -9999px;
+            /* Add the SVG background-image: */
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEgMUwxMSAxMSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTEgMUwxIDExIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 12px 12px;
+        }
 
+        .circular-btn:hover {
+            border-color: rgba(255, 255, 255, 0.45);
+        }
+
+        /* Action bar specific sizing */
+        .item-action-bar .circular-btn {
+            width: 36px;
+            height: 36px;
+            
+        }
+
+        /* Play button icon styling */
+        .play-btn {
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIgMUwxMCA2TDIgMTFWMVoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 12px 12px;
+        }
+
+        .playing .play-btn {
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3QgeD0iMiIgeT0iMiIgd2lkdGg9IjIiIGhlaWdodD0iOCIgZmlsbD0id2hpdGUiLz4KPHJlY3QgeD0iOCIgeT0iMiIgd2lkdGg9IjIiIGhlaWdodD0iOCIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==');
+        }
+
+        .read-more-btn {
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTkgM1Y5SDMiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik05IDE1VjlIMTUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 16px 16px;
+        }
+
+
+        /* Mobile positioning adjustments */
+        @media (max-width: 1024px) {
+            .item-action-bar {
+                bottom: 10px;
+            }
+        }
+
+        /* Hide progress bars in overlays */
+        .album-sheet .sheet-body .collection-progress,
+        .album-sheet .sheet-header .sheet-progress,
+        .album-overlay .collection-progress {
+            display: none !important;
+        }
+
+        /* Fix unreleased card text width */
+        .unreleased-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #ffffff;
+            padding-right: 0;
+            word-wrap: break-word;
+            hyphens: auto;
+            line-height: 1.4;
+        }
+
+        .rarity-tag {
+            display: none;
+        }
         @media (max-width: 1024px) and (min-width: 481px) {
             .main-container {
                 grid-template-columns: 1fr;
@@ -1339,11 +1383,11 @@
                                     <div class="item-completion complete">5/5</div>
                                 </div>
                                 <div class="stems-row">
-                                    <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'shape-vocals')">V</div>
-                                    <div class="stem-slot collected" title="Guitar" onclick="view3DItem('stem', 'shape-guitar')">G</div>
-                                    <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'shape-bass')">B</div>
-                                    <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'shape-drums')">D</div>
-                                    <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'shape-effects')">E</div>
+                                    <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
+                                    <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
+                                    <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
+                                    <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
+                                    <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
                                 </div>
                             </div>
 
@@ -1353,11 +1397,11 @@
                                     <div class="item-completion">3/5</div>
                                 </div>
                                 <div class="stems-row">
-                                    <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'perfect-vocals')">V</div>
-                                    <div class="stem-slot collected" title="Guitar" onclick="view3DItem('stem', 'perfect-guitar')">G</div>
-                                    <div class="stem-slot empty" title="Piano">P</div>
-                                    <div class="stem-slot collected" title="Strings" onclick="view3DItem('stem', 'perfect-strings')">S</div>
-                                    <div class="stem-slot empty" title="Drums">D</div>
+                                    <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
+                                    <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
+                                    <div class="stem-slot empty" title="Music" onclick="view3DItem('stem', 'music')">M</div>
+                                    <div class="stem-slot empty" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
+                                    <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
                                 </div>
                             </div>
                         </div>
@@ -1367,7 +1411,7 @@
     <div class="collection-header">
         <div class="collection-info">
             <h3>NPC</h3>
-            <p>Sloucho • 9 Songs</p>
+            <p>9 Songs</p>
         </div>
         <div class="collection-progress">
             <div class="progress-bar">
@@ -1380,123 +1424,123 @@
         <div class="item-card">
         <div class="item-header">
             <div class="item-title">Mind Traveller</div>
-            <div class="item-completion">0/5</div>
+            <div class="item-completion">4/5</div>
         </div>
         <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
+            <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
+            <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
+            <div class="stem-slot empty" title="Music" onclick="view3DItem('stem', 'music')">M</div>
+            <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
+            <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
     </div>
     </div>
 <div class="item-card">
         <div class="item-header">
             <div class="item-title">Mutant</div>
-            <div class="item-completion">0/5</div>
+            <div class="item-completion">2/5</div>
         </div>
         <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
+            <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
+            <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
+            <div class="stem-slot empty" title="Music" onclick="view3DItem('stem', 'music')">M</div>
+            <div class="stem-slot empty" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
+            <div class="stem-slot empty" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
     </div>
     </div>
 <div class="item-card">
         <div class="item-header">
             <div class="item-title">Come Around</div>
-            <div class="item-completion">0/5</div>
+            <div class="item-completion">4/5</div>
         </div>
         <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
+            <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
+            <div class="stem-slot empty" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
+            <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
+            <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
+            <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
     </div>
     </div>
 <div class="item-card">
         <div class="item-header">
             <div class="item-title">Brand New</div>
-            <div class="item-completion">0/5</div>
+            <div class="item-completion">4/5</div>
         </div>
         <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
+            <div class="stem-slot empty" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
+            <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
+            <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
+            <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
+            <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
     </div>
     </div>
 <div class="item-card">
         <div class="item-header">
             <div class="item-title">Super Maramu 2000</div>
-            <div class="item-completion">0/5</div>
+            <div class="item-completion">3/5</div>
         </div>
         <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
+            <div class="stem-slot empty" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
+            <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
+            <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
+            <div class="stem-slot empty" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
+            <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
     </div>
     </div>
 <div class="item-card">
         <div class="item-header">
             <div class="item-title">Make it Work</div>
-            <div class="item-completion">0/5</div>
+            <div class="item-completion">4/5</div>
         </div>
         <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
+            <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
+            <div class="stem-slot empty" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
+            <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
+            <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
+            <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
     </div>
     </div>
 <div class="item-card">
         <div class="item-header">
             <div class="item-title">Two Thousands</div>
-            <div class="item-completion">0/5</div>
+            <div class="item-completion">4/5</div>
         </div>
         <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
+            <div class="stem-slot empty" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
+            <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
+            <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
+            <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
+            <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
     </div>
     </div>
 <div class="item-card">
         <div class="item-header">
             <div class="item-title"> Rocks</div>
-            <div class="item-completion">0/5</div>
+            <div class="item-completion">1/5</div>
         </div>
         <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
+            <div class="stem-slot empty" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
+            <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
+            <div class="stem-slot empty" title="Music" onclick="view3DItem('stem', 'music')">M</div>
+            <div class="stem-slot empty" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
+            <div class="stem-slot empty" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
     </div>
     </div>
 <div class="item-card">
         <div class="item-header">
             <div class="item-title">Lights On (ft. Yamagōchi)</div>
-            <div class="item-completion">0/5</div>
+            <div class="item-completion">3/5</div>
         </div>
         <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
+            <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
+            <div class="stem-slot empty" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
+            <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
+            <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
+            <div class="stem-slot empty" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
     </div>
     </div>
     </div>
     <div class="unlock-progress">
-        Collect all stems for the 9 NPC tracks to unlock the <strong>NPC EP</strong> bonus.
+        Collect all stems for the 9 NPC tracks to unlock the <strong>SILVER SLOUCHO</strong> Character.
     </div>
 </div>
 
@@ -1601,8 +1645,8 @@
 
             <!-- Item Action Bar -->
             <div id="itemActionBar" class="item-action-bar hidden">
-              <button id="playBtn" class="play-btn" aria-label="Play/Pause"></button>
-              <button id="readMoreBtn" class="read-more-btn">Read More</button>
+              <button id="playBtn" class="circular-btn play-btn" aria-label="Play/Pause"></button>
+              <button id="readMoreBtn" class="circular-btn read-more-btn" aria-label="Read More"></button>
             </div>
 
             <!-- Viewport Controls (top-right buttons, if you re-enable them) -->
@@ -1616,7 +1660,7 @@
             <!-- Read More Popup -->
             <div id="readMorePopup" class="read-more-popup hidden" aria-hidden="true">
               <div class="popup-content">
-                <button class="popup-close" id="popupCloseBtn" aria-label="Close">×</button>
+                <button class="popup-close circular-btn" id="popupCloseBtn" aria-label="Close"></button>
                 <h3 id="popupTitle"></h3>
                 <p id="popupText"></p>
               </div>
@@ -1658,7 +1702,7 @@
     <!-- Login Modal -->
     <div class="modal-overlay" id="loginModal">
         <div class="login-modal">
-            <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+            <button class="modal-close circular-btn" onclick="closeLoginModal()"></button>
             <div class="modal-tabs">
                 <button class="modal-tab active" onclick="switchTab('login')">Account</button>
             </div>
@@ -1686,7 +1730,7 @@
               <span class="progress-text" id="albumSheetPct">0%</span>
             </div>
           </div>
-          <button class="album-close" id="albumCloseBtn" type="button">Close</button>
+          <button class="album-close circular-btn" id="albumCloseBtn" type="button"></button>
         </div>
         <div class="sheet-body" id="albumSheetBody"><!-- injected --></div>
       </div>
@@ -1706,7 +1750,7 @@
               <span class="progress-text" id="fragmentSheetPct">0%</span>
             </div>
           </div>
-          <button class="album-close" id="fragmentCloseBtn" type="button">Close</button>
+          <button class="album-close circular-btn" id="fragmentCloseBtn" type="button"></button>
         </div>
         <div class="sheet-body" id="fragmentSheetBody"><!-- injected --></div>
       </div>
@@ -2158,7 +2202,8 @@
             
             simulateAudioPlayback();
             
-            document.getElementById('playBtn').innerHTML = '⏸';
+            // Use class toggle instead of innerHTML
+            document.body.classList.add('playing');
         }
 
         function stopAudio() {
@@ -2167,9 +2212,10 @@
                 currentAudio = null;
             }
             
-            document.getElementById('playBtn').innerHTML = '▶';
+            // Use class toggle instead of innerHTML
+            document.body.classList.remove('playing');
         }
-
+        
         function simulateAudioPlayback() {
             let progress = 0;
             const duration = 30;
