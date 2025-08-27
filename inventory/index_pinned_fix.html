@@ -919,278 +919,6 @@
   .desktop-nav { display: none; }
 }
 
-        /* === Collapsible album cards === */
-        .collection-card .collection-header {
-          cursor: pointer;
-          user-select: none;
-        }
-
-        .collection-card .items-grid,
-        .collection-card .unlock-progress {
-          overflow-y: auto;            /* keep scrolling */
-          -ms-overflow-style: none;    /* hide scrollbar in IE/Edge legacy */
-          scrollbar-width: none;       /* hide scrollbar in Firefox */
-          max-height: 9999px;          /* expanded */
-          opacity: 1;
-          transition: max-height .35s ease, opacity .25s ease, margin .25s ease, padding .25s ease;
-        }
-
-        /* Hide scrollbar for Chrome, Safari, Opera */
-        .collection-card .items-grid::-webkit-scrollbar,
-        .collection-card .unlock-progress::-webkit-scrollbar {
-          width: 0 !important;
-          height: 0 !important;
-        }
-
-
-        .collection-card.collapsed .items-grid,
-        .collection-card.collapsed .unlock-progress {
-          max-height: 0;                     /* collapsed */
-          opacity: 0;
-          margin-top: 0 !important;
-          padding-top: 0 !important;
-          padding-bottom: 0 !important;
-        }
-
-        .collection-header .collapse-toggle {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 26px;
-          height: 26px;
-          border-radius: 50%;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.12);
-          color: #fff;
-          font-size: 12px;
-          line-height: 1;
-          transition: transform .2s ease, background .2s ease, border-color .2s ease;
-        }
-
-        .collection-header .collapse-toggle:hover {
-          background: rgba(255,255,255,0.12);
-          border-color: rgba(255,255,255,0.2);
-        }
-
-        .collection-card.collapsed .collapse-toggle {
-          transform: rotate(-90deg);
-        }
-        /* === STEMS → tile grid + overlay === */
-        #stems .collection-section {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-          gap: 16px;
-        }
-
-        #stems .collection-card {
-          padding: 16px;
-          cursor: pointer;
-          transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
-        }
-        #stems .collection-card:hover {
-          transform: translateY(-2px);
-          border-color: #333333;
-          box-shadow: 0 8px 24px rgba(0,0,0,.25);
-        }
-
-        /* Hide heavy content in tiles; shown inside overlay instead */
-        #stems .collection-card .items-grid,
-        #stems .collection-card .unlock-progress {
-          display: none !important;
-        }
-
-        /* Compact header text in tiles */
-        #stems .collection-card .collection-header { margin-bottom: 0; align-items: center; }
-        #stems .collection-card .collection-info h3 { font-size: 16px; }
-        #stems .collection-card .collection-info p  { font-size: 12px; color:#9a9a9a; }
-        #stems .collection-card .progress-bar { width: 72px; }
-
-        /* === FRAGMENTS → tile grid + sub-page === */
-        /* === FRAGMENTS → tile grid styled like Albums === */
-        #fragments .collection-section {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-          gap: 16px;
-        }
-
-        #fragments .collection-card {
-          padding: 16px;
-          cursor: pointer;
-          transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
-        }
-        #fragments .collection-card:hover {
-          transform: translateY(-2px);
-          border-color: #333333;
-          box-shadow: 0 8px 24px rgba(0,0,0,.25);
-        }
-
-        /* Hide heavy content; only header/progress visible */
-        #fragments .collection-card .items-grid,
-        #fragments .collection-card .unlock-progress {
-          display: none !important;
-        }
-
-        /* Compact header like Albums */
-        #fragments .collection-card .collection-header {
-          margin-bottom: 0;
-          align-items: center;
-        }
-        #fragments .collection-card .collection-info h3 { font-size: 16px; }
-        #fragments .collection-card .collection-info p  { font-size: 12px; color:#9a9a9a; }
-        #fragments .collection-card .progress-bar { width: 72px; }
-
-
-        /* Overlay */
-        /* Overlay container keeps site gutters via CSS vars set in JS */
-        .album-overlay {
-          position: fixed;
-          inset: 0;
-          background: transparent;            /* no dim/blur */
-          display: block;                     /* always present */
-          z-index: 2000;
-
-          /* Let clicks pass through outside the sheet */
-          pointer-events: none;
-
-          /* Align to the tiles gutters + top tray (set via JS) */
-          padding: var(--album-pad-top, 24px)
-                   var(--album-pad-right, 24px)
-                   24px
-                   var(--album-pad-left, 24px);
-        }
-        .album-overlay .album-sheet { display: none; }
-        .album-overlay.show .album-sheet { display: grid; }
-
-
-        /* Sheet spans the LEFT HALF of the viewport, minus the left gutter */
-        .album-sheet {
-          pointer-events: auto;               /* keep */
-          width: 100%;                        /* ⬅️ fill the content box after overlay paddings */
-          height: calc(100vh - var(--album-pad-top, 24px) - 24px);
-          background: #0b0b0b;
-          border: 1px solid #1a1a1a;
-          border-radius: 14px;
-          overflow: hidden;
-          grid-template-rows: auto 1fr;
-          box-shadow: 0 20px 60px rgba(0,0,0,.45);
-          min-width: 360px;
-        }
-
-        .album-sheet .sheet-header {
-          display: flex; align-items: center; justify-content: space-between;
-          gap: 12px; padding: 18px; border-bottom: 1px solid #1a1a1a;
-          background: linear-gradient(180deg,#0f0f0f,#0a0a0a);
-        }
-        .sheet-meta { display: flex; align-items: center; gap: 16px; }
-        .sheet-title h3 { font-size: 18px; margin: 0; }
-        .sheet-title p  { font-size: 13px; color:#9a9a9a; margin: 2px 0 0; }
-        .sheet-progress { display: flex; align-items: center; gap: 8px; }
-        .album-sheet .sheet-body { overflow: auto; padding: 18px; }
-        .album-sheet .sheet-body {
-          overflow-y: auto;       /* keep scroll working */
-          -ms-overflow-style: none;  /* IE/Edge legacy */
-          scrollbar-width: none;     /* Firefox */
-        }
-
-        /* Hide scrollbar for Chrome, Safari, Opera */
-        .album-sheet .sheet-body::-webkit-scrollbar {
-          width: 0 !important;
-          height: 0 !important;
-        }
-
-        
-        /* Use existing card/grid styles inside overlay */
-        .album-sheet .items-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
-
-        .album-close {
-          background: transparent; border: 1px solid #2a2a2a; color: #fff;
-          padding: 8px 12px; border-radius: 8px; cursor: pointer;
-        }
-        .album-close:hover { background: #151515; }
-        
-        /* === Item Action Bar (bottom of 3D viewport) === */
-        .item-action-bar {
-          position: absolute;
-          bottom: 12px;
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex;
-          gap: 12px;
-          background: rgba(0,0,0,0.7);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 8px;
-          padding: 6px 12px;
-          z-index: 1500;
-        }
-        .item-action-bar.hidden { display: none; }
-
-        .item-action-bar button {
-          cursor: pointer;
-          border: none;
-          outline: none;
-          font-size: 14px;
-          padding: 6px 10px;
-          border-radius: 6px;
-          background: #1a1a1a;
-          color: #fff;
-          transition: background 0.2s;
-        }
-        .item-action-bar button:hover {
-          background: #333;
-        }
-
-        /* Reuse play/pause icon styles but smaller */
-        .play-btn {
-          width: 28px;
-          height: 28px;
-          background: url('icons/play.svg') center/contain no-repeat;
-        }
-        .playing .play-btn {
-          background-image: url('icons/pause.svg');
-        }
-
-        /* === Read More Popup === */
-        .read-more-popup {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: rgba(15,15,15,0.95);
-          border: 1px solid #222;
-          border-radius: 12px;
-          padding: 20px;
-          width: 320px;
-          max-width: 90%;
-          z-index: 2000;
-        }
-        .read-more-popup.hidden { display: none; }
-
-        .read-more-popup .popup-content {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        .read-more-popup h3 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 600;
-        }
-        .read-more-popup p {
-          font-size: 14px;
-          color: #ccc;
-          margin: 0;
-        }
-        .popup-close {
-          align-self: flex-end;
-          cursor: pointer;
-          background: transparent;
-          border: none;
-          color: #fff;
-          font-size: 20px;
-          line-height: 1;
-        }
-
-
     
 /* Prevent horizontal cutoff by allowing columns to shrink */
 .inventory-panel, .viewport-panel, .viewport-container { min-width: 0; }
@@ -1308,145 +1036,6 @@
                             </div>
                         </div>
                     </div>
-
-<div class="collection-card" data-ep="NPC">
-    <div class="collection-header">
-        <div class="collection-info">
-            <h3>NPC</h3>
-            <p>Sloucho • 9 Songs</p>
-        </div>
-        <div class="collection-progress">
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: 0%;"></div>
-            </div>
-            <span class="progress-text">0%</span>
-        </div>
-    </div>
-    <div class="items-grid">
-        <div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Mind Traveller</div>
-            <div class="item-completion">0/5</div>
-        </div>
-        <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Mutant</div>
-            <div class="item-completion">0/5</div>
-        </div>
-        <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Come Around</div>
-            <div class="item-completion">0/5</div>
-        </div>
-        <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Brand New</div>
-            <div class="item-completion">0/5</div>
-        </div>
-        <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Super Maramu 2000</div>
-            <div class="item-completion">0/5</div>
-        </div>
-        <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Make it Work</div>
-            <div class="item-completion">0/5</div>
-        </div>
-        <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Two Thousands Rocks</div>
-            <div class="item-completion">0/5</div>
-        </div>
-        <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Lights On</div>
-            <div class="item-completion">0/5</div>
-        </div>
-        <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">TBD</div>
-            <div class="item-completion">0/5</div>
-        </div>
-        <div class="stems-row">
-        <div class="stem-slot empty" title="Vocals">V</div>
-        <div class="stem-slot empty" title="Guitar">G</div>
-        <div class="stem-slot empty" title="Bass">B</div>
-        <div class="stem-slot empty" title="Drums">D</div>
-        <div class="stem-slot empty" title="Effects">E</div>
-    </div>
-    </div>
-    </div>
-    <div class="unlock-progress">
-        Collect all stems for the 9 NPC tracks to unlock the <strong>NPC EP</strong> bonus.
-    </div>
-</div>
-
-
                 </div>
             </div>
 
@@ -1456,8 +1045,8 @@
                     <div class="collection-card">
                         <div class="collection-header">
                             <div class="collection-info">
-                                <h3>Siu</h3>
-                                <p>5 Fragments</p>
+                                <h3>Artist's Journal Collection</h3>
+                                <p>Mystery Artist • 3 Fragments</p>
                             </div>
                             <div class="collection-progress">
                                 <div class="progress-bar">
@@ -1485,8 +1074,8 @@
                     <div class="collection-card">
                         <div class="collection-header">
                             <div class="collection-info">
-                                <h3> Anu </h3>
-                                <p>5 Fragments</p>
+                                <h3>Studio Archives</h3>
+                                <p>Various Artists • 5 Fragments</p>
                             </div>
                             <div class="collection-progress">
                                 <div class="progress-bar">
@@ -1543,43 +1132,20 @@
 
         <!-- 3D Viewport Panel -->
         <div class="viewport-panel">
-          <div class="viewport-container" id="viewport">
-            <!-- Three.js will append its <canvas> here -->
-
-            <!-- Item Action Bar -->
-            <div id="itemActionBar" class="item-action-bar hidden">
-              <button id="playBtn" class="play-btn" aria-label="Play/Pause"></button>
-              <button id="readMoreBtn" class="read-more-btn">Read More</button>
-            </div>
-
-            <!-- Viewport Controls (top-right buttons, if you re-enable them) -->
-            <div class="viewport-controls">
-              <!--
-              <button class="control-btn" onclick="resetCamera()">Reset</button>
-              <button class="control-btn" onclick="toggleAutoRotate()">Rotate</button>
-              -->
-            </div>
-
-            <!-- Read More Popup -->
-            <div id="readMorePopup" class="read-more-popup hidden" aria-hidden="true">
-              <div class="popup-content">
-                <button class="popup-close" id="popupCloseBtn" aria-label="Close">×</button>
-                <h3 id="popupTitle"></h3>
-                <p id="popupText"></p>
-              </div>
-            </div>
-          </div>
-        </div>
-
+            <div class="viewport-container" id="viewport">
+                <div class="viewport-controls">
+                    <button class="control-btn" onclick="resetCamera()">Reset</button>
+                    <button class="control-btn" onclick="toggleAutoRotate()">Rotate</button>
+                </div>
                 
-                <!-- Item Info Panel
+                <!-- Item Info Panel -->
                 <div class="item-info-panel" id="itemInfo">
                     <div class="item-title" id="itemTitle"></div>
                     <div class="item-description" id="itemDescription"></div>
                     <div class="item-actions">
                         <button class="play-btn" id="playBtn" onclick="toggleAudio()" style="display: none;">▶</button>
                     </div>
-                </div> -->
+                </div>
             </div>
         </div>
     </div>
@@ -1618,47 +1184,6 @@
             </form>
         </div>
     </div>
-    
-    <!-- Album Overlay -->
-    <div class="album-overlay" id="albumOverlay" aria-hidden="true">
-      <div class="album-sheet" role="dialog" aria-modal="true" aria-labelledby="albumSheetTitle">
-        <div class="sheet-header">
-          <div class="sheet-meta">
-            <div class="sheet-title">
-              <h3 id="albumSheetTitle"></h3>
-              <p id="albumSheetSubtitle"></p>
-            </div>
-            <div class="sheet-progress">
-              <div class="progress-bar"><div class="progress-fill" id="albumSheetFill" style="width:0%"></div></div>
-              <span class="progress-text" id="albumSheetPct">0%</span>
-            </div>
-          </div>
-          <button class="album-close" id="albumCloseBtn" type="button">Close</button>
-        </div>
-        <div class="sheet-body" id="albumSheetBody"><!-- injected --></div>
-      </div>
-    </div>
-
-    <!-- Fragments Overlay -->
-    <div class="album-overlay" id="fragmentOverlay" aria-hidden="true">
-      <div class="album-sheet" role="dialog" aria-modal="true" aria-labelledby="fragmentSheetTitle">
-        <div class="sheet-header">
-          <div class="sheet-meta">
-            <div class="sheet-title">
-              <h3 id="fragmentSheetTitle"></h3>
-              <p id="fragmentSheetSubtitle"></p>
-            </div>
-            <div class="sheet-progress">
-              <div class="progress-bar"><div class="progress-fill" id="fragmentSheetFill" style="width:0%"></div></div>
-              <span class="progress-text" id="fragmentSheetPct">0%</span>
-            </div>
-          </div>
-          <button class="album-close" id="fragmentCloseBtn" type="button">Close</button>
-        </div>
-        <div class="sheet-body" id="fragmentSheetBody"><!-- injected --></div>
-      </div>
-    </div>
-
 
     <script>
         // Three.js Scene Setup
@@ -1908,7 +1433,7 @@
         const itemDatabase = {
             'shape-vocals': {
                 title: 'Shape of You - Vocals',
-                description: '',
+                description: 'Ed Sheeran\'s distinctive vocals from the hit single "Shape of You". Features his signature smooth delivery and catchy vocal runs that made this song a global phenomenon.',
                 audio: 'shape-vocals.mp3',
                 type: 'vocals'
             },
@@ -1997,7 +1522,6 @@
             
             const activeDesktopTab = document.querySelector(`[onclick="showSection('${sectionName}')"].nav-tab`);
             if (activeDesktopTab) activeDesktopTab.classList.add('active');
-            if (typeof setActionBarForSection === 'function') setActionBarForSection(sectionName);
         }
 
         function showSectionMobile(sectionName) {
@@ -2018,7 +1542,6 @@
             if (activeMobileTab) {
                 activeMobileTab.classList.add('active');
             }
-            if (typeof setActionBarForSection === 'function') setActionBarForSection(sectionName);
         }
 
         function view3DItem(itemType, itemId) {
@@ -2033,10 +1556,10 @@
                 create3DStem('default');
             }
             
-            showItemActions(item);
+            showItemInfo(item);
         }
 
-      /*  function showItemInfo(item) {
+        function showItemInfo(item) {
             const infoPanel = document.getElementById('itemInfo');
             const titleEl = document.getElementById('itemTitle');
             const descEl = document.getElementById('itemDescription');
@@ -2055,7 +1578,7 @@
             }
             
             infoPanel.classList.add('visible');
-        } */
+        }
 
         function viewCharacter(characterId) {
             if (currentObject) scene.remove(currentObject);
@@ -2077,10 +1600,10 @@
             currentObject = group;
             scene.add(currentObject);
             
-            showItemActions({
+            showItemInfo({
                 title: 'Taylor Swift',
-              description: 'Legendary musical artist unlocked!...',
-              type: 'character'
+                description: 'Legendary musical artist unlocked! This character represents your complete collection of Taylor Swift stems and fragments. A true icon of modern pop and country music.',
+                type: 'character'
             });
         }
 
@@ -2280,248 +1803,6 @@
                 console.error('Three.js not loaded');
             }
         });
-        
-       
-        
-        // === Album Overlay logic (for STEMS tiles) ===
-        (function initAlbumOverlay(){
-          const overlay = document.getElementById('albumOverlay');
-          const body    = document.getElementById('albumSheetBody');
-          const titleEl = document.getElementById('albumSheetTitle');
-          const subEl   = document.getElementById('albumSheetSubtitle');
-          const pctEl   = document.getElementById('albumSheetPct');
-          const fillEl  = document.getElementById('albumSheetFill');
-          const closeBtn= document.getElementById('albumCloseBtn');
-          if (!overlay || !body) return;
-
-          // Helper: align to tiles gutters + top of the Stems grid
-          // Helper: align to the left column (inventory-panel) gutters + top
-          function positionAlbumSheetToStems() {
-            const panel = document.querySelector('.inventory-panel');
-            if (!panel) return;
-
-            const rect = panel.getBoundingClientRect();
-            const cs   = getComputedStyle(panel);
-
-            const padL = parseFloat(cs.paddingLeft)  || 0;
-            const padR = parseFloat(cs.paddingRight) || 0;
-            const padT = parseFloat(cs.paddingTop)   || 0;
-
-            // Distances from the viewport edges to the left-column *content* box
-            const leftPad  = Math.round(rect.left + padL);
-            const rightPad = Math.round(window.innerWidth - (rect.right - padR));
-            const topPad   = Math.round(rect.top + padT);
-
-            document.documentElement.style.setProperty('--album-pad-left',  leftPad + 'px');
-            document.documentElement.style.setProperty('--album-pad-right', rightPad + 'px');
-            document.documentElement.style.setProperty('--album-pad-top',   topPad  + 'px');
-          }
-
-
-          // Open overlay on any album tile in Stems
-          document.querySelectorAll('#stems .collection-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-              if (e.target.closest('a,button,[role="button"]')) return;
-
-              const header = card.querySelector('.collection-header');
-              const title  = header?.querySelector('.collection-info h3')?.textContent?.trim() || 'Album';
-              const sub    = header?.querySelector('.collection-info p')?.textContent?.trim() || '';
-              const pct    = header?.querySelector('.progress-text')?.textContent?.trim() || '';
-              const fillW  = header?.querySelector('.progress-fill')?.style?.width || '0%';
-
-              titleEl.textContent = title;
-              subEl.textContent   = sub;
-              pctEl.textContent   = pct;
-              fillEl.style.width  = fillW;
-
-              // Clone album contents so original DOM stays intact
-              const cloned = document.createElement('div');
-              const items = card.querySelector('.items-grid');
-              const extra = card.querySelector('.unlock-progress');
-              if (items) cloned.appendChild(items.cloneNode(true));
-              if (extra) cloned.appendChild(extra.cloneNode(true));
-
-              body.innerHTML = '';
-              body.appendChild(cloned);
-
-              // Align sheet to viewport left half with correct padding
-              positionAlbumSheetToStems();
-
-              // Show the sub-page
-              overlay.classList.add('show');
-              overlay.setAttribute('aria-hidden','false');
-
-              // No body scroll locking — right side remains interactive
-              closeBtn.focus();
-            });
-          });
-          
-          // === Fragment Overlay logic (for FRAGMENTS tiles) ===
-          (function initFragmentOverlay(){
-            const overlay = document.getElementById('fragmentOverlay');
-            const body    = document.getElementById('fragmentSheetBody');
-            const titleEl = document.getElementById('fragmentSheetTitle');
-            const subEl   = document.getElementById('fragmentSheetSubtitle');
-            const pctEl   = document.getElementById('fragmentSheetPct');
-            const fillEl  = document.getElementById('fragmentSheetFill');
-            const closeBtn= document.getElementById('fragmentCloseBtn');
-            if (!overlay || !body) return;
-
-            function positionFragmentSheet() {
-              const panel = document.querySelector('.inventory-panel');
-              if (!panel) return;
-              const rect = panel.getBoundingClientRect();
-              const cs   = getComputedStyle(panel);
-
-              const padL = parseFloat(cs.paddingLeft)  || 0;
-              const padR = parseFloat(cs.paddingRight) || 0;
-              const padT = parseFloat(cs.paddingTop)   || 0;
-
-              const leftPad  = Math.round(rect.left + padL);
-              const rightPad = Math.round(window.innerWidth - (rect.right - padR));
-              const topPad   = Math.round(rect.top + padT);
-
-              document.documentElement.style.setProperty('--album-pad-left',  leftPad + 'px');
-              document.documentElement.style.setProperty('--album-pad-right', rightPad + 'px');
-              document.documentElement.style.setProperty('--album-pad-top',   topPad  + 'px');
-            }
-
-            // Open overlay on any fragment tile
-            document.querySelectorAll('#fragments .collection-card').forEach(card => {
-              card.addEventListener('click', (e) => {
-                if (e.target.closest('a,button,[role="button"]')) return;
-
-                const header = card.querySelector('.collection-header');
-                const title  = header?.querySelector('.collection-info h3')?.textContent?.trim() || 'Fragment';
-                const sub    = header?.querySelector('.collection-info p')?.textContent?.trim() || '';
-                const pct    = header?.querySelector('.progress-text')?.textContent?.trim() || '';
-                const fillW  = header?.querySelector('.progress-fill')?.style?.width || '0%';
-
-                titleEl.textContent = title;
-                subEl.textContent   = sub;
-                pctEl.textContent   = pct;
-                fillEl.style.width  = fillW;
-
-                const cloned = document.createElement('div');
-                const items = card.querySelector('.items-grid');
-                const extra = card.querySelector('.unlock-progress');
-                if (items) cloned.appendChild(items.cloneNode(true));
-                if (extra) cloned.appendChild(extra.cloneNode(true));
-
-                body.innerHTML = '';
-                body.appendChild(cloned);
-
-                positionFragmentSheet();
-
-                overlay.classList.add('show');
-                overlay.setAttribute('aria-hidden','false');
-                closeBtn.focus();
-              });
-            });
-
-            function closeOverlay(){
-              overlay.classList.remove('show');
-              overlay.setAttribute('aria-hidden','true');
-            }
-
-            closeBtn.addEventListener('click', closeOverlay);
-            document.addEventListener('keydown', (e)=> {
-              if (e.key === 'Escape' && overlay.classList.contains('show')) closeOverlay();
-            });
-
-            window.addEventListener('resize', () => {
-              if (overlay.classList.contains('show')) positionFragmentSheet();
-            });
-          })();
-
-
-          function closeOverlay(){
-            overlay.classList.remove('show');
-            overlay.setAttribute('aria-hidden','true');
-          }
-
-          closeBtn.addEventListener('click', closeOverlay);
-          document.addEventListener('keydown', (e)=> {
-            if (e.key === 'Escape' && overlay.classList.contains('show')) closeOverlay();
-          });
-
-          // Keep alignment fresh on resize
-          window.addEventListener('resize', () => {
-            if (overlay.classList.contains('show')) positionAlbumSheetToStems();
-          });
-        })();
-        
-        // === Action Bar by Tab Context ===
-        // === Item Action Bar & Popup Logic (per-item) ===
-        (function initItemUI(){
-          const actionBar   = document.getElementById('itemActionBar');
-          const playBtn     = document.getElementById('playBtn');
-          const readMoreBtn = document.getElementById('readMoreBtn');
-          const popup       = document.getElementById('readMorePopup');
-          const popupClose  = document.getElementById('popupCloseBtn');
-          const popupTitle  = document.getElementById('popupTitle');
-          const popupText   = document.getElementById('popupText');
-
-          let currentItem = null;
-
-          // Call this after you swap the 3D model for a clicked item
-          window.showItemActions = function(item) {
-            currentItem = item || null;
-            actionBar.classList.remove('hidden');
-
-            // Treat stems + unreleased as audio items
-            const isAudioItem = !!(currentItem && currentItem.audio &&
-              (currentItem.type === 'vocals' ||
-               currentItem.type === 'guitar' ||
-               currentItem.type === 'bass'   ||
-               currentItem.type === 'drums'  ||
-               currentItem.type === 'default'||
-               currentItem.type === 'unreleased'));
-
-            // Only fragments + characters should trigger Read More
-            const isReadItem = !!(currentItem &&
-              (currentItem.type === 'fragment' || currentItem.type === 'character'));
-
-            // Per-item UI: show only the relevant control
-            playBtn.style.display     = isAudioItem ? 'block' : 'none';
-            readMoreBtn.style.display = isReadItem  ? 'block' : 'none';
-
-            // Wire audio file for your existing toggleAudio()
-            if (isAudioItem) {
-              playBtn.setAttribute('data-audio', currentItem.audio);
-            } else {
-              playBtn.removeAttribute('data-audio');
-            }
-
-            // Prep popup content for Read More (only relevant if visible)
-            popupTitle.textContent = currentItem?.title || 'Info';
-            popupText.textContent  = currentItem?.description || '';
-          };
-
-
-
-          // Attach listeners ONCE
-
-          // Play/Pause → reuse existing audio pipeline
-          playBtn.addEventListener('click', () => {
-            if (!playBtn.hasAttribute('data-audio')) return;
-            document.body.classList.toggle('playing');
-            if (typeof toggleAudio === 'function') toggleAudio();
-          });
-
-          // Read More popup
-          readMoreBtn.addEventListener('click', () => {
-            popup.classList.remove('hidden');
-            popup.setAttribute('aria-hidden','false');
-          });
-          popupClose.addEventListener('click', () => {
-            popup.classList.add('hidden');
-            popup.setAttribute('aria-hidden','true');
-          });
-        })();
-
-
     </script>
-
 </body>
 </html>

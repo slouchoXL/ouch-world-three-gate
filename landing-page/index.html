@@ -198,12 +198,15 @@
       <div class="modal-tabs">
         <button class="modal-tab active" onclick="switchTab('login')">Account</button>
       </div>
-      <div id="loginForm">
+      
+      <form id="loginForm" onsubmit="return false;">
         <div class="form-group">
           <input type="email" id="loginEmail" class="form-input" placeholder="Email" required>
         </div>
-        <button id="loginSubmit" class="form-button">Create / Login</button>
-      </div>
+        <button type="submit" id="loginSubmit" class="form-button">Create / Login</button>
+      </form>
+      
+      
       <div id="signupForm" style="display:none;">
         <div class="form-group"><input type="text" class="form-input" placeholder="Username"></div>
         <div class="form-group"><input type="email" class="form-input" placeholder="Email"></div>
@@ -993,11 +996,14 @@
   function switchTab(tab) {
     const tabs = document.querySelectorAll('.modal-tab');
     const loginForm = document.getElementById('loginForm');
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
     const signupForm = document.getElementById('signupForm');
     tabs.forEach(t => t.classList.remove('active'));
     if (tab === 'login') { tabs[0].classList.add('active'); loginForm.style.display = 'block'; signupForm.style.display = 'none'; }
     else { tabs[1].classList.add('active'); loginForm.style.display = 'none'; signupForm.style.display = 'block'; }
   }
+});
 
   document.addEventListener('click', function(e) {
     const tray = document.getElementById('menuTray');
