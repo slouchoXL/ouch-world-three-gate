@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>3D Music Inventory - Beta2</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+   
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
@@ -59,8 +59,8 @@
             font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #0a0a0a;
             color: #ffffff;
-            touch-action: none;
-            -ms-touch-action: none;
+            touch-action: pan-y;
+            -ms-touch-action: pan-y;
             font-weight: 400;
             line-height: 1.5;
         }
@@ -71,6 +71,15 @@
           touch-action: auto;                 /* restores vertical panning */
           -webkit-overflow-scrolling: touch;  /* iOS momentum scrolling */
         }
+        
+        /* strengthen the intent to scroll vertically */
+        .inventory-content,
+        #characters,
+        #characters .characters-grid,
+        #characters .character-card {
+          touch-action: pan-y;
+        }
+
 
         .main-container {
             display: grid;
@@ -2280,7 +2289,7 @@
         });
 
         // Mobile zoom suppression from landing page
-        (function () {
+        /*     (function () {
             let lastTouchEnd = 0;
             document.addEventListener('touchend', function (e) {
                 const now = Date.now();
@@ -2289,7 +2298,7 @@
             }, { passive: false });
         })();
         
-        document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
+     document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
         document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
         document.addEventListener('gestureend', e => e.preventDefault(), { passive: false });
         document.addEventListener('touchstart', function (e) {
@@ -2297,7 +2306,7 @@
         }, { passive: false });
         document.addEventListener('touchmove', function (e) {
             if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault();
-        }, { passive: false });
+        }, { passive: false });*/
 
         // Initialize viewport when page loads
         window.addEventListener('load', function() {
