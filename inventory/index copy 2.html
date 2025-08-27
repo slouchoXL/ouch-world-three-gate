@@ -59,9 +59,20 @@
             font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #0a0a0a;
             color: #ffffff;
+            touch-action: pan-y;
+            -ms-touch-action: pan-y;
             font-weight: 400;
             line-height: 1.5;
         }
+        /* Re-enable touch scrolling + momentum on the real scrollers */
+        .inventory-content,
+        .inventory-panel > .section,
+        .album-sheet .sheet-body {
+          touch-action: auto;                 /* restores vertical panning */
+          -webkit-overflow-scrolling: touch;  /* iOS momentum scrolling */
+        }
+        
+   
 
         .main-container {
             display: grid;
@@ -69,31 +80,14 @@
             height: 100vh;
             gap: 0;
         }
-
+        
         .inventory-panel {
+            overflow: hidden;
             padding: 32px;
             background: #0a0a0a;
             border-right: 1px solid #1a1a1a;
             height: 100vh;
             padding-top: 80px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .inventory-content {
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            touch-action: auto;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-            padding-bottom: 12px;
-        }
-
-        .inventory-content::-webkit-scrollbar {
-            width: 0 !important;
-            height: 0 !important;
         }
 
         .viewport-panel {
@@ -104,6 +98,7 @@
             height: 100vh;
         }
 
+        /* Top navigation from landing page */
         .top-nav {
             position: fixed;
             top: 0;
@@ -128,7 +123,6 @@
             justify-content: center;
             transition: border-color .2s ease, background .2s ease;
             backdrop-filter: blur(10px);
-            touch-action: manipulation;
         }
 
         .menu-button:hover, .login-button:hover {
@@ -159,6 +153,7 @@
             fill: currentColor;
         }
 
+        /* Menu tray from landing page */
         .menu-tray {
             position: fixed;
             top: 60px;
@@ -220,6 +215,7 @@
             z-index: 1;
         }
 
+        /* Login modal from landing page */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -353,7 +349,6 @@
             transition: all 0.2s ease;
             border-radius: 8px;
             color: #666666;
-            touch-action: manipulation;
         }
 
         .nav-item.active {
@@ -369,19 +364,14 @@
         .desktop-nav {
             display: flex;
             gap: 2px;
-            margin-bottom: 0;
+            margin-bottom: 32px;
             background: #111111;
-            border-radius: 8px 8px 0 0;
-            border-top: 1px solid #1a1a1a;
+            border-radius: 8px;
             padding: 4px;
-            margin-top: 12px;
-            position: sticky;
-            bottom: 0;
-            z-index: 1;
         }
 
         .nav-tab {
-            padding: 10px 16px;
+            padding: 12px 20px;
             background: transparent;
             border: none;
             border-radius: 6px;
@@ -392,7 +382,6 @@
             font-weight: 500;
             flex: 1;
             text-align: center;
-            touch-action: manipulation;
         }
 
         .nav-tab:hover {
@@ -418,19 +407,12 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* 3D Viewport Styles */
         .viewport-container {
             flex: 1;
             position: relative;
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
             height: 100%;
-            width: 100%;
-            min-width: 0;
-        }
-
-        .viewport-panel canvas {
-            display: block;
-            width: 100% !important;
-            height: 100% !important;
         }
 
         .viewport-controls {
@@ -517,6 +499,7 @@
             transform: scale(1.05);
         }
 
+        /* Characters Section */
         .characters-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -581,6 +564,7 @@
             color: #666666;
         }
 
+        /* Collection Cards */
         .collection-section {
             display: grid;
             gap: 24px;
@@ -599,8 +583,6 @@
             align-items: flex-start;
             margin-bottom: 20px;
             gap: 16px;
-            cursor: pointer;
-            user-select: none;
         }
 
         .collection-info h3 {
@@ -646,17 +628,6 @@
         .items-grid {
             display: grid;
             gap: 12px;
-            overflow-y: auto;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-            max-height: 9999px;
-            opacity: 1;
-            transition: max-height .35s ease, opacity .25s ease, margin .25s ease, padding .25s ease;
-        }
-
-        .items-grid::-webkit-scrollbar {
-            width: 0 !important;
-            height: 0 !important;
         }
 
         .item-card {
@@ -744,17 +715,6 @@
             border: 1px solid #1a1a1a;
             font-size: 13px;
             color: #cccccc;
-            overflow-y: auto;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-            max-height: 9999px;
-            opacity: 1;
-            transition: max-height .35s ease, opacity .25s ease, margin .25s ease, padding .25s ease;
-        }
-
-        .unlock-progress::-webkit-scrollbar {
-            width: 0 !important;
-            height: 0 !important;
         }
 
         .unlock-progress.ready {
@@ -762,39 +722,7 @@
             background: #111111;
         }
 
-        .collection-card.collapsed .items-grid,
-        .collection-card.collapsed .unlock-progress {
-            max-height: 0;
-            opacity: 0;
-            margin-top: 0 !important;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-        }
-
-        .collection-header .collapse-toggle {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.12);
-            color: #fff;
-            font-size: 12px;
-            line-height: 1;
-            transition: transform .2s ease, background .2s ease, border-color .2s ease;
-        }
-
-        .collection-header .collapse-toggle:hover {
-            background: rgba(255,255,255,0.12);
-            border-color: rgba(255,255,255,0.2);
-        }
-
-        .collection-card.collapsed .collapse-toggle {
-            transform: rotate(-90deg);
-        }
-
+        /* Unreleased Section */
         .unreleased-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -847,398 +775,463 @@
             line-height: 1.5;
         }
 
-        input, textarea, select {
-            font-size: 16px;
-        }
+        /* Enhanced mobile responsiveness */
+        input, textarea, select { font-size: 16px; }
+        button, a, .menu-button, .login-button, .nav-item, .nav-tab { touch-action: manipulation; }
 
-        button, a, .menu-button, .login-button, .nav-item, .nav-tab {
-            touch-action: manipulation;
-        }
+      
+        /* Mobile layout */
+        @media (max-width: 480px) {
+          .main-container {
+            grid-template-columns: 1fr;
+            grid-template-rows: 45vh 55vh;   /* 3D ~45%, inventory ~55% */
+            height: 100dvh;
+            overflow: hidden;
+          }
+          
+          .viewport-panel   { order: -1; height: 45dvh; }
+            .viewport-container{ height: 100%; }
+            .inventory-panel  {
+              padding: 12px 12px 0 12px;
+              height: 55dvh;
+              overflow: hidden;
+              background: #0a0a0a;
+              border-right: none;
+              border-top: 1px solid #1a1a1a;
+            }
+            .desktop-nav { display: none; }
+            .bottom-nav  { display: block; }
+          }
 
-        #stems .collection-section {
+          .collection-section {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
+
+          .collection-card { padding: 16px; }
+          .characters-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+          .unreleased-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+          .unlock-progress { display: none; }
+          .top-nav { padding: 15px; }
+          .menu-tray { top: 55px; left: 15px; }
+        }
+
+       
+        
+        /* Tablet responsive */
+        @media (max-width: 1024px) and (min-width: 481px) {
+          .main-container {
+            grid-template-columns: 1fr;
+            grid-template-rows: 50dvh 50dvh;
+            height: 100dvh;
+          }
+          
+          .viewport-panel   { order: -1; height: 50dvh; }
+            .viewport-container{ height: 100%; }
+            .inventory-panel  {
+              padding: 20px 20px 0 20px;
+              height: 50dvh;
+              overflow: hidden;
+              border-right: none;
+              border-top: 1px solid #1a1a1a;
+            }
+            .desktop-nav { display: none; }
+            .bottom-nav  { display: block; }
+          }
+
+          .characters-grid, .unreleased-grid {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+          }
+        }
+
+        /* === Inventory pinned bottom nav + viewport lock === */
+        .inventory-panel {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .inventory-content {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          touch-action: auto; /* Allow all touch gestures for scrolling */
+          padding-bottom: var(--section-safe-bottom, 12px);
+          /* Hide scrollbars */
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        /* When bottom nav is visible (mobile/tablet), add safe spacing to clear it */
+        @media (max-width: 1024px) {
+          .inventory-content {
+            /* tweak value if your bottom nav is taller/shorter; env() covers iOS safe area */
+            padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+          }
+        }
+
+        :root { --bottom-nav-h: 64px; }  /* default; JS below will measure real height */
+
+        /* Unified scroller rules (Characters included) */
+        .inventory-content,
+        .inventory-panel > .section {
+          flex: 1;
+          min-height: 0;
+          overflow: auto;
+          -ms-overflow-style: none;   /* IE/Edge legacy */
+          scrollbar-width: none;      /* Firefox */
+          padding-bottom: var(--section-safe-bottom, 12px);
+        }
+        .inventory-content::-webkit-scrollbar,
+        .inventory-panel > .section::-webkit-scrollbar {
+          width: 0 !important;
+          height: 0 !important;       /* Chrome/Safari */
+        }
+
+        /* On mobile/tablet, reserve space for bottom nav + iOS safe area */
+        @media (max-width: 1024px) {
+          .inventory-content,
+          .inventory-panel > .section {
+            --section-safe-bottom: calc(var(--bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + 16px);
+          }
+        }
+
+
+/* Bottom-pinned desktop nav */
+.desktop-nav {
+    position: sticky;
+    bottom: 0;
+    background: #111111;
+    border-top: 1px solid #1a1a1a;
+    border-radius: 8px 8px 0 0;
+    padding: 4px;
+    margin-top: 12px;
+    margin-bottom: 0;
+    z-index: 1;
+}
+
+.nav-tab { padding: 10px 16px; }
+
+@media (max-width: 480px) {
+  .desktop-nav { display: none; }
+}
+
+@media (max-width: 1024px) and (min-width: 481px) {
+  .desktop-nav { display: none; }
+}
+        
+        @media (max-width: 1024px) {
+          .album-sheet .sheet-body {
+            --sheet-safe-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+          }
+        }
+
+        /* === Collapsible album cards === */
+        .collection-card .collection-header {
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .collection-card .items-grid,
+        .collection-card .unlock-progress {
+          overflow-y: auto;            /* keep scrolling */
+          -ms-overflow-style: none;    /* hide scrollbar in IE/Edge legacy */
+          scrollbar-width: none;       /* hide scrollbar in Firefox */
+          max-height: 9999px;          /* expanded */
+          opacity: 1;
+          transition: max-height .35s ease, opacity .25s ease, margin .25s ease, padding .25s ease;
+        }
+
+        /* Hide scrollbar for Chrome, Safari, Opera */
+        .collection-card .items-grid::-webkit-scrollbar,
+        .collection-card .unlock-progress::-webkit-scrollbar {
+          width: 0 !important;
+          height: 0 !important;
+        }
+
+
+        .collection-card.collapsed .items-grid,
+        .collection-card.collapsed .unlock-progress {
+          max-height: 0;                     /* collapsed */
+          opacity: 0;
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+          padding-bottom: 0 !important;
+        }
+
+        .collection-header .collapse-toggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.12);
+          color: #fff;
+          font-size: 12px;
+          line-height: 1;
+          transition: transform .2s ease, background .2s ease, border-color .2s ease;
+        }
+
+        .collection-header .collapse-toggle:hover {
+          background: rgba(255,255,255,0.12);
+          border-color: rgba(255,255,255,0.2);
+        }
+
+        .collection-card.collapsed .collapse-toggle {
+          transform: rotate(-90deg);
+        }
+        /* === STEMS → tile grid + overlay === */
+        #stems .collection-section {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 16px;
         }
 
         #stems .collection-card {
-            padding: 16px;
-            cursor: pointer;
-            transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+          padding: 16px;
+          cursor: pointer;
+          transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
         }
-
         #stems .collection-card:hover {
-            transform: translateY(-2px);
-            border-color: #333333;
-            box-shadow: 0 8px 24px rgba(0,0,0,.25);
+          transform: translateY(-2px);
+          border-color: #333333;
+          box-shadow: 0 8px 24px rgba(0,0,0,.25);
         }
 
+        /* Hide heavy content in tiles; shown inside overlay instead */
         #stems .collection-card .items-grid,
         #stems .collection-card .unlock-progress {
-            display: none !important;
+          display: none !important;
         }
 
-        #stems .collection-card .collection-header {
-            margin-bottom: 0;
-            align-items: center;
-        }
+        /* Compact header text in tiles */
+        #stems .collection-card .collection-header { margin-bottom: 0; align-items: center; }
+        #stems .collection-card .collection-info h3 { font-size: 16px; }
+        #stems .collection-card .collection-info p  { font-size: 12px; color:#9a9a9a; }
+        #stems .collection-card .progress-bar { width: 72px; }
 
-        #stems .collection-card .collection-info h3 {
-            font-size: 16px;
-        }
-
-        #stems .collection-card .collection-info p {
-            font-size: 12px;
-            color: #9a9a9a;
-        }
-
-        #stems .collection-card .progress-bar {
-            width: 72px;
-        }
-
+        /* === FRAGMENTS → tile grid + sub-page === */
+        /* === FRAGMENTS → tile grid styled like Albums === */
         #fragments .collection-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 16px;
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 16px;
         }
 
         #fragments .collection-card {
-            padding: 16px;
-            cursor: pointer;
-            transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+          padding: 16px;
+          cursor: pointer;
+          transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
         }
-
         #fragments .collection-card:hover {
-            transform: translateY(-2px);
-            border-color: #333333;
-            box-shadow: 0 8px 24px rgba(0,0,0,.25);
+          transform: translateY(-2px);
+          border-color: #333333;
+          box-shadow: 0 8px 24px rgba(0,0,0,.25);
         }
 
+        /* Hide heavy content; only header/progress visible */
         #fragments .collection-card .items-grid,
         #fragments .collection-card .unlock-progress {
-            display: none !important;
+          display: none !important;
         }
 
+        /* Compact header like Albums */
         #fragments .collection-card .collection-header {
-            margin-bottom: 0;
-            align-items: center;
+          margin-bottom: 0;
+          align-items: center;
         }
+        #fragments .collection-card .collection-info h3 { font-size: 16px; }
+        #fragments .collection-card .collection-info p  { font-size: 12px; color:#9a9a9a; }
+        #fragments .collection-card .progress-bar { width: 72px; }
 
-        #fragments .collection-card .collection-info h3 {
-            font-size: 16px;
-        }
 
-        #fragments .collection-card .collection-info p {
-            font-size: 12px;
-            color: #9a9a9a;
-        }
-
-        #fragments .collection-card .progress-bar {
-            width: 72px;
-        }
-
+        /* Overlay */
+        /* Overlay container keeps site gutters via CSS vars set in JS */
         .album-overlay {
-            position: fixed;
-            inset: 0;
-            background: transparent;
-            display: block;
-            z-index: 2000;
-            pointer-events: none;
-            padding: var(--album-pad-top, 24px) var(--album-pad-right, 24px) 24px var(--album-pad-left, 24px);
-        }
+          position: fixed;
+          inset: 0;
+          background: transparent;            /* no dim/blur */
+          display: block;                     /* always present */
+          z-index: 2000;
 
-        .album-overlay .album-sheet {
-            display: none;
-        }
+          /* Let clicks pass through outside the sheet */
+          pointer-events: none;
 
-        .album-overlay.show .album-sheet {
-            display: grid;
+          /* Align to the tiles gutters + top tray (set via JS) */
+          padding: var(--album-pad-top, 24px)
+                   var(--album-pad-right, 24px)
+                   24px
+                   var(--album-pad-left, 24px);
         }
+        .album-overlay .album-sheet { display: none; }
+        .album-overlay.show .album-sheet { display: grid; }
 
+
+        /* Sheet spans the LEFT HALF of the viewport, minus the left gutter */
         .album-sheet {
-            pointer-events: auto;
-            width: 100%;
-            height: calc(100dvh - var(--album-pad-top, 24px) - 24px);
-            max-height: calc(100dvh - var(--album-pad-top, 24px) - 24px);
-            background: #0b0b0b;
-            border: 1px solid #1a1a1a;
-            border-radius: 14px;
-            overflow: hidden;
-            grid-template-rows: auto 1fr;
-            box-shadow: 0 20px 60px rgba(0,0,0,.45);
-            min-width: 360px;
+          pointer-events: auto;               /* keep */
+          width: 100%;                        /* ⬅️ fill the content box after overlay paddings */
+          height: calc(100dvh - var(--album-pad-top, 24px) - 24px); /* ⬅️ key change */
+           max-height: calc(100dvh - var(--album-pad-top, 24px) - 24px); /* belt & braces */
+          background: #0b0b0b;
+          border: 1px solid #1a1a1a;
+          border-radius: 14px;
+          overflow: hidden;
+          grid-template-rows: auto 1fr;
+          box-shadow: 0 20px 60px rgba(0,0,0,.45);
+          min-width: 360px;
         }
 
         .album-sheet .sheet-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 18px;
-            border-bottom: 1px solid #1a1a1a;
-            background: linear-gradient(180deg,#0f0f0f,#0a0a0a);
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 12px; padding: 18px; border-bottom: 1px solid #1a1a1a;
+          background: linear-gradient(180deg,#0f0f0f,#0a0a0a);
         }
-
-        .sheet-meta {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .sheet-title h3 {
-            font-size: 18px;
-            margin: 0;
-        }
-
-        .sheet-title p {
-            font-size: 13px;
-            color: #9a9a9a;
-            margin: 2px 0 0;
-        }
-
-        .sheet-progress {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
+        .sheet-meta { display: flex; align-items: center; gap: 16px; }
+        .sheet-title h3 { font-size: 18px; margin: 0; }
+        .sheet-title p  { font-size: 13px; color:#9a9a9a; margin: 2px 0 0; }
+        .sheet-progress { display: flex; align-items: center; gap: 8px; }
+       
         .album-sheet .sheet-body {
-            overflow-y: auto;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-            padding: 18px;
-            position: relative;
-            background: #0b0b0b;
-            padding-bottom: var(--sheet-safe-bottom, 18px);
+          overflow-y: auto;       /* keep scroll working */
+          -ms-overflow-style: none;  /* IE/Edge legacy */
+          scrollbar-width: none;     /* Firefox */
+          padding-bottom: var(--sheet-safe-bottom, 18px);
+          padding: 18px;
+          position: relative;
+          background: #0b0b0b;
         }
 
+        /* Hide scrollbar for Chrome, Safari, Opera */
         .album-sheet .sheet-body::-webkit-scrollbar {
-            width: 0 !important;
-            height: 0 !important;
+          width: 0 !important;
+          height: 0 !important;
         }
 
-        .album-sheet .items-grid {
-            display: grid;
-            gap: 12px;
-            grid-template-columns: 1fr;
-        }
+        
+        /* Use existing card/grid styles inside overlay */
+        .album-sheet .items-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
 
         .album-close {
-            background: transparent;
-            border: 1px solid #2a2a2a;
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
+          background: transparent; border: 1px solid #2a2a2a; color: #fff;
+          padding: 8px 12px; border-radius: 8px; cursor: pointer;
         }
-
-        .album-close:hover {
-            background: #151515;
-        }
-
+        .album-close:hover { background: #151515; }
+        
+        /* === Item Action Bar (bottom of 3D viewport) === */
         .item-action-bar {
-            position: absolute;
-            bottom: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 12px;
-            background: rgba(0,0,0,0.7);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 6px 12px;
-            z-index: 1500;
+          position: absolute;
+          bottom: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          gap: 12px;
+          background: rgba(0,0,0,0.7);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 8px;
+          padding: 6px 12px;
+          z-index: 1500;
         }
-
-        .item-action-bar.hidden {
-            display: none;
-        }
+        .item-action-bar.hidden { display: none; }
 
         .item-action-bar button {
-            cursor: pointer;
-            border: none;
-            outline: none;
-            font-size: 14px;
-            padding: 6px 10px;
-            border-radius: 6px;
-            background: #1a1a1a;
-            color: #fff;
-            transition: background 0.2s;
+          cursor: pointer;
+          border: none;
+          outline: none;
+          font-size: 14px;
+          padding: 6px 10px;
+          border-radius: 6px;
+          background: #1a1a1a;
+          color: #fff;
+          transition: background 0.2s;
         }
-
         .item-action-bar button:hover {
-            background: #333;
+          background: #333;
         }
 
+        /* Reuse play/pause icon styles but smaller */
+        .play-btn {
+          width: 28px;
+          height: 28px;
+          background: url('icons/play.svg') center/contain no-repeat;
+        }
+        .playing .play-btn {
+          background-image: url('icons/pause.svg');
+        }
+
+        /* === Read More Popup === */
         .read-more-popup {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(15,15,15,0.95);
-            border: 1px solid #222;
-            border-radius: 12px;
-            padding: 20px;
-            width: 320px;
-            max-width: 90%;
-            z-index: 2000;
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(15,15,15,0.95);
+          border: 1px solid #222;
+          border-radius: 12px;
+          padding: 20px;
+          width: 320px;
+          max-width: 90%;
+          z-index: 2000;
         }
-
-        .read-more-popup.hidden {
-            display: none;
-        }
+        .read-more-popup.hidden { display: none; }
 
         .read-more-popup .popup-content {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
         }
-
         .read-more-popup h3 {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 600;
+          margin: 0;
+          font-size: 16px;
+          font-weight: 600;
         }
-
         .read-more-popup p {
-            font-size: 14px;
-            color: #ccc;
-            margin: 0;
+          font-size: 14px;
+          color: #ccc;
+          margin: 0;
         }
-
         .popup-close {
-            align-self: flex-end;
-            cursor: pointer;
-            background: transparent;
-            border: none;
-            color: #fff;
-            font-size: 20px;
-            line-height: 1;
+          align-self: flex-end;
+          cursor: pointer;
+          background: transparent;
+          border: none;
+          color: #fff;
+          font-size: 20px;
+          line-height: 1;
         }
 
-        .inventory-panel, .viewport-panel, .viewport-container {
-            min-width: 0;
+        .inventory-panel > .section::-webkit-scrollbar { /* Chrome/Safari */
+          width: 0 !important;
+          height: 0 !important;
         }
 
-        :root {
-            --bottom-nav-h: 64px;
+        /* When bottom nav can overlap (mobile/tablet), reserve safe space so last tiles aren't cut off */
+        @media (max-width: 1024px) {
+          .inventory-panel > .section {
+            --section-safe-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+          }
         }
 
-        @media (max-width: 480px) {
-            .main-container {
-                grid-template-columns: 1fr;
-                grid-template-rows: 45vh 55vh;
-                height: 100dvh;
-                overflow: hidden;
-            }
-            
-            .viewport-panel {
-                order: -1;
-                height: 45dvh;
-            }
-            
-            .viewport-container {
-                height: 100%;
-            }
-            
-            .inventory-panel {
-                padding: 12px 12px 0 12px;
-                height: 55dvh;
-                overflow: hidden;
-                background: #0a0a0a;
-                border-right: none;
-                border-top: 1px solid #1a1a1a;
-            }
-            
-            .desktop-nav {
-                display: none;
-            }
-            
-            .bottom-nav {
-                display: block;
-            }
-            
-            .inventory-content {
-                padding-bottom: calc(var(--bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + 16px);
-            }
-            
-            .collection-section {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-            }
-            
-            .collection-card {
-                padding: 16px;
-            }
-            
-            .characters-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-            }
-            
-            .unreleased-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-            }
-            
-            .unlock-progress {
-                display: none;
-            }
-            
-            .top-nav {
-                padding: 15px;
-            }
-            
-            .menu-tray {
-                top: 55px;
-                left: 15px;
-            }
+        /* Fix Characters tab scrolling */
+        #characters {
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+          touch-action: pan-y !important;
         }
 
-        @media (max-width: 1024px) and (min-width: 481px) {
-            .main-container {
-                grid-template-columns: 1fr;
-                grid-template-rows: 50dvh 50dvh;
-                height: 100dvh;
-            }
-            
-            .viewport-panel {
-                order: -1;
-                height: 50dvh;
-            }
-            
-            .viewport-container {
-                height: 100%;
-            }
-            
-            .inventory-panel {
-                padding: 20px 20px 0 20px;
-                height: 50dvh;
-                overflow: hidden;
-                border-right: none;
-                border-top: 1px solid #1a1a1a;
-            }
-            
-            .desktop-nav {
-                display: none;
-            }
-            
-            .bottom-nav {
-                display: block;
-            }
-            
-            .inventory-content {
-                padding-bottom: calc(var(--bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + 16px);
-            }
-            
-            .characters-grid, .unreleased-grid {
-                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            }
-            
-            .album-sheet .sheet-body {
-                --sheet-safe-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
-            }
+        #characters .characters-grid {
+          touch-action: pan-y !important;
+        }
+
+        @media (max-width: 1024px) {
+          #characters {
+            min-height: 100%;
+            padding-bottom: calc(var(--bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + 16px);
+          }
         }
 
     
