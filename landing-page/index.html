@@ -210,15 +210,30 @@
       .carousel-btn.tick .icon-tick { display: block; }
 
       @media (max-width: 600px) {
-        .carousel-btn { width: 44px; height: 44px; }
+        .carousel-btn { width: 30px; height: 30px; }
         .carousel-btn svg { width: 20px; height: 20px; } /* if you’re using inline SVGs */
       }
 
-    
+      @media (max-width: 600px) {
+      .item-action-bar {
+          position: fixed;
+          bottom: max(12px, env(safe-area-inset-bottom) + 12px); /* stay above home bar */
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          gap: 8px;
+          z-index: 1500;
+      }
+      }
+      
+      @media (max-width: 600px) {
+      .character-controls { position: fixed; left: 50%; bottom: 15vh; transform: translateX(-50%); z-index: 250; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+      .character-controls.show { opacity: 1; pointer-events: auto; }
       .modal-close {
           position: absolute;
           top: 10px;
           right: 10px;
+      }
       }
 
       .popup-close {
