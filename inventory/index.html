@@ -817,6 +817,13 @@
           .menu-tray { top: 55px; left: 15px; }
         }
 
+        @media (max-width: 1024px) {
+          .album-sheet .sheet-body {
+            /* ~64–80px for the nav + safe area if present (tweak if your nav is taller/shorter) */
+            --sheet-safe-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+          }
+        }
+        
         /* Tablet responsive */
         @media (max-width: 1024px) and (min-width: 481px) {
           .main-container {
@@ -1061,11 +1068,15 @@
         .sheet-title h3 { font-size: 18px; margin: 0; }
         .sheet-title p  { font-size: 13px; color:#9a9a9a; margin: 2px 0 0; }
         .sheet-progress { display: flex; align-items: center; gap: 8px; }
-        .album-sheet .sheet-body { overflow: auto; padding: 18px; }
+       
         .album-sheet .sheet-body {
           overflow-y: auto;       /* keep scroll working */
           -ms-overflow-style: none;  /* IE/Edge legacy */
           scrollbar-width: none;     /* Firefox */
+          padding-bottom: var(--sheet-safe-bottom, 18px);
+          padding: 18px;
+          position: relative;
+          background: #0b0b0b;
         }
 
         /* Hide scrollbar for Chrome, Safari, Opera */
@@ -1379,7 +1390,7 @@
     </div>
 <div class="item-card">
         <div class="item-header">
-            <div class="item-title">Two Thousands Rocks</div>
+            <div class="item-title">Two Thousands</div>
             <div class="item-completion">0/5</div>
         </div>
         <div class="stems-row">
@@ -1392,7 +1403,7 @@
     </div>
 <div class="item-card">
         <div class="item-header">
-            <div class="item-title">Lights On</div>
+            <div class="item-title"> Rocks</div>
             <div class="item-completion">0/5</div>
         </div>
         <div class="stems-row">
@@ -1405,7 +1416,7 @@
     </div>
 <div class="item-card">
         <div class="item-header">
-            <div class="item-title">TBD</div>
+            <div class="item-title">Lights On (ft. Yamagōchi)</div>
             <div class="item-completion">0/5</div>
         </div>
         <div class="stems-row">
@@ -1496,7 +1507,7 @@
                 <div class="unreleased-grid">
                     <div class="unreleased-card" onclick="view3DItem('unreleased', 'vault-demo')">
                         <!-- <div class="rarity-tag rarity-legendary">Legendary</div>-->
-                        <h3>Something Else ft. Kibo</h3>
+                        <h3>Something Else (ft. Kibo)</h3>
                     </div>
                     <div class="unreleased-card" onclick="view3DItem('unreleased', 'alternate-version')">
                         <!-- <div class="rarity-tag rarity-legendary">Legendary</div>-->
