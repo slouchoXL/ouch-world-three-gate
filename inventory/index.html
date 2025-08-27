@@ -771,130 +771,106 @@
         button, a, .menu-button, .login-button, .nav-item, .nav-tab { touch-action: manipulation; }
 
         /* Mobile layout */
+        /* Mobile layout */
+        /* Mobile layout */
         @media (max-width: 480px) {
-            .main-container {
-                grid-template-columns: 1fr;
-                grid-template-rows: 45vh 55vh;
-                height: 100vh;
-                overflow: hidden;
-            }
-            
-            .viewport-panel {
-                order: -1;
-                height: 45vh;
-                max-height: 65vh;
-            }
-            
-            .viewport-container {
-                height: 100%;
-                max-height: 45vh;
-            }
-            
-            .inventory-panel {
-                padding: 12px 12px 80px 12px;
-                height: 55vh;
-                max-height: 35vh;
-                overflow: hidden;
-                background: #0a0a0a;
-                border-right: none;
-                border-top: 1px solid #1a1a1a;
-            }
-            
-            .desktop-nav {
-                display: none;
-            }
-            
-            .bottom-nav {
-                display: block;
-            }
-            
-            .collection-section {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-            }
-            
-            .collection-card {
-                padding: 16px;
-            }
-            
-            .characters-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-            }
-            
-            .unreleased-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-            }
-            
-            .unlock-progress {
-                display: none;
-            }
+          .main-container {
+            grid-template-columns: 1fr;
+            grid-template-rows: 45vh 55vh;   /* 3D ~45%, inventory ~55% */
+            height: 100vh;
+            overflow: hidden;
+          }
+          
+          .viewport-panel {
+            order: -1;
+            height: 45vh;                    /* no max-height override */
+          }
+          
+          .viewport-container {
+            height: 100%;
+          }
+          
+          .inventory-panel {
+            padding: 12px 12px 0 12px;       /* remove fixed 80px bottom padding */
+            height: 55vh;                    /* no conflicting max-height */
+            overflow: hidden;
+            background: #0a0a0a;
+            border-right: none;
+            border-top: 1px solid #1a1a1a;
+          }
+          
+          .desktop-nav { display: none; }
+          .bottom-nav  { display: block; }
 
-            .top-nav {
-                padding: 15px;
-            }
+          .collection-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
 
-            .menu-tray {
-                top: 55px;
-                left: 15px;
-            }
+          .collection-card { padding: 16px; }
+          .characters-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+          .unreleased-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+          .unlock-progress { display: none; }
+          .top-nav { padding: 15px; }
+          .menu-tray { top: 55px; left: 15px; }
         }
 
         /* Tablet responsive */
         @media (max-width: 1024px) and (min-width: 481px) {
-            .main-container {
-                grid-template-columns: 1fr;
-                grid-template-rows: 50vh 50vh;
-                height: 100vh;
-            }
-            
-            .viewport-panel {
-                order: -1;
-                height: 50vh;
-                max-height: 50vh;
-            }
-            
-            .viewport-container {
-                height: 100%;
-                max-height: 50vh;
-            }
-            
-            .inventory-panel {
-                padding: 20px 20px 80px 20px;
-                height: 50vh;
-                max-height: 50vh;
-                overflow: hidden;
-                border-right: none;
-                border-top: 1px solid #1a1a1a;
-            }
-            
-            .desktop-nav {
-                display: none;
-            }
-            
-            .bottom-nav {
-                display: block;
-            }
-            
-            .characters-grid, .unreleased-grid {
-                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            }
-        }
-    
-/* === Inventory pinned bottom nav + viewport lock === */
-.inventory-panel {
-    display: flex;
-    flex-direction: column;
-}
+          .main-container {
+            grid-template-columns: 1fr;
+            grid-template-rows: 50vh 50vh;
+            height: 100vh;
+          }
+          
+          .viewport-panel {
+            order: -1;
+            height: 50vh;                    /* remove max-height */
+          }
+          
+          .viewport-container {
+            height: 100%;
+          }
+          
+          .inventory-panel {
+            padding: 20px 20px 0 20px;       /* remove fixed 80px bottom padding */
+            height: 50vh;                    /* remove max-height */
+            overflow: hidden;
+            border-right: none;
+            border-top: 1px solid #1a1a1a;
+          }
+          
+          .desktop-nav { display: none; }
+          .bottom-nav  { display: block; }
 
-.inventory-content {
-    flex: 1;
-    min-height: 0;
-    overflow: auto;
-    padding-bottom: 12px;
-}
+          .characters-grid, .unreleased-grid {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+          }
+        }
+
+        /* === Inventory pinned bottom nav + viewport lock === */
+        .inventory-panel {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .inventory-content {
+          flex: 1;
+          min-height: 0;
+          overflow: auto;
+          padding-bottom: 12px;                        /* small default breathing room */
+        }
+
+        /* When bottom nav is visible (mobile/tablet), add safe spacing to clear it */
+        @media (max-width: 1024px) {
+          .inventory-content {
+            /* tweak value if your bottom nav is taller/shorter; env() covers iOS safe area */
+            padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+          }
+        }
+
 
 /* Bottom-pinned desktop nav */
 .desktop-nav {
