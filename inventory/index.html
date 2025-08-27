@@ -482,8 +482,61 @@
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 16px;
         }
+        
+        /* 1) Lock the card height to your original size */
+        .character-card.fixed{
+          --card-h: 200px;            /* ← set this to your old card height */
+          display: grid;
+          grid-template-rows: 1fr auto auto;  /* image grows, text stays auto */
+          height: var(--card-h);
+          padding: 12px;
+          gap: 8px;
+          overflow: hidden;            /* guarantees no growth from contents */
+          border-radius: 12px;
+          background: #0f1115;
+        }
+
+        /* 2) Image area that never changes the card height */
+        .character-media{
+          position: relative;
+          border-radius: 10px;
+          background: #1a1d24;        /* shows behind letterboxed PNGs */
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+        }
+
+        /* 3) PNG scales down to fit; won’t push the card taller */
+        .character-media img{
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;         /* use 'cover' if you prefer cropping */
+          display: block;
+        }
+
+        /* 4) Keep titles tidy so they don't steal space from the image */
+        .character-name{
+          margin: 0;
+          line-height: 1.15;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .character-status{
+          margin: 0;
+          opacity: 0.8;
+          font-size: 0.9rem;
+        }
+
+        /* Optional: responsive tweak so cards stay consistent on mobile */
+        @media (max-width: 640px){
+          .character-card.fixed{ --card-h: 180px; }
+        }
+
 
         .character-card {
+            
             background: #111111;
             border: 1px solid #1a1a1a;
             border-radius: 12px;
@@ -527,7 +580,7 @@
           width:100%;
           aspect-ratio:1/1;
           object-fit:cover;
-          border-radius:50px; /* or 50% if you want it round like now */
+          border-radius:3px; /* or 50% if you want it round like now */
           background:#1a1a1a;
           display:block;
         }
@@ -1343,21 +1396,27 @@
             <!-- Characters Section -->
             <div id="characters" class="section active">
                 <div class="characters-grid">
-                    <div class="character-card" onclick="viewCharacter('sloucho')">
-                      <img class="character-avatar-img" loading="lazy" decoding="async"
-                           src="/assets/thumbs/sloucho.jpg" alt="Sloucho" width="250" height="250">
+                    
+                    <div class="character-card fixed" onclick="viewCharacter('sloucho')">
+                        <div class="character-media">
+                            <img src="/assets/thumbs/sloucho.png" alt="Sloucho">
+                          </div>
                       <h3>Sloucho</h3>
                       <p>Unlocked</p>
                     </div>
-                    <div class="character-card" onclick="viewCharacter('ras')">
-                      <img class="character-avatar-img" loading="lazy" decoding="async"
-                           src="/assets/thumbs/ras.jpg" alt="Rás" width="250" height="250">
+                    
+                    <div class="character-card fixed" onclick="viewCharacter('ras')">
+                        <div class="character-media">
+                            <img src="/assets/thumbs/ras.jpg" alt="Rás">
+                          </div>
                       <h3>Rás</h3>
                       <p>Unlocked</p>
                     </div>
-                    <div class="character-card" onclick="viewCharacter('supermaramu2000')">
-                      <img class="character-avatar-img" loading="lazy" decoding="async"
-                           src="/assets/thumbs/supermaramu2000.jpg" alt="Sloucho" width="250" height="250">
+                    
+                    <div class="character-card fixed" onclick="viewCharacter('supermaramu2000')">
+                        <div class="character-media">
+                            <img src="/assets/thumbs/supermaramu2000.jpg" alt="Super Maramu 2000">
+                          </div>
                       <h3>Super Maramu 2000</h3>
                       <p>Unlocked</p>
                     </div>
