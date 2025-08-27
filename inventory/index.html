@@ -64,6 +64,13 @@
             font-weight: 400;
             line-height: 1.5;
         }
+        /* Re-enable touch scrolling + momentum on the real scrollers */
+        .inventory-content,
+        .inventory-panel > .section,
+        .album-sheet .sheet-body {
+          touch-action: auto;                 /* restores vertical panning */
+          -webkit-overflow-scrolling: touch;  /* iOS momentum scrolling */
+        }
 
         .main-container {
             display: grid;
