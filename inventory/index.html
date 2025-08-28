@@ -235,8 +235,9 @@
             display: flex;
         }
         
+        
         #readMoreOverlay.rm-overlay {
-          position: fixed;
+          position: absolute;
           inset: 0;
           z-index: 2200;        /* lower than login modal if needed */
           display: none;
@@ -280,18 +281,20 @@
         /* Centered mobile variant (does NOT touch login modal) */
         @media (max-width: 768px){
           #readMoreOverlay .read-more-popup{
-            top: var(--safe-top,56px);
-            left:50%; transform:translateX(-50%);
-            width: calc(100vw - 32px);
-            max-width: 420px;
-            height: auto;
-            max-height: calc(100vh - var(--safe-top,56px) - 24px);
-            border-radius:14px;
+              top: var(--safe-top, 56px);
+                  left: 50%;
+                  transform: translateX(-50%);
+                  width: calc(100vw - 32px);
+                  max-width: 420px;
+                  height: auto;
+                  max-height: calc(100vh - var(--safe-top, 56px) - 24px);
           }
         }
 
         /* Optional: when Read-More is open, prevent page scroll without affecting other modals */
         body.rm-open { overflow: hidden; }
+        
+        
 
         .login-modal {
             background: rgba(0,0,0,0.9);
@@ -1767,6 +1770,18 @@
               <button id="readMoreBtn" class="circular-btn read-more-btn" aria-label="Read More"></button>
             </div>
 
+            <!-- Read More Overlay (scoped to viewport) -->
+            <div id="readMoreOverlay" class="rm-overlay" aria-hidden="true">
+              <div class="rm-backdrop" aria-hidden="true"></div>
+              <div id="readMorePopup" class="read-more-popup" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
+                <div class="popup-header">
+                  <h3 id="popupTitle"></h3>
+                  <button class="popup-close circular-btn" id="popupCloseBtn" aria-label="Close"></button>
+                </div>
+                <div class="popup-body" id="popupText"></div>
+              </div>
+            </div>
+
             <!-- Viewport Controls (top-right buttons, if you re-enable them) -->
             <div class="viewport-controls">
               <!--
@@ -1774,32 +1789,9 @@
               <button class="control-btn" onclick="toggleAutoRotate()">Rotate</button>
               -->
             </div>
-
-            <!-- Read More Popup -->
-            <div id="readMorePopup" class="read-more-popup hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
-              <div class="popup-header">
-                <h3 id="popupTitle"></h3>
-                <button class="popup-close circular-btn" id="popupCloseBtn" aria-label="Close"></button>
-              </div>
-              <div class="popup-body" id="popupText">
-                <!-- long text goes here; it will scroll, not resize the modal -->
-              </div>
-            </div>
-
           </div>
         </div>
-        
-        <div id="readMoreOverlay" class="rm-overlay" aria-hidden="true">
-          <div class="rm-backdrop" aria-hidden="true"></div>
 
-          <div id="readMorePopup" class="read-more-popup" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
-            <div class="popup-header">
-              <h3 id="popupTitle"></h3>
-              <button class="popup-close circular-btn" id="popupCloseBtn" aria-label="Close"></button>
-            </div>
-            <div class="popup-body" id="popupText"></div>
-          </div>
-        </div>
                 
                 <!-- Item Info Panel
                 <div class="item-info-panel" id="itemInfo">
