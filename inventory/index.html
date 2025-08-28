@@ -288,26 +288,41 @@
 
         @media (max-width: 768px) {
           #readMoreOverlay.rm-overlay {
-            --popup-vmargin: max(12px, env(safe-area-inset-top), env(safe-area-inset-bottom));
+            position: absolute;   /* ✅ scoped to #viewport */
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;         /* fill the viewer */
+            z-index: 2200;
+
             --popup-hmargin: max(12px, env(safe-area-inset-left), env(safe-area-inset-right));
+            --popup-vmargin: 12px;
+          }
+
+          #readMoreOverlay .rm-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
           }
 
           #readMoreOverlay .read-more-popup {
             position: absolute;
-            top: 50%;
+            top: var(--popup-vmargin); /* ✅ anchored at top of viewer */
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
 
-            /* ✅ dynamic width */
             width: calc(100% - (var(--popup-hmargin) * 2));
             max-width: 420px;
 
-            /* ✅ fixed height */
-            height: 260px; /* adjust to taste */
+            height: 260px; /* 👈 fixed height */
             
             display: flex;
             flex-direction: column;
             box-sizing: border-box;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+            padding: 16px;
           }
 
           .read-more-popup .popup-header {
@@ -325,9 +340,6 @@
             overscroll-behavior: contain;
           }
         }
-
-        /* Optional: lock background scroll only when Read More is open */
-        body.rm-open { overflow: hidden; }
         
         
 
