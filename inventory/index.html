@@ -288,13 +288,26 @@
         /* Centered mobile variant (does NOT touch login modal) */
         @media (max-width: 768px){
           #readMoreOverlay .read-more-popup{
-              top: var(--safe-top, 56px);
-                  left: 50%;
-                  transform: translateX(-50%);
-                  width: calc(100vw - 32px);
-                  max-width: 420px;
-                  height: auto;
-                  max-height: calc(100vh - var(--safe-top, 56px) - 24px);
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 32px);
+            max-width: 420px;
+
+            /* 👇 CLAMP TO VIEWPORT CONTAINER INSTEAD OF 100vh */
+            top: var(--safe-top, 56px);
+            bottom: 12px;                 /* <= stops before inventory */
+            height: auto;                 /* grow between top & bottom */
+            max-height: none;             /* let top/bottom control size */
+
+            display: grid;
+            grid-template-rows: auto 1fr; /* header + scrollable body */
+          }
+
+          /* keep the inner content scrollable only */
+          #readMoreOverlay .read-more-popup .popup-body{
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
           }
         }
 
