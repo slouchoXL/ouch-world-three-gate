@@ -277,8 +277,7 @@
         #readMoreOverlay .read-more-popup .popup-header{
           display:flex;
           align-items:center;
-          justify-content:space-between;
-          gap:12px;
+          justify-content:space-between;gap:12px;
           padding:14px 14px 10px 16px;border-bottom:1px solid rgba(255,255,255,0.1);
         }
         #readMoreOverlay .read-more-popup .popup-close{position:static;}
@@ -286,60 +285,21 @@
           padding:14px 16px 16px;overflow:auto;-webkit-overflow-scrolling:touch;
         }
 
-        @media (max-width: 768px) {
-          #readMoreOverlay.rm-overlay {
-            position: absolute;   /* ✅ scoped to #viewport */
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 100%;         /* fill the viewer */
-            z-index: 2200;
-
-            --popup-hmargin: max(12px, env(safe-area-inset-left), env(safe-area-inset-right));
-            --popup-vmargin: 12px;
-          }
-
-          #readMoreOverlay .rm-backdrop {
-            position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,0.45);
-          }
-
-          #readMoreOverlay .read-more-popup {
-            position: absolute;
-            top: var(--popup-vmargin); /* ✅ anchored at top of viewer */
-            left: 50%;
-            transform: translateX(-50%);
-
-            width: calc(100% - (var(--popup-hmargin) * 2));
-            max-width: 420px;
-
-            height: 260px; /* 👈 fixed height */
-            
-            display: flex;
-            flex-direction: column;
-            box-sizing: border-box;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.25);
-            padding: 16px;
-          }
-
-          .read-more-popup .popup-header {
-            flex: 0 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-          }
-
-          .read-more-popup .popup-body {
-            flex: 1 1 auto;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
+        /* Centered mobile variant (does NOT touch login modal) */
+        @media (max-width: 768px){
+          #readMoreOverlay .read-more-popup{
+              top: var(--safe-top, 56px);
+                  left: 50%;
+                  transform: translateX(-50%);
+                  width: calc(100vw - 32px);
+                  max-width: 420px;
+                  height: auto;
+                  max-height: calc(100vh - var(--safe-top, 56px) - 24px);
           }
         }
+
+        /* Optional: when Read-More is open, prevent page scroll without affecting other modals */
+        body.rm-open { overflow: hidden; }
         
         
 
