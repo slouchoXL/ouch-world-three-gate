@@ -244,7 +244,8 @@
           --popup-vmargin: 16px; /* desktop default */
           --popup-hmargin: 16px;
         }
-        #readMoreOverlay.rm-overlay.open { display: block; }
+        #readMoreOverlay.rm-overlay.show { display: block; }
+
 
         #readMoreOverlay .rm-backdrop {
           position: absolute;
@@ -1437,1384 +1438,571 @@
     </style>
 </head>
 <body>
-    <!-- Top Navigation -->
-    <div class="top-nav">
-        <button class="menu-button" onclick="toggleMenu()">
-            <div class="menu-dots">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
-        </button>
-        <button class="login-button" onclick="handleLogin()">
-            <div class="user-icon">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                </svg>
-            </div>
-        </button>
+  <!-- Top Navigation -->
+  <div class="top-nav">
+    <button class="menu-button" id="menuBtn">
+      <div class="menu-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </button>
+    <button class="login-button" id="loginBtn">
+      <div class="user-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4
+                   1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8
+                   1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+      </div>
+    </button>
+  </div>
+
+  <!-- Menu Tray -->
+  <div class="menu-tray" id="menuTray">
+    <a href="/landing-page/" class="menu-item">Home</a>
+    <a href="#" class="menu-item">Label</a>
+    <a href="#" class="menu-item">Merch</a>
+    <a href="/packs/" class="menu-item">Packs</a>
+    <a href="/inventory/" class="menu-item">Inventory</a>
+  </div>
+
+  <div class="main-container">
+    <!-- Inventory Panel -->
+    <div class="inventory-panel">
+      <div class="desktop-nav">
+        <button class="nav-tab active" data-target="characters">Characters</button>
+        <button class="nav-tab" data-target="stems">Stems</button>
+        <button class="nav-tab" data-target="fragments">Fragments</button>
+        <button class="nav-tab" data-target="unreleased">Unreleased</button>
+        <button class="nav-tab" data-target="albums">Albums</button>
+      </div>
+
+      <div class="inventory-content">
+        <section id="characters" class="section active">
+          <div id="characters-grid" class="characters-grid"></div>
+        </section>
+
+        <section id="stems" class="section">
+          <div id="stems-collections" class="collection-section"></div>
+        </section>
+
+        <section id="fragments" class="section">
+          <div id="fragments-grid" class="collection-section"></div>
+        </section>
+
+        <section id="unreleased" class="section">
+          <div id="unreleased-grid" class="unreleased-grid"></div>
+        </section>
+
+        <section id="albums" class="section">
+          <div id="albums-grid" class="albums-grid"></div>
+        </section>
+      </div>
     </div>
 
-    <!-- Menu Tray -->
-    <div class="menu-tray" id="menuTray">
-        <a href="/landing-page/" class="menu-item">Home</a>
-        <a href="#" class="menu-item">Label</a>
-        <a href="#" class="menu-item">Merch</a>
-        <a href="/packs/" class="menu-item">Packs</a>
-        <a href="/inventory/" class="menu-item">Inventory</a>
-    </div>
+    <!-- Audio -->
+    <audio id="audio-player"></audio>
 
-    <div class="main-container">
-        <!-- Inventory Panel -->
-        <div class="inventory-panel">
-            <!-- INVENTORY CONTENT (new wrapper) -->
-            <div class="inventory-content">
-            <!-- Characters Section -->
-            <div id="characters" class="section active">
-                <div class="characters-grid">
-                    
-                    <div class="character-card fixed" onclick="viewCharacter('sloucho')">
-                        <div class="character-media">
-                            <img src="/assets/thumbs/sloucho.png" alt="Sloucho">
-                          </div>
-                      <h3>Sloucho</h3>
-                  
-                    </div>
-                    
-                    <div class="character-card fixed" onclick="viewCharacter('ras')">
-                        <div class="character-media">
-                            <img src="/assets/thumbs/ras.png" alt="Rás">
-                          </div>
-                      <h3>Rás</h3>
-                 
-                    </div>
-                    
-                    <div class="character-card fixed" onclick="viewCharacter('supermaramu2000')">
-                        <div class="character-media">
-                            <img src="/assets/thumbs/supermaramu2000.png" alt="Super Maramu 2000">
-                          </div>
-                      <h3>Super Maramu 2000</h3>
-             
-                    </div>
-                    
-                </div>
-            </div>
+    <!-- Viewport Panel -->
+    <div class="viewport-panel">
+      <div class="viewport-container" id="viewport">
+        <!-- Three.js will append its <canvas> here -->
 
-            <!-- Stems Section -->
-            <div id="stems" class="section">
-                <div class="collection-section">
-                    <div class="collection-card">
-                        <div class="collection-header">
-                            <div class="collection-info">
-                                <h3>ECHOES</h3>
-                                <p>4 Songs</p>
-                            </div>
-                            <div class="collection-progress">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 75%;"></div>
-                                </div>
-                                <span class="progress-text">75%</span>
-                            </div>
-                        </div>
-
-                        <div class="items-grid">
-                            <div class="item-card completed">
-                                <div class="item-header">
-                                    <div class="item-title">Just U</div>
-                                    <div class="item-completion complete">5/5</div>
-                                </div>
-                                <div class="stems-row">
-                                    <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
-                                    <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
-                                    <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
-                                    <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
-                                    <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-title">Always Remember</div>
-                                    <div class="item-completion">3/5</div>
-                                </div>
-                                <div class="stems-row">
-                                    <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
-                                    <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
-                                    <div class="stem-slot empty" title="Music" onclick="view3DItem('stem', 'music')">M</div>
-                                    <div class="stem-slot empty" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
-                                    <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-<div class="collection-card" data-ep="NPC">
-    <div class="collection-header">
-        <div class="collection-info">
-            <h3>NPC</h3>
-            <p>9 Songs</p>
+        <!-- Item Action Bar -->
+        <div class="item-action-bar hidden" id="itemActionBar">
+          <button class="circular-btn play-btn" id="playBtn" aria-label="Play/Pause"></button>
+          <button class="circular-btn read-more-btn" id="readMoreBtn" aria-label="Read More"></button>
         </div>
-        <div class="collection-progress">
+
+        <!-- Read More Overlay -->
+        <div id="readMoreOverlay" class="rm-overlay" aria-hidden="true">
+          <div class="rm-backdrop" aria-hidden="true"></div>
+          <div class="read-more-popup" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
+            <div class="popup-header">
+              <h3 id="popupTitle"></h3>
+              <button class="popup-close circular-btn" id="popupCloseBtn" aria-label="Close"></button>
+            </div>
+            <div class="popup-body" id="popupText"></div>
+          </div>
+        </div>
+
+        <div class="viewport-controls"></div>
+      </div>
+    </div>
+  </div> <!-- /.main-container -->
+
+  <!-- Mobile Bottom Navigation -->
+  <div class="bottom-nav">
+    <div class="nav-items">
+      <div class="nav-item active" data-section="characters">
+        <div class="nav-icon">★</div>
+      </div>
+      <div class="nav-item" data-section="stems">
+        <div class="nav-icon">♪</div>
+      </div>
+      <div class="nav-item" data-section="fragments">
+        <div class="nav-icon">◈</div>
+      </div>
+      <div class="nav-item" data-section="unreleased">
+        <div class="nav-icon">⦿</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="loginModal">
+    <div class="login-modal">
+      <button class="modal-close circular-btn" id="loginCloseBtn"></button>
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-tab="login">Account</button>
+      </div>
+      
+      <form id="loginForm" onsubmit="return false;">
+        <div class="form-group">
+          <input type="email" id="loginEmail" class="form-input" placeholder="Email" required>
+        </div>
+        <button type="submit" id="loginSubmit" class="form-button">Create / Login</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Album Overlay -->
+  <div class="album-overlay" id="albumOverlay" aria-hidden="true">
+    <div class="album-sheet" role="dialog" aria-modal="true" aria-labelledby="albumSheetTitle">
+      <div class="sheet-header">
+        <div class="sheet-meta">
+          <div class="sheet-title">
+            <h3 id="albumSheetTitle"></h3>
+            <p id="albumSheetSubtitle"></p>
+          </div>
+          <div class="sheet-progress">
             <div class="progress-bar">
-                <div class="progress-fill" style="width: 0%;"></div>
+              <div class="progress-fill" id="albumSheetFill" style="width:0%"></div>
             </div>
-            <span class="progress-text">0%</span>
-        </div>
-    </div>
-    <div class="items-grid">
-        <div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Mind Traveller</div>
-            <div class="item-completion">4/5</div>
-        </div>
-        <div class="stems-row">
-            <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
-            <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
-            <div class="stem-slot empty" title="Music" onclick="view3DItem('stem', 'music')">M</div>
-            <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
-            <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Mutant</div>
-            <div class="item-completion">2/5</div>
-        </div>
-        <div class="stems-row">
-            <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
-            <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
-            <div class="stem-slot empty" title="Music" onclick="view3DItem('stem', 'music')">M</div>
-            <div class="stem-slot empty" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
-            <div class="stem-slot empty" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Come Around</div>
-            <div class="item-completion">4/5</div>
-        </div>
-        <div class="stems-row">
-            <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
-            <div class="stem-slot empty" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
-            <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
-            <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
-            <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Brand New</div>
-            <div class="item-completion">4/5</div>
-        </div>
-        <div class="stems-row">
-            <div class="stem-slot empty" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
-            <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
-            <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
-            <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
-            <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Super Maramu 2000</div>
-            <div class="item-completion">3/5</div>
-        </div>
-        <div class="stems-row">
-            <div class="stem-slot empty" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
-            <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
-            <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
-            <div class="stem-slot empty" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
-            <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Make it Work</div>
-            <div class="item-completion">4/5</div>
-        </div>
-        <div class="stems-row">
-            <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
-            <div class="stem-slot empty" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
-            <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
-            <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
-            <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Two Thousands</div>
-            <div class="item-completion">4/5</div>
-        </div>
-        <div class="stems-row">
-            <div class="stem-slot empty" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
-            <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
-            <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
-            <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
-            <div class="stem-slot collected" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title"> Rocks</div>
-            <div class="item-completion">1/5</div>
-        </div>
-        <div class="stems-row">
-            <div class="stem-slot empty" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
-            <div class="stem-slot collected" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
-            <div class="stem-slot empty" title="Music" onclick="view3DItem('stem', 'music')">M</div>
-            <div class="stem-slot empty" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
-            <div class="stem-slot empty" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
-    </div>
-    </div>
-<div class="item-card">
-        <div class="item-header">
-            <div class="item-title">Lights On (ft. Yamagōchi)</div>
-            <div class="item-completion">3/5</div>
-        </div>
-        <div class="stems-row">
-            <div class="stem-slot collected" title="Drums" onclick="view3DItem('stem', 'drums')">D</div>
-            <div class="stem-slot empty" title="Bass" onclick="view3DItem('stem', 'bass')">B</div>
-            <div class="stem-slot collected" title="Music" onclick="view3DItem('stem', 'music')">M</div>
-            <div class="stem-slot collected" title="Vocals" onclick="view3DItem('stem', 'vocals')">V</div>
-            <div class="stem-slot empty" title="Effects" onclick="view3DItem('stem', 'effects')">FX</div>
-    </div>
-    </div>
-    </div>
-    <div class="unlock-progress">
-        Collect all stems for the 9 NPC tracks to unlock the <strong>SILVER SLOUCHO</strong> Character.
-    </div>
-</div>
-
-
-                </div>
-            </div>
-
-            <!-- Fragments Section -->
-            <div id="fragments" class="section">
-                <div class="collection-section">
-                    <div class="collection-card">
-                        <div class="collection-header">
-                            <div class="collection-info">
-                                <h3>Siu</h3>
-                                <p>5 Fragments</p>
-                            </div>
-                            <div class="collection-progress">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 67%;"></div>
-                                </div>
-                                <span class="progress-text">67%</span>
-                            </div>
-                        </div>
-
-                        <div class="items-grid">
-                            <div class="item-card completed">
-                                <div class="item-header">
-                                    <div class="item-title">Protector of the Land</div>
-                                    <div class="item-completion">2/3</div>
-                                </div>
-                                <div class="stems-row">
-                                    <div class="fragment-slot collected" title="Entry #1" onclick="view3DItem('fragment', 'diary-entry-1')">1</div>
-                                    <div class="fragment-slot collected" title="Entry #2" onclick="view3DItem('fragment', 'diary-entry-2')">2</div>
-                                    <div class="fragment-slot empty" title="Entry #3">3</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="collection-card">
-                        <div class="collection-header">
-                            <div class="collection-info">
-                                <h3> Anu </h3>
-                                <p>5 Fragments</p>
-                            </div>
-                            <div class="collection-progress">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 20%;"></div>
-                                </div>
-                                <span class="progress-text">20%</span>
-                            </div>
-                        </div>
-
-                        <div class="items-grid">
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-title">Protector of the Sea</div>
-                                    <div class="item-completion">1/5</div>
-                                </div>
-                                <div class="stems-row">
-                                    <div class="fragment-slot collected" title="Studio Notes" onclick="view3DItem('fragment', 'studio-notes')">📝</div>
-                                    <div class="fragment-slot empty" title="Equipment List">🎛️</div>
-                                    <div class="fragment-slot empty" title="Mix Notes">🎧</div>
-                                    <div class="fragment-slot empty" title="Master Tape">📼</div>
-                                    <div class="fragment-slot empty" title="Producer Notes">📊</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Unreleased Section -->
-            <div id="unreleased" class="section">
-                <div class="unreleased-grid">
-                    <div class="unreleased-card" onclick="view3DItem('unreleased', 'vault-demo')">
-                        <!-- <div class="rarity-tag rarity-legendary">Legendary</div>-->
-                        <h3>Something Else (ft. Kibo)</h3>
-                    </div>
-                    <div class="unreleased-card" onclick="view3DItem('unreleased', 'alternate-version')">
-                        <!-- <div class="rarity-tag rarity-legendary">Legendary</div>-->
-                        <h3>Love is Fear</h3>
-                     
-                    </div>
-                </div>
-            </div>
-
-            </div>
-            <!-- Desktop Navigation (moved to bottom + unchanged logic) -->
-            <div class="desktop-nav">
-                <button class="nav-tab active" onclick="showSection('characters')">Characters</button>
-                <button class="nav-tab" onclick="showSection('stems')">Stems</button>
-                <button class="nav-tab" onclick="showSection('fragments')">Fragments</button>
-                <button class="nav-tab" onclick="showSection('unreleased')">Unreleased</button>
-            </div>
-        </div>
-
-        <!-- 3D Viewport Panel -->
-        <div class="viewport-panel">
-          <div class="viewport-container" id="viewport">
-            <!-- Three.js will append its <canvas> here -->
-
-            <!-- Item Action Bar -->
-            <div id="itemActionBar" class="item-action-bar hidden">
-              <button id="playBtn" class="circular-btn play-btn" aria-label="Play/Pause"></button>
-              <button id="readMoreBtn" class="circular-btn read-more-btn" aria-label="Read More"></button>
-            </div>
-
-            <!-- Read More Overlay (scoped to viewport) -->
-            <div id="readMoreOverlay" class="rm-overlay" aria-hidden="true">
-              <div class="rm-backdrop" aria-hidden="true"></div>
-              <div id="readMorePopup" class="read-more-popup" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
-                <div class="popup-header">
-                  <h3 id="popupTitle"></h3>
-                  <button class="popup-close circular-btn" id="popupCloseBtn" aria-label="Close"></button>
-                </div>
-                <div class="popup-body" id="popupText"></div>
-              </div>
-            </div>
-
-            <!-- Viewport Controls (top-right buttons, if you re-enable them) -->
-            <div class="viewport-controls">
-              <!--
-              <button class="control-btn" onclick="resetCamera()">Reset</button>
-              <button class="control-btn" onclick="toggleAutoRotate()">Rotate</button>
-              -->
-            </div>
+            <span class="progress-text" id="albumSheetPct">0%</span>
           </div>
         </div>
-
-                
-                <!-- Item Info Panel
-                <div class="item-info-panel" id="itemInfo">
-                    <div class="item-title" id="itemTitle"></div>
-                    <div class="item-description" id="itemDescription"></div>
-                    <div class="item-actions">
-                        <button class="play-btn" id="playBtn" onclick="toggleAudio()" style="display: none;">▶</button>
-                    </div>
-                </div> -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Mobile Bottom Navigation -->
-    <div class="bottom-nav">
-        <div class="nav-items">
-            <div class="nav-item active" onclick="showSectionMobile('characters')" data-section="characters">
-                <div class="nav-icon">★</div>
-            </div>
-            <div class="nav-item" onclick="showSectionMobile('stems')" data-section="stems">
-                <div class="nav-icon">♪</div>
-            </div>
-            <div class="nav-item" onclick="showSectionMobile('fragments')" data-section="fragments">
-                <div class="nav-icon">◈</div>
-            </div>
-            <div class="nav-item" onclick="showSectionMobile('unreleased')" data-section="unreleased">
-                <div class="nav-icon">⦿</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Login Modal -->
-    <div class="modal-overlay" id="loginModal">
-        <div class="login-modal">
-            <button class="modal-close circular-btn" onclick="closeLoginModal()"></button>
-            <div class="modal-tabs">
-                <button class="modal-tab active" onclick="switchTab('login')">Account</button>
-            </div>
-            
-            <form id="loginForm" onsubmit="return false;">
-                <div class="form-group">
-                    <input type="email" id="loginEmail" class="form-input" placeholder="Email" required>
-                </div>
-                <button type="submit" id="loginSubmit" class="form-button">Create / Login</button>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Album Overlay -->
-    <div class="album-overlay" id="albumOverlay" aria-hidden="true">
-      <div class="album-sheet" role="dialog" aria-modal="true" aria-labelledby="albumSheetTitle">
-        <div class="sheet-header">
-          <div class="sheet-meta">
-            <div class="sheet-title">
-              <h3 id="albumSheetTitle"></h3>
-              <p id="albumSheetSubtitle"></p>
-            </div>
-            <div class="sheet-progress">
-              <div class="progress-bar"><div class="progress-fill" id="albumSheetFill" style="width:0%"></div></div>
-              <span class="progress-text" id="albumSheetPct">0%</span>
-            </div>
-          </div>
-          <button class="album-close circular-btn" id="albumCloseBtn" type="button"></button>
-        </div>
-        <div class="sheet-body" id="albumSheetBody"><!-- injected --></div>
+        <button class="album-close circular-btn" id="albumCloseBtn" type="button"></button>
       </div>
+      <div class="sheet-body" id="albumSheetBody"><!-- injected --></div>
     </div>
+  </div>
 
-    <!-- Fragments Overlay -->
-    <div class="album-overlay" id="fragmentOverlay" aria-hidden="true">
-      <div class="album-sheet" role="dialog" aria-modal="true" aria-labelledby="fragmentSheetTitle">
-        <div class="sheet-header">
-          <div class="sheet-meta">
-            <div class="sheet-title">
-              <h3 id="fragmentSheetTitle"></h3>
-              <p id="fragmentSheetSubtitle"></p>
-            </div>
-            <div class="sheet-progress">
-              <div class="progress-bar"><div class="progress-fill" id="fragmentSheetFill" style="width:0%"></div></div>
-              <span class="progress-text" id="fragmentSheetPct">0%</span>
-            </div>
+  <!-- Fragments Overlay -->
+  <div class="album-overlay" id="fragmentOverlay" aria-hidden="true">
+    <div class="album-sheet" role="dialog" aria-modal="true" aria-labelledby="fragmentSheetTitle">
+      <div class="sheet-header">
+        <div class="sheet-meta">
+          <div class="sheet-title">
+            <h3 id="fragmentSheetTitle"></h3>
+            <p id="fragmentSheetSubtitle"></p>
           </div>
-          <button class="album-close circular-btn" id="fragmentCloseBtn" type="button"></button>
+          <div class="sheet-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" id="fragmentSheetFill" style="width:0%"></div>
+            </div>
+            <span class="progress-text" id="fragmentSheetPct">0%</span>
+          </div>
         </div>
-        <div class="sheet-body" id="fragmentSheetBody"><!-- injected --></div>
+        <button class="album-close circular-btn" id="fragmentCloseBtn" type="button"></button>
       </div>
+      <div class="sheet-body" id="fragmentSheetBody"><!-- injected --></div>
     </div>
+  </div>
 
 
-    <script>
-        // Three.js Scene Setup
-        let scene, camera, renderer, currentObject, autoRotate = false;
-        let currentAudio = null;
 
-        function initViewport() {
-            const viewport = document.getElementById('viewport');
-            
-            // Scene
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0a0a);
-            
-            // Camera
-            camera = new THREE.PerspectiveCamera(75, viewport.clientWidth / viewport.clientHeight, 0.1, 1000);
-            camera.position.z = 5;
-            
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            viewport.appendChild(renderer.domElement);
-            
-            // Lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
-            scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(5, 5, 5);
-            directionalLight.castShadow = true;
-            scene.add(directionalLight);
-            
-            const pointLight = new THREE.PointLight(0xffffff, 0.3, 10);
-            pointLight.position.set(-3, 3, 3);
-            scene.add(pointLight);
-            
-            // Add default placeholder
-            createPlaceholderScene();
-            
-            // Mouse controls
-            let mouseDown = false;
-            let mouseX = 0, mouseY = 0;
-            
-            viewport.addEventListener('mousedown', (e) => { mouseDown = true; mouseX = e.clientX; mouseY = e.clientY; });
-            viewport.addEventListener('mouseup', () => mouseDown = false);
-            viewport.addEventListener('mousemove', (e) => {
-                if (!mouseDown) return;
-                const deltaX = e.clientX - mouseX;
-                const deltaY = e.clientY - mouseY;
-                if (currentObject) {
-                    currentObject.rotation.y += deltaX * 0.01;
-                    currentObject.rotation.x += deltaY * 0.01;
-                }
-                mouseX = e.clientX;
-                mouseY = e.clientY;
-            });
-            
-            animate();
-        }
+  <script>
+  /***************************
+   * THREE.JS VIEWPORT
+   ***************************/
+  let scene, camera, renderer, currentObject, autoRotate = false;
 
-        function createPlaceholderScene() {
-            if (currentObject) {
-                scene.remove(currentObject);
-            }
-            
-            const group = new THREE.Group();
-            
-            const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-            const cubeMaterial = new THREE.MeshPhongMaterial({
-                color: 0xffffff,
-                transparent: true,
-                opacity: 0.8
-            });
-            const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-            group.add(cube);
-            
-            const wireframeGeometry = new THREE.EdgesGeometry(cubeGeometry);
-            const wireframeMaterial = new THREE.LineBasicMaterial({ color: 0x333333 });
-            const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
-            group.add(wireframe);
-            
-            currentObject = group;
-            scene.add(currentObject);
-        }
-
-        function create3DStem(stemType) {
-            if (currentObject) scene.remove(currentObject);
-            
-            const group = new THREE.Group();
-            
-            // Base platform
-            const platformGeometry = new THREE.CylinderGeometry(1.2, 1.2, 0.1);
-            const platformMaterial = new THREE.MeshPhongMaterial({
-                color: 0x111111,
-                transparent: true,
-                opacity: 0.6
-            });
-            const platform = new THREE.Mesh(platformGeometry, platformMaterial);
-            platform.position.y = -1;
-            group.add(platform);
-            
-            // Different shapes based on stem type
-            let mainObject;
-            switch(stemType) {
-                case 'vocals':
-                    const micGeometry = new THREE.CylinderGeometry(0.2, 0.2, 1.5);
-                    const micMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
-                    mainObject = new THREE.Mesh(micGeometry, micMaterial);
-                    
-                    const micHead = new THREE.SphereGeometry(0.25, 16, 16);
-                    const micHeadMesh = new THREE.Mesh(micHead, new THREE.MeshPhongMaterial({ color: 0xcccccc }));
-                    micHeadMesh.position.y = 0.8;
-                    mainObject.add(micHeadMesh);
-                    break;
-                    
-                case 'guitar':
-                    const guitarGeometry = new THREE.BoxGeometry(0.6, 1, 0.15);
-                    const guitarMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
-                    mainObject = new THREE.Mesh(guitarGeometry, guitarMaterial);
-                    
-                    const neckGeometry = new THREE.BoxGeometry(0.08, 1.2, 0.1);
-                    const neckMaterial = new THREE.MeshPhongMaterial({ color: 0xcccccc });
-                    const neck = new THREE.Mesh(neckGeometry, neckMaterial);
-                    neck.position.y = 1.1;
-                    mainObject.add(neck);
-                    break;
-                    
-                case 'drums':
-                    const drumGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.3);
-                    const drumMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
-                    mainObject = new THREE.Mesh(drumGeometry, drumMaterial);
-                    break;
-                    
-                case 'bass':
-                    const bassGeometry = new THREE.BoxGeometry(0.5, 0.8, 0.12);
-                    const bassMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
-                    mainObject = new THREE.Mesh(bassGeometry, bassMaterial);
-                    
-                    const bassNeck = new THREE.BoxGeometry(0.06, 1.6, 0.08);
-                    const bassNeckMesh = new THREE.Mesh(bassNeck, new THREE.MeshPhongMaterial({ color: 0xcccccc }));
-                    bassNeckMesh.position.y = 1.2;
-                    mainObject.add(bassNeckMesh);
-                    break;
-                    
-                default:
-                    const defaultGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.05);
-                    const defaultMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
-                    mainObject = new THREE.Mesh(defaultGeometry, defaultMaterial);
-            }
-            
-            mainObject.position.y = 0;
-            group.add(mainObject);
-            
-            addMinimalParticles(group);
-            
-            currentObject = group;
-            scene.add(currentObject);
-        }
-
-        function create3DFragment(fragmentType) {
-            if (currentObject) scene.remove(currentObject);
-            
-            const group = new THREE.Group();
-            
-            const platformGeometry = new THREE.CylinderGeometry(1.2, 1.2, 0.1);
-            const platformMaterial = new THREE.MeshPhongMaterial({
-                color: 0x111111,
-                transparent: true,
-                opacity: 0.6
-            });
-            const platform = new THREE.Mesh(platformGeometry, platformMaterial);
-            platform.position.y = -1;
-            group.add(platform);
-            
-            const scrollGeometry = new THREE.PlaneGeometry(1.2, 1.6);
-            const scrollMaterial = new THREE.MeshPhongMaterial({
-                color: 0xffffff,
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: 0.9
-            });
-            const scroll = new THREE.Mesh(scrollGeometry, scrollMaterial);
-            
-            const glowGeometry = new THREE.PlaneGeometry(1.4, 1.8);
-            const glowMaterial = new THREE.MeshBasicMaterial({
-                color: 0xffffff,
-                transparent: true,
-                opacity: 0.1,
-                side: THREE.DoubleSide
-            });
-            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-            glow.position.z = -0.01;
-            scroll.add(glow);
-            
-            group.add(scroll);
-            addMinimalParticles(group);
-            
-            currentObject = group;
-            scene.add(currentObject);
-        }
-
-        function addMinimalParticles(group) {
-            const particleCount = 15;
-            const particlesGeometry = new THREE.BufferGeometry();
-            const positions = new Float32Array(particleCount * 3);
-            
-            for (let i = 0; i < particleCount * 3; i += 3) {
-                positions[i] = (Math.random() - 0.5) * 3;
-                positions[i + 1] = (Math.random() - 0.5) * 3;
-                positions[i + 2] = (Math.random() - 0.5) * 3;
-            }
-            
-            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            
-            const particlesMaterial = new THREE.PointsMaterial({
-                color: 0xffffff,
-                size: 0.05,
-                transparent: true,
-                opacity: 0.3
-            });
-            
-            const particles = new THREE.Points(particlesGeometry, particlesMaterial);
-            group.add(particles);
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            if (currentObject && autoRotate) {
-                currentObject.rotation.y += 0.005;
-            }
-            
-            if (currentObject) {
-                currentObject.children.forEach(child => {
-                    if (child instanceof THREE.Points) {
-                        child.rotation.y += 0.002;
-                        child.rotation.x += 0.001;
-                    }
-                });
-            }
-            
-            renderer.render(scene, camera);
-        }
-
-        // Item Database
-        const itemDatabase = {
-            'shape-vocals': {
-                title: 'Shape of You - Vocals',
-                description: '',
-                audio: 'shape-vocals.mp3',
-                type: 'vocals'
-            },
-            'shape-guitar': {
-                title: 'Shape of You - Guitar',
-                description: 'The tropical house-inspired guitar riff that drives the entire song. This acoustic guitar pattern became one of the most recognizable hooks of the 2010s.',
-                audio: 'shape-guitar.mp3',
-                type: 'guitar'
-            },
-            'shape-bass': {
-                title: 'Shape of You - Bass',
-                description: 'Deep, rhythmic bass line that provides the foundation for the track\'s infectious groove.',
-                audio: 'shape-bass.mp3',
-                type: 'bass'
-            },
-            'shape-drums': {
-                title: 'Shape of You - Drums',
-                description: 'The minimalist but effective drum pattern that gives "Shape of You" its infectious groove. Perfect blend of electronic and acoustic percussion.',
-                audio: 'shape-drums.mp3',
-                type: 'drums'
-            },
-            'shape-effects': {
-                title: 'Shape of You - Effects',
-                description: 'Atmospheric effects and production elements that give the track its modern polish.',
-                audio: 'shape-effects.mp3',
-                type: 'default'
-            },
-            'perfect-vocals': {
-                title: 'Perfect - Vocals',
-                description: 'Heartfelt and romantic vocal performance from Ed\'s wedding ballad "Perfect". Showcases his emotional range and intimate singing style.',
-                audio: 'perfect-vocals.mp3',
-                type: 'vocals'
-            },
-            'perfect-guitar': {
-                title: 'Perfect - Guitar',
-                description: 'Gentle acoustic guitar that forms the emotional backbone of this romantic ballad.',
-                audio: 'perfect-guitar.mp3',
-                type: 'guitar'
-            },
-            'perfect-strings': {
-                title: 'Perfect - Strings',
-                description: 'Lush string arrangement that adds orchestral depth to the song\'s emotional climax.',
-                audio: 'perfect-strings.mp3',
-                type: 'default'
-            },
-            'diary-entry-1': {
-                title: 'Artist\'s Journal - Entry #1',
-                description: '"March 15th, 2008 - The first time I picked up a guitar, I knew music would be my life. My fingers were clumsy, the chords sounded awful, but there was something magical about creating sound from nothing. Today marks the beginning of everything I\'ll become."',
-                type: 'fragment'
-            },
-            'diary-entry-2': {
-                title: 'Artist\'s Journal - Entry #2',
-                description: '"October 3rd, 2010 - Late nights in the studio, chasing that perfect melody that\'s been haunting my dreams. Coffee cups scattered everywhere, guitar picks lost in couch cushions. The song is almost there... I can feel it. Just need to find the right words to match the emotion."',
-                type: 'fragment'
-            },
-            'studio-notes': {
-                title: 'Studio Session Notes',
-                description: '"Recording Notes - \'Blinding Lights\' Session: Used vintage Moog synth for the lead line, 808 drums processed through analog compressor. Vocals recorded with Neumann U87, double-tracked chorus for width. Magic happened at 3 AM when we found that perfect reverb setting."',
-                type: 'fragment'
-            },
-            'vault-demo': {
-                title: 'Vault Track Demo',
-                description: 'An unreleased acoustic demo featuring raw, intimate vocals and stripped-down guitar work. This early version showcases the pure emotion before studio production.',
-                audio: 'vault-demo.mp3',
-                type: 'unreleased'
-            },
-            'alternate-version': {
-                title: 'Alternate Mix',
-                description: 'A different arrangement with extended bridge section and alternative vocal takes, offering a fresh perspective on a familiar song.',
-                audio: 'alternate-version.mp3',
-                type: 'unreleased'
-            }
-        };
-
-        // UI Functions
-        function showSection(sectionName) {
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            document.getElementById(sectionName).classList.add('active');
-            
-            const activeDesktopTab = document.querySelector(`[onclick="showSection('${sectionName}')"].nav-tab`);
-            if (activeDesktopTab) activeDesktopTab.classList.add('active');
-            if (typeof setActionBarForSection === 'function') setActionBarForSection(sectionName);
-        }
-
-        function showSectionMobile(sectionName) {
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            const targetSection = document.getElementById(sectionName);
-            if (targetSection) {
-                targetSection.classList.add('active');
-            }
-            
-            const activeMobileTab = document.querySelector(`[data-section="${sectionName}"]`);
-            if (activeMobileTab) {
-                activeMobileTab.classList.add('active');
-            }
-            if (typeof setActionBarForSection === 'function') setActionBarForSection(sectionName);
-        }
-
-        function view3DItem(itemType, itemId) {
-            const item = itemDatabase[itemId];
-            if (!item) return;
-            
-            if (itemType === 'stem') {
-                create3DStem(item.type);
-            } else if (itemType === 'fragment') {
-                create3DFragment(item.type);
-            } else if (itemType === 'unreleased') {
-                create3DStem('default');
-            }
-            
-            showItemActions(item);
-        }
-
-      /*  function showItemInfo(item) {
-            const infoPanel = document.getElementById('itemInfo');
-            const titleEl = document.getElementById('itemTitle');
-            const descEl = document.getElementById('itemDescription');
-            const playBtn = document.getElementById('playBtn');
-            
-            titleEl.textContent = item.title;
-            descEl.textContent = item.description;
-            
-            if (item.audio && (item.type === 'vocals' || item.type === 'guitar' || item.type === 'bass' || item.type === 'drums' || item.type === 'default' || item.type === 'unreleased')) {
-                playBtn.style.display = 'flex';
-                playBtn.setAttribute('data-audio', item.audio);
-                playBtn.innerHTML = '▶';
-            } else {
-                playBtn.style.display = 'none';
-                stopAudio();
-            }
-            
-            infoPanel.classList.add('visible');
-        } */
-
-        function viewCharacter(characterId) {
-            if (currentObject) scene.remove(currentObject);
-            
-            const group = new THREE.Group();
-            
-            const bodyGeometry = new THREE.CylinderGeometry(0.4, 0.3, 1.8);
-            const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.y = 0;
-            group.add(body);
-            
-            const headGeometry = new THREE.SphereGeometry(0.3, 16, 16);
-            const headMaterial = new THREE.MeshPhongMaterial({ color: 0xcccccc });
-            const head = new THREE.Mesh(headGeometry, headMaterial);
-            head.position.y = 1.2;
-            group.add(head);
-            
-            currentObject = group;
-            scene.add(currentObject);
-            
-            showItemActions({
-                title: 'Taylor Swift',
-              description: 'Legendary musical artist unlocked!...',
-              type: 'character'
-            });
-        }
-
-        function toggleAudio() {
-            const playBtn = document.getElementById('playBtn');
-            const audioFile = playBtn.getAttribute('data-audio');
-            
-            if (!audioFile) return;
-            
-            if (currentAudio && !currentAudio.paused) {
-                stopAudio();
-            } else {
-                playAudio(audioFile);
-            }
-        }
-
-        function playAudio(audioFile) {
-            stopAudio();
-            
-            currentAudio = new Audio();
-            currentAudio.src = `audio/${audioFile}`;
-            
-            simulateAudioPlayback();
-            
-            // Use class toggle instead of innerHTML
-            document.body.classList.add('playing');
-        }
-
-        function stopAudio() {
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio = null;
-            }
-            
-            // Use class toggle instead of innerHTML
-            document.body.classList.remove('playing');
-        }
-        
-        function simulateAudioPlayback() {
-            let progress = 0;
-            const duration = 30;
-            
-            const interval = setInterval(() => {
-                if (!currentAudio || currentAudio.paused) {
-                    clearInterval(interval);
-                    return;
-                }
-                
-                progress += 0.5;
-                
-                if (progress >= duration) {
-                    stopAudio();
-                    clearInterval(interval);
-                }
-            }, 500);
-        }
-
-        function resetCamera() {
-            camera.position.set(0, 0, 5);
-            camera.lookAt(0, 0, 0);
-        }
-
-        function toggleAutoRotate() {
-            autoRotate = !autoRotate;
-        }
-
-        // Landing page UI functions
-        function toggleMenu() {
-            document.getElementById('menuTray').classList.toggle('open');
-        }
-
-        function handleLogin() {
-            document.getElementById('loginModal').classList.add('show');
-        }
-
-        function closeLoginModal() {
-            document.getElementById('loginModal').classList.remove('show');
-        }
-
-        function switchTab(tab) {
-            const tabs = document.querySelectorAll('.modal-tab');
-            const loginForm = document.getElementById('loginForm');
-            
-            tabs.forEach(t => t.classList.remove('active'));
-            if (tab === 'login') {
-                tabs[0].classList.add('active');
-                loginForm.style.display = 'block';
-            }
-        }
-
-        // Login form handler
-        document.addEventListener('DOMContentLoaded', function() {
-            const emailInput = document.getElementById('loginEmail');
-            const loginBtn = document.getElementById('loginSubmit');
-
-            if (emailInput && loginBtn) {
-                function magicRedirect() {
-                    const isInIframe = window !== window.top;
-                    return isInIframe
-                        ? 'https://ouchworld.netlify.app/landing-page/'
-                        : `${location.origin}/landing-page/`;
-                }
-
-                loginBtn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    const email = (emailInput.value || '').trim();
-                    if (!email) return alert('Enter your email');
-                    if (!window.supa?.auth) return alert('Auth not initialized');
-
-                    loginBtn.disabled = true;
-                    const oldText = loginBtn.textContent;
-                    loginBtn.textContent = 'Sending…';
-                    
-                    const { error } = await window.supa.auth.signInWithOtp({
-                        email,
-                        options: { emailRedirectTo: magicRedirect() }
-                    });
-                    
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = oldText;
-
-                    if (error) alert(error.message);
-                    else alert('Check your email for the magic link!');
-                });
-            }
-        });
-
-        
-// ResizeObserver: keep renderer in sync with viewport container size
-(function(){
-  const viewportEl = document.getElementById('viewport');
-  if (!viewportEl) return;
-  if (window.__viewportResizeObs) { try { window.__viewportResizeObs.disconnect(); } catch(e){} }
-  const ro = new ResizeObserver(entries => {
-    for (const entry of entries) {
-      try {
-        if (renderer && camera) {
-          const rect = entry.contentRect;
-          camera.aspect = rect.width / rect.height;
-          camera.updateProjectionMatrix();
-          renderer.setSize(rect.width, rect.height);
-        }
-      } catch (e) { /* noop */ }
+  function initViewport() {
+    const viewport = document.getElementById('viewport'); // make sure your HTML has id="viewport"
+    if (!viewport) {
+      console.error('Missing #viewport element');
+      return;
     }
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0a);
+
+    camera = new THREE.PerspectiveCamera(75, viewport.clientWidth / viewport.clientHeight, 0.1, 1000);
+    camera.position.z = 5;
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+    renderer.shadowMap.enabled = true;
+    viewport.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0x404040, 0.4));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(5,5,5);
+    scene.add(dir);
+    const pt = new THREE.PointLight(0xffffff, 0.3, 10);
+    pt.position.set(-3,3,3);
+    scene.add(pt);
+
+    // Keep canvas in sync with container
+    try {
+      const ro = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+          renderer.setSize(width, height);
+        }
+      });
+      ro.observe(viewport);
+    } catch(_) {}
+
+    createPlaceholderScene();
+    animate();
+  }
+
+  function createPlaceholderScene() {
+    if (currentObject) scene.remove(currentObject);
+    const group = new THREE.Group();
+    const cube = new THREE.Mesh(
+      new THREE.BoxGeometry(1,1,1),
+      new THREE.MeshPhongMaterial({ color:0xffffff, opacity:0.8, transparent:true })
+    );
+    group.add(cube);
+    currentObject = group;
+    scene.add(group);
+  }
+
+  function create3DStem(type) {
+    if (currentObject) scene.remove(currentObject);
+    const group = new THREE.Group();
+    let mainObject;
+    switch(type) {
+      case "vocals": mainObject = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,1.5), new THREE.MeshPhongMaterial({color:0xffffff})); break;
+      case "guitar": mainObject = new THREE.Mesh(new THREE.BoxGeometry(0.6,1,0.15), new THREE.MeshPhongMaterial({color:0xffffff})); break;
+      case "bass":   mainObject = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.8,0.12), new THREE.MeshPhongMaterial({color:0xffffff})); break;
+      case "drums":  mainObject = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.3), new THREE.MeshPhongMaterial({color:0xffffff})); break;
+      default:       mainObject = new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,0.05), new THREE.MeshPhongMaterial({color:0xffffff}));
+    }
+    group.add(mainObject);
+    currentObject = group;
+    scene.add(group);
+  }
+
+  function create3DFragment() {
+    if (currentObject) scene.remove(currentObject);
+    const group = new THREE.Group();
+    const scroll = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.2,1.6),
+      new THREE.MeshPhongMaterial({color:0xffffff, side:THREE.DoubleSide, transparent:true, opacity:0.9})
+    );
+    group.add(scroll);
+    currentObject = group;
+    scene.add(group);
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    if (currentObject && autoRotate) currentObject.rotation.y += 0.005;
+    renderer.render(scene,camera);
+  }
+
+  /***************************
+   * ACTION BAR + ITEM LOGIC
+   ***************************/
+  const actionBar   = document.getElementById("itemActionBar");
+  const audioEl     = document.getElementById("audio-player");
+  const playBtn     = document.getElementById("playBtn");
+  const readMoreBtn = document.getElementById("readMoreBtn");
+  const popupTitle  = document.getElementById("popupTitle");
+  const popupText   = document.getElementById("popupText");
+  const readMoreOverlay = document.getElementById("readMoreOverlay");
+  const popupCloseBtn   = document.getElementById("popupCloseBtn");
+
+  function showItemActions(item) {
+    const hasAudio = !!item.audio;
+    const hasDesc  = !!item.description;
+
+    actionBar.classList.toggle("hidden", !hasAudio && !hasDesc);
+
+    if (hasAudio) {
+      audioEl.src = item.audio; // provide absolute or relative path from server
+      playBtn.style.display = "block";
+    } else {
+      audioEl.removeAttribute("src");
+      playBtn.style.display = "none";
+    }
+
+    if (hasDesc) {
+      popupTitle.textContent = item.title || item.name || "";
+      popupText.textContent  = item.description;
+      readMoreBtn.style.display = "block";
+    } else {
+      popupTitle.textContent = "";
+      popupText.textContent = "";
+      readMoreBtn.style.display = "none";
+    }
+  }
+
+  // play/pause
+  playBtn.addEventListener("click", () => {
+    if (!audioEl.src) return;
+    if (audioEl.paused) { audioEl.play(); actionBar.classList.add("playing"); }
+    else { audioEl.pause(); actionBar.classList.remove("playing"); }
   });
-  ro.observe(viewportEl);
-  window.__viewportResizeObs = ro;
-})();
 
-        // Event listeners
-        window.addEventListener('resize', () => {
-            const viewport = document.getElementById('viewport');
-            if (viewport && renderer && camera) {
-                camera.aspect = viewport.clientWidth / viewport.clientHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-            }
+  // read more
+  readMoreBtn.addEventListener("click", () => {
+    readMoreOverlay.classList.add("show");
+    readMoreOverlay.setAttribute("aria-hidden","false");
+  });
+  popupCloseBtn.addEventListener("click", () => {
+    readMoreOverlay.classList.remove("show");
+    readMoreOverlay.setAttribute("aria-hidden","true");
+  });
+
+  /***************************
+   * RENDER FUNCTIONS
+   ***************************/
+
+  // Utility: map a stem title to a 3D type keyword
+  function stemTitleToType(title="") {
+    const t = title.toLowerCase();
+    if (t.includes("vocal")) return "vocals";
+    if (t.includes("guitar")) return "guitar";
+    if (t.includes("bass"))   return "bass";
+    if (t.includes("drum"))   return "drums";
+    return "default";
+  }
+
+  function renderCharacters(characters) {
+    const container = document.getElementById("characters-grid");
+    container.innerHTML = "";
+    characters.forEach(c => {
+      // RPC returns: title, image, description, rarity...
+      const card = document.createElement("div");
+      card.className = "character-card";
+      card.innerHTML = `
+        <div class="character-thumb"><img src="${c.image || ""}" alt=""></div>
+        <div class="character-name">${c.title || ""}</div>
+      `;
+      card.addEventListener("click", () => {
+        create3DStem("default"); // or build a character primitive if you like
+        showItemActions(c);
+      });
+      container.appendChild(card);
+    });
+  }
+
+  function renderStems(stems) {
+    const container = document.getElementById("stems-collections");
+    container.innerHTML = "";
+
+    // Group by song => use 'subtitle' as the song name from your RPC
+    const songs = {};
+    stems.forEach(stem => {
+      const songName = stem.subtitle || "Untitled";
+      if (!songs[songName]) songs[songName] = { title: songName, stems: [] };
+      songs[songName].stems.push(stem);
+    });
+
+    Object.values(songs).forEach(song => {
+      const total = 5; // if you always target 5 stems per song
+      const collected = song.stems.length;
+      const pct = Math.min(100, Math.round(collected / total * 100));
+
+      const col = document.createElement("div");
+      col.className = "collection-card";
+      col.innerHTML = `
+        <div class="collection-header">
+          <div class="collection-info">
+            <h3>${song.title}</h3>
+            <p>${collected}/${total} stems collected</p>
+          </div>
+          <div class="collection-progress">
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <span class="progress-text">${pct}%</span>
+          </div>
+        </div>
+        <div class="items-grid"></div>
+        <div class="unlock-progress">Unlock reward when full set is collected</div>
+      `;
+
+      const list = col.querySelector(".items-grid");
+      song.stems.forEach(stem => {
+        // RPC stem fields: title (e.g., "Vocals"), subtitle (song), audio
+        const div = document.createElement("div");
+        div.className = "item-card stem-card";
+        div.textContent = stem.title || "Stem";
+        div.addEventListener("click", (e) => {
+          e.stopPropagation();
+          create3DStem(stemTitleToType(stem.title));
+          showItemActions(stem);
         });
+        list.appendChild(div);
+      });
 
-        // Close menu when clicking outside
-        document.addEventListener('click', function(e) {
-            const tray = document.getElementById('menuTray');
-            const btn = document.querySelector('.menu-button');
-            if (tray && !tray.contains(e.target) && !btn.contains(e.target)) {
-                tray.classList.remove('open');
-            }
+      col.addEventListener("click", (e) => {
+        if (!e.target.closest(".item-card")) {
+          openAlbumOverlay(song.title, collected, total, list.cloneNode(true));
+        }
+      });
+
+      container.appendChild(col);
+    });
+  }
+
+  function renderFragments(fragments) {
+    const container = document.getElementById("fragments-grid");
+    container.innerHTML = "";
+
+    // Group by character via 'subtitle' (your RPC returns subtitle for fragments as well, e.g., character/series)
+    const groups = {};
+    fragments.forEach(f => {
+      const character = f.subtitle || "Collection";
+      if (!groups[character]) groups[character] = [];
+      groups[character].push(f);
+    });
+
+    Object.entries(groups).forEach(([character, frags]) => {
+      const total = 3; // adjust if your target per collection differs
+      const collected = frags.length;
+      const pct = Math.min(100, Math.round(collected / total * 100));
+
+      const col = document.createElement("div");
+      col.className = "collection-card";
+      col.innerHTML = `
+        <div class="collection-header">
+          <div class="collection-info">
+            <h3>${character}</h3>
+            <p>${collected}/${total} fragments</p>
+          </div>
+          <div class="collection-progress">
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <span class="progress-text">${pct}%</span>
+          </div>
+        </div>
+        <div class="items-grid"></div>
+      `;
+
+      const list = col.querySelector(".items-grid");
+      frags.forEach(f => {
+        const div = document.createElement("div");
+        div.className = "item-card fragment-card";
+        div.textContent = f.title || "Fragment";
+        div.addEventListener("click", (e) => {
+          e.stopPropagation();
+          create3DFragment();
+          showItemActions(f);
         });
+        list.appendChild(div);
+      });
 
-        // Close modal when clicking outside
-        document.getElementById('loginModal').addEventListener('click', function(e) {
-            if (e.target === this) closeLoginModal();
-        });
+      col.addEventListener("click", (e) => {
+        if (!e.target.closest(".item-card")) {
+          openFragmentOverlay(character, collected, total, list.cloneNode(true));
+        }
+      });
 
-        // Mobile zoom suppression from landing page
-        /*     (function () {
-            let lastTouchEnd = 0;
-            document.addEventListener('touchend', function (e) {
-                const now = Date.now();
-                if (now - lastTouchEnd <= 300) e.preventDefault();
-                lastTouchEnd = now;
-            }, { passive: false });
-        })();
-        
-     document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
-        document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
-        document.addEventListener('gestureend', e => e.preventDefault(), { passive: false });
-        document.addEventListener('touchstart', function (e) {
-            if (e.touches && e.touches.length > 1) e.preventDefault();
-        }, { passive: false });
-        document.addEventListener('touchmove', function (e) {
-            if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault();
-        }, { passive: false });*/
+      container.appendChild(col);
+    });
+  }
 
-        // Initialize viewport when page loads
-        window.addEventListener('load', function() {
-            if (typeof THREE !== 'undefined') {
-                initViewport();
-            } else {
-                console.error('Three.js not loaded');
-            }
-        });
-        
-       
-        
-        // === Album Overlay logic (for STEMS tiles) ===
-        (function initAlbumOverlay(){
-          const overlay = document.getElementById('albumOverlay');
-          const body    = document.getElementById('albumSheetBody');
-          const titleEl = document.getElementById('albumSheetTitle');
-          const subEl   = document.getElementById('albumSheetSubtitle');
-          const pctEl   = document.getElementById('albumSheetPct');
-          const fillEl  = document.getElementById('albumSheetFill');
-          const closeBtn= document.getElementById('albumCloseBtn');
-          if (!overlay || !body) return;
+  function renderUnreleased(unreleased) {
+    const container = document.getElementById("unreleased-grid");
+    container.innerHTML = "";
+    unreleased.forEach(u => {
+      const card = document.createElement("div");
+      card.className = "unreleased-card";
+      card.innerHTML = `<h3>${u.title || ""}</h3>`;
+      card.addEventListener("click", () => { create3DStem("default"); showItemActions(u); });
+      container.appendChild(card);
+    });
+  }
 
-          // Helper: align to tiles gutters + top of the Stems grid
-          // Helper: align to the left column (inventory-panel) gutters + top
-          function positionAlbumSheetToStems() {
-            const panel = document.querySelector('.inventory-panel');
-            if (!panel) return;
+  function renderAlbums(albums) {
+    const container = document.getElementById("albums-grid");
+    container.innerHTML = "";
+    albums.forEach(a => {
+      const card = document.createElement("div");
+      card.className = "album-card";
+      card.innerHTML = `<img src="${a.image || ""}" alt=""><h3>${a.title || ""}</h3>`;
+      card.addEventListener("click", () => showItemActions(a));
+      container.appendChild(card);
+    });
+  }
 
-            const rect = panel.getBoundingClientRect();
-            const cs   = getComputedStyle(panel);
+  /***************************
+   * OVERLAY HELPERS
+   ***************************/
+  // attach close listeners ONCE
+  document.getElementById("albumCloseBtn")?.addEventListener("click", () => {
+    const ov = document.getElementById("albumOverlay");
+    ov.classList.remove("show");
+    ov.setAttribute("aria-hidden","true");
+  });
+  document.getElementById("fragmentCloseBtn")?.addEventListener("click", () => {
+    const ov = document.getElementById("fragmentOverlay");
+    ov.classList.remove("show");
+    ov.setAttribute("aria-hidden","true");
+  });
 
-            const padL = parseFloat(cs.paddingLeft)  || 0;
-            const padR = parseFloat(cs.paddingRight) || 0;
-            const padT = parseFloat(cs.paddingTop)   || 0;
+  function openAlbumOverlay(title, collected, total, itemsClone) {
+    const pct = Math.min(100, Math.round(collected / total * 100));
+    document.getElementById("albumSheetTitle").textContent = title;
+    document.getElementById("albumSheetSubtitle").textContent = `${collected}/${total} stems collected`;
+    document.getElementById("albumSheetPct").textContent = pct + "%";
+    document.getElementById("albumSheetFill").style.width = pct + "%";
 
-            // Distances from the viewport edges to the left-column *content* box
-            const leftPad  = Math.round(rect.left + padL);
-            const rightPad = Math.round(window.innerWidth - (rect.right - padR));
-            const topPad   = Math.round(rect.top + padT);
+    const body = document.getElementById("albumSheetBody");
+    body.innerHTML = "";
+    body.appendChild(itemsClone);
 
-            document.documentElement.style.setProperty('--album-pad-left',  leftPad + 'px');
-            document.documentElement.style.setProperty('--album-pad-right', rightPad + 'px');
-            document.documentElement.style.setProperty('--album-pad-top',   topPad  + 'px');
-          }
+    const overlay = document.getElementById("albumOverlay");
+    overlay.classList.add("show");
+    overlay.setAttribute("aria-hidden","false");
+  }
 
+  function openFragmentOverlay(character, collected, total, itemsClone) {
+    const pct = Math.min(100, Math.round(collected / total * 100));
+    document.getElementById("fragmentSheetTitle").textContent = character;
+    document.getElementById("fragmentSheetSubtitle").textContent = `${collected}/${total} fragments collected`;
+    document.getElementById("fragmentSheetPct").textContent = pct + "%";
+    document.getElementById("fragmentSheetFill").style.width = pct + "%";
 
-          // Open overlay on any album tile in Stems
-          document.querySelectorAll('#stems .collection-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-              if (e.target.closest('a,button,[role="button"]')) return;
+    const body = document.getElementById("fragmentSheetBody");
+    body.innerHTML = "";
+    body.appendChild(itemsClone);
 
-              const header = card.querySelector('.collection-header');
-              const title  = header?.querySelector('.collection-info h3')?.textContent?.trim() || 'Album';
-              const sub    = header?.querySelector('.collection-info p')?.textContent?.trim() || '';
-              const pct    = header?.querySelector('.progress-text')?.textContent?.trim() || '';
-              const fillW  = header?.querySelector('.progress-fill')?.style?.width || '0%';
+    const overlay = document.getElementById("fragmentOverlay");
+    overlay.classList.add("show");
+    overlay.setAttribute("aria-hidden","false");
+  }
 
-              titleEl.textContent = title;
-              subEl.textContent   = sub;
-              pctEl.textContent   = pct;
-              fillEl.style.width  = fillW;
+  /***************************
+   * INIT
+   ***************************/
+  (async function init(){
+    if (typeof THREE !== "undefined") initViewport();
 
-              // Clone album contents so original DOM stays intact
-              const cloned = document.createElement('div');
-              const items = card.querySelector('.items-grid');
-              const extra = card.querySelector('.unlock-progress');
-              if (items) cloned.appendChild(items.cloneNode(true));
-              if (extra) cloned.appendChild(extra.cloneNode(true));
+    // Fetch from your backend (Render) or directly from Supabase RPC through an API route.
+    let db = { characters:[], stems:[], fragments:[], unreleased:[], albums:[] };
+    try {
+      const res = await fetch("/api/inventory", { credentials: "include" });
+      if (res.ok) db = await res.json();
+    } catch (e) {
+      console.warn("Inventory fetch failed; rendering empty state.", e);
+    }
 
-              body.innerHTML = '';
-              body.appendChild(cloned);
+    renderCharacters(db.characters || []);
+    renderStems(db.stems || []);
+    renderFragments(db.fragments || []);
+    renderUnreleased(db.unreleased || []);
+    renderAlbums(db.albums || []);
+  })();
+  </script>
 
-              // Align sheet to viewport left half with correct padding
-              positionAlbumSheetToStems();
-
-              // Show the sub-page
-              overlay.classList.add('show');
-              overlay.setAttribute('aria-hidden','false');
-
-              // No body scroll locking — right side remains interactive
-              closeBtn.focus();
-            });
-          });
-          
-          // === Fragment Overlay logic (for FRAGMENTS tiles) ===
-          (function initFragmentOverlay(){
-            const overlay = document.getElementById('fragmentOverlay');
-            const body    = document.getElementById('fragmentSheetBody');
-            const titleEl = document.getElementById('fragmentSheetTitle');
-            const subEl   = document.getElementById('fragmentSheetSubtitle');
-            const pctEl   = document.getElementById('fragmentSheetPct');
-            const fillEl  = document.getElementById('fragmentSheetFill');
-            const closeBtn= document.getElementById('fragmentCloseBtn');
-            if (!overlay || !body) return;
-
-            function positionFragmentSheet() {
-              const panel = document.querySelector('.inventory-panel');
-              if (!panel) return;
-              const rect = panel.getBoundingClientRect();
-              const cs   = getComputedStyle(panel);
-
-              const padL = parseFloat(cs.paddingLeft)  || 0;
-              const padR = parseFloat(cs.paddingRight) || 0;
-              const padT = parseFloat(cs.paddingTop)   || 0;
-
-              const leftPad  = Math.round(rect.left + padL);
-              const rightPad = Math.round(window.innerWidth - (rect.right - padR));
-              const topPad   = Math.round(rect.top + padT);
-
-              document.documentElement.style.setProperty('--album-pad-left',  leftPad + 'px');
-              document.documentElement.style.setProperty('--album-pad-right', rightPad + 'px');
-              document.documentElement.style.setProperty('--album-pad-top',   topPad  + 'px');
-            }
-
-            // Open overlay on any fragment tile
-            document.querySelectorAll('#fragments .collection-card').forEach(card => {
-              card.addEventListener('click', (e) => {
-                if (e.target.closest('a,button,[role="button"]')) return;
-
-                const header = card.querySelector('.collection-header');
-                const title  = header?.querySelector('.collection-info h3')?.textContent?.trim() || 'Fragment';
-                const sub    = header?.querySelector('.collection-info p')?.textContent?.trim() || '';
-                const pct    = header?.querySelector('.progress-text')?.textContent?.trim() || '';
-                const fillW  = header?.querySelector('.progress-fill')?.style?.width || '0%';
-
-                titleEl.textContent = title;
-                subEl.textContent   = sub;
-                pctEl.textContent   = pct;
-                fillEl.style.width  = fillW;
-
-                const cloned = document.createElement('div');
-                const items = card.querySelector('.items-grid');
-                const extra = card.querySelector('.unlock-progress');
-                if (items) cloned.appendChild(items.cloneNode(true));
-                if (extra) cloned.appendChild(extra.cloneNode(true));
-
-                body.innerHTML = '';
-                body.appendChild(cloned);
-
-                positionFragmentSheet();
-
-                overlay.classList.add('show');
-                overlay.setAttribute('aria-hidden','false');
-                closeBtn.focus();
-              });
-            });
-
-            function closeOverlay(){
-              overlay.classList.remove('show');
-              overlay.setAttribute('aria-hidden','true');
-            }
-
-            closeBtn.addEventListener('click', closeOverlay);
-            document.addEventListener('keydown', (e)=> {
-              if (e.key === 'Escape' && overlay.classList.contains('show')) closeOverlay();
-            });
-
-            window.addEventListener('resize', () => {
-              if (overlay.classList.contains('show')) positionFragmentSheet();
-            });
-          })();
-
-
-          function closeOverlay(){
-            overlay.classList.remove('show');
-            overlay.setAttribute('aria-hidden','true');
-          }
-
-          closeBtn.addEventListener('click', closeOverlay);
-          document.addEventListener('keydown', (e)=> {
-            if (e.key === 'Escape' && overlay.classList.contains('show')) closeOverlay();
-          });
-
-          // Keep alignment fresh on resize
-          window.addEventListener('resize', () => {
-            if (overlay.classList.contains('show')) positionAlbumSheetToStems();
-          });
-        })();
-        
-        // === Action Bar by Tab Context ===
-        // === Item Action Bar & Popup Logic (per-item) ===
-        (function initItemUI(){
-          const actionBar   = document.getElementById('itemActionBar');
-          const playBtn     = document.getElementById('playBtn');
-          const readMoreBtn = document.getElementById('readMoreBtn');
-          const popup       = document.getElementById('readMorePopup');
-          const popupClose  = document.getElementById('popupCloseBtn');
-          const popupTitle  = document.getElementById('popupTitle');
-          const popupText   = document.getElementById('popupText');
-
-          let currentItem = null;
-
-          // Call this after you swap the 3D model for a clicked item
-          window.showItemActions = function(item) {
-            currentItem = item || null;
-            actionBar.classList.remove('hidden');
-
-            // Treat stems + unreleased as audio items
-            const isAudioItem = !!(currentItem && currentItem.audio &&
-              (currentItem.type === 'drums' ||
-               currentItem.type === 'bass' ||
-               currentItem.type === 'music'   ||
-               currentItem.type === 'vocals'  ||
-               currentItem.type === 'effects'||
-               currentItem.type === 'unreleased'));
-
-            // Only fragments + characters should trigger Read More
-            const isReadItem = !!(currentItem &&
-              (currentItem.type === 'fragment' || currentItem.type === 'character'));
-
-            // Per-item UI: show only the relevant control
-            playBtn.style.display     = isAudioItem ? 'block' : 'none';
-            readMoreBtn.style.display = isReadItem  ? 'block' : 'none';
-
-            // Wire audio file for your existing toggleAudio()
-            if (isAudioItem) {
-              playBtn.setAttribute('data-audio', currentItem.audio);
-            } else {
-              playBtn.removeAttribute('data-audio');
-            }
-
-            // Prep popup content for Read More (only relevant if visible)
-            popupTitle.textContent = currentItem?.title || 'Info';
-            popupText.textContent  = currentItem?.description || '';
-          };
-
-
-
-          // Attach listeners ONCE
-
-          // Play/Pause → reuse existing audio pipeline
-          playBtn.addEventListener('click', () => {
-            if (!playBtn.hasAttribute('data-audio')) return;
-            document.body.classList.toggle('playing');
-            if (typeof toggleAudio === 'function') toggleAudio();
-          });
-
-          // Read More popup
-          readMoreBtn.addEventListener('click', () => {
-            popup.classList.remove('hidden');
-            popup.setAttribute('aria-hidden','false');
-          });
-          popupClose.addEventListener('click', () => {
-            popup.classList.add('hidden');
-            popup.setAttribute('aria-hidden','true');
-          });
-        })();
-
-        (function setBottomNavHeightVar(){
-          const root = document.documentElement;
-          const bn = document.querySelector('.bottom-nav');
-          if (!bn) return;
-
-          function update() {
-            const h = Math.ceil(bn.getBoundingClientRect().height || 64);
-            root.style.setProperty('--bottom-nav-h', h + 'px');
-          }
-
-          // Update on load, resize, orientation, and when the nav resizes
-          window.addEventListener('load', update);
-          window.addEventListener('resize', update);
-          window.addEventListener('orientationchange', update);
-          try {
-            new ResizeObserver(update).observe(bn);
-          } catch(_) { /* older browsers */ }
-
-          update();
-        })();
-        
-        (function(){
-          const overlay    = document.getElementById('readMoreOverlay');
-          const popup      = document.getElementById('readMorePopup');
-          const closeBtn   = document.getElementById('popupCloseBtn');
-          const readMoreBtn= document.getElementById('readMoreBtn');
-
-          function openReadMore(){
-            overlay.classList.add('open');     // opens only rm-overlay
-            document.body.classList.add('rm-open');
-            if (readMoreBtn) readMoreBtn.style.display = 'none';
-            (closeBtn || popup)?.focus?.();
-          }
-
-          function closeReadMore(){
-            overlay.classList.remove('open');
-            document.body.classList.remove('rm-open');
-            if (readMoreBtn) readMoreBtn.style.display = '';
-          }
-
-          readMoreBtn?.addEventListener('click', openReadMore);
-          closeBtn?.addEventListener('click', closeReadMore);
-          document.addEventListener('keydown', (e)=>{
-            if (overlay.classList.contains('open') && e.key === 'Escape') closeReadMore();
-          });
-
-          // Export if needed elsewhere
-          window.openReadMore = openReadMore;
-          window.closeReadMore = closeReadMore;
-        })();
-        
-    </script>
 
 </body>
 </html>
