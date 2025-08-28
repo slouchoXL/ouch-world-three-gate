@@ -1185,9 +1185,15 @@
 
         /* If your 3D viewport is on the LEFT half instead, add this class to #readMoreOverlay */
         @media (max-width: 768px) {
-          .modal-overlay.left-half .read-more-popup {
-            left: var(--mobile-gutter);
-            right: calc(50vw + var(--mobile-gutter));
+          .read-more-popup {
+            top: var(--safe-top, 56px);      /* leaves space for menu/login */
+            left: 50%;
+            transform: translateX(-50%);     /* horizontal centering */
+            
+            width: calc(100vw - 32px);       /* fills most of the width with 16px side padding */
+            max-width: 420px;                /* don’t get too wide */
+            height: auto;                    /* height adapts to available space */
+            max-height: calc(100vh - var(--safe-top, 56px) - 24px); /* safe top + bottom margin */
           }
         }
         
@@ -2781,42 +2787,40 @@
         })();
         
         (function(){
-            const overlay = document.getElementById('readMoreOverlay');
-            const popup   = document.getElementById('readMorePopup');
-            const closeBtn= document.getElementById('popupCloseBtn');
+          const overlay  = document.getElementById('readMoreOverlay');
+          const popup    = document.getElementById('readMorePopup');
+          const closeBtn = document.getElementById('popupCloseBtn');
+          const readMoreBtn = document.getElementById('readMoreBtn'); // 👈 your trigger button
 
-            function openReadMore() {
-              overlay.classList.add('open');
-              document.body.classList.add('modal-open');
+          function openReadMore() {
+            overlay.classList.add('open');
+            document.body.classList.add('modal-open');
 
-              // Optional: move focus inside for accessibility
-              (closeBtn || popup)?.focus?.();
-            }
+            // hide the button
+            if (readMoreBtn) readMoreBtn.style.display = 'none';
 
-            function closeReadMore() {
-              overlay.classList.remove('open');
-              document.body.classList.remove('modal-open');
-            }
+            (closeBtn || popup)?.focus?.();
+          }
 
-            // Wire your existing trigger to openReadMore()
-            // Example:
-            // document.getElementById('readMoreBtn').addEventListener('click', openReadMore);
+          function closeReadMore() {
+            overlay.classList.remove('open');
+            document.body.classList.remove('modal-open');
 
-            closeBtn?.addEventListener('click', closeReadMore);
+            // show the button again
+            if (readMoreBtn) readMoreBtn.style.display = '';
+          }
 
-            // Backdrop click should NOT close the modal; it just blocks clicks behind.
-            // If you DO want backdrop-to-close, uncomment:
-            // overlay.querySelector('.modal-backdrop').addEventListener('click', closeReadMore);
+          // wire it up
+          readMoreBtn?.addEventListener('click', openReadMore);
+          closeBtn?.addEventListener('click', closeReadMore);
 
-            // Escape key closes
-            document.addEventListener('keydown', (e) => {
-              if (overlay.classList.contains('open') && e.key === 'Escape') closeReadMore();
-            });
+          document.addEventListener('keydown', (e) => {
+            if (overlay.classList.contains('open') && e.key === 'Escape') closeReadMore();
+          });
 
-            // Expose if your existing code needs to call it
-            window.openReadMore = openReadMore;
-            window.closeReadMore = closeReadMore;
-          })();
+          window.openReadMore = openReadMore;
+          window.closeReadMore = closeReadMore;
+        })();
         
     </script>
 
