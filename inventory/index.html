@@ -232,15 +232,66 @@
         }
 
         .modal-overlay.show {
-            display: block;
+            display: flex;
         }
         
-        .modal-backdrop {
+        #readMoreOverlay.rm-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 2200;        /* lower than login modal if needed */
+          display: none;
+        }
+        #readMoreOverlay.rm-overlay.open { display: block; }
+
+        #readMoreOverlay .rm-backdrop {
           position: absolute;
           inset: 0;
-          background: rgba(0,0,0,0.45); /* dims behind */
-          pointer-events: auto;         /* captures clicks so page behind isn't clickable */
+          background: rgba(0,0,0,0.45);
+          pointer-events: auto; /* blocks clicks behind */
         }
+        
+        #readMoreOverlay .read-more-popup {
+          position: absolute;
+          top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(0,0,0,0.9);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 16px;
+          color: #fff;
+          z-index: 1;
+
+          width: clamp(320px, 80vw, 420px);
+          height: clamp(280px, 70vh, 420px);
+
+          display: grid;
+          grid-template-rows: auto 1fr;
+        }
+
+        #readMoreOverlay .read-more-popup .popup-header{
+          display:flex;align-items:center;justify-content:space-between;gap:12px;
+          padding:14px 14px 10px 16px;border-bottom:1px solid rgba(255,255,255,0.1);
+        }
+        #readMoreOverlay .read-more-popup .popup-close{position:static;}
+        #readMoreOverlay .read-more-popup .popup-body{
+          padding:14px 16px 16px;overflow:auto;-webkit-overflow-scrolling:touch;
+        }
+
+        /* Centered mobile variant (does NOT touch login modal) */
+        @media (max-width: 768px){
+          #readMoreOverlay .read-more-popup{
+            top: var(--safe-top,56px);
+            left:50%; transform:translateX(-50%);
+            width: calc(100vw - 32px);
+            max-width: 420px;
+            height: auto;
+            max-height: calc(100vh - var(--safe-top,56px) - 24px);
+            border-radius:14px;
+          }
+        }
+
+        /* Optional: when Read-More is open, prevent page scroll without affecting other modals */
+        body.rm-open { overflow: hidden; }
 
         .login-modal {
             background: rgba(0,0,0,0.9);
@@ -1104,97 +1155,33 @@
          backdrop-filter: blur(20px);
          border: 1px solid rgba(255,255,255,0.2);
          border-radius: 16px;
+         padding: 20px;
+         width: 90%;
+         max-width: 400px;
+         z-index: 2000;
          color: #fff;
-         z-index: 1; /* above backdrop */
-
-         /* 🔒 fixed visual size (independent of content length) */
-         width: clamp(320px, 80vw, 420px);
-         height: clamp(280px, 70vh, 420px);
-
-         display: grid;
-         grid-template-rows: auto 1fr;
        }
 
-        .read-more-popup.hidden { display: none; }
-
-        /* Header row (title + close) stays fixed */
-        .read-more-popup .popup-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          padding: 14px 14px 10px 16px;
-          border-bottom: 1px solid rgba(255,255,255,0.1);
+        .read-more-popup.hidden {
+            display: none;
         }
 
-        .read-more-popup .popup-header h3 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 600;
+        .read-more-popup .popup-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        .read-more-popup .popup-close { position: static; }
-
-        .read-more-popup .popup-body {
-          padding: 14px 16px 16px 16px;
-          overflow: auto; /* body scrolls; size stays fixed */
-          -webkit-overflow-scrolling: touch;
+        .read-more-popup h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
         }
 
-        .read-more-popup .popup-body p {
-          font-size: 14px;
-          color: #ccc;
-          line-height: 1.6;
-          margin: 0;
-        }
-
-        /* Optional scrollbar polish */
-        .read-more-popup .popup-body::-webkit-scrollbar { width: 8px; }
-        .read-more-popup .popup-body::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.18);
-          border-radius: 8px;
-        }
-
-        /* ====== Prevent page scroll when modal open ====== */
-        body.modal-open { overflow: hidden; }
-
-        /* ====== Mobile: pin modal over the 3D viewport half ======
-           Assumes the 3D viewport is on the RIGHT half on mobile.
-           Tweak the CSS variables to fit your header/menu/login space.
-        */
-        :root {
-          --safe-top: 56px;        /* space for menu/login at top */
-          --mobile-gutter: 12px;   /* side padding inside the right half */
-          --mobile-bottom: 12px;   /* breathing room at bottom */
-        }
-
-        @media (max-width: 768px) {
-          .read-more-popup {
-            /* Place inside the RIGHT half */
-            top: calc(var(--safe-top) + 8px);
-            bottom: var(--mobile-bottom);
-            left: calc(50vw + var(--mobile-gutter));
-            right: var(--mobile-gutter);
-            transform: none;
-            width: auto;  /* let left/right define width (right-half minus gutters) */
-            height: auto; /* use top/bottom to define height */
-            max-height: none;
-            border-radius: 14px;
-          }
-        }
-
-        /* If your 3D viewport is on the LEFT half instead, add this class to #readMoreOverlay */
-        @media (max-width: 768px) {
-          .read-more-popup {
-            top: var(--safe-top, 56px);      /* leaves space for menu/login */
-            left: 50%;
-            transform: translateX(-50%);     /* horizontal centering */
-            
-            width: calc(100vw - 32px);       /* fills most of the width with 16px side padding */
-            max-width: 420px;                /* don’t get too wide */
-            height: auto;                    /* height adapts to available space */
-            max-height: calc(100vh - var(--safe-top, 56px) - 24px); /* safe top + bottom margin */
-          }
+        .read-more-popup p {
+            font-size: 14px;
+            color: #ccc;
+            margin: 0;
         }
         
         .inventory-panel, .viewport-panel, .viewport-container {
@@ -1802,10 +1789,9 @@
           </div>
         </div>
         
-        <div id="readMoreOverlay" class="modal-overlay" aria-hidden="true">
-          <div class="modal-backdrop" aria-hidden="true"></div>
+        <div id="readMoreOverlay" class="rm-overlay" aria-hidden="true">
+          <div class="rm-backdrop" aria-hidden="true"></div>
 
-          <!-- Your fixed-size modal -->
           <div id="readMorePopup" class="read-more-popup" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
             <div class="popup-header">
               <h3 id="popupTitle"></h3>
@@ -2787,37 +2773,31 @@
         })();
         
         (function(){
-          const overlay  = document.getElementById('readMoreOverlay');
-          const popup    = document.getElementById('readMorePopup');
-          const closeBtn = document.getElementById('popupCloseBtn');
-          const readMoreBtn = document.getElementById('readMoreBtn'); // 👈 your trigger button
+          const overlay    = document.getElementById('readMoreOverlay');
+          const popup      = document.getElementById('readMorePopup');
+          const closeBtn   = document.getElementById('popupCloseBtn');
+          const readMoreBtn= document.getElementById('readMoreBtn');
 
-          function openReadMore() {
-            overlay.classList.add('open');
-            document.body.classList.add('modal-open');
-
-            // hide the button
+          function openReadMore(){
+            overlay.classList.add('open');     // opens only rm-overlay
+            document.body.classList.add('rm-open');
             if (readMoreBtn) readMoreBtn.style.display = 'none';
-
             (closeBtn || popup)?.focus?.();
           }
 
-          function closeReadMore() {
+          function closeReadMore(){
             overlay.classList.remove('open');
-            document.body.classList.remove('modal-open');
-
-            // show the button again
+            document.body.classList.remove('rm-open');
             if (readMoreBtn) readMoreBtn.style.display = '';
           }
 
-          // wire it up
           readMoreBtn?.addEventListener('click', openReadMore);
           closeBtn?.addEventListener('click', closeReadMore);
-
-          document.addEventListener('keydown', (e) => {
+          document.addEventListener('keydown', (e)=>{
             if (overlay.classList.contains('open') && e.key === 'Escape') closeReadMore();
           });
 
+          // Export if needed elsewhere
           window.openReadMore = openReadMore;
           window.closeReadMore = closeReadMore;
         })();
