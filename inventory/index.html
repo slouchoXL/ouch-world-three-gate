@@ -296,7 +296,11 @@
         scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 120px);
       }
       .album-sheet .sheet-body::-webkit-scrollbar{width:0!important;height:0!important}
-      .album-sheet .items-grid{display:grid;gap:12px;grid-template-columns:1fr}
+      .album-sheet .items-grid {
+        display: grid;
+        gap: 16px; /* more generous spacing than 12px */
+        grid-template-columns: 1fr;
+      }
 
       /* Close buttons: big target + always on top + inner icon doesn’t steal clicks */
       .modal-close,.popup-close,.album-close{
@@ -409,6 +413,56 @@
       .album-sheet .sheet-body .collection-progress,
       .album-sheet .sheet-header .sheet-progress,
       .album-overlay .collection-progress{display:none!important}
+      
+      /* === 1) Padding for stem/track blocks inside overlay === */
+      .album-sheet .items-grid {
+        display: grid;
+        gap: 16px; /* more generous spacing than 12px */
+        grid-template-columns: 1fr;
+      }
+
+      .album-sheet .item-card {
+        padding: 16px;              /* consistent with inventory grid cards */
+        border-radius: 12px;
+        background: #111;           /* same dark bg as grid tiles */
+        border: 1px solid #1a1a1a;  /* subtle divider */
+      }
+
+      /* === 2) Albums grid like characters grid === */
+      /* === Albums grid like characters grid === */
+      #albums .collection-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+      }
+
+      #albums .collection-card {
+        background: #111;
+        border: 1px solid #1a1a1a;
+        border-radius: 12px;
+        padding: 20px;
+        transition: all .2s ease;
+        cursor: pointer;
+        position: relative;
+      }
+
+      #albums .collection-card:hover {
+        transform: translateY(-2px);
+        border-color: #333;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      }
+
+      /* Match Characters grid responsive shrink */
+      @media (max-width: 640px) {
+        #albums .collection-section {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+        }
+        #albums .collection-card {
+          padding: 16px;
+        }
+      }
+
 
       /* Fix unreleased text wrapping */
       .unreleased-card h3{font-size:16px;font-weight:600;margin-bottom:8px;color:#fff;padding-right:0;word-wrap:break-word;hyphens:auto;line-height:1.4}
