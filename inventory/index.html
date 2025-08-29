@@ -365,7 +365,7 @@
       }
 
       /* Tablets */
-      @media (max-width:1024px) and (min-width:481px)){
+      @media (max-width:1024px) and (min-width:481px){
         :root{ --panel-pad-x:20px; --grid-top-offset:20px }
         .main-container{grid-template-columns:1fr;grid-template-rows:50svh 50svh;height:100svh;overflow:hidden}
         .viewport-panel{order:-1;height:50svh}
@@ -463,11 +463,59 @@
         }
       }
 
+        
+        /* 1) EP overlay: give rows breathing room */
+        #albumSheetBody{
+          display:grid;
+          grid-template-columns:1fr;
+          gap:16px;                          /* visible spacing between stem rows */
+        }
+        /* optional: unify the row padding/shape inside the overlay */
+        #albumSheetBody > .collection-card{
+          padding:16px !important;           /* override inline padding:12px */
+          border-radius:12px;
+          background:#111;
+          border:1px solid #1a1a1a;
+        }
+
+        /* 2) Albums grid: same layout behavior as Characters */
+        .albums-grid, #albums-grid{
+          display:grid;
+          grid-template-columns:repeat(auto-fill, minmax(200px,1fr));
+          gap:16px;
+        }
+        @media (max-width:640px){
+          .albums-grid, #albums-grid{
+            grid-template-columns:repeat(2,1fr);
+            gap:12px;
+          }
+        }
+
+        /* (optional) If you want album tiles to look exactly like character tiles: */
+        #albums-grid .unreleased-card{
+          border-radius:12px;
+          border:1px solid #1a1a1a;
+          background:#111;
+          padding:20px;
+          transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        #albums-grid .unreleased-card:hover{
+          transform:translateY(-2px);
+          border-color:#333;
+          box-shadow:0 8px 24px rgba(0,0,0,.25);
+        }
+
 
       /* Fix unreleased text wrapping */
       .unreleased-card h3{font-size:16px;font-weight:600;margin-bottom:8px;color:#fff;padding-right:0;word-wrap:break-word;hyphens:auto;line-height:1.4}
       .rarity-tag{display:none}
+      
+      
+      
+      
     </style>
+    
+    
 
 
 
