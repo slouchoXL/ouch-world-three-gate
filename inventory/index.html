@@ -1715,9 +1715,13 @@
   const popupCloseBtn   = document.getElementById("popupCloseBtn");
 
   function showItemActions(item) {
-    const hasAudio = !!item.audio;
-    const hasDesc  = !!item.description;
+    const isOwned  = item.isOwned ?? false;
+    const hasAudio = !!item.audio && isOwned;       // only if owned
+    const hasDesc  = !!item.description && isOwned; // only if owned
+
+    // Only show action bar if something is available
     actionBar.classList.toggle("hidden", !hasAudio && !hasDesc);
+
     if (hasAudio) {
       audioEl.src = item.audio;
       playBtn.style.display = "block";
@@ -1725,29 +1729,17 @@
       audioEl.removeAttribute("src");
       playBtn.style.display = "none";
     }
+
     if (hasDesc) {
       popupTitle.textContent = item.title || item.name || "";
       popupText.textContent  = item.description;
       readMoreBtn.style.display = "block";
     } else {
       popupTitle.textContent = "";
-      popupText.textContent = "";
+      popupText.textContent  = "";
       readMoreBtn.style.display = "none";
     }
   }
-  playBtn.addEventListener("click", () => {
-    if (!audioEl.src) return;
-    if (audioEl.paused) { audioEl.play(); actionBar.classList.add("playing"); }
-    else { audioEl.pause(); actionBar.classList.remove("playing"); }
-  });
-  readMoreBtn.addEventListener("click", () => {
-    readMoreOverlay.classList.add("show");
-    readMoreOverlay.setAttribute("aria-hidden","false");
-  });
-  popupCloseBtn.addEventListener("click", () => {
-    readMoreOverlay.classList.remove("show");
-    readMoreOverlay.setAttribute("aria-hidden","true");
-  });
 
   /***************************
    * HELPERS
@@ -1817,13 +1809,14 @@
         rowCard.className = "item-card";
         rowCard.innerHTML = `
           <div class="item-header" style="justify-content:space-between;align-items:center">
-            <strong style="font-weight:600">${character || "Fragments"}</strong>
+            <strong style="font-weight:600">Fragments</strong>
             <span class="item-completion ${collected === total ? "complete" : ""}">
               ${collected}/${total}
             </span>
           </div>
           <div class="stems-row" id="fragmentChipRow"></div>
         `;
+
 
         const chips = rowCard.querySelector("#fragmentChipRow");
         chips.innerHTML = "";
@@ -1840,9 +1833,11 @@
             create3DFragment();
             showItemActions({
               title: `${character} – Fragment ${i}`,
-              description: owned ? "Owned fragment" : "Locked fragment"
+              description: owned ? "Owned fragment" : "Locked fragment",
+              isOwned: owned   // 👈 gating Read More
             });
           });
+
           chips.appendChild(chip);
         }
 
@@ -1905,10 +1900,15 @@
         <div class="character-thumb"><img loading="lazy" src="${c.image || ''}" alt=""></div>
         <div class="character-name">${c.name || 'Character'}</div>
       `;
-      card.addEventListener('click', () => {
-        if (locked) return;
-        create3DStem('default');
-        showItemActions({ title: c.name, description: 'Unlocked character' });
+      card.addEventListener("click", () => {
+        if (locked) {
+          // locked character
+          create3DStem("default");
+          showItemActions({ title: c.name, description: "Locked character", isOwned: false });
+          return;
+        }
+        create3DStem("default");
+        showItemActions({ title: c.name, description: "Unlocked character", isOwned: true });
       });
       container.appendChild(card);
     });
@@ -1927,17 +1927,64 @@
     wrapper.appendChild(makeStemChips(owned,total));
     return wrapper;
   }
-  function openEpOverlay(epTitle,songsInEp){
-    const ownedTotal=songsInEp.reduce((a,s)=>a+(s.ownedStems||0),0);
-    const maxTotal=songsInEp.reduce((a,s)=>a+(s.totalStems||0),0);
-    const pct=maxTotal?Math.round((ownedTotal/maxTotal)*100):0;
-    document.getElementById("albumSheetTitle").textContent=epTitle;
-    document.getElementById("albumSheetSubtitle").textContent=`${songsInEp.length} Songs`;
-    document.getElementById("albumSheetPct").textContent=pct+"%";
-    document.getElementById("albumSheetFill").style.width=pct+"%";
-    const body=document.getElementById("albumSheetBody");body.innerHTML="";songsInEp.forEach(row=>{body.appendChild(makeSongRow(row.name||"Untitled",row.ownedStems||0,row.totalStems||0));});
-    const overlay=document.getElementById("albumOverlay");overlay.classList.add("show");overlay.setAttribute("aria-hidden","false");
-  }
+      
+      function openEpOverlay(epTitle, songsInEp) {
+        // overall progress
+        const ownedTotal = songsInEp.reduce((a, s) => a + (s.ownedStems || 0), 0);
+        const maxTotal   = songsInEp.reduce((a, s) => a + (s.totalStems || 0), 0);
+        const pct        = maxTotal ? Math.round((ownedTotal / maxTotal) * 100) : 0;
+
+        // header
+        document.getElementById("albumSheetTitle").textContent = epTitle;
+        document.getElementById("albumSheetSubtitle").textContent = `${songsInEp.length} Songs`;
+        document.getElementById("albumSheetPct").textContent = pct + "%";
+        document.getElementById("albumSheetFill").style.width = pct + "%";
+
+        // body
+        const body = document.getElementById("albumSheetBody");
+        body.innerHTML = "";
+
+        songsInEp.forEach(row => {
+          const name  = row.name || "Untitled";
+          const owned = row.ownedStems || 0;
+          const total = row.totalStems || 0;
+
+          // your existing row factory (kept intact)
+          const rowEl = makeSongRow(name, owned, total);
+
+          // 🔗 Attach click handlers to each stem chip in this row
+          // Assumes chips have class .stem-slot (matches your CSS)
+          const chips = rowEl.querySelectorAll(".stem-slot");
+          const labels = ["D", "B", "M", "V", "FX"]; // adjust if you label differently
+
+          chips.forEach((chip, idx) => {
+            const isOwned = idx < owned;
+            const label   = labels[idx] || `Stem ${idx + 1}`;
+
+            chip.addEventListener("click", (e) => {
+              e.stopPropagation(); // don’t collapse/open card
+
+              // Optional: map label → 3D primitive (uses your existing helper)
+              create3DStem(stemTitleToType(label));
+
+              // Gate Read More with isOwned
+              showItemActions({
+                title: `${name} — ${label}`,
+                description: isOwned ? "Owned stem" : "Locked stem",
+                isOwned, // 👈 this hides Read More when false
+              });
+            });
+          });
+
+          body.appendChild(rowEl);
+        });
+
+        // show overlay
+        const overlay = document.getElementById("albumOverlay");
+        overlay.classList.add("show");
+        overlay.setAttribute("aria-hidden", "false");
+      }
+
   
   function renderEPsGrouped(catalog={}, songs=[], singles=[]) {
     const container = document.getElementById("stems-collections");
@@ -2118,17 +2165,30 @@
         }
 
         list.forEach(ep => {
-          const prog   = epProgress.get(ep.id);
+          const prog     = epProgress.get(ep.id);
           const unlocked = !!prog?.complete; // grey if not completed/unlocked
+
           const card = document.createElement("div");
           card.className = "unreleased-card" + (unlocked ? "" : " locked"); // reuse tile style
           card.innerHTML = `
             ${ep.image ? `<img loading="lazy" src="${ep.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
             <h3>${ep.name || "Album/EP"}</h3>
           `;
+
+          // 👇 Add this click handler
+          card.addEventListener("click", () => {
+            create3DStem("default");
+            showItemActions({
+              title: ep.name,
+              description: unlocked ? "Unlocked album" : "Locked album",
+              isOwned: unlocked
+            });
+          });
+
           container.appendChild(card);
         });
       }
+
       
       function renderUnreleasedFromCatalog(catalog = {}, items = []) {
         const container = document.getElementById("unreleased-grid");
@@ -2152,22 +2212,26 @@
         }
 
         list.forEach(u => {
-          const name = u?.name || u?.title || u?.id || "Unreleased";
+          const name  = u?.name || u?.title || u?.id || "Unreleased";
           const owned = ownedNames.has(name) || ownedNames.has(u?.id);
+
           const card = document.createElement("div");
           card.className = "unreleased-card" + (owned ? "" : " locked");
           card.innerHTML = `
             ${u?.image ? `<img loading="lazy" src="${u.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
             <h3>${name}</h3>
           `;
+
           card.addEventListener("click", () => {
             create3DStem("default");
             showItemActions({
               title: name,
               description: (u?.rarity || "Unreleased").toString().toUpperCase(),
-              audio: u?.audio || ""
+              audio: u?.audio || "",
+              isOwned: owned, // 👈 gate the Read More button
             });
           });
+
           container.appendChild(card);
         });
       }
