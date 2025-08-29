@@ -1784,7 +1784,37 @@
 
   /***************************
    * RENDER FUNCTIONS (progress + all/greyed)
+   
    ***************************/
+      
+      // === Fragment Overlay helper (must exist before renderFragmentsAll uses it) ===
+      function openFragmentOverlay(character, collected, total, itemsNode) {
+        const pct = total ? Math.min(100, Math.round((collected / total) * 100)) : 0;
+        const titleEl = document.getElementById("fragmentSheetTitle");
+        const subEl   = document.getElementById("fragmentSheetSubtitle");
+        const pctEl   = document.getElementById("fragmentSheetPct");
+        const fillEl  = document.getElementById("fragmentSheetFill");
+        const bodyEl  = document.getElementById("fragmentSheetBody");
+        const overlay = document.getElementById("fragmentOverlay");
+
+        if (!titleEl || !subEl || !pctEl || !fillEl || !bodyEl || !overlay) {
+          console.warn("[overlay] Fragment overlay DOM not found.");
+          return;
+        }
+
+        titleEl.textContent = character || "Fragments";
+        subEl.textContent = `${collected}/${total} fragments`;
+        pctEl.textContent = pct + "%";
+        fillEl.style.width = pct + "%";
+
+        bodyEl.innerHTML = "";
+        bodyEl.appendChild(itemsNode);
+
+        overlay.classList.add("show");
+        overlay.setAttribute("aria-hidden", "false");
+      }
+
+      
   // Example: Characters (all, grey out locked)
   function renderCharactersAll(inv = {}, catalog = {}) {
     const container = document.getElementById('characters-grid');
@@ -2076,15 +2106,16 @@
           .map(it => it.name || it.title || it.itemId)
         );
 
-        // Normalize catalog list; prefer .name, fallback .title, then .id
-        const list = asArray(catalog.unreleased).map(u => {
-          const name = u.name || u.title || u.id || "Unreleased";
+        // Normalize catalog list; STRICTLY prefer .name, then .title, then .id
+        const list = (Array.isArray(catalog?.unreleased) ? catalog.unreleased : []).map(u => {
+          const name = u?.name || u?.title || u?.id || "Unreleased Item";
+          if (!u?.name) console.debug("[unreleased] Missing .name in catalog entry, using fallback:", u);
           return {
-            key: u.id || name,
+            key: u?.id || name,
             name,
-            image: u.image || u.artUrl || "",
-            rarity: u.rarity || "Epic",
-            audio: u.audio || ""
+            image: u?.image || u?.artUrl || "",
+            rarity: u?.rarity || "Epic",
+            audio: u?.audio || ""
           };
         });
 
@@ -2102,12 +2133,11 @@
             <h3>${u.name}</h3>
           `;
           card.addEventListener("click", () => {
-            // Show playable audio (if present) via the action bar
             create3DStem("default");
             showItemActions({
-              title: u.name,
-              description: u.rarity ? String(u.rarity).toUpperCase() : "Unreleased",
-              audio: u.audio || ""  // will show Play if you’ve got the file
+              title: u.name,                              // ✅ always the name ("Vault Demo")
+              description: (u.rarity || "Unreleased"),    // label beneath the title
+              audio: u.audio || ""                        // Play button appears if provided
             });
           });
           container.appendChild(card);
