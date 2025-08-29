@@ -1868,49 +1868,43 @@
     const body=document.getElementById("albumSheetBody");body.innerHTML="";songsInEp.forEach(row=>{body.appendChild(makeSongRow(row.name||"Untitled",row.ownedStems||0,row.totalStems||0));});
     const overlay=document.getElementById("albumOverlay");overlay.classList.add("show");overlay.setAttribute("aria-hidden","false");
   }
-  function renderEPsGrouped(catalog={},songs=[],singles=[]){
-    const container=document.getElementById("stems-collections");if(!container)return;container.innerHTML="";
-    const epMeta=new Map();asArray(catalog.eps).forEach(ep=>epMeta.set(ep.id,ep));
-    const byEp=new Map();songs.forEach(row=>{const key=row.epId||"unknown";if(!byEp.has(key))byEp.set(key,[]);byEp.get(key).push(row);});
-    byEp.forEach((songRows,epId)=>{const meta=epMeta.get(epId);const name=meta?.name||(epId==="unknown"?"Misc":"EP");const totals=songRows.reduce((acc,r)=>{acc.owned+=(r.ownedStems||0);acc.total+=(r.totalStems||0);return acc;},{owned:0,total:0});const pct=totals.total?Math.round((totals.owned/totals.total)*100):0;const card=document.createElement("div");card.className="collection-card";card.innerHTML=`<div class="collection-header"><div class="collection-info"><h3>${name}</h3><p>${songRows.length} Songs</p></div><div class="collection-progress"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><span class="progress-text">${pct}%</span></div></div>`;card.addEventListener("click",()=>openEpOverlay(name,songRows));container.appendChild(card);});
-    if((singles||[]).length){const totals=singles.reduce((a,s)=>({owned:a.owned+(s.ownedStems||0),total:a.total+(s.totalStems||0)}),{owned:0,total:0});const pct=totals.total?Math.round((totals.owned/totals.total)*100):0;const card=document.createElement("div");card.className="collection-card";card.innerHTML=`<div class="collection-header"><div class="collection-info"><h3>Singles</h3><p>${singles.length} Songs</p></div><div class="collection-progress"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><span class="progress-text">${pct}%</span></div></div>`;card.addEventListener("click",()=>{openEpOverlay("Singles",singles.map(r=>({name:r.name||"Single",ownedStems:r.ownedStems||0,totalStems:r.totalStems||0})));});container.appendChild(card);}
-  }
-
-  // Fragments, Albums, Unreleased (greyed if locked)
-  function renderFragmentsAll(inv = {}, catalog = {}) {
-    const container = document.getElementById('fragments-grid');
+  
+  function renderEPsGrouped(catalog={}, songs=[], singles=[]) {
+    const container = document.getElementById("stems-collections");
     if (!container) return;
-    container.innerHTML = '';
+    container.innerHTML = "";
 
-    const progressByChar = new Map((inv.progress?.fragments || []).map(f => [f.characterId, f]));
-    let sets = asArray(catalog.fragmentSets);
-    // Fallback if catalog empty: create pseudo-sets from progress so user sees something
-    if (!sets.length && (inv.progress?.fragments || []).length) {
-      sets = (inv.progress.fragments || []).map(f => ({
-        characterId: f.characterId,
-        name: f.name,
-        total: f.total || 3
-      }));
-    }
+    // EP meta index
+    const epMeta = new Map();
+    asArray(catalog.eps).forEach(ep => epMeta.set(ep.id, ep));
 
-    if (!sets.length) {
-      container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No fragments found.</div>`;
-      return;
-    }
+    // Group songs by EP
+    const byEp = new Map();
+    songs.forEach(row => {
+      const key = row.epId || "unknown";
+      if (!byEp.has(key)) byEp.set(key, []);
+      byEp.get(key).push(row);
+    });
 
-    sets.forEach(set => {
-      const row = progressByChar.get(set.characterId) || { owned: 0, total: set.total || 3, name: set.name };
-      const owned = row.owned || 0;
-      const total = row.total || 3;
-      const pct = total ? Math.round((owned / total) * 100) : 0;
+    // EP cards
+    byEp.forEach((songRows, epId) => {
+      const meta = epMeta.get(epId);
+      const name = meta?.name || (epId === "unknown" ? "Misc" : "EP");
 
-      const card = document.createElement('div');
-      card.className = 'collection-card' + (owned ? '' : ' locked');
+      const totals = songRows.reduce((acc, r) => {
+        acc.owned += r.ownedStems || 0;
+        acc.total += r.totalStems || 0;
+        return acc;
+      }, { owned: 0, total: 0 });
+      const pct = totals.total ? Math.round((totals.owned / totals.total) * 100) : 0;
+
+      const card = document.createElement("div");
+      card.className = "collection-card";
       card.innerHTML = `
         <div class="collection-header">
           <div class="collection-info">
-            <h3>${row.name || set.name || 'Collection'}</h3>
-            <p>${owned}/${total} fragments</p>
+            <h3>${name}</h3>
+            <p>${songRows.length} Songs</p>
           </div>
           <div class="collection-progress">
             <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
@@ -1918,103 +1912,182 @@
           </div>
         </div>
       `;
+      card.addEventListener("click", () => openEpOverlay(name, songRows));
+      container.appendChild(card);
+    });
+
+    // Singles: one card per Single (NOT grouped)
+    asArray(singles).forEach(s => {
+      const owned = s.ownedStems || 0;
+      const total = s.totalStems || 0;
+      const pct   = total ? Math.round((owned / total) * 100) : 0;
+
+      const card = document.createElement("div");
+      card.className = "collection-card";
+      card.innerHTML = `
+        <div class="collection-header">
+          <div class="collection-info">
+            <h3>${s.name || "Single"}</h3>
+            <p>${owned}/${total} stems</p>
+          </div>
+          <div class="collection-progress">
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <span class="progress-text">${pct}%</span>
+          </div>
+        </div>
+      `;
+      card.addEventListener("click", () => openEpOverlay(s.name || "Single", [s]));
       container.appendChild(card);
     });
   }
+
+  // Fragments, Albums, Unreleased (greyed if locked)
+  function renderFragmentsAll(inv = {}, catalog = {}) {
+    const container = document.getElementById("fragments-grid");
+    if (!container) return;
+    container.innerHTML = "";
+
+    // Build union of fragment sets from catalog AND progress
+    const setsByChar = new Map();
+    asArray(catalog.fragmentSets).forEach(set => {
+      const id = set.characterId || set.id;
+      if (!id) return;
+      setsByChar.set(id, {
+        id,
+        name: set.name || "Collection",
+        total: set.total || 3,
+        image: set.image || ""
+      });
+    });
+    asArray(inv.progress?.fragments).forEach(f => {
+      const id = f.characterId || f.id;
+      if (!id) return;
+      if (!setsByChar.has(id)) {
+        setsByChar.set(id, {
+          id,
+          name: f.name || "Collection",
+          total: f.total || 3,
+          image: ""
+        });
+      }
+    });
+
+    const list = Array.from(setsByChar.values());
+    if (!list.length) {
+      container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No fragments found.</div>`;
+      return;
+    }
+
+    const ownedByChar = new Map((inv.progress?.fragments || []).map(f => [f.characterId || f.id, f.owned || 0]));
+
+    // Create one card per FRAGMENT (3 per character)
+    list.forEach(set => {
+      const owned = ownedByChar.get(set.id) || 0;
+      const total = set.total || 3;
+
+      for (let i = 1; i <= total; i++) {
+        const card = document.createElement("div");
+        const collected = i <= owned;
+        card.className = "item-card fragment-card" + (collected ? "" : " locked");
+        card.innerHTML = `
+          ${set.image ? `<img loading="lazy" src="${set.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
+          <div class="item-header" style="justify-content:space-between;align-items:center">
+            <strong style="font-weight:600">${set.name} – Fragment ${i}</strong>
+            <span class="item-completion ${collected ? "complete" : ""}">${collected ? "Owned" : "Locked"}</span>
+          </div>
+        `;
+        container.appendChild(card);
+      }
+    });
+  }
+      
       function renderAlbumsFromCatalog(inv = {}, catalog = {}) {
-        const container = document.getElementById('albums-grid');
+        const container = document.getElementById("albums-grid");
         if (!container) return;
-        container.innerHTML = '';
+        container.innerHTML = "";
 
-        // All cover collectibles
-        const covers = asArray(catalog.covers);
+        // Union of EPs from catalog & progress
+        const byId = new Map();
+        asArray(catalog.eps).forEach(ep => {
+          if (!ep || !ep.id) return;
+          byId.set(ep.id, { id: ep.id, name: ep.name, image: ep.coverImage || ep.image || ep.artUrl || "" });
+        });
+        asArray(inv.progress?.eps).forEach(ep => {
+          if (!ep || !ep.id) return;
+          if (!byId.has(ep.id)) byId.set(ep.id, { id: ep.id, name: ep.name, image: "" });
+        });
 
-        // Owned covers (by name or by some id if present)
-        const ownedSet = new Set((inv.items || [])
-          .filter(it => {
-            // treat rarity or type as hints that this is a cover collectible
-            const r = (it.rarity || '').toLowerCase();
-            const t = (it.type || '').toLowerCase();
-            return t === 'cover' || r === 'rare'; // adjust if your server uses another marker
-          })
-          .map(it => it.name)
-        );
-
-        // If catalog has no covers, try derive from EPs (using their coverImage)
-        let list = covers;
+        const epProgress = new Map(asArray(inv.progress?.eps).map(e => [e.id, e]));
+        const list = Array.from(byId.values());
         if (!list.length) {
-          list = asArray(catalog.eps).map(ep => ({
-            id: ep.id,
-            name: ep.name,
-            image: ep.coverImage || ep.image || ''
-          }));
-        }
-
-        if (!list.length) {
-          container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No album covers found.</div>`;
+          container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No albums found.</div>`;
           return;
         }
 
-        list.forEach(cov => {
-          const name = cov.name || cov.title || 'Album';
-          const img  = cov.image || cov.coverImage || cov.artUrl || '';
-          const owned= ownedSet.has(name);
-
-          const card = document.createElement('div');
-          card.className = 'unreleased-card' + (owned ? '' : ' locked'); // reuse tile style
+        list.forEach(ep => {
+          const prog   = epProgress.get(ep.id);
+          const unlocked = !!prog?.complete; // grey if not completed/unlocked
+          const card = document.createElement("div");
+          card.className = "unreleased-card" + (unlocked ? "" : " locked"); // reuse tile style
           card.innerHTML = `
-            ${img ? `<img loading="lazy" src="${img}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ''}
-            <h3>${name}</h3>
+            ${ep.image ? `<img loading="lazy" src="${ep.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
+            <h3>${ep.name || "Album/EP"}</h3>
           `;
           container.appendChild(card);
         });
       }
+      
       function renderUnreleasedFromCatalog(catalog = {}, items = []) {
-        const container = document.getElementById('unreleased-grid');
+        const container = document.getElementById("unreleased-grid");
         if (!container) return;
-        container.innerHTML = '';
+        container.innerHTML = "";
 
-        // Owned unreleased-like items (epic/legendary OR type hints)
+        // Owned (epic/legendary or explicit type)
         const ownedNames = new Set((items || [])
           .filter(it => {
-            const r = (it.rarity || '').toLowerCase();
-            const t = (it.type || '').toLowerCase();
-            return r === 'epic' || r === 'legendary' || t === 'unreleased';
+            const r = (it.rarity || "").toLowerCase();
+            const t = (it.type || "").toLowerCase();
+            return r === "epic" || r === "legendary" || t === "unreleased";
           })
-          .map(it => it.name)
+          .map(it => it.name || it.title || it.itemId)
         );
 
-        // Union: catalog.unreleased ∪ (owned epic/legendary items as pseudo-unreleased)
-        const byName = new Map();
+        // Union: catalog.unreleased ∪ owned items (as pseudo-unreleased)
+        const byKey = new Map();
         asArray(catalog.unreleased).forEach(u => {
-          const name = u.name || u.title;
-          if (!name) return;
-          byName.set(name, { name, image: u.image || u.artUrl || '', rarity: u.rarity || 'Epic' });
+          const key = u.name || u.title || u.id;
+          if (!key) return;
+          byKey.set(key, {
+            key,
+            name: u.name || u.title || "Unreleased",
+            image: u.image || u.artUrl || "",
+            rarity: u.rarity || "Epic"
+          });
         });
-
         (items || []).forEach(it => {
-          const r = (it.rarity || '').toLowerCase();
-          const t = (it.type || '').toLowerCase();
-          if (r === 'epic' || r === 'legendary' || t === 'unreleased') {
-            if (!byName.has(it.name)) {
-              byName.set(it.name, { name: it.name, image: it.artUrl || '', rarity: it.rarity });
+          const r = (it.rarity || "").toLowerCase();
+          const t = (it.type || "").toLowerCase();
+          if (r === "epic" || r === "legendary" || t === "unreleased") {
+            const key = it.name || it.title || it.itemId;
+            if (key && !byKey.has(key)) {
+              byKey.set(key, { key, name: it.name || it.title || "Unreleased", image: it.artUrl || "", rarity: it.rarity });
             }
           }
         });
 
-        const list = Array.from(byName.values());
+        const list = Array.from(byKey.values());
         if (!list.length) {
           container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No unreleased items found.</div>`;
           return;
         }
 
         list.forEach(u => {
-          const owned = ownedNames.has(u.name);
-          const card = document.createElement('div');
-          card.className = 'unreleased-card' + (owned ? '' : ' locked');
+          const owned = ownedNames.has(u.key);
+          const card = document.createElement("div");
+          card.className = "unreleased-card" + (owned ? "" : " locked");
           card.innerHTML = `
-            ${u.image ? `<img loading="lazy" src="${u.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ''}
-            <h3>${u.name || ''}</h3>
+            ${u.image ? `<img loading="lazy" src="${u.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
+            <h3>${u.name}</h3>
           `;
           container.appendChild(card);
         });
@@ -2029,49 +2102,69 @@
   /***************************
    * INIT
    ***************************/
-  (async function init(){
-    if (typeof THREE !== "undefined") initViewport();
-    let catalog={},inv=null;
-    try{
-      const [cRes,iRes]=await Promise.all([
-        fetch("/api/catalog",{credentials:"include"}),
-        fetch("/api/inventory",{credentials:"include"})
-      ]);
-      if(cRes.ok){const raw=await cRes.json();catalog=normalizeCatalog(raw);}
-      if(iRes.ok) inv=await iRes.json();
-    }catch(e){console.warn("Inventory fetch failed",e);}
-    
-    catalog = normalizeCatalog(catalog);
-     console.log('CATALOG COUNTS', {
-       eps: catalog.eps.length,
-       covers: catalog.covers.length,
-       fragmentSets: catalog.fragmentSets.length,
-       unreleased: catalog.unreleased.length,
-       golden: catalog.goldenCharacters.length
-     });
-     console.log('INV COUNTS', inv && {
-       items: inv.items?.length,
-       songs: inv.progress?.songs?.length,
-       eps: inv.progress?.eps?.length,
-       singles: inv.progress?.singles?.length,
-       fragments: inv.progress?.fragments?.length,
-       characters: inv.progress?.characters?.length
-     });
-    
-    if(!inv){
-      renderEPsGrouped(catalog,[],[]);
-      renderCharactersAll({},catalog);
-      renderFragmentsAll({},catalog);
-      renderAlbumsFromCatalog({},catalog);
-      renderUnreleasedFromCatalog(catalog,[]);
-      return;
-    }
-    renderEPsGrouped(catalog,inv.progress?.songs||[],inv.progress?.singles||[]);
-    renderCharactersAll(inv,catalog);
-    renderFragmentsAll(inv,catalog);
-    renderAlbumsFromCatalog(inv,catalog);
-    renderUnreleasedFromCatalog(catalog,inv.items||[]);
-  })();
+      (async function init(){
+        if (typeof THREE !== "undefined") initViewport();
+
+        let catalog = {};
+        let inv = null;
+
+        try{
+          const [cRes, iRes] = await Promise.all([
+            fetch("/api/catalog",   { credentials: "include" }),
+            fetch("/api/inventory", { credentials: "include" })
+          ]);
+
+          if (cRes.ok) {
+            const raw = await cRes.json();
+            catalog = normalizeCatalog(raw);     // ✅ normalize once here
+          }
+          if (iRes.ok) {
+            inv = await iRes.json();
+          }
+        } catch (e) {
+          console.warn("Inventory fetch failed", e);
+        }
+
+        // If catalog wasn’t OK above, ensure it’s at least shaped
+        if (!catalog || !catalog.eps) {
+          catalog = normalizeCatalog(catalog);
+        }
+
+        // Debug (safe even if inv is null)
+        console.log("CATALOG COUNTS", {
+          eps: catalog.eps.length,
+          covers: catalog.covers.length,
+          fragmentSets: catalog.fragmentSets.length,
+          unreleased: catalog.unreleased.length,
+          golden: catalog.goldenCharacters.length
+        });
+        console.log("INV COUNTS", inv && {
+          items:      inv.items?.length,
+          songs:      inv.progress?.songs?.length,
+          eps:        inv.progress?.eps?.length,
+          singles:    inv.progress?.singles?.length,
+          fragments:  inv.progress?.fragments?.length,
+          characters: inv.progress?.characters?.length
+        });
+
+        // Empty state
+        if (!inv) {
+          renderEPsGrouped(catalog, [], []);
+          renderCharactersAll({}, catalog);
+          renderFragmentsAll({}, catalog);
+          renderAlbumsFromCatalog({}, catalog);
+          renderUnreleasedFromCatalog(catalog, []);
+          return;
+        }
+
+        // Real render
+        renderEPsGrouped(catalog, inv.progress?.songs || [], inv.progress?.singles || []);
+        renderCharactersAll(inv, catalog);
+        renderFragmentsAll(inv, catalog);
+        renderAlbumsFromCatalog(inv, catalog);
+        renderUnreleasedFromCatalog(catalog, inv.items || []);
+      })();
+
 
   // (Keep your nav/menu/login wiring below here unchanged)
   </script>
