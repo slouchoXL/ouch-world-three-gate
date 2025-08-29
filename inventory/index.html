@@ -1117,32 +1117,6 @@
             grid-template-columns: 1fr;
         }
 
-        /*     .album-close, .modal-close, .popup-close {
-            width: 30px;
-            height: 30px;
-            background-color: rgba(0, 0, 0, 0.8);  Change from background: to background-color:
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: border-color .2s ease;  Remove background from transition
-            backdrop-filter: blur(10px);
-            color: #ffffff;
-            font-size: 16px;
-            font-weight: 400;
-            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEgMUwxMSAxMSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTEgMUwxIDExIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=');
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: 12px 12px;
-        }
-
-        .modal-close:hover, .album-close:hover, .popup-close:hover {
-            border-color: rgba(255, 255, 255, 0.45);
-           No background changes at all - just the brighter border
-        }
-        */
                 
         .modal-close {
             position: absolute;
@@ -1430,6 +1404,18 @@
                 --sheet-safe-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
             }
         }
+        
+        
+        /* Any card marked as locked will appear dimmed */
+        .character-card.locked,
+        .album-card.locked,
+        .collection-card.locked,
+        .unreleased-card.locked {
+          opacity: 0.4;
+          filter: grayscale(100%);
+          pointer-events: none; /* optional: prevent clicking locked items */
+        }
+
 
         /* Prevent horizontal cutoff by allowing columns to shrink */
         .inventory-panel, .viewport-panel, .viewport-container { min-width: 0; }
@@ -1630,828 +1616,272 @@
 
 
   <script>
-    /***************************
-     * THREE.JS VIEWPORT
-     ***************************/
-    let scene, camera, renderer, currentObject, autoRotate = false;
+  /***************************
+   * THREE.JS VIEWPORT
+   ***************************/
+  let scene, camera, renderer, currentObject, autoRotate = false;
 
-    function initViewport() {
-      const viewport = document.getElementById('viewport'); // make sure your HTML has id="viewport"
-      if (!viewport) {
-        console.error('Missing #viewport element');
-        return;
-      }
-
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0a0a0a);
-
-      camera = new THREE.PerspectiveCamera(75, viewport.clientWidth / viewport.clientHeight, 0.1, 1000);
-      camera.position.z = 5;
-
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-      renderer.shadowMap.enabled = true;
-      viewport.appendChild(renderer.domElement);
-
-      scene.add(new THREE.AmbientLight(0x404040, 0.4));
-      const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-      dir.position.set(5,5,5);
-      scene.add(dir);
-      const pt = new THREE.PointLight(0xffffff, 0.3, 10);
-      pt.position.set(-3,3,3);
-      scene.add(pt);
-
-      // Keep canvas in sync with container
-      try {
-        const ro = new ResizeObserver(entries => {
-          for (const entry of entries) {
-            const { width, height } = entry.contentRect;
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-            renderer.setSize(width, height);
-          }
-        });
-        ro.observe(viewport);
-      } catch(_) {}
-
-      createPlaceholderScene();
-      animate();
+  function initViewport() {
+    const viewport = document.getElementById('viewport');
+    if (!viewport) {
+      console.error('Missing #viewport element');
+      return;
     }
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0a);
+    camera = new THREE.PerspectiveCamera(75, viewport.clientWidth / viewport.clientHeight, 0.1, 1000);
+    camera.position.z = 5;
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+    renderer.shadowMap.enabled = true;
+    viewport.appendChild(renderer.domElement);
 
-    function createPlaceholderScene() {
-      if (currentObject) scene.remove(currentObject);
-      const group = new THREE.Group();
-      const cube = new THREE.Mesh(
-        new THREE.BoxGeometry(1,1,1),
-        new THREE.MeshPhongMaterial({ color:0xffffff, opacity:0.8, transparent:true })
-      );
-      group.add(cube);
-      currentObject = group;
-      scene.add(group);
-    }
+    scene.add(new THREE.AmbientLight(0x404040, 0.4));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(5,5,5);
+    scene.add(dir);
+    const pt = new THREE.PointLight(0xffffff, 0.3, 10);
+    pt.position.set(-3,3,3);
+    scene.add(pt);
 
-    function create3DStem(type) {
-      if (currentObject) scene.remove(currentObject);
-      const group = new THREE.Group();
-      let mainObject;
-      switch(type) {
-        case "vocals": mainObject = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,1.5), new THREE.MeshPhongMaterial({color:0xffffff})); break;
-        case "guitar": mainObject = new THREE.Mesh(new THREE.BoxGeometry(0.6,1,0.15), new THREE.MeshPhongMaterial({color:0xffffff})); break;
-        case "bass":   mainObject = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.8,0.12), new THREE.MeshPhongMaterial({color:0xffffff})); break;
-        case "drums":  mainObject = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.3), new THREE.MeshPhongMaterial({color:0xffffff})); break;
-        default:       mainObject = new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,0.05), new THREE.MeshPhongMaterial({color:0xffffff}));
-      }
-      group.add(mainObject);
-      currentObject = group;
-      scene.add(group);
-    }
-
-    function create3DFragment() {
-      if (currentObject) scene.remove(currentObject);
-      const group = new THREE.Group();
-      const scroll = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.2,1.6),
-        new THREE.MeshPhongMaterial({color:0xffffff, side:THREE.DoubleSide, transparent:true, opacity:0.9})
-      );
-      group.add(scroll);
-      currentObject = group;
-      scene.add(group);
-    }
-
-    function animate() {
-      requestAnimationFrame(animate);
-      if (currentObject && autoRotate) currentObject.rotation.y += 0.005;
-      renderer.render(scene,camera);
-    }
-
-    /***************************
-     * ACTION BAR + ITEM LOGIC
-     ***************************/
-    const actionBar   = document.getElementById("itemActionBar");
-    const audioEl     = document.getElementById("audio-player");
-    const playBtn     = document.getElementById("playBtn");
-    const readMoreBtn = document.getElementById("readMoreBtn");
-    const popupTitle  = document.getElementById("popupTitle");
-    const popupText   = document.getElementById("popupText");
-    const readMoreOverlay = document.getElementById("readMoreOverlay");
-    const popupCloseBtn   = document.getElementById("popupCloseBtn");
-
-    function showItemActions(item) {
-      const hasAudio = !!item.audio;
-      const hasDesc  = !!item.description;
-
-      actionBar.classList.toggle("hidden", !hasAudio && !hasDesc);
-
-      if (hasAudio) {
-        audioEl.src = item.audio; // provide absolute or relative path from server
-        playBtn.style.display = "block";
-      } else {
-        audioEl.removeAttribute("src");
-        playBtn.style.display = "none";
-      }
-
-      if (hasDesc) {
-        popupTitle.textContent = item.title || item.name || "";
-        popupText.textContent  = item.description;
-        readMoreBtn.style.display = "block";
-      } else {
-        popupTitle.textContent = "";
-        popupText.textContent = "";
-        readMoreBtn.style.display = "none";
-      }
-    }
-
-    // play/pause
-    playBtn.addEventListener("click", () => {
-      if (!audioEl.src) return;
-      if (audioEl.paused) { audioEl.play(); actionBar.classList.add("playing"); }
-      else { audioEl.pause(); actionBar.classList.remove("playing"); }
-    });
-
-    // read more
-    readMoreBtn.addEventListener("click", () => {
-      readMoreOverlay.classList.add("show");
-      readMoreOverlay.setAttribute("aria-hidden","false");
-    });
-    popupCloseBtn.addEventListener("click", () => {
-      readMoreOverlay.classList.remove("show");
-      readMoreOverlay.setAttribute("aria-hidden","true");
-    });
-
-    /***************************
-     * RENDER FUNCTIONS
-     ***************************/
-
-    // Utility: map a stem title to a 3D type keyword
-    function stemTitleToType(title="") {
-      const t = title.toLowerCase();
-      if (t.includes("vocal")) return "vocals";
-      if (t.includes("guitar")) return "guitar";
-      if (t.includes("bass"))   return "bass";
-      if (t.includes("drum"))   return "drums";
-      return "default";
-    }
-
-    function renderCharacters(characters) {
-      const container = document.getElementById("characters-grid");
-      container.innerHTML = "";
-      characters.forEach(c => {
-        // RPC returns: title, image, description, rarity...
-        const card = document.createElement("div");
-        card.className = "character-card";
-        card.innerHTML = `
-          <div class="character-thumb"><img src="${c.image || ""}" alt=""></div>
-          <div class="character-name">${c.title || ""}</div>
-        `;
-        card.addEventListener("click", () => {
-          create3DStem("default"); // or build a character primitive if you like
-          showItemActions(c);
-        });
-        container.appendChild(card);
-      });
-    }
-
-      function renderEPsGrouped(catalog = {}, songs = [], singles = []) {
-        const container = document.getElementById('stems-collections');
-        if (!container) return;
-        container.innerHTML = '';
-
-        // index EP meta
-        const epMeta = new Map();
-        (catalog.eps || []).forEach(ep => epMeta.set(ep.id, ep));
-
-        // group songs by EP id
-        const byEp = new Map();
-        songs.forEach(row => {
-          const key = row.epId || 'unknown';
-          if (!byEp.has(key)) byEp.set(key, []);
-          byEp.get(key).push(row);
-        });
-
-        // make an EP card (click -> overlay showing songs)
-        const makeEpCard = (title, epId, songRows) => {
-          const totals = songRows.reduce((acc, r) => {
-            acc.owned += r.ownedStems||0;
-            acc.total += r.totalStems||0;
-            return acc;
-          }, {owned:0,total:0});
-          const pct = totals.total ? Math.round((totals.owned / totals.total) * 100) : 0;
-
-          const card = document.createElement('div');
-          card.className = 'collection-card';
-          card.innerHTML = `
-            <div class="collection-header">
-              <div class="collection-info">
-                <h3>${title}</h3>
-                <p>${songRows.length} Songs</p>
-              </div>
-              <div class="collection-progress">
-                <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-                <span class="progress-text">${pct}%</span>
-              </div>
-            </div>
-          `;
-          card.addEventListener('click', () => openEpOverlay(title, songRows));
-          return card;
-        };
-
-        // render EP cards
-        byEp.forEach((songRows, epId) => {
-          const meta = epMeta.get(epId);
-          const name = meta?.name || (epId === 'unknown' ? 'Misc' : 'EP');
-          container.appendChild(makeEpCard(name, epId, songRows));
-        });
-
-        // render Singles as an EP-like card that opens listing its stems
-        const singleMeta = new Map();
-        (catalog.singles || []).forEach(s => singleMeta.set(s.id, s));
-        if ((singles||[]).length) {
-          const title = 'Singles';
-          const card = document.createElement('div');
-          const totals = singles.reduce((a,s)=>({owned:a.owned+(s.ownedStems||0), total:a.total+(s.totalStems||0)}),{owned:0,total:0});
-          const pct = totals.total ? Math.round((totals.owned/totals.total)*100) : 0;
-          card.className = 'collection-card';
-          card.innerHTML = `
-            <div class="collection-header">
-              <div class="collection-info">
-                <h3>${title}</h3>
-                <p>${singles.length} Songs</p>
-              </div>
-              <div class="collection-progress">
-                <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-                <span class="progress-text">${pct}%</span>
-              </div>
-            </div>
-          `;
-          card.addEventListener('click', () => {
-            const rows = singles.map(r => ({
-              name: r.name || singleMeta.get(r.id)?.name || 'Single',
-              ownedStems: r.ownedStems || 0,
-              totalStems: r.totalStems || 0
-            }));
-            openEpOverlay('Singles', rows);
-          });
-          container.appendChild(card);
+    try {
+      const ro = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+          renderer.setSize(width, height);
         }
-      }
-
-
-    function renderFragments(fragments) {
-      const container = document.getElementById("fragments-grid");
-      container.innerHTML = "";
-
-      // Group by character via 'subtitle' (your RPC returns subtitle for fragments as well, e.g., character/series)
-      const groups = {};
-      fragments.forEach(f => {
-        const character = f.subtitle || "Collection";
-        if (!groups[character]) groups[character] = [];
-        groups[character].push(f);
       });
+      ro.observe(viewport);
+    } catch(_) {}
 
-      Object.entries(groups).forEach(([character, frags]) => {
-        const total = 3; // adjust if your target per collection differs
-        const collected = frags.length;
-        const pct = Math.min(100, Math.round(collected / total * 100));
+    createPlaceholderScene();
+    animate();
+  }
 
-        const col = document.createElement("div");
-        col.className = "collection-card";
-        col.innerHTML = `
-          <div class="collection-header">
-            <div class="collection-info">
-              <h3>${character}</h3>
-              <p>${collected}/${total} fragments</p>
-            </div>
-            <div class="collection-progress">
-              <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-              <span class="progress-text">${pct}%</span>
-            </div>
-          </div>
-          <div class="items-grid"></div>
-        `;
-
-        const list = col.querySelector(".items-grid");
-        frags.forEach(f => {
-          const div = document.createElement("div");
-          div.className = "item-card fragment-card";
-          div.textContent = f.title || "Fragment";
-          div.addEventListener("click", (e) => {
-            e.stopPropagation();
-            create3DFragment();
-            showItemActions(f);
-          });
-          list.appendChild(div);
-        });
-
-        col.addEventListener("click", (e) => {
-          if (!e.target.closest(".item-card")) {
-            openFragmentOverlay(character, collected, total, list.cloneNode(true));
-          }
-        });
-
-        container.appendChild(col);
-      });
+  function createPlaceholderScene() {
+    if (currentObject) scene.remove(currentObject);
+    const group = new THREE.Group();
+    const cube = new THREE.Mesh(
+      new THREE.BoxGeometry(1,1,1),
+      new THREE.MeshPhongMaterial({ color:0xffffff, opacity:0.8, transparent:true })
+    );
+    group.add(cube);
+    currentObject = group;
+    scene.add(group);
+  }
+  function create3DStem(type) {
+    if (currentObject) scene.remove(currentObject);
+    const group = new THREE.Group();
+    let mainObject;
+    switch(type) {
+      case "vocals": mainObject = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,1.5), new THREE.MeshPhongMaterial({color:0xffffff})); break;
+      case "guitar": mainObject = new THREE.Mesh(new THREE.BoxGeometry(0.6,1,0.15), new THREE.MeshPhongMaterial({color:0xffffff})); break;
+      case "bass":   mainObject = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.8,0.12), new THREE.MeshPhongMaterial({color:0xffffff})); break;
+      case "drums":  mainObject = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.3), new THREE.MeshPhongMaterial({color:0xffffff})); break;
+      default:       mainObject = new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,0.05), new THREE.MeshPhongMaterial({color:0xffffff}));
     }
+    group.add(mainObject);
+    currentObject = group;
+    scene.add(group);
+  }
+  function create3DFragment() {
+    if (currentObject) scene.remove(currentObject);
+    const group = new THREE.Group();
+    const scroll = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.2,1.6),
+      new THREE.MeshPhongMaterial({color:0xffffff, side:THREE.DoubleSide, transparent:true, opacity:0.9})
+    );
+    group.add(scroll);
+    currentObject = group;
+    scene.add(group);
+  }
+  function animate() {
+    requestAnimationFrame(animate);
+    if (currentObject && autoRotate) currentObject.rotation.y += 0.005;
+    renderer.render(scene,camera);
+  }
 
-    function renderUnreleased(unreleased) {
-      const container = document.getElementById("unreleased-grid");
-      container.innerHTML = "";
-      unreleased.forEach(u => {
-        const card = document.createElement("div");
-        card.className = "unreleased-card";
-        card.innerHTML = `<h3>${u.title || ""}</h3>`;
-        card.addEventListener("click", () => { create3DStem("default"); showItemActions(u); });
-        container.appendChild(card);
-      });
+  /***************************
+   * ACTION BAR + ITEM LOGIC
+   ***************************/
+  const actionBar   = document.getElementById("itemActionBar");
+  const audioEl     = document.getElementById("audio-player");
+  const playBtn     = document.getElementById("playBtn");
+  const readMoreBtn = document.getElementById("readMoreBtn");
+  const popupTitle  = document.getElementById("popupTitle");
+  const popupText   = document.getElementById("popupText");
+  const readMoreOverlay = document.getElementById("readMoreOverlay");
+  const popupCloseBtn   = document.getElementById("popupCloseBtn");
+
+  function showItemActions(item) {
+    const hasAudio = !!item.audio;
+    const hasDesc  = !!item.description;
+    actionBar.classList.toggle("hidden", !hasAudio && !hasDesc);
+    if (hasAudio) {
+      audioEl.src = item.audio;
+      playBtn.style.display = "block";
+    } else {
+      audioEl.removeAttribute("src");
+      playBtn.style.display = "none";
     }
-
-    function renderAlbums(albums) {
-      const container = document.getElementById("albums-grid");
-      container.innerHTML = "";
-      albums.forEach(a => {
-        const card = document.createElement("div");
-        card.className = "album-card";
-        card.innerHTML = `<img src="${a.image || ""}" alt=""><h3>${a.title || ""}</h3>`;
-        card.addEventListener("click", () => showItemActions(a));
-        container.appendChild(card);
-      });
+    if (hasDesc) {
+      popupTitle.textContent = item.title || item.name || "";
+      popupText.textContent  = item.description;
+      readMoreBtn.style.display = "block";
+    } else {
+      popupTitle.textContent = "";
+      popupText.textContent = "";
+      readMoreBtn.style.display = "none";
     }
+  }
+  playBtn.addEventListener("click", () => {
+    if (!audioEl.src) return;
+    if (audioEl.paused) { audioEl.play(); actionBar.classList.add("playing"); }
+    else { audioEl.pause(); actionBar.classList.remove("playing"); }
+  });
+  readMoreBtn.addEventListener("click", () => {
+    readMoreOverlay.classList.add("show");
+    readMoreOverlay.setAttribute("aria-hidden","false");
+  });
+  popupCloseBtn.addEventListener("click", () => {
+    readMoreOverlay.classList.remove("show");
+    readMoreOverlay.setAttribute("aria-hidden","true");
+  });
 
-    /***************************
-     * INVENTORY SUMMARY + PROGRESS (matches /api/inventory)
-     ***************************/
-    function renderBalance(balance) {
-      const el = document.getElementById('balanceCoin');
-      if (!el) return;
-      const coins = (balance && typeof balance.COIN === 'number') ? balance.COIN : 0;
-      el.textContent = coins.toLocaleString();
-    }
+  /***************************
+   * HELPERS
+   ***************************/
+  function asArray(val) {
+    if (Array.isArray(val)) return val;
+    if (val && typeof val === 'object') return Object.values(val);
+    return [];
+  }
+  function normalizeCatalog(c) {
+    const src = (c && c.catalog) ? c.catalog : (c || {});
+    return {
+      eps:              asArray(src.eps),
+      singles:          asArray(src.singles),
+      covers:           asArray(src.covers),
+      fragmentSets:     asArray(src.fragmentSets),
+      unreleased:       asArray(src.unreleased),
+      goldenCharacters: asArray(src.goldenCharacters),
+    };
+  }
 
-    function renderOwnedItems(items = []) {
-      const list = document.getElementById('ownedItemsList');
-      if (!list) return;
-      list.innerHTML = '';
-
-      items.forEach(it => {
-        const card = document.createElement('div');
-        card.className = 'item-card';
-        card.innerHTML = `
-          <div class="item-header">
-            <strong style="font-weight:600">${it.name ?? 'Item'}</strong>
-            <span class="item-completion">${(it.rarity ?? '').toUpperCase()}</span>
-          </div>
-          <div style="display:flex;gap:10px;align-items:center;">
-            ${it.artUrl ? `<img src="${it.artUrl}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid #1a1a1a">` : ''}
-            <small>Qty: ${it.qty ?? 1}</small>
-          </div>
-        `;
-        card.addEventListener('click', () => {
-          showItemActions({ title: it.name, description: `${(it.rarity ?? '').toUpperCase()} • Qty ${it.qty ?? 1}` });
-          create3DStem('default');
-        });
-        list.appendChild(card);
-      });
-    }
-
-    /* === REPLACEMENT: EP tracks + Singles together (uses catalog) === */
-    function renderStemsAndSingles(catalog = {}, songs = [], singles = []) {
-      const container = document.getElementById('stems-collections');
-      if (!container) return;
-      container.innerHTML = '';
-
-      const makeCard = (title, owned, total, badgeText) => {
-        const pct = total > 0 ? Math.min(100, Math.round((owned / total) * 100)) : 0;
-        const card = document.createElement('div');
-        card.className = 'collection-card';
-        card.innerHTML = `
-          <div class="collection-header">
-            <div class="collection-info">
-              <h3>${title}</h3>
-              <p>${owned}/${total} stems${badgeText ? ` • ${badgeText}` : ''}</p>
-            </div>
-            <div class="collection-progress">
-              <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-              <span class="progress-text">${pct}%</span>
-            </div>
-          </div>
-        `;
-        return card;
-      };
-
-      // EP tracks
-      songs.forEach(row => {
-        const owned = row.ownedStems ?? 0;
-        const total = row.totalStems ?? 0;
-        const name  = row.name ?? 'Untitled';
-        const el = makeCard(name, owned, total, 'EP track');
-        container.appendChild(el);
-      });
-
-      // Singles (decorate with catalog.singles if present)
-      const singleMetaById = new Map();
-      if (Array.isArray(catalog.singles)) {
-        catalog.singles.forEach(s => { if (s.id) singleMetaById.set(s.id, s); });
-      }
-      singles.forEach(row => {
-        const owned = row.ownedStems ?? 0;
-        const total = row.totalStems ?? 0;
-        const meta = (row.id && singleMetaById.get(row.id)) || {};
-        const name = row.name || meta.name || 'Single';
-        const el = makeCard(name, owned, total, 'Single');
-        container.appendChild(el);
-      });
-    }
-
-    function renderFragmentsProgress(fragRows = []) {
-      const container = document.getElementById('fragments-grid');
-      if (!container) return;
-      container.innerHTML = '';
-
-      fragRows.forEach(row => {
-        const owned = row.owned ?? 0;
-        const total = row.total ?? 0;
-        const pct = total > 0 ? Math.min(100, Math.round((owned / total) * 100)) : 0;
-
-        const card = document.createElement('div');
-        card.className = 'collection-card';
-        card.innerHTML = `
-          <div class="collection-header">
-            <div class="collection-info">
-              <h3>${row.name ?? 'Collection'}</h3>
-              <p>${owned}/${total} fragments</p>
-            </div>
-            <div class="collection-progress">
-              <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-              <span class="progress-text">${pct}%</span>
-            </div>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-      function renderCharactersAll(inv = {}, catalog = {}) {
-        const container = document.getElementById('characters-grid');
-        if (!container) return;
-        container.innerHTML = '';
-
-        const unlocked = new Set((inv.progress?.characters || []).map(c => c.characterId));
-        const all = new Map();
-
-        (catalog.fragmentSets || []).forEach(fs => {
-          if (!fs.characterId) return;
-          all.set(fs.characterId, { id: fs.characterId, name: fs.name, image: fs.image });
-        });
-        (catalog.goldenCharacters || []).forEach(gc => {
-          if (!gc.characterId) return;
-          if (!all.has(gc.characterId)) all.set(gc.characterId, { id: gc.characterId, name: gc.name, image: gc.image });
-        });
-
-        Array.from(all.values()).forEach(c => {
-          const locked = !unlocked.has(c.id);
-          const card = document.createElement('div');
-          card.className = 'character-card' + (locked ? ' locked' : '');
-          card.innerHTML = `
-            <div class="character-thumb"><img src="${c.image || ''}" alt=""></div>
-            <div class="character-name">${c.name || 'Character'}</div>
-          `;
-          card.addEventListener('click', () => {
-            if (locked) return;                 // no interaction if locked
-            create3DStem('default');
-            showItemActions({ title: c.name, description: 'Unlocked character' });
-          });
-          container.appendChild(card);
-        });
-      }
-
-
-    /* ================================
-     * NEW HELPERS + CATALOG RENDERERS
-     * ================================ */
-
-    // tiny helper: normalize for fuzzy matching
-    function norm(s) { return (s || '').trim().toLowerCase(); }
-
-    /** Hydrate Unreleased from catalog + mark ownership from inventory.items */
-    function renderUnreleasedFromCatalog(catalog = {}, items = []) {
-      const container = document.getElementById("unreleased-grid");
-      if (!container) return;
-      container.innerHTML = "";
-
-      const unreleased = Array.isArray(catalog.unreleased) ? catalog.unreleased : [];
-
-      const qtyById = new Map();
-      const qtyByName = new Map();
-      items.forEach(it => {
-        if (it.itemId) qtyById.set(it.itemId, (qtyById.get(it.itemId) || 0) + (it.qty ?? 1));
-        if (it.name) qtyByName.set(norm(it.name), (qtyByName.get(norm(it.name)) || 0) + (it.qty ?? 1));
-      });
-
-      unreleased.forEach(u => {
-        const ownedQty = (u.id && qtyById.get(u.id)) ?? qtyByName.get(norm(u.name)) ?? 0;
-
-        const card = document.createElement("div");
-        card.className = "unreleased-card";
-        card.innerHTML = `
-          ${u.image ? `<img src="${u.image}" alt="" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:10px;">` : ""}
-          <h3>${u.name || "Unreleased"}</h3>
-          ${u.rarity ? `<div class="rarity-tag rarity-${norm(u.rarity)}" style="display:inline-block;margin-top:8px">${u.rarity}</div>` : ""}
-          ${ownedQty > 0 ? `<p style="margin-top:8px;color:#9a9a9a;">Owned × ${ownedQty}</p>` : ""}
-        `;
-        card.addEventListener("click", () => {
-          showItemActions({
-            title: u.name,
-            description: (u.description || "") + (ownedQty ? `  • Owned × ${ownedQty}` : "")
-          });
-          create3DStem("default");
-        });
-        container.appendChild(card);
-      });
-    }
-
-    /** Hydrate Albums(EPs) from catalog + ep progress from inventory.progress.eps */
-    function renderAlbumsFromCatalog(inv = {}, catalog = {}) {
-      const container = document.getElementById('albums-grid');
-      if (!container) return;
-      container.innerHTML = '';
-
-      const epProgress = new Map((inv.progress?.eps || []).map(e => [e.id, e]));
-      (catalog.eps || []).forEach(ep => {
-        const prog = epProgress.get(ep.id);
-        const unlocked = !!prog?.complete;
-        const card = document.createElement('div');
-        card.className = 'unreleased-card' + (unlocked ? '' : ' locked');   // reuse card style + locked dim
-        card.innerHTML = `
-          <h3>${ep.name || 'Album/EP'}</h3>
-          <p>${ep.totalSongs || 0} Songs</p>
-        `;
-        card.addEventListener('click', () => {
-          const rows = (inv.progress?.songs || []).filter(s => s.epId === ep.id);
-          if (!rows.length) return;
-          openEpOverlay(ep.name || 'EP', rows);
-        });
-        container.appendChild(card);
-      });
-    }
-
-      
-      function renderFragmentsAll(inv = {}, catalog = {}) {
-        const container = document.getElementById('fragments-grid');
-        if (!container) return;
-        container.innerHTML = '';
-
-        const prog = new Map((inv.progress?.fragments || []).map(f => [f.characterId, f]));
-        (catalog.fragmentSets || []).forEach(set => {
-          const row = prog.get(set.characterId) || { owned: 0, total: set.total || 3, name: set.name };
-          const owned = row.owned || 0;
-          const total = row.total || 3;
-          const pct = total ? Math.round((owned/total)*100) : 0;
-
-          const card = document.createElement('div');
-          card.className = 'collection-card' + (owned ? '' : ' locked');
-          card.innerHTML = `
-            <div class="collection-header">
-              <div class="collection-info">
-                <h3>${row.name || set.name || 'Collection'}</h3>
-                <p>${owned}/${total} fragments</p>
-              </div>
-              <div class="collection-progress">
-                <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-                <span class="progress-text">${pct}%</span>
-              </div>
-            </div>
-          `;
-          container.appendChild(card);
-        });
-      }
-
-      function renderUnreleasedAll(inv = {}, catalog = {}) {
-        const container = document.getElementById('unreleased-grid');
-        if (!container) return;
-        container.innerHTML = '';
-
-        const ownedNames = new Set((inv.items || [])
-          .filter(it => (it.rarity || '').toLowerCase() === 'epic' || (it.rarity || '').toLowerCase() === 'legendary')
-          .map(it => it.name)
-        );
-
-        (catalog.unreleased || []).forEach(u => {
-          const owned = ownedNames.has(u.name);
-          const card = document.createElement('div');
-          card.className = 'unreleased-card' + (owned ? '' : ' locked');
-          card.innerHTML = `<h3>${u.name || ''}</h3>`;
-          container.appendChild(card);
-        });
-      }
-
-      
-      
-
-    /***************************
-     * OVERLAY HELPERS
-     ***************************/
-    // attach close listeners ONCE
-    document.getElementById("albumCloseBtn")?.addEventListener("click", () => {
-      const ov = document.getElementById("albumOverlay");
-      ov.classList.remove("show");
-      ov.setAttribute("aria-hidden","true");
+  /***************************
+   * RENDER FUNCTIONS (progress + all/greyed)
+   ***************************/
+  // Example: Characters (all, grey out locked)
+  function renderCharactersAll(inv={}, catalog={}) {
+    const container = document.getElementById("characters-grid");
+    if (!container) return;
+    container.innerHTML = "";
+    const unlocked = new Set((inv.progress?.characters || []).map(c => c.characterId));
+    const all = new Map();
+    asArray(catalog.fragmentSets).forEach(fs => { if(fs.characterId) all.set(fs.characterId,{id:fs.characterId,name:fs.name,image:fs.image}); });
+    asArray(catalog.goldenCharacters).forEach(gc => { if(gc.characterId && !all.has(gc.characterId)) all.set(gc.characterId,{id:gc.characterId,name:gc.name,image:gc.image}); });
+    Array.from(all.values()).forEach(c => {
+      const locked = !unlocked.has(c.id);
+      const card = document.createElement("div");
+      card.className = "character-card" + (locked ? " locked" : "");
+      card.innerHTML = `
+        <div class="character-thumb"><img src="${c.image||""}" alt=""></div>
+        <div class="character-name">${c.name||"Character"}</div>
+      `;
+      card.addEventListener("click",()=>{ if(locked) return; create3DStem("default"); showItemActions({title:c.name,description:"Unlocked character"}); });
+      container.appendChild(card);
     });
-    document.getElementById("fragmentCloseBtn")?.addEventListener("click", () => {
-      const ov = document.getElementById("fragmentOverlay");
-      ov.classList.remove("show");
-      ov.setAttribute("aria-hidden","true");
-    });
+  }
 
-    function openAlbumOverlay(title, collected, total, itemsClone) {
-      const pct = Math.min(100, Math.round(collected / total * 100));
-      document.getElementById("albumSheetTitle").textContent = title;
-      document.getElementById("albumSheetSubtitle").textContent = `${collected}/${total} stems collected`;
-      document.getElementById("albumSheetPct").textContent = pct + "%";
-      document.getElementById("albumSheetFill").style.width = pct + "%";
+  // EP grouping
+  function makeStemChips(owned=0,total=0){
+    const labels=['D','B','M','V','FX'];
+    const row=document.createElement("div");row.className="stems-row";
+    for(let i=0;i<total;i++){const slot=document.createElement("div");slot.className="stem-slot"+(i<owned?" collected":" empty");slot.textContent=labels[i]||"•";row.appendChild(slot);}
+    return row;
+  }
+  function makeSongRow(name,owned,total){
+    const wrapper=document.createElement("div");wrapper.className="collection-card";wrapper.style.padding="12px";wrapper.style.margin="0";
+    wrapper.innerHTML=`<div class="collection-header" style="margin-bottom:8px;"><div class="collection-info"><h3 style="font-size:14px">${name}</h3></div><div class="item-completion ${owned===total?"complete":""}">${owned}/${total}</div></div>`;
+    wrapper.appendChild(makeStemChips(owned,total));
+    return wrapper;
+  }
+  function openEpOverlay(epTitle,songsInEp){
+    const ownedTotal=songsInEp.reduce((a,s)=>a+(s.ownedStems||0),0);
+    const maxTotal=songsInEp.reduce((a,s)=>a+(s.totalStems||0),0);
+    const pct=maxTotal?Math.round((ownedTotal/maxTotal)*100):0;
+    document.getElementById("albumSheetTitle").textContent=epTitle;
+    document.getElementById("albumSheetSubtitle").textContent=`${songsInEp.length} Songs`;
+    document.getElementById("albumSheetPct").textContent=pct+"%";
+    document.getElementById("albumSheetFill").style.width=pct+"%";
+    const body=document.getElementById("albumSheetBody");body.innerHTML="";songsInEp.forEach(row=>{body.appendChild(makeSongRow(row.name||"Untitled",row.ownedStems||0,row.totalStems||0));});
+    const overlay=document.getElementById("albumOverlay");overlay.classList.add("show");overlay.setAttribute("aria-hidden","false");
+  }
+  function renderEPsGrouped(catalog={},songs=[],singles=[]){
+    const container=document.getElementById("stems-collections");if(!container)return;container.innerHTML="";
+    const epMeta=new Map();asArray(catalog.eps).forEach(ep=>epMeta.set(ep.id,ep));
+    const byEp=new Map();songs.forEach(row=>{const key=row.epId||"unknown";if(!byEp.has(key))byEp.set(key,[]);byEp.get(key).push(row);});
+    byEp.forEach((songRows,epId)=>{const meta=epMeta.get(epId);const name=meta?.name||(epId==="unknown"?"Misc":"EP");const totals=songRows.reduce((acc,r)=>{acc.owned+=(r.ownedStems||0);acc.total+=(r.totalStems||0);return acc;},{owned:0,total:0});const pct=totals.total?Math.round((totals.owned/totals.total)*100):0;const card=document.createElement("div");card.className="collection-card";card.innerHTML=`<div class="collection-header"><div class="collection-info"><h3>${name}</h3><p>${songRows.length} Songs</p></div><div class="collection-progress"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><span class="progress-text">${pct}%</span></div></div>`;card.addEventListener("click",()=>openEpOverlay(name,songRows));container.appendChild(card);});
+    if((singles||[]).length){const totals=singles.reduce((a,s)=>({owned:a.owned+(s.ownedStems||0),total:a.total+(s.totalStems||0)}),{owned:0,total:0});const pct=totals.total?Math.round((totals.owned/totals.total)*100):0;const card=document.createElement("div");card.className="collection-card";card.innerHTML=`<div class="collection-header"><div class="collection-info"><h3>Singles</h3><p>${singles.length} Songs</p></div><div class="collection-progress"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><span class="progress-text">${pct}%</span></div></div>`;card.addEventListener("click",()=>{openEpOverlay("Singles",singles.map(r=>({name:r.name||"Single",ownedStems:r.ownedStems||0,totalStems:r.totalStems||0})));});container.appendChild(card);}
+  }
 
-      const body = document.getElementById("albumSheetBody");
-      body.innerHTML = "";
-      body.appendChild(itemsClone);
+  // Fragments, Albums, Unreleased (greyed if locked)
+  function renderFragmentsAll(inv={},catalog={}) {
+    const container=document.getElementById("fragments-grid");if(!container)return;container.innerHTML="";
+    const prog=new Map((inv.progress?.fragments||[]).map(f=>[f.characterId,f]));
+    asArray(catalog.fragmentSets).forEach(set=>{const row=prog.get(set.characterId)||{owned:0,total:set.total||3,name:set.name};const owned=row.owned||0;const total=row.total||3;const pct=total?Math.round((owned/total)*100):0;const card=document.createElement("div");card.className="collection-card"+(owned?"":" locked");card.innerHTML=`<div class="collection-header"><div class="collection-info"><h3>${row.name||set.name||"Collection"}</h3><p>${owned}/${total} fragments</p></div><div class="collection-progress"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><span class="progress-text">${pct}%</span></div></div>`;container.appendChild(card);});
+  }
+  function renderAlbumsFromCatalog(inv={},catalog={}) {
+    const container=document.getElementById("albums-grid");if(!container)return;container.innerHTML="";
+    const epProgress=new Map((inv.progress?.eps||[]).map(e=>[e.id,e]));
+    asArray(catalog.eps).forEach(ep=>{const prog=epProgress.get(ep.id);const unlocked=!!prog?.complete;const card=document.createElement("div");card.className="album-card"+(unlocked?"":" locked");card.innerHTML=`<h3>${ep.name||"Album/EP"}</h3><p>${ep.totalSongs||0} Songs</p>`;card.addEventListener("click",()=>{const rows=(inv.progress?.songs||[]).filter(s=>s.epId===ep.id);if(!rows.length)return;openEpOverlay(ep.name||"EP",rows);});container.appendChild(card);});
+  }
+  function renderUnreleasedFromCatalog(catalog={},items=[]) {
+    const container=document.getElementById("unreleased-grid");if(!container)return;container.innerHTML="";
+    const ownedNames=new Set((items||[]).filter(it=>(it.rarity||"").toLowerCase()==="epic"||(it.rarity||"").toLowerCase()==="legendary").map(it=>it.name));
+    asArray(catalog.unreleased).forEach(u=>{const owned=ownedNames.has(u.name);const card=document.createElement("div");card.className="unreleased-card"+(owned?"":" locked");card.innerHTML=`<h3>${u.name||""}</h3>`;container.appendChild(card);});
+  }
 
-      const overlay = document.getElementById("albumOverlay");
-      overlay.classList.add("show");
-      overlay.setAttribute("aria-hidden","false");
+  /***************************
+   * OVERLAY HELPERS
+   ***************************/
+  document.getElementById("albumCloseBtn")?.addEventListener("click",()=>{const ov=document.getElementById("albumOverlay");ov.classList.remove("show");ov.setAttribute("aria-hidden","true");});
+  document.getElementById("fragmentCloseBtn")?.addEventListener("click",()=>{const ov=document.getElementById("fragmentOverlay");ov.classList.remove("show");ov.setAttribute("aria-hidden","true");});
+
+  /***************************
+   * INIT
+   ***************************/
+  (async function init(){
+    if (typeof THREE !== "undefined") initViewport();
+    let catalog={},inv=null;
+    try{
+      const [cRes,iRes]=await Promise.all([
+        fetch("/api/catalog",{credentials:"include"}),
+        fetch("/api/inventory",{credentials:"include"})
+      ]);
+      if(cRes.ok){const raw=await cRes.json();catalog=normalizeCatalog(raw);}
+      if(iRes.ok) inv=await iRes.json();
+    }catch(e){console.warn("Inventory fetch failed",e);}
+    if(!inv){
+      renderEPsGrouped(catalog,[],[]);
+      renderCharactersAll({},catalog);
+      renderFragmentsAll({},catalog);
+      renderAlbumsFromCatalog({},catalog);
+      renderUnreleasedFromCatalog(catalog,[]);
+      return;
     }
+    renderEPsGrouped(catalog,inv.progress?.songs||[],inv.progress?.singles||[]);
+    renderCharactersAll(inv,catalog);
+    renderFragmentsAll(inv,catalog);
+    renderAlbumsFromCatalog(inv,catalog);
+    renderUnreleasedFromCatalog(catalog,inv.items||[]);
+  })();
 
-    function openFragmentOverlay(character, collected, total, itemsClone) {
-      const pct = Math.min(100, Math.round(collected / total * 100));
-      document.getElementById("fragmentSheetTitle").textContent = character;
-      document.getElementById("fragmentSheetSubtitle").textContent = `${collected}/${total} fragments collected`;
-      document.getElementById("fragmentSheetPct").textContent = pct + "%";
-      document.getElementById("fragmentSheetFill").style.width = pct + "%";
-
-      const body = document.getElementById("fragmentSheetBody");
-      body.innerHTML = "";
-      body.appendChild(itemsClone);
-
-      const overlay = document.getElementById("fragmentOverlay");
-      overlay.classList.add("show");
-      overlay.setAttribute("aria-hidden","false");
-    }
-      
-      /* ——— helpers for chips and rows ——— */
-      function makeStemChips(owned=0, total=0) {
-        const labels = ['D','B','M','V','FX'];          // map to your 5-stem model
-        const row = document.createElement('div');
-        row.className = 'stems-row';
-        for (let i = 0; i < total; i++) {
-          const slot = document.createElement('div');
-          slot.className = 'stem-slot' + (i < owned ? ' collected' : ' empty');
-          slot.textContent = labels[i] || '•';
-          row.appendChild(slot);
-        }
-        return row;
-      }
-
-      function makeSongRow(name, owned, total) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'collection-card';              // reusing your card look in overlay
-        wrapper.style.padding = '12px';
-        wrapper.style.margin = '0';
-        wrapper.innerHTML = `
-          <div class="collection-header" style="margin-bottom:8px;">
-            <div class="collection-info">
-              <h3 style="font-size:14px">${name}</h3>
-            </div>
-            <div class="item-completion ${owned === total ? 'complete':''}">${owned}/${total}</div>
-          </div>
-        `;
-        wrapper.appendChild(makeStemChips(owned, total));
-        return wrapper;
-      }
-
-      /* ——— open overlay with a list of songs ——— */
-      function openEpOverlay(epTitle, songsInEp) {
-        const ownedTotal = songsInEp.reduce((a,s) => a + (s.ownedStems||0), 0);
-        const maxTotal   = songsInEp.reduce((a,s) => a + (s.totalStems||0), 0);
-        const pct = maxTotal ? Math.round((ownedTotal / maxTotal) * 100) : 0;
-
-        document.getElementById("albumSheetTitle").textContent = epTitle;
-        document.getElementById("albumSheetSubtitle").textContent = `${songsInEp.length} Songs`;
-        document.getElementById("albumSheetPct").textContent = pct + "%";
-        document.getElementById("albumSheetFill").style.width = pct + "%";
-
-        const body = document.getElementById("albumSheetBody");
-        body.innerHTML = "";
-        songsInEp.forEach(row => {
-          body.appendChild(makeSongRow(row.name || 'Untitled', row.ownedStems||0, row.totalStems||0));
-        });
-
-        const overlay = document.getElementById("albumOverlay");
-        overlay.classList.add("show");
-        overlay.setAttribute("aria-hidden","false");
-      }
-
-
-    /***************************
-     * INIT
-     ***************************/
-      (async function init(){
-        if (typeof THREE !== "undefined") initViewport();
-
-        let catalog = {};
-        let inv = null;
-
-        try {
-          const [cRes, iRes] = await Promise.all([
-            fetch('/api/catalog',   { credentials: 'include' }),
-            fetch('/api/inventory', { credentials: 'include' }),
-          ]);
-          if (cRes.ok) catalog = await cRes.json();
-          if (iRes.ok) inv     = await iRes.json();
-        } catch (e) {
-          console.warn("Inventory fetch failed; rendering empty state.", e);
-        }
-
-        // === Empty state (no inventory response) ===
-        if (!inv) {
-          // no deref of `inv` here
-          renderOwnedItems([]);                        // optional: shows nothing
-          // Grouped EP cards with no progress
-          renderEPsGrouped(catalog, [], []);          // <-- correct function + safe args
-          // Fragments/Characters/Albums/Unreleased from catalog, all locked/greyed
-          if (typeof renderFragmentsAll === 'function')        renderFragmentsAll({}, catalog);
-          if (typeof renderCharactersAll === 'function')       renderCharactersAll({}, catalog);
-          if (typeof renderAlbumsFromCatalog === 'function')   renderAlbumsFromCatalog({}, catalog); // inv first
-          if (typeof renderUnreleasedFromCatalog === 'function') renderUnreleasedFromCatalog(catalog, []);
-          return;
-        }
-
-        // === Summary (optional UI) ===
-        // (You said coin balance isn't needed—safe to leave wired but hidden in UI)
-        renderOwnedItems(inv.items || []);
-
-        // === Stems/Singles - EP grouping ===
-        renderEPsGrouped(
-          catalog,
-          inv.progress?.songs   || [],
-          inv.progress?.singles || []
-        );
-
-        // === Fragments + Characters (catalog-hydrated, grey out when locked) ===
-        if (typeof renderFragmentsAll === 'function')  renderFragmentsAll(inv, catalog);
-        if (typeof renderCharactersAll === 'function') renderCharactersAll(inv, catalog);
-
-        // === Albums (EPs) page (inv first, then catalog) ===
-        renderAlbumsFromCatalog(inv, catalog);
-
-        // === Unreleased (catalog + inventory items to show owned) ===
-        renderUnreleasedFromCatalog(catalog, inv.items || []);
-      })();
-
-    // Menu tray
-    const menuBtn  = document.getElementById('menuBtn');
-    const menuTray = document.getElementById('menuTray');
-    menuBtn?.addEventListener('click', () => menuTray?.classList.toggle('open'));
-
-    // Desktop tabs
-    document.querySelectorAll('.nav-tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById(btn.dataset.target)?.classList.add('active');
-      });
-    });
-
-    // Mobile tabs (if present as .nav-item)
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', () => {
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        item.classList.add('active');
-        document.getElementById(item.dataset.section)?.classList.add('active');
-      });
-    });
-
-    // Login modal
-    const loginBtn      = document.getElementById('loginBtn');
-    const loginModal    = document.getElementById('loginModal');
-    const loginCloseBtn = document.getElementById('loginCloseBtn');
-    loginBtn?.addEventListener('click', () => loginModal?.classList.add('show'));
-    loginCloseBtn?.addEventListener('click', () => loginModal?.classList.remove('show'));
-
-    // Supabase magic link submit (uses the client you already create in <head>)
-    document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('loginEmail').value.trim();
-      if (!email) return;
-      try {
-        const { error } = await window.supa.auth.signInWithOtp({
-          email,
-          options: { emailRedirectTo: window.location.href }
-        });
-        if (error) alert(error.message);
-        else alert('Check your email for a login link.');
-      } catch (err) {
-        alert('Login failed.');
-      }
-    });
+  // (Keep your nav/menu/login wiring below here unchanged)
   </script>
+
 
 
 
