@@ -395,7 +395,7 @@
             z-index: 3000;
         }
 
-       
+        .desktop-nav { display: none !important; }
         
         .nav-items {
             display: flex;
@@ -2350,55 +2350,58 @@
     /***************************
      * INIT
      ***************************/
-    (async function init(){
-      if (typeof THREE !== "undefined") initViewport();
+      (async function init(){
+        if (typeof THREE !== "undefined") initViewport();
 
-      let catalog = {};
-      let inv = null;
+        let catalog = {};
+        let inv = null;
 
-      try {
-        const [cRes, iRes] = await Promise.all([
-          fetch('/api/catalog',   { credentials: 'include' }),
-          fetch('/api/inventory', { credentials: 'include' }),
-        ]);
-        if (cRes.ok) catalog = await cRes.json();
-        if (iRes.ok) inv     = await iRes.json();
-      } catch (e) {
-        console.warn("Inventory fetch failed; rendering empty state.", e);
-      }
+        try {
+          const [cRes, iRes] = await Promise.all([
+            fetch('/api/catalog',   { credentials: 'include' }),
+            fetch('/api/inventory', { credentials: 'include' }),
+          ]);
+          if (cRes.ok) catalog = await cRes.json();
+          if (iRes.ok) inv     = await iRes.json();
+        } catch (e) {
+          console.warn("Inventory fetch failed; rendering empty state.", e);
+        }
 
-      // Graceful empty state
-      if (!inv) {
-        renderBalance({ COIN: 0 });
-        renderOwnedItems([]);
-        renderEPsGrouped(catalog, inv.progress?.songs || [], inv.progress?.singles || []);
-        renderFragmentsAll(inv, catalog);
-        renderCharactersAll(inv, catalog);
+        // === Empty state (no inventory response) ===
+        if (!inv) {
+          // no deref of `inv` here
+          renderOwnedItems([]);                        // optional: shows nothing
+          // Grouped EP cards with no progress
+          renderEPsGrouped(catalog, [], []);          // <-- correct function + safe args
+          // Fragments/Characters/Albums/Unreleased from catalog, all locked/greyed
+          if (typeof renderFragmentsAll === 'function')        renderFragmentsAll({}, catalog);
+          if (typeof renderCharactersAll === 'function')       renderCharactersAll({}, catalog);
+          if (typeof renderAlbumsFromCatalog === 'function')   renderAlbumsFromCatalog({}, catalog); // inv first
+          if (typeof renderUnreleasedFromCatalog === 'function') renderUnreleasedFromCatalog(catalog, []);
+          return;
+        }
+
+        // === Summary (optional UI) ===
+        // (You said coin balance isn't needed—safe to leave wired but hidden in UI)
+        renderOwnedItems(inv.items || []);
+
+        // === Stems/Singles - EP grouping ===
+        renderEPsGrouped(
+          catalog,
+          inv.progress?.songs   || [],
+          inv.progress?.singles || []
+        );
+
+        // === Fragments + Characters (catalog-hydrated, grey out when locked) ===
+        if (typeof renderFragmentsAll === 'function')  renderFragmentsAll(inv, catalog);
+        if (typeof renderCharactersAll === 'function') renderCharactersAll(inv, catalog);
+
+        // === Albums (EPs) page (inv first, then catalog) ===
         renderAlbumsFromCatalog(inv, catalog);
-        renderUnreleasedAll(inv, catalog);
-        return;
-      }
 
-      // === Summary ===
-      renderBalance(inv.balance);
-      renderOwnedItems(inv.items);
-
-      // === Progress ===
-      renderStemsAndSingles(catalog, inv.progress?.songs || [], inv.progress?.singles || []);
-      renderFragmentsProgress(inv.progress?.fragments || []);
-      renderCharactersFromProgress(inv.progress?.characters || [], catalog);
-
-      // === Catalog-hydrated ===
-      renderAlbumsFromCatalog(catalog, inv.progress?.eps || []);
-      renderUnreleasedFromCatalog(catalog, inv.items || []);
-
-      // (Your original placeholder renderers remain available for future use)
-      // renderCharacters(db.characters || []);
-      // renderStems(db.stems || []);
-      // renderFragments(db.fragments || []);
-      // renderUnreleased(db.unreleased || []);
-      // renderAlbums(db.albums || []);
-    })();
+        // === Unreleased (catalog + inventory items to show owned) ===
+        renderUnreleasedFromCatalog(catalog, inv.items || []);
+      })();
 
     // Menu tray
     const menuBtn  = document.getElementById('menuBtn');
