@@ -2040,6 +2040,24 @@
       if(cRes.ok){const raw=await cRes.json();catalog=normalizeCatalog(raw);}
       if(iRes.ok) inv=await iRes.json();
     }catch(e){console.warn("Inventory fetch failed",e);}
+    
+    catalog = normalizeCatalog(catalog);
+     console.log('CATALOG COUNTS', {
+       eps: catalog.eps.length,
+       covers: catalog.covers.length,
+       fragmentSets: catalog.fragmentSets.length,
+       unreleased: catalog.unreleased.length,
+       golden: catalog.goldenCharacters.length
+     });
+     console.log('INV COUNTS', inv && {
+       items: inv.items?.length,
+       songs: inv.progress?.songs?.length,
+       eps: inv.progress?.eps?.length,
+       singles: inv.progress?.singles?.length,
+       fragments: inv.progress?.fragments?.length,
+       characters: inv.progress?.characters?.length
+     });
+    
     if(!inv){
       renderEPsGrouped(catalog,[],[]);
       renderCharactersAll({},catalog);
