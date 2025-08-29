@@ -1772,23 +1772,50 @@
    * RENDER FUNCTIONS (progress + all/greyed)
    ***************************/
   // Example: Characters (all, grey out locked)
-  function renderCharactersAll(inv={}, catalog={}) {
-    const container = document.getElementById("characters-grid");
+  function renderCharactersAll(inv = {}, catalog = {}) {
+    const container = document.getElementById('characters-grid');
     if (!container) return;
-    container.innerHTML = "";
+    container.innerHTML = '';
+
+    // Unlocked set from progress
     const unlocked = new Set((inv.progress?.characters || []).map(c => c.characterId));
+
+    // Build union list
     const all = new Map();
-    asArray(catalog.fragmentSets).forEach(fs => { if(fs.characterId) all.set(fs.characterId,{id:fs.characterId,name:fs.name,image:fs.image}); });
-    asArray(catalog.goldenCharacters).forEach(gc => { if(gc.characterId && !all.has(gc.characterId)) all.set(gc.characterId,{id:gc.characterId,name:gc.name,image:gc.image}); });
-    Array.from(all.values()).forEach(c => {
+    asArray(catalog.fragmentSets).forEach(fs => {
+      if (!fs.characterId) return;
+      all.set(fs.characterId, { id: fs.characterId, name: fs.name, image: fs.image });
+    });
+    asArray(catalog.goldenCharacters).forEach(gc => {
+      if (!gc.characterId) return;
+      if (!all.has(gc.characterId)) all.set(gc.characterId, { id: gc.characterId, name: gc.name, image: gc.image });
+    });
+    // Also include any unlocked chars that might not be in catalog (fallback)
+    (inv.progress?.characters || []).forEach(c => {
+      if (!all.has(c.characterId)) {
+        all.set(c.characterId, { id: c.characterId, name: c.name, image: c.image });
+      }
+    });
+
+    const list = Array.from(all.values());
+    if (!list.length) {
+      container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No characters found.</div>`;
+      return;
+    }
+
+    list.forEach(c => {
       const locked = !unlocked.has(c.id);
-      const card = document.createElement("div");
-      card.className = "character-card" + (locked ? " locked" : "");
+      const card = document.createElement('div');
+      card.className = 'character-card' + (locked ? ' locked' : '');
       card.innerHTML = `
-        <div class="character-thumb"><img src="${c.image||""}" alt=""></div>
-        <div class="character-name">${c.name||"Character"}</div>
+        <div class="character-thumb"><img loading="lazy" src="${c.image || ''}" alt=""></div>
+        <div class="character-name">${c.name || 'Character'}</div>
       `;
-      card.addEventListener("click",()=>{ if(locked) return; create3DStem("default"); showItemActions({title:c.name,description:"Unlocked character"}); });
+      card.addEventListener('click', () => {
+        if (locked) return;
+        create3DStem('default');
+        showItemActions({ title: c.name, description: 'Unlocked character' });
+      });
       container.appendChild(card);
     });
   }
@@ -1826,21 +1853,132 @@
   }
 
   // Fragments, Albums, Unreleased (greyed if locked)
-  function renderFragmentsAll(inv={},catalog={}) {
-    const container=document.getElementById("fragments-grid");if(!container)return;container.innerHTML="";
-    const prog=new Map((inv.progress?.fragments||[]).map(f=>[f.characterId,f]));
-    asArray(catalog.fragmentSets).forEach(set=>{const row=prog.get(set.characterId)||{owned:0,total:set.total||3,name:set.name};const owned=row.owned||0;const total=row.total||3;const pct=total?Math.round((owned/total)*100):0;const card=document.createElement("div");card.className="collection-card"+(owned?"":" locked");card.innerHTML=`<div class="collection-header"><div class="collection-info"><h3>${row.name||set.name||"Collection"}</h3><p>${owned}/${total} fragments</p></div><div class="collection-progress"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><span class="progress-text">${pct}%</span></div></div>`;container.appendChild(card);});
+  function renderFragmentsAll(inv = {}, catalog = {}) {
+    const container = document.getElementById('fragments-grid');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const progressByChar = new Map((inv.progress?.fragments || []).map(f => [f.characterId, f]));
+    let sets = asArray(catalog.fragmentSets);
+    // Fallback if catalog empty: create pseudo-sets from progress so user sees something
+    if (!sets.length && (inv.progress?.fragments || []).length) {
+      sets = (inv.progress.fragments || []).map(f => ({
+        characterId: f.characterId,
+        name: f.name,
+        total: f.total || 3
+      }));
+    }
+
+    if (!sets.length) {
+      container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No fragments found.</div>`;
+      return;
+    }
+
+    sets.forEach(set => {
+      const row = progressByChar.get(set.characterId) || { owned: 0, total: set.total || 3, name: set.name };
+      const owned = row.owned || 0;
+      const total = row.total || 3;
+      const pct = total ? Math.round((owned / total) * 100) : 0;
+
+      const card = document.createElement('div');
+      card.className = 'collection-card' + (owned ? '' : ' locked');
+      card.innerHTML = `
+        <div class="collection-header">
+          <div class="collection-info">
+            <h3>${row.name || set.name || 'Collection'}</h3>
+            <p>${owned}/${total} fragments</p>
+          </div>
+          <div class="collection-progress">
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <span class="progress-text">${pct}%</span>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
   }
-  function renderAlbumsFromCatalog(inv={},catalog={}) {
-    const container=document.getElementById("albums-grid");if(!container)return;container.innerHTML="";
-    const epProgress=new Map((inv.progress?.eps||[]).map(e=>[e.id,e]));
-    asArray(catalog.eps).forEach(ep=>{const prog=epProgress.get(ep.id);const unlocked=!!prog?.complete;const card=document.createElement("div");card.className="album-card"+(unlocked?"":" locked");card.innerHTML=`<h3>${ep.name||"Album/EP"}</h3><p>${ep.totalSongs||0} Songs</p>`;card.addEventListener("click",()=>{const rows=(inv.progress?.songs||[]).filter(s=>s.epId===ep.id);if(!rows.length)return;openEpOverlay(ep.name||"EP",rows);});container.appendChild(card);});
-  }
-  function renderUnreleasedFromCatalog(catalog={},items=[]) {
-    const container=document.getElementById("unreleased-grid");if(!container)return;container.innerHTML="";
-    const ownedNames=new Set((items||[]).filter(it=>(it.rarity||"").toLowerCase()==="epic"||(it.rarity||"").toLowerCase()==="legendary").map(it=>it.name));
-    asArray(catalog.unreleased).forEach(u=>{const owned=ownedNames.has(u.name);const card=document.createElement("div");card.className="unreleased-card"+(owned?"":" locked");card.innerHTML=`<h3>${u.name||""}</h3>`;container.appendChild(card);});
-  }
+      function renderAlbumsFromCatalog(inv = {}, catalog = {}) {
+        const container = document.getElementById('albums-grid');
+        if (!container) return;
+        container.innerHTML = '';
+
+        // Union: catalog.eps ∪ inv.progress.eps
+        const byId = new Map();
+        asArray(catalog.eps).forEach(ep => {
+          if (!ep || !ep.id) return;
+          byId.set(ep.id, { id: ep.id, name: ep.name, totalSongs: ep.totalSongs });
+        });
+        (inv.progress?.eps || []).forEach(ep => {
+          if (!ep || !ep.id) return;
+          if (!byId.has(ep.id)) byId.set(ep.id, { id: ep.id, name: ep.name, totalSongs: ep.totalSongs });
+        });
+
+        const epProgress = new Map((inv.progress?.eps || []).map(e => [e.id, e]));
+        const list = Array.from(byId.values());
+        if (!list.length) {
+          container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No albums found.</div>`;
+          return;
+        }
+
+        list.forEach(ep => {
+          const prog = epProgress.get(ep.id);
+          const unlocked = !!prog?.complete;
+          const card = document.createElement('div');
+          card.className = 'album-card' + (unlocked ? '' : ' locked');
+          card.innerHTML = `
+            <h3>${ep.name || 'Album/EP'}</h3>
+            <p>${ep.totalSongs || prog?.totalSongs || 0} Songs</p>
+          `;
+          card.addEventListener('click', () => {
+            const rows = (inv.progress?.songs || []).filter(s => s.epId === ep.id);
+            if (!rows.length) return;
+            openEpOverlay(ep.name || 'EP', rows);
+          });
+          container.appendChild(card);
+        });
+      }
+
+      function renderUnreleasedFromCatalog(catalog = {}, items = []) {
+        const container = document.getElementById('unreleased-grid');
+        if (!container) return;
+        container.innerHTML = '';
+
+        // Owned from items (epic/legendary)
+        const ownedNames = new Set((items || [])
+          .filter(it => {
+            const r = (it.rarity || '').toLowerCase();
+            return r === 'epic' || r === 'legendary';
+          })
+          .map(it => it.name)
+        );
+
+        // Union: catalog.unreleased ∪ items(epic/legendary)
+        const byName = new Map();
+        asArray(catalog.unreleased).forEach(u => {
+          if (!u || !u.name) return;
+          byName.set(u.name, u);
+        });
+        (items || []).forEach(it => {
+          const r = (it.rarity || '').toLowerCase();
+          if ((r === 'epic' || r === 'legendary') && !byName.has(it.name)) {
+            byName.set(it.name, { name: it.name, rarity: it.rarity, image: it.artUrl });
+          }
+        });
+
+        const list = Array.from(byName.values());
+        if (!list.length) {
+          container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No unreleased items found.</div>`;
+          return;
+        }
+
+        list.forEach(u => {
+          const owned = ownedNames.has(u.name);
+          const card = document.createElement('div');
+          card.className = 'unreleased-card' + (owned ? '' : ' locked');
+          card.innerHTML = `<h3>${u.name || ''}</h3>`;
+          container.appendChild(card);
+        });
+      }
 
   /***************************
    * OVERLAY HELPERS
