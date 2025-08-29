@@ -47,36 +47,39 @@
     <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
     
     <style>
+      /* ───────────────── Variables: keep overlay + grid perfectly aligned ─────────────── */
+      :root{
+        --panel-pad-x:32px;          /* desktop panel left/right padding */
+        --grid-top-offset:80px;      /* top of the highest tile row on desktop */
+        --desk-nav-gap:16px;         /* lift desktop nav off the extreme bottom */
+        --desk-nav-h:48px;           /* approximate desktop nav height */
+        --bottom-nav-h:64px;         /* mobile bottom nav height */
+      }
+
       *{margin:0;padding:0;box-sizing:border-box}
       html,body{height:100%;overflow:hidden;font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#fff;font-weight:400;line-height:1.5}
 
       .main-container{display:grid;grid-template-columns:minmax(320px,1fr) 1fr;height:100vh;gap:0}
 
       .inventory-panel{
-        padding:32px;
-        background:#0a0a0a;
-        border-right:1px solid #1a1a1a;
-        height:100vh;
-        padding-top:80px;                /* ← grid top on desktop */
-        display:flex;
-        flex-direction:column;
-        position:relative;               /* anchor overlays & desktop nav */
-        overflow:hidden;
+        background:#0a0a0a;border-right:1px solid #1a1a1a;height:100vh;
+        display:flex;flex-direction:column;position:relative;overflow:hidden;
+        padding:var(--grid-top-offset) var(--panel-pad-x) 0 var(--panel-pad-x);  /* grid + overlay share this */
       }
 
       /* Leave room for bottom-pinned desktop nav so content isn't hidden */
       .inventory-content{
         flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:auto;
         -ms-overflow-style:none;scrollbar-width:none;
-        padding-bottom:calc(12px + 48px);
+        padding-bottom:calc(12px + var(--desk-nav-h) + var(--desk-nav-gap));
         /* prevent bottom content hiding under iOS URL bar */
-        scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 96px);
+        scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 120px);
       }
       .inventory-content::-webkit-scrollbar{width:0!important;height:0!important}
 
       .viewport-panel{background:#111;position:relative;display:flex;flex-direction:column;height:100vh}
 
-      /* Ensure top menu + tray sit above inventory overlays */
+      /* Menu stays above overlays */
       .top-nav{position:fixed;top:0;left:0;right:0;z-index:4000;display:flex;justify-content:space-between;align-items:center;padding:20px}
       .menu-button,.login-button{width:30px;height:30px;background:rgba(0,0,0,.8);border:1px solid rgba(255,255,255,.25);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .2s ease,background .2s ease;backdrop-filter:blur(10px);touch-action:manipulation}
       .menu-button:hover,.login-button:hover{border-color:rgba(255,255,255,.45)}
@@ -130,13 +133,13 @@
       .form-input::placeholder{color:rgba(255,255,255,.5)}
       .form-button{width:100%;background:rgba(255,255,255,.92);color:#000;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:500;cursor:pointer}
 
-      /* Bottom nav (lift off bottom, safe-area aware) */
+      /* Bottom nav (mobile) */
       .bottom-nav{
         display:none;position:fixed;
         left:8px;right:8px;
-        bottom:calc(env(safe-area-inset-bottom,0px) + 8px);  /* ← spacing from extreme bottom */
+        bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
         background:rgba(17,17,17,.95);backdrop-filter:blur(20px);
-        border:1px solid #1a1a1a;border-top:1px solid #1a1a1a;border-radius:14px;
+        border:1px solid #1a1a1a;border-radius:14px;
         padding:12px 20px;z-index:1000
       }
       .nav-items{display:flex;justify-content:space-around;align-items:center;max-width:480px;margin:0 auto}
@@ -144,10 +147,10 @@
       .nav-item.active{color:#fff}
       .nav-icon{font-size:18px;color:inherit;font-weight:normal}
 
-      /* DESKTOP NAV: pin to bottom inside inventory panel */
+      /* DESKTOP NAV: pinned with gap from extreme bottom */
       .desktop-nav{
         display:flex;gap:2px;background:#111;border-radius:8px 8px 0 0;border-top:1px solid #1a1a1a;padding:4px;
-        position:absolute;left:32px;right:32px;bottom:0;z-index:10;margin:0
+        position:absolute;left:var(--panel-pad-x);right:var(--panel-pad-x);bottom:var(--desk-nav-gap);z-index:10;margin:0
       }
       .nav-tab{padding:10px 16px;background:transparent;border:none;border-radius:6px;color:#666;cursor:pointer;transition:all .2s ease;font-size:14px;font-weight:500;flex:1;text-align:center;touch-action:manipulation}
       .nav-tab:hover{color:#fff}
@@ -256,14 +259,11 @@
       #fragments .collection-card .progress-bar{width:72px}
 
       /* ── EP / FRAGMENTS overlay — scoped to inventory pane ─────── */
-
       .album-overlay{
-        position:absolute;inset:0;
-        background:transparent;
+        position:absolute;inset:0;background:transparent;z-index:2000;
         display:flex;align-items:flex-start;justify-content:flex-start;
-        z-index:2000;pointer-events:none;
-        /* Align overlay's top to the grid's top by mirroring panel padding */
-        padding-top:80px;                 /* desktop grid top = panel padding-top */
+        pointer-events:none;
+        padding-top:var(--grid-top-offset);              /* ← overlay top = grid top */
       }
       .album-overlay.show{pointer-events:auto}
       .album-overlay.show::before{
@@ -275,14 +275,17 @@
 
       .album-sheet{
         position:relative;z-index:1;pointer-events:auto;width:100%;
-        /* spacing via margins (no extra top margin so it lines with tile grid) */
-        --sheet-mx:32px; --sheet-my:0px;                   /* top aligned to grid */
-        margin:0 var(--sheet-mx) 32px var(--sheet-mx);     /* bottom breathing room */
+        --sheet-mx:var(--panel-pad-x);                   /* overlay width = tile group width */
+        margin:0 var(--sheet-mx) 32px var(--sheet-mx);   /* no top margin so it kisses grid top */
         height:calc(100% - 32px); max-height:calc(100% - 32px);
         background:#0b0b0b;border:1px solid #1a1a1a;border-radius:14px;overflow:hidden;
         grid-template-rows:auto 1fr;box-shadow:0 20px 60px rgba(0,0,0,.45);min-width:360px
       }
-      .album-sheet .sheet-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;border-bottom:1px solid #1a1a1a;background:linear-gradient(180deg,#0f0f0f,#0a0a0a)}
+      .album-sheet .sheet-header{
+        position:relative;                                /* ensure close stacks correctly */
+        display:flex;align-items:center;justify-content:space-between;gap:12px;
+        padding:18px;border-bottom:1px solid #1a1a1a;background:linear-gradient(180deg,#0f0f0f,#0a0a0a)
+      }
       .sheet-meta{display:flex;align-items:center;gap:16px}
       .sheet-title h3{font-size:18px;margin:0}
       .sheet-title p{font-size:13px;color:#9a9a9a;margin:2px 0 0}
@@ -290,26 +293,19 @@
       .album-sheet .sheet-body{
         overflow-y:auto;-ms-overflow-style:none;scrollbar-width:none;padding:18px;position:relative;background:#0b0b0b;
         padding-bottom:var(--sheet-safe-bottom,18px);
-        /* ensure last items stay above URL bar */
-        scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 96px);
+        scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 120px);
       }
       .album-sheet .sheet-body::-webkit-scrollbar{width:0!important;height:0!important}
       .album-sheet .items-grid{display:grid;gap:12px;grid-template-columns:1fr}
 
-      /* Close buttons: big, reliable hit target + highest z */
-      .modal-close,
-      .popup-close,
-      .album-close{
+      /* Close buttons: big target + always on top + inner icon doesn’t steal clicks */
+      .modal-close,.popup-close,.album-close{
         position:absolute;top:10px;right:10px;z-index:5;pointer-events:auto;
-        width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+        width:44px;height:44px;display:flex;align-items:center;justify-content:center;
         -webkit-tap-highlight-color:transparent;
       }
-      /* expand tap target without shifting layout */
-      .modal-close::after,
-      .popup-close::after,
-      .album-close::after{
-        content:"";position:absolute;inset:-8px; /* +16px hit growth */
-      }
+      .modal-close *,.popup-close *,.album-close *{pointer-events:none}  /* clicks go to the button */
+      .modal-close::after,.popup-close::after,.album-close::after{content:"";position:absolute;inset:-8px} /* extra hit */
 
       /* Action bar */
       .item-action-bar{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:1500}
@@ -321,21 +317,21 @@
       .read-more-popup p{font-size:14px;color:#ccc;margin:0}
 
       .inventory-panel,.viewport-panel,.viewport-container{min-width:0}
-      :root{--bottom-nav-h:64px}
 
       /* Phone layout */
       @media (max-width:480px){
-        .main-container{grid-template-columns:1fr;grid-template-rows:50svh 50svh;height:100svh;overflow:hidden}  /* svh fixes iOS URL bar */
+        :root{ --panel-pad-x:12px; --grid-top-offset:12px }   /* grid + overlay stay in lockstep */
+        .main-container{grid-template-columns:1fr;grid-template-rows:50svh 50svh;height:100svh;overflow:hidden}
         .viewport-panel{order:-1;height:50svh}
         .viewport-container{height:100%}
-        .inventory-panel{padding:12px 12px 0 12px;height:55svh;overflow:hidden;background:#0a0a0a;border-right:none;border-top:1px solid #1a1a1a}
+        .inventory-panel{height:55svh;border-right:none;border-top:1px solid #1a1a1a}
 
         .desktop-nav{display:none}
         .bottom-nav{display:block}
 
         .inventory-content{
-          padding-bottom:calc(var(--bottom-nav-h,64px) + env(safe-area-inset-bottom,0px) + 24px);
-          scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 120px);
+          padding-bottom:calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + 24px);
+          scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 140px);
         }
 
         #characters .characters-grid{padding-bottom:24px}
@@ -347,44 +343,51 @@
         .top-nav{padding:15px}
         .menu-tray{top:55px;left:15px}
 
-        /* Overlay: align top to grid, occupy bottom half using svh; mirror panel padding */
-        .album-overlay{padding-top:12px}
+        /* Overlay: align to grid top and lift above the bottom nav + URL bar */
+        .album-overlay{padding-top:var(--grid-top-offset)}
         .album-sheet{
-          --sheet-mx:12px; margin:0 var(--sheet-mx) 12px var(--sheet-mx);
+          --sheet-mx:var(--panel-pad-x);
+          margin:0 var(--sheet-mx) calc(12px + var(--bottom-nav-h) + env(safe-area-inset-bottom,0px)) var(--sheet-mx);
           width:calc(100% - (var(--sheet-mx) * 2));
-          height:calc(50svh - 12px); max-height:calc(50svh - 12px);
-          align-self:flex-end; min-width:0;
+          height:calc(50svh - 12px - var(--bottom-nav-h) - env(safe-area-inset-bottom,0px));
+          max-height:calc(50svh - 12px - var(--bottom-nav-h) - env(safe-area-inset-bottom,0px));
+          align-self:flex-end;min-width:0;
+        }
+        .album-sheet .sheet-body{
+          --sheet-safe-bottom:calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + 24px);
         }
 
         .item-action-bar{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
       }
 
       /* Tablets */
-      @media (max-width:1024px) and (min-width:481px){
+      @media (max-width:1024px) and (min-width:481px)){
+        :root{ --panel-pad-x:20px; --grid-top-offset:20px }
         .main-container{grid-template-columns:1fr;grid-template-rows:50svh 50svh;height:100svh;overflow:hidden}
         .viewport-panel{order:-1;height:50svh}
         .item-action-bar{position:absolute;left:50%;bottom:calc(10px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:1500}
         .viewport-container{height:100%}
-        .inventory-panel{padding:20px 20px 0 20px;height:50svh;overflow:hidden;border-right:none;border-top:1px solid #1a1a1a}
+        .inventory-panel{height:50svh;border-right:none;border-top:1px solid #1a1a1a}
 
         .desktop-nav{display:none}
         .bottom-nav{display:block}
 
         .inventory-content{
-          padding-bottom:calc(var(--bottom-nav-h,64px) + env(safe-area-inset-bottom,0px) + 24px);
-          scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 120px);
+          padding-bottom:calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + 24px);
+          scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 140px);
         }
 
-        /* Overlay mirrors panel padding for grid alignment */
-        .album-overlay{padding-top:20px}
+        /* Overlay mirrors panel padding for perfect grid alignment */
+        .album-overlay{padding-top:var(--grid-top-offset)}
         .album-sheet{
-          --sheet-mx:20px; margin:0 var(--sheet-mx) 16px var(--sheet-mx);
+          --sheet-mx:var(--panel-pad-x);
+          margin:0 var(--sheet-mx) calc(16px + var(--bottom-nav-h) + env(safe-area-inset-bottom,0px)) var(--sheet-mx);
           width:calc(100% - (var(--sheet-mx) * 2));
-          height:calc(50svh - 16px); max-height:calc(50svh - 16px);
-          align-self:flex-end; min-width:0;
+          height:calc(50svh - 16px - var(--bottom-nav-h) - env(safe-area-inset-bottom,0px));
+          max-height:calc(50svh - 16px - var(--bottom-nav-h) - env(safe-area-inset-bottom,0px));
+          align-self:flex-end;min-width:0;
         }
-
-        .album-sheet .sheet-body{--sheet-safe-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+        .album-sheet .sheet-body{--sheet-safe-bottom:calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + 24px)}
       }
 
       /* Locked state */
@@ -399,7 +402,7 @@
       .circular-btn:hover{border-color:rgba(255,255,255,.45)}
       .item-action-bar .circular-btn{width:30px;height:30px}
       .play-btn{background-image:url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIgMUwxMCA2TDIgMTFWMVoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=');background-repeat:no-repeat;background-position:center;background-size:12px 12px}
-      .playing .play-btn{background-image:url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3QgeD0iMiIgeT0iMiIgd2lkdGg9IjIiIGhlaWdodD0iOCIgZmlsbD0id2hpdGUiLz4KPHJlY3QgeD0iOCIgeT0iMiIgd2lkdGg9IjIiIGhlaWdodD0iOCIgaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K')}
+      .playing .play-btn{background-image:url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3QgeD0iMiIgeT0iMiIgd2lkdGg9IjIiIGhlaWdodD0iOCIgaWxsPSJ3aGl0ZSIvPgo8cmVjdCB4PSI4IiB5PSIyIiB3aWR0aD0iMiIgaGVpZ2h0PSI4IiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K')}
       .read-more-btn{background-image:url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTkgM1Y5SDMiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik05IDE1VjlIMTUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=');background-repeat:no-repeat;background-position:center;background-size:16px 16px}
 
       /* Hide progress bars inside overlays */
@@ -411,6 +414,7 @@
       .unreleased-card h3{font-size:16px;font-weight:600;margin-bottom:8px;color:#fff;padding-right:0;word-wrap:break-word;hyphens:auto;line-height:1.4}
       .rarity-tag{display:none}
     </style>
+
 
 
 </head>
@@ -562,6 +566,7 @@
       <div class="nav-item" data-section="stems"><div class="nav-icon">♪</div></div>
       <div class="nav-item" data-section="fragments"><div class="nav-icon">◈</div></div>
       <div class="nav-item" data-section="unreleased"><div class="nav-icon">⦿</div></div>
+      <div class="nav-item" data-section="albums"><div class="nav-icon">𝄐</div></div>
     </div>
   </div>
 
