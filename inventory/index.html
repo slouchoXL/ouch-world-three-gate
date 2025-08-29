@@ -1407,10 +1407,11 @@
         
         
         /* Any card marked as locked will appear dimmed */
-        .character-card.locked,
-        .album-card.locked,
+        .fragment-card.locked,
         .collection-card.locked,
-        .unreleased-card.locked {
+        .unreleased-card.locked,
+        .album-card.locked,
+        .character-card.locked {
           opacity: 0.4;
           filter: grayscale(100%);
           pointer-events: none; /* optional: prevent clicking locked items */
@@ -2065,7 +2066,7 @@
         if (!container) return;
         container.innerHTML = "";
 
-        // Owned: check items with rarity epic/legendary OR kind == 'unreleased'
+        // Owned: epic/legendary OR kind == 'unreleased'
         const ownedNames = new Set((items || [])
           .filter(it => {
             const r = (it.rarity || "").toLowerCase();
@@ -2075,14 +2076,17 @@
           .map(it => it.name || it.title || it.itemId)
         );
 
-        // Catalog unreleased
-        const list = asArray(catalog.unreleased).map(u => ({
-          key: u.id || u.name,
-          name: u.name || "Unreleased",
-          image: u.image || u.artUrl || "",
-          rarity: u.rarity || "Epic",
-          audio: u.audio || ""
-        }));
+        // Normalize catalog list; prefer .name, fallback .title, then .id
+        const list = asArray(catalog.unreleased).map(u => {
+          const name = u.name || u.title || u.id || "Unreleased";
+          return {
+            key: u.id || name,
+            name,
+            image: u.image || u.artUrl || "",
+            rarity: u.rarity || "Epic",
+            audio: u.audio || ""
+          };
+        });
 
         if (!list.length) {
           container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No unreleased items found.</div>`;
@@ -2094,12 +2098,22 @@
           const card = document.createElement("div");
           card.className = "unreleased-card" + (owned ? "" : " locked");
           card.innerHTML = `
+            ${u.image ? `<img loading="lazy" src="${u.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
             <h3>${u.name}</h3>
-            ${u.audio ? `<audio controls src="${u.audio}" style="width:100%;margin-top:6px"></audio>` : ""}
           `;
+          card.addEventListener("click", () => {
+            // Show playable audio (if present) via the action bar
+            create3DStem("default");
+            showItemActions({
+              title: u.name,
+              description: u.rarity ? String(u.rarity).toUpperCase() : "Unreleased",
+              audio: u.audio || ""  // will show Play if you’ve got the file
+            });
+          });
           container.appendChild(card);
         });
       }
+
 
   /***************************
    * OVERLAY HELPERS
