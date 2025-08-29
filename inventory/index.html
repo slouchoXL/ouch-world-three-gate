@@ -1947,7 +1947,7 @@
     if (!container) return;
     container.innerHTML = "";
 
-    // Build union of fragment sets from catalog AND progress
+    // Collect union of fragment sets from catalog & progress
     const setsByChar = new Map();
     asArray(catalog.fragmentSets).forEach(set => {
       const id = set.characterId || set.id;
@@ -1980,24 +1980,47 @@
 
     const ownedByChar = new Map((inv.progress?.fragments || []).map(f => [f.characterId || f.id, f.owned || 0]));
 
-    // Create one card per FRAGMENT (3 per character)
+    // Card per character (grouped)
     list.forEach(set => {
       const owned = ownedByChar.get(set.id) || 0;
       const total = set.total || 3;
+      const pct = Math.min(100, Math.round((owned / total) * 100));
 
-      for (let i = 1; i <= total; i++) {
-        const card = document.createElement("div");
-        const collected = i <= owned;
-        card.className = "item-card fragment-card" + (collected ? "" : " locked");
-        card.innerHTML = `
-          ${set.image ? `<img loading="lazy" src="${set.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
-          <div class="item-header" style="justify-content:space-between;align-items:center">
-            <strong style="font-weight:600">${set.name} – Fragment ${i}</strong>
-            <span class="item-completion ${collected ? "complete" : ""}">${collected ? "Owned" : "Locked"}</span>
+      const card = document.createElement("div");
+      card.className = "collection-card";
+      card.innerHTML = `
+        <div class="collection-header">
+          <div class="collection-info">
+            <h3>${set.name}</h3>
+            <p>${owned}/${total} fragments</p>
           </div>
-        `;
-        container.appendChild(card);
-      }
+          <div class="collection-progress">
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <span class="progress-text">${pct}%</span>
+          </div>
+        </div>
+      `;
+
+      card.addEventListener("click", () => {
+        // build a mini grid of 3 fragments for overlay
+        const fragList = document.createElement("div");
+        fragList.className = "items-grid";
+        for (let i = 1; i <= total; i++) {
+          const collected = i <= owned;
+          const div = document.createElement("div");
+          div.className = "item-card fragment-card" + (collected ? "" : " locked");
+          div.innerHTML = `
+            <div style="font-weight:600">${set.name} – Fragment ${i}</div>
+            <div class="item-completion ${collected ? "complete" : ""}">
+              ${collected ? "Owned" : "Locked"}
+            </div>
+          `;
+          fragList.appendChild(div);
+        }
+        openFragmentOverlay(set.name, owned, total, fragList);
+      });
+
+      container.appendChild(card);
     });
   }
       
@@ -2042,52 +2065,37 @@
         if (!container) return;
         container.innerHTML = "";
 
-        // Owned (epic/legendary or explicit type)
+        // Owned: check items with rarity epic/legendary OR kind == 'unreleased'
         const ownedNames = new Set((items || [])
           .filter(it => {
             const r = (it.rarity || "").toLowerCase();
-            const t = (it.type || "").toLowerCase();
-            return r === "epic" || r === "legendary" || t === "unreleased";
+            const k = (it.kind || "").toLowerCase();
+            return r === "epic" || r === "legendary" || k === "unreleased";
           })
           .map(it => it.name || it.title || it.itemId)
         );
 
-        // Union: catalog.unreleased ∪ owned items (as pseudo-unreleased)
-        const byKey = new Map();
-        asArray(catalog.unreleased).forEach(u => {
-          const key = u.name || u.title || u.id;
-          if (!key) return;
-          byKey.set(key, {
-            key,
-            name: u.name || u.title || "Unreleased",
-            image: u.image || u.artUrl || "",
-            rarity: u.rarity || "Epic"
-          });
-        });
-        (items || []).forEach(it => {
-          const r = (it.rarity || "").toLowerCase();
-          const t = (it.type || "").toLowerCase();
-          if (r === "epic" || r === "legendary" || t === "unreleased") {
-            const key = it.name || it.title || it.itemId;
-            if (key && !byKey.has(key)) {
-              byKey.set(key, { key, name: it.name || it.title || "Unreleased", image: it.artUrl || "", rarity: it.rarity });
-            }
-          }
-        });
+        // Catalog unreleased
+        const list = asArray(catalog.unreleased).map(u => ({
+          key: u.id || u.name,
+          name: u.name || "Unreleased",
+          image: u.image || u.artUrl || "",
+          rarity: u.rarity || "Epic",
+          audio: u.audio || ""
+        }));
 
-        const list = Array.from(byKey.values());
         if (!list.length) {
           container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No unreleased items found.</div>`;
           return;
         }
 
         list.forEach(u => {
-          const owned = ownedNames.has(u.key);
+          const owned = ownedNames.has(u.name) || ownedNames.has(u.key);
           const card = document.createElement("div");
           card.className = "unreleased-card" + (owned ? "" : " locked");
           card.innerHTML = `
-            ${u.image ? `<img loading="lazy" src="${u.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
             <h3>${u.name}</h3>
+            ${u.audio ? `<audio controls src="${u.audio}" style="width:100%;margin-top:6px"></audio>` : ""}
           `;
           container.appendChild(card);
         });
