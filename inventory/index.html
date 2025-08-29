@@ -57,18 +57,20 @@
         background:#0a0a0a;
         border-right:1px solid #1a1a1a;
         height:100vh;
-        padding-top:80px;
+        padding-top:80px;                /* ← grid top on desktop */
         display:flex;
         flex-direction:column;
-        position:relative;   /* anchor overlays & desktop nav */
-        overflow:hidden;     /* keep overlay inside */
+        position:relative;               /* anchor overlays & desktop nav */
+        overflow:hidden;
       }
 
       /* Leave room for bottom-pinned desktop nav so content isn't hidden */
       .inventory-content{
         flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:auto;
         -ms-overflow-style:none;scrollbar-width:none;
-        padding-bottom:calc(12px + 48px) /* ~desktop nav height */
+        padding-bottom:calc(12px + 48px);
+        /* prevent bottom content hiding under iOS URL bar */
+        scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 96px);
       }
       .inventory-content::-webkit-scrollbar{width:0!important;height:0!important}
 
@@ -93,11 +95,7 @@
 
       /* ── READ MORE overlay — scoped to inventory pane ───────────── */
       #readMoreOverlay.rm-overlay{
-        position:absolute;      /* inside .inventory-panel */
-        inset:0;
-        z-index:2200;
-        display:none;
-        pointer-events:none;    /* enabled when .show */
+        position:absolute;inset:0;z-index:2200;display:none;pointer-events:none
       }
       #readMoreOverlay.rm-overlay.show{display:block;pointer-events:auto}
       #readMoreOverlay .rm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);pointer-events:auto}
@@ -111,7 +109,6 @@
       #readMoreOverlay .read-more-popup .popup-close{position:static}
       #readMoreOverlay .read-more-popup .popup-body{padding:14px 16px 16px;overflow:auto;-webkit-overflow-scrolling:touch}
 
-      /* Centered mobile variant */
       @media (max-width:768px){
         #readMoreOverlay .read-more-popup{
           left:50%;transform:translateX(-50%);
@@ -133,9 +130,16 @@
       .form-input::placeholder{color:rgba(255,255,255,.5)}
       .form-button{width:100%;background:rgba(255,255,255,.92);color:#000;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:500;cursor:pointer}
 
-      /* Bottom nav */
-      .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(17,17,17,.95);backdrop-filter:blur(20px);border-top:1px solid #1a1a1a;padding:12px 20px;z-index:1000}
-      .nav-items{display:flex;justify-content:space-around;align-items:center;max-width:400px;margin:0 auto}
+      /* Bottom nav (lift off bottom, safe-area aware) */
+      .bottom-nav{
+        display:none;position:fixed;
+        left:8px;right:8px;
+        bottom:calc(env(safe-area-inset-bottom,0px) + 8px);  /* ← spacing from extreme bottom */
+        background:rgba(17,17,17,.95);backdrop-filter:blur(20px);
+        border:1px solid #1a1a1a;border-top:1px solid #1a1a1a;border-radius:14px;
+        padding:12px 20px;z-index:1000
+      }
+      .nav-items{display:flex;justify-content:space-around;align-items:center;max-width:480px;margin:0 auto}
       .nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;cursor:pointer;transition:all .2s ease;border-radius:8px;color:#666;touch-action:manipulation}
       .nav-item.active{color:#fff}
       .nav-icon{font-size:18px;color:inherit;font-weight:normal}
@@ -143,7 +147,7 @@
       /* DESKTOP NAV: pin to bottom inside inventory panel */
       .desktop-nav{
         display:flex;gap:2px;background:#111;border-radius:8px 8px 0 0;border-top:1px solid #1a1a1a;padding:4px;
-        position:absolute;left:32px;right:32px;bottom:0;z-index:10;margin:0 /* remove top/bottom margins */
+        position:absolute;left:32px;right:32px;bottom:0;z-index:10;margin:0
       }
       .nav-tab{padding:10px 16px;background:transparent;border:none;border-radius:6px;color:#666;cursor:pointer;transition:all .2s ease;font-size:14px;font-weight:500;flex:1;text-align:center;touch-action:manipulation}
       .nav-tab:hover{color:#fff}
@@ -252,54 +256,59 @@
       #fragments .collection-card .progress-bar{width:72px}
 
       /* ── EP / FRAGMENTS overlay — scoped to inventory pane ─────── */
+
       .album-overlay{
-        position:absolute;     /* within .inventory-panel */
-        inset:0;
+        position:absolute;inset:0;
         background:transparent;
-        display:flex;                  /* align to top-left on desktop */
-        align-items:flex-start;
-        justify-content:flex-start;
-        z-index:2000;
-        pointer-events:none;   /* enabled when .show */
+        display:flex;align-items:flex-start;justify-content:flex-start;
+        z-index:2000;pointer-events:none;
+        /* Align overlay's top to the grid's top by mirroring panel padding */
+        padding-top:80px;                 /* desktop grid top = panel padding-top */
       }
       .album-overlay.show{pointer-events:auto}
       .album-overlay.show::before{
-        content:"";
-        position:absolute;inset:0;
-        background:rgba(0,0,0,.35); /* dim + block clicks within panel only */
-        pointer-events:auto;
-        z-index:0;                  /* backdrop BELOW sheet so X is clickable */
+        content:"";position:absolute;inset:0;background:rgba(0,0,0,.35);
+        pointer-events:auto;z-index:0
       }
       .album-overlay .album-sheet{display:none}
       .album-overlay.show .album-sheet{display:grid}
 
       .album-sheet{
-        position:relative;          /* create stacking context */
-        z-index:1;                  /* above backdrop */
-        pointer-events:auto;
-        width:100%;
-        /* spacing via margins to match inventory tiles */
-        --sheet-mx:32px;            /* desktop matches .inventory-panel padding */
-        --sheet-my:32px;
-        margin:var(--sheet-my) var(--sheet-mx);
-        height:calc(100% - (var(--sheet-my) * 2));
-        max-height:calc(100% - (var(--sheet-my) * 2));
-        background:#0b0b0b;border:1px solid #1a1a1a;border-radius:14px;overflow:hidden;grid-template-rows:auto 1fr;box-shadow:0 20px 60px rgba(0,0,0,.45);min-width:360px
+        position:relative;z-index:1;pointer-events:auto;width:100%;
+        /* spacing via margins (no extra top margin so it lines with tile grid) */
+        --sheet-mx:32px; --sheet-my:0px;                   /* top aligned to grid */
+        margin:0 var(--sheet-mx) 32px var(--sheet-mx);     /* bottom breathing room */
+        height:calc(100% - 32px); max-height:calc(100% - 32px);
+        background:#0b0b0b;border:1px solid #1a1a1a;border-radius:14px;overflow:hidden;
+        grid-template-rows:auto 1fr;box-shadow:0 20px 60px rgba(0,0,0,.45);min-width:360px
       }
       .album-sheet .sheet-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;border-bottom:1px solid #1a1a1a;background:linear-gradient(180deg,#0f0f0f,#0a0a0a)}
       .sheet-meta{display:flex;align-items:center;gap:16px}
       .sheet-title h3{font-size:18px;margin:0}
       .sheet-title p{font-size:13px;color:#9a9a9a;margin:2px 0 0}
       .sheet-progress{display:flex;align-items:center;gap:8px}
-      .album-sheet .sheet-body{overflow-y:auto;-ms-overflow-style:none;scrollbar-width:none;padding:18px;position:relative;background:#0b0b0b;padding-bottom:var(--sheet-safe-bottom,18px)}
+      .album-sheet .sheet-body{
+        overflow-y:auto;-ms-overflow-style:none;scrollbar-width:none;padding:18px;position:relative;background:#0b0b0b;
+        padding-bottom:var(--sheet-safe-bottom,18px);
+        /* ensure last items stay above URL bar */
+        scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 96px);
+      }
       .album-sheet .sheet-body::-webkit-scrollbar{width:0!important;height:0!important}
       .album-sheet .items-grid{display:grid;gap:12px;grid-template-columns:1fr}
 
-      /* Close buttons must be clickable above any backgrounds */
+      /* Close buttons: big, reliable hit target + highest z */
       .modal-close,
       .popup-close,
       .album-close{
-        position:absolute;top:10px;right:10px;z-index:2;pointer-events:auto
+        position:absolute;top:10px;right:10px;z-index:5;pointer-events:auto;
+        width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+        -webkit-tap-highlight-color:transparent;
+      }
+      /* expand tap target without shifting layout */
+      .modal-close::after,
+      .popup-close::after,
+      .album-close::after{
+        content:"";position:absolute;inset:-8px; /* +16px hit growth */
       }
 
       /* Action bar */
@@ -314,15 +323,21 @@
       .inventory-panel,.viewport-panel,.viewport-container{min-width:0}
       :root{--bottom-nav-h:64px}
 
-      /* Phone layout: split top/bottom with dvh */
+      /* Phone layout */
       @media (max-width:480px){
-        .main-container{grid-template-columns:1fr;grid-template-rows:50dvh 50dvh;height:100dvh;overflow:hidden}
-        .viewport-panel{order:-1;height:50dvh}
+        .main-container{grid-template-columns:1fr;grid-template-rows:50svh 50svh;height:100svh;overflow:hidden}  /* svh fixes iOS URL bar */
+        .viewport-panel{order:-1;height:50svh}
         .viewport-container{height:100%}
-        .inventory-panel{padding:12px 12px 0 12px;height:55dvh;overflow:hidden;background:#0a0a0a;border-right:none;border-top:1px solid #1a1a1a}
+        .inventory-panel{padding:12px 12px 0 12px;height:55svh;overflow:hidden;background:#0a0a0a;border-right:none;border-top:1px solid #1a1a1a}
+
         .desktop-nav{display:none}
         .bottom-nav{display:block}
-        .inventory-content{padding-bottom:calc(var(--bottom-nav-h,64px) + env(safe-area-inset-bottom,0px) + 16px)}
+
+        .inventory-content{
+          padding-bottom:calc(var(--bottom-nav-h,64px) + env(safe-area-inset-bottom,0px) + 24px);
+          scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 120px);
+        }
+
         #characters .characters-grid{padding-bottom:24px}
         .collection-section{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
         .collection-card{padding:16px}
@@ -332,45 +347,43 @@
         .top-nav{padding:15px}
         .menu-tray{top:55px;left:15px}
 
-        /* Overlay: occupy bottom half with mobile padding matching panel */
+        /* Overlay: align top to grid, occupy bottom half using svh; mirror panel padding */
+        .album-overlay{padding-top:12px}
         .album-sheet{
-          --sheet-mx:12px; --sheet-my:12px;
-          margin:var(--sheet-my) var(--sheet-mx);
+          --sheet-mx:12px; margin:0 var(--sheet-mx) 12px var(--sheet-mx);
           width:calc(100% - (var(--sheet-mx) * 2));
-          height:calc(50dvh - (var(--sheet-my) * 2));
-          max-height:calc(50dvh - (var(--sheet-my) * 2));
-          align-self:flex-end; /* sit at bottom within overlay */
-          min-width:0;
+          height:calc(50svh - 12px); max-height:calc(50svh - 12px);
+          align-self:flex-end; min-width:0;
         }
 
         .item-action-bar{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
       }
 
-      /* Tablets: also stack halves with dvh */
+      /* Tablets */
       @media (max-width:1024px) and (min-width:481px){
-        .main-container{grid-template-columns:1fr;grid-template-rows:50dvh 50dvh;height:100dvh;overflow:hidden}
-        .viewport-panel{order:-1;height:50dvh}
+        .main-container{grid-template-columns:1fr;grid-template-rows:50svh 50svh;height:100svh;overflow:hidden}
+        .viewport-panel{order:-1;height:50svh}
         .item-action-bar{position:absolute;left:50%;bottom:calc(10px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:1500}
         .viewport-container{height:100%}
-        .inventory-panel{padding:20px 20px 0 20px;height:50dvh;overflow:hidden;border-right:none;border-top:1px solid #1a1a1a}
+        .inventory-panel{padding:20px 20px 0 20px;height:50svh;overflow:hidden;border-right:none;border-top:1px solid #1a1a1a}
 
-        /* Desktop nav hidden on <=1024; bottom mobile nav visible */
         .desktop-nav{display:none}
         .bottom-nav{display:block}
-        .inventory-content{padding-bottom:calc(var(--bottom-nav-h,64px) + env(safe-area-inset-bottom,0px) + 16px)}
 
-        /* Overlay bottom-half behavior on tablet */
-        .album-sheet{
-          --sheet-mx:20px; --sheet-my:12px;
-          margin:var(--sheet-my) var(--sheet-mx);
-          width:calc(100% - (var(--sheet-mx) * 2));
-          height:calc(50dvh - (var(--sheet-my) * 2));
-          max-height:calc(50dvh - (var(--sheet-my) * 2));
-          align-self:flex-end;
-          min-width:0;
+        .inventory-content{
+          padding-bottom:calc(var(--bottom-nav-h,64px) + env(safe-area-inset-bottom,0px) + 24px);
+          scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 120px);
         }
 
-        /* More room for action bar inside overlay */
+        /* Overlay mirrors panel padding for grid alignment */
+        .album-overlay{padding-top:20px}
+        .album-sheet{
+          --sheet-mx:20px; margin:0 var(--sheet-mx) 16px var(--sheet-mx);
+          width:calc(100% - (var(--sheet-mx) * 2));
+          height:calc(50svh - 16px); max-height:calc(50svh - 16px);
+          align-self:flex-end; min-width:0;
+        }
+
         .album-sheet .sheet-body{--sheet-safe-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
       }
 
@@ -386,7 +399,7 @@
       .circular-btn:hover{border-color:rgba(255,255,255,.45)}
       .item-action-bar .circular-btn{width:30px;height:30px}
       .play-btn{background-image:url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIgMUwxMCA2TDIgMTFWMVoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=');background-repeat:no-repeat;background-position:center;background-size:12px 12px}
-      .playing .play-btn{background-image:url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3QgeD0iMiIgeT0iMiIgd2lkdGg9IjIiIGhlaWdodD0iOCIgaWxsPSJ3aGl0ZSIvPgo8cmVjdCB4PSI4IiB5PSIyIiB3aWR0aD0iMiIgaGVpZ2h0PSI4IiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K')}
+      .playing .play-btn{background-image:url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3QgeD0iMiIgeT0iMiIgd2lkdGg9IjIiIGhlaWdodD0iOCIgZmlsbD0id2hpdGUiLz4KPHJlY3QgeD0iOCIgeT0iMiIgd2lkdGg9IjIiIGhlaWdodD0iOCIgaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K')}
       .read-more-btn{background-image:url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTkgM1Y5SDMiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik05IDE1VjlIMTUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=');background-repeat:no-repeat;background-position:center;background-size:16px 16px}
 
       /* Hide progress bars inside overlays */
@@ -398,6 +411,7 @@
       .unreleased-card h3{font-size:16px;font-weight:600;margin-bottom:8px;color:#fff;padding-right:0;word-wrap:break-word;hyphens:auto;line-height:1.4}
       .rarity-tag{display:none}
     </style>
+
 
 </head>
 <body>
