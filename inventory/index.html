@@ -1751,22 +1751,35 @@
   /***************************
    * HELPERS
    ***************************/
-  function asArray(val) {
-    if (Array.isArray(val)) return val;
-    if (val && typeof val === 'object') return Object.values(val);
-    return [];
-  }
-  function normalizeCatalog(c) {
-    const src = (c && c.catalog) ? c.catalog : (c || {});
-    return {
-      eps:              asArray(src.eps),
-      singles:          asArray(src.singles),
-      covers:           asArray(src.covers),
-      fragmentSets:     asArray(src.fragmentSets),
-      unreleased:       asArray(src.unreleased),
-      goldenCharacters: asArray(src.goldenCharacters),
-    };
-  }
+      function asArray(val) {
+        if (Array.isArray(val)) return val;
+        if (val && typeof val === 'object') return Object.values(val);
+        return [];
+      }
+
+      // Normalize the /api/catalog payload regardless of server shape/aliases
+      function normalizeCatalog(c) {
+        const src0 = c || {};
+        const src = src0.catalog ? src0.catalog : src0;
+
+        // Common alias fallbacks
+        const eps             = src.eps             ?? src.albums       ?? src.albumSets       ?? [];
+        const singles         = src.singles         ?? src.tracks       ?? [];
+        const covers          = src.covers          ?? src.albumCovers  ?? src.coversAll       ?? [];
+        const fragmentSets    = src.fragmentSets    ?? src.fragments    ?? src.fragmentsets    ?? [];
+        const unreleased      = src.unreleased      ?? src.unreleasedTracks ?? src.unreleased_items ?? [];
+        const goldenCharacters= src.goldenCharacters?? src.golden       ?? src.golden_chars    ?? [];
+
+        return {
+          eps:              asArray(eps),
+          singles:          asArray(singles),
+          covers:           asArray(covers),
+          fragmentSets:     asArray(fragmentSets),
+          unreleased:       asArray(unreleased),
+          goldenCharacters: asArray(goldenCharacters),
+        };
+      }
+
 
   /***************************
    * RENDER FUNCTIONS (progress + all/greyed)
@@ -1777,24 +1790,35 @@
     if (!container) return;
     container.innerHTML = '';
 
-    // Unlocked set from progress
     const unlocked = new Set((inv.progress?.characters || []).map(c => c.characterId));
 
-    // Build union list
+    // Union: fragmentSets ∪ goldenCharacters ∪ unlocked (fallbacks)
     const all = new Map();
+
     asArray(catalog.fragmentSets).forEach(fs => {
-      if (!fs.characterId) return;
-      all.set(fs.characterId, { id: fs.characterId, name: fs.name, image: fs.image });
+      const id = fs.characterId || fs.id;
+      if (!id) return;
+      all.set(id, { id, name: fs.name, image: fs.image || fs.coverImage || fs.artUrl || '' });
     });
+
     asArray(catalog.goldenCharacters).forEach(gc => {
-      if (!gc.characterId) return;
-      if (!all.has(gc.characterId)) all.set(gc.characterId, { id: gc.characterId, name: gc.name, image: gc.image });
+      const id = gc.characterId || gc.id;
+      if (!id) return;
+      if (!all.has(id)) all.set(id, { id, name: gc.name, image: gc.image || '' });
     });
-    // Also include any unlocked chars that might not be in catalog (fallback)
+
+    // Fallback: infer characters from fragment progress if catalog is thin
+    (inv.progress?.fragments || []).forEach(f => {
+      const id = f.characterId || f.id;
+      if (!id) return;
+      if (!all.has(id)) all.set(id, { id, name: f.name, image: '' });
+    });
+
+    // Fallback: unlocked characters themselves (in case catalog is empty)
     (inv.progress?.characters || []).forEach(c => {
-      if (!all.has(c.characterId)) {
-        all.set(c.characterId, { id: c.characterId, name: c.name, image: c.image });
-      }
+      const id = c.characterId || c.id;
+      if (!id) return;
+      if (!all.has(id)) all.set(id, { id, name: c.name, image: c.image || '' });
     });
 
     const list = Array.from(all.values());
@@ -1902,66 +1926,79 @@
         if (!container) return;
         container.innerHTML = '';
 
-        // Union: catalog.eps ∪ inv.progress.eps
-        const byId = new Map();
-        asArray(catalog.eps).forEach(ep => {
-          if (!ep || !ep.id) return;
-          byId.set(ep.id, { id: ep.id, name: ep.name, totalSongs: ep.totalSongs });
-        });
-        (inv.progress?.eps || []).forEach(ep => {
-          if (!ep || !ep.id) return;
-          if (!byId.has(ep.id)) byId.set(ep.id, { id: ep.id, name: ep.name, totalSongs: ep.totalSongs });
-        });
+        // All cover collectibles
+        const covers = asArray(catalog.covers);
 
-        const epProgress = new Map((inv.progress?.eps || []).map(e => [e.id, e]));
-        const list = Array.from(byId.values());
+        // Owned covers (by name or by some id if present)
+        const ownedSet = new Set((inv.items || [])
+          .filter(it => {
+            // treat rarity or type as hints that this is a cover collectible
+            const r = (it.rarity || '').toLowerCase();
+            const t = (it.type || '').toLowerCase();
+            return t === 'cover' || r === 'rare'; // adjust if your server uses another marker
+          })
+          .map(it => it.name)
+        );
+
+        // If catalog has no covers, try derive from EPs (using their coverImage)
+        let list = covers;
         if (!list.length) {
-          container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No albums found.</div>`;
+          list = asArray(catalog.eps).map(ep => ({
+            id: ep.id,
+            name: ep.name,
+            image: ep.coverImage || ep.image || ''
+          }));
+        }
+
+        if (!list.length) {
+          container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No album covers found.</div>`;
           return;
         }
 
-        list.forEach(ep => {
-          const prog = epProgress.get(ep.id);
-          const unlocked = !!prog?.complete;
+        list.forEach(cov => {
+          const name = cov.name || cov.title || 'Album';
+          const img  = cov.image || cov.coverImage || cov.artUrl || '';
+          const owned= ownedSet.has(name);
+
           const card = document.createElement('div');
-          card.className = 'album-card' + (unlocked ? '' : ' locked');
+          card.className = 'unreleased-card' + (owned ? '' : ' locked'); // reuse tile style
           card.innerHTML = `
-            <h3>${ep.name || 'Album/EP'}</h3>
-            <p>${ep.totalSongs || prog?.totalSongs || 0} Songs</p>
+            ${img ? `<img loading="lazy" src="${img}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ''}
+            <h3>${name}</h3>
           `;
-          card.addEventListener('click', () => {
-            const rows = (inv.progress?.songs || []).filter(s => s.epId === ep.id);
-            if (!rows.length) return;
-            openEpOverlay(ep.name || 'EP', rows);
-          });
           container.appendChild(card);
         });
       }
-
       function renderUnreleasedFromCatalog(catalog = {}, items = []) {
         const container = document.getElementById('unreleased-grid');
         if (!container) return;
         container.innerHTML = '';
 
-        // Owned from items (epic/legendary)
+        // Owned unreleased-like items (epic/legendary OR type hints)
         const ownedNames = new Set((items || [])
           .filter(it => {
             const r = (it.rarity || '').toLowerCase();
-            return r === 'epic' || r === 'legendary';
+            const t = (it.type || '').toLowerCase();
+            return r === 'epic' || r === 'legendary' || t === 'unreleased';
           })
           .map(it => it.name)
         );
 
-        // Union: catalog.unreleased ∪ items(epic/legendary)
+        // Union: catalog.unreleased ∪ (owned epic/legendary items as pseudo-unreleased)
         const byName = new Map();
         asArray(catalog.unreleased).forEach(u => {
-          if (!u || !u.name) return;
-          byName.set(u.name, u);
+          const name = u.name || u.title;
+          if (!name) return;
+          byName.set(name, { name, image: u.image || u.artUrl || '', rarity: u.rarity || 'Epic' });
         });
+
         (items || []).forEach(it => {
           const r = (it.rarity || '').toLowerCase();
-          if ((r === 'epic' || r === 'legendary') && !byName.has(it.name)) {
-            byName.set(it.name, { name: it.name, rarity: it.rarity, image: it.artUrl });
+          const t = (it.type || '').toLowerCase();
+          if (r === 'epic' || r === 'legendary' || t === 'unreleased') {
+            if (!byName.has(it.name)) {
+              byName.set(it.name, { name: it.name, image: it.artUrl || '', rarity: it.rarity });
+            }
           }
         });
 
@@ -1975,7 +2012,10 @@
           const owned = ownedNames.has(u.name);
           const card = document.createElement('div');
           card.className = 'unreleased-card' + (owned ? '' : ' locked');
-          card.innerHTML = `<h3>${u.name || ''}</h3>`;
+          card.innerHTML = `
+            ${u.image ? `<img loading="lazy" src="${u.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ''}
+            <h3>${u.name || ''}</h3>
+          `;
           container.appendChild(card);
         });
       }
