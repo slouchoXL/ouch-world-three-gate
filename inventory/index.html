@@ -1062,11 +1062,10 @@
         const chips = rowCard.querySelector("#fragmentChipRow");
         chips.innerHTML = "";
         for (let i = 1; i <= total; i++) {
-          const owned = i <= collected;
+          const owned = fragmentsData.ownedFragmentNumbers?.includes(i) || false;
           const chip = document.createElement("div");
-          // reuse your stem chip styling for perfect visual match
           chip.className = "stem-slot " + (owned ? "collected" : "empty");
-          chip.textContent = i; // labels 1..3 (can change to F1..F3 if you want)
+          chip.textContent = i;
           chip.title = owned ? "Owned" : "Locked";
           // Optional: click to show action bar
           chip.addEventListener("click", (e) => {
