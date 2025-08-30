@@ -440,6 +440,90 @@
       /* Fix unreleased text wrapping */
       .unreleased-card h3{font-size:16px;font-weight:600;margin-bottom:8px;color:#fff;padding-right:0;word-wrap:break-word;hyphens:auto;line-height:1.4}
       .rarity-tag{display:none}
+      
+      /* ========= MOBILE (≤480px) ========= */
+      @media (max-width:480px){
+        :root{
+          /* keep grid + overlay tight to the split line and add a small bottom buffer */
+          --panel-pad-x: 12px;
+          --grid-top-offset: 12px;  /* ← was 80px (desktop), created the big top gap */
+          --nav-gap: 8px;           /* small visual cushion above the bottom nav */
+          --nav-clear: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + var(--nav-gap));
+        }
+
+        .inventory-panel{height:55svh;border-right:none;border-top:1px solid #1a1a1a}
+
+        /* give the grid more space above the bottom UI */
+        .inventory-content{
+          padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + 32px);
+          scroll-padding-bottom: calc(env(safe-area-inset-bottom,0px) + 160px);
+        }
+
+        /* overlay aligns to grid top and visually reaches the bottom nav */
+        .album-overlay{ padding-top: var(--grid-top-offset); }
+
+        .album-sheet{
+          --sheet-mx: var(--panel-pad-x);
+          margin: 0 var(--sheet-mx) 0 var(--sheet-mx); /* no forced gap below */
+
+          /* from grid-top to bottom of the bottom nav (+ small cushion) */
+          height: calc(100% - var(--grid-top-offset) + var(--nav-clear));
+          max-height: calc(100% - var(--grid-top-offset) + var(--nav-clear));
+
+          align-self: flex-start;
+          width: calc(100% - (var(--sheet-mx) * 2));
+          min-width: 0;
+        }
+
+        .album-sheet .sheet-body{
+          /* keep last lines clear of bottom UI */
+          --sheet-safe-bottom: var(--nav-clear);
+          scroll-padding-bottom: var(--nav-clear);
+        }
+
+        /* keep your 2-up mobile grids the same */
+        .characters-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+        .collection-section{grid-template-columns:repeat(2,1fr);gap:12px}
+        .unreleased-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+      }
+
+      /* ========= TABLET (481–1024px) ========= */
+      @media (max-width:1024px) and (min-width:481px){
+        :root{
+          --panel-pad-x: 20px;
+          --grid-top-offset: 16px;  /* smaller top offset for tablet */
+          --nav-gap: 10px;
+          --nav-clear: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + var(--nav-gap));
+        }
+
+        .main-container{grid-template-columns:1fr;grid-template-rows:50svh 50svh;height:100svh;overflow:hidden}
+        .viewport-panel{order:-1;height:50svh}
+        .inventory-panel{height:50svh;border-right:none;border-top:1px solid #1a1a1a}
+
+        .desktop-nav{display:none}
+        .bottom-nav{display:block}
+
+        .inventory-content{
+          padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + 32px);
+          scroll-padding-bottom: calc(env(safe-area-inset-bottom,0px) + 160px);
+        }
+
+        .album-overlay{ padding-top: var(--grid-top-offset); }
+        .album-sheet{
+          --sheet-mx: var(--panel-pad-x);
+          margin: 0 var(--sheet-mx) 0 var(--sheet-mx);
+          height: calc(100% - var(--grid-top-offset) + var(--nav-clear));
+          max-height: calc(100% - var(--grid-top-offset) + var(--nav-clear));
+          align-self: flex-start;
+          width: calc(100% - (var(--sheet-mx) * 2));
+          min-width: 0;
+        }
+        .album-sheet .sheet-body{ --sheet-safe-bottom: var(--nav-clear); scroll-padding-bottom: var(--nav-clear); }
+      }
+
+      /* ========= MISC FIX ========= */
+      /* remove stray brace that can cancel later rules (if present in your file) */
+      /* delete any lone '}' that appears right after the mobile block */
     </style>
 
     
