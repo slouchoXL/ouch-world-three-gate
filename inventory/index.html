@@ -448,7 +448,7 @@
           --panel-pad-x: 12px;
           --grid-top-offset: 12px;  /* ← was 80px (desktop), created the big top gap */
           --nav-gap: 8px;           /* small visual cushion above the bottom nav */
-          --nav-clear: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + var(--nav-gap));
+          --nav-clear: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,16px) + var(--nav-gap));
         }
 
         .inventory-panel{height:55svh;border-right:none;border-top:1px solid #1a1a1a}
@@ -456,7 +456,7 @@
         /* give the grid more space above the bottom UI */
         .inventory-content{
           padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + 32px);
-          scroll-padding-bottom: calc(env(safe-area-inset-bottom,0px) + 160px);
+          scroll-padding-bottom: calc(env(safe-area-inset-bottom,0px) + 180px);
         }
 
         /* overlay aligns to grid top and visually reaches the bottom nav */
