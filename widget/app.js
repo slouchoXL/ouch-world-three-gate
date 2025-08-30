@@ -336,113 +336,71 @@ async function onCollectClick(){
   
   console.log('[DEBUG] Starting collection process...');
   console.log('[DEBUG] Opening data:', opening);
-  console.log('[DEBUG] Current BASE URL:', BASE);
   
   try{
     const itemIds = (opening?.results || []).map(it => it.itemId);
     console.log('[DEBUG] Items to collect:', itemIds);
-    console.log('[DEBUG] Number of items:', itemIds.length);
 
-    // Check auth header before making request
     const authHeader = await getAuthHeader();
-    console.log('[DEBUG] Auth header being sent:', authHeader);
-    console.log('[DEBUG] Auth header keys:', Object.keys(authHeader));
+    console.log('[DEBUG] Auth header:', authHeader);
 
-    // Log the full request details
-    const requestUrl = `${BASE}/api/collection/add`;
-    const requestBody = JSON.stringify({ itemIds });
-    console.log('[DEBUG] Request URL:', requestUrl);
-    console.log('[DEBUG] Request body:', requestBody);
-    console.log('[DEBUG] Request headers:', {
-      'Content-Type': 'application/json',
-      ...authHeader,
-    });
-
-    const addRes = await fetch(requestUrl, {
+    const addRes = await fetch(`${BASE}/api/collection/add`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...authHeader,
       },
-      body: requestBody,
+      body: JSON.stringify({ itemIds }),
     });
 
     console.log('[DEBUG] Response status:', addRes.status);
-    console.log('[DEBUG] Response status text:', addRes.statusText);
-    console.log('[DEBUG] Response headers:', Object.fromEntries(addRes.headers.entries()));
 
     if (!addRes.ok) {
       const errorText = await addRes.text();
-      console.error('[DEBUG] Response error body:', errorText);
-      console.error('[DEBUG] Full error details:', {
-        status: addRes.status,
-        statusText: addRes.statusText,
-        url: addRes.url,
-        headers: Object.fromEntries(addRes.headers.entries())
-      });
+      console.error('[DEBUG] Response error:', errorText);
       throw new Error(`Add-to-inventory ${addRes.status}: ${errorText}`);
     }
 
     const res = await addRes.json();
-    console.log('[DEBUG] Collection response success:', res);
-    console.log('[DEBUG] Collection response keys:', Object.keys(res));
-      console.log('[DEBUG] Response has inventory:', !!res.inventory);
-      console.log('[DEBUG] Response inventory items:', res.inventory?.items?.length);
+    console.log('[DEBUG] Collection response:', res);
+    console.log('[DEBUG] Has inventory in response:', !!res.inventory);
+    console.log('[DEBUG] Inventory items count:', res.inventory?.items?.length);
+    console.log('[DEBUG] Inventory progress exists:', !!res.inventory?.progress);
 
-      if (res?.inventory) {
-          inv = normalizeInventory(res.inventory);
-          console.log('[DEBUG] Normalized inv after collection:', inv);
-          console.log('[DEBUG] New balance after collection:', inv.balance?.COIN);
-          renderMeta();
-          console.log('[DEBUG] UI updated after collection');
-          if (window.parent !== window) {
-                 window.parent.postMessage({
-                   type: 'inventory-updated',
-                   inventory: inv
-                 }, '*');
-               }
-          
-      }
-      
-      
-
-    // IMPORTANT: Refresh inventory from backend like you do after pack opening
-    try {
-      console.log('[DEBUG] Refreshing inventory from backend after collection...');
-      const fresh = await jfetch('/api/inventory');
-      console.log('[DEBUG] Fresh inventory response:', fresh);
-      inv = normalizeInventory(fresh);
-      console.log('[DEBUG] Final normalized inventory:', inv);
-      console.log('[DEBUG] Final balance:', inv.balance?.COIN);
+    if (res?.inventory) {
+      inv = normalizeInventory(res.inventory);
+      console.log('[DEBUG] Normalized inventory:', inv);
       renderMeta();
-      console.log('[DEBUG] Inventory refreshed successfully');
-    } catch (e) {
-      console.error('[DEBUG] Failed to refresh inventory after collection:', e);
-      console.error('[DEBUG] Refresh error details:', {
-        message: e.message,
-        stack: e.stack
-      });
+      
+      // NEW: Notify parent
+      console.log('[DEBUG] Sending message to parent...');
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: 'inventory-updated',
+          inventory: inv,
+          debug: 'from-packs-widget'
+        }, '*');
+        console.log('[DEBUG] Message sent to parent');
+      } else {
+        console.log('[DEBUG] No parent window found');
+      }
+    } else {
+      console.error('[DEBUG] No inventory in response!');
     }
 
-    console.log('[DEBUG] Cleaning up UI state...');
+    // Clean up UI
     opening = null;
     stackEl.hidden = true;
-    trayEl.hidden  = true;
+    trayEl.hidden = true;
     packImg.hidden = false;
 
     cta.textContent = 'Open Pack';
     cta.disabled = false;
     cta.onclick = null;
     cta.addEventListener('click', onOpenClick, { once:true });
-    console.log('[DEBUG] Collection process completed successfully');
     
   } catch(e){
-    console.error('[DEBUG] Collection process failed:', e);
-    console.error('[DEBUG] Error details:', {
-      message: e.message,
-      stack: e.stack,
-      name: e.name
-    });
+    console.error('[DEBUG] Collection failed:', e);
     showError(String(e.message || e));
     cta.textContent = 'Open Pack';
     cta.disabled = false;

@@ -1607,33 +1607,43 @@
       }
     });
       
+      // Listen for inventory updates from packs widget
       window.addEventListener('message', async (event) => {
-           if (event.data?.type === 'inventory-updated') {
-             console.log('[inventory] Received update notification from packs widget');
-             
-             try {
-               // Re-fetch fresh inventory data
-               const [catalogRaw, invRaw] = await Promise.all([
-                 jfetch('/api/catalog'),
-                 jfetch('/api/inventory')
-               ]);
-               
-               const catalog = normalizeCatalog(catalogRaw);
-               const inv = invRaw;
-               
-               // Re-render all sections
-               renderEPsGrouped(catalog, inv.progress?.songs || [], inv.progress?.singles || []);
-               renderCharactersAll(inv, catalog);
-               renderFragmentsAll(inv, catalog);
-               renderAlbumsFromCatalog(inv, catalog);
-               renderUnreleasedFromCatalog(catalog, inv.items || []);
-               
-               console.log('[inventory] Successfully refreshed after pack opening');
-             } catch (e) {
-               console.error('[inventory] Failed to refresh after pack update:', e);
-             }
-           }
-         });
+        console.log('[INVENTORY] Received message:', event.data);
+        
+        if (event.data?.type === 'inventory-updated') {
+          console.log('[INVENTORY] Processing inventory update...');
+          console.log('[INVENTORY] Received inventory data:', event.data.inventory);
+          
+          try {
+            // Re-fetch fresh inventory data
+            console.log('[INVENTORY] Fetching fresh data from API...');
+            const [catalogRaw, invRaw] = await Promise.all([
+              jfetch('/api/catalog'),
+              jfetch('/api/inventory')
+            ]);
+            
+            console.log('[INVENTORY] Fresh API response:', invRaw);
+            console.log('[INVENTORY] Has progress in API response:', !!invRaw.progress);
+            console.log('[INVENTORY] Items count from API:', invRaw.items?.length);
+            
+            const catalog = normalizeCatalog(catalogRaw);
+            const inv = invRaw;
+            
+            // Re-render all sections
+            console.log('[INVENTORY] Re-rendering sections...');
+            renderEPsGrouped(catalog, inv.progress?.songs || [], inv.progress?.singles || []);
+            renderCharactersAll(inv, catalog);
+            renderFragmentsAll(inv, catalog);
+            renderAlbumsFromCatalog(inv, catalog);
+            renderUnreleasedFromCatalog(catalog, inv.items || []);
+            
+            console.log('[INVENTORY] Successfully refreshed after pack opening');
+          } catch (e) {
+            console.error('[INVENTORY] Failed to refresh after pack update:', e);
+          }
+        }
+      });
   </script>
 
 
