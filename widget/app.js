@@ -418,7 +418,7 @@ async function onCollectClick(){
   }
 }
 
-    opening = null;
+  /*  opening = null;
     stackEl.hidden = true;
     trayEl.hidden  = true;
     packImg.hidden = false;
@@ -434,7 +434,7 @@ async function onCollectClick(){
     cta.onclick = null;
     cta.addEventListener('click', onOpenClick, { once:true });
   }
-}
+}*/
 // ===== OVERLAY =====
 function openOverlay(cardBtn, src){
   overlayImg.src = src;
