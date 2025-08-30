@@ -440,6 +440,60 @@
       /* Fix unreleased text wrapping */
       .unreleased-card h3{font-size:16px;font-weight:600;margin-bottom:8px;color:#fff;padding-right:0;word-wrap:break-word;hyphens:auto;line-height:1.4}
       .rarity-tag{display:none}
+      
+      /* MOBILE: stretch overlay from grid top to the BOTTOM of the bottom nav */
+      @media (max-width:480px){
+        :root{
+          --nav-clear: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px));
+        }
+
+        .album-overlay{ padding-top: var(--grid-top-offset); }
+
+        .album-sheet{
+          --sheet-mx: var(--panel-pad-x);
+          /* remove the margin that kept it above the nav */
+          margin: 0 var(--sheet-mx) 0 var(--sheet-mx);
+
+          /* grow the sheet DOWN by the nav height so its bottom lines up with
+             the bottom edge of the bottom nav (it will sit UNDER the nav) */
+          height: calc(100% - var(--grid-top-offset) + var(--nav-clear));
+          max-height: calc(100% - var(--grid-top-offset) + var(--nav-clear));
+
+          align-self: flex-start;
+          width: calc(100% - (var(--sheet-mx) * 2));
+          min-width: 0;
+        }
+
+        .album-sheet .sheet-body{
+          /* keep last content readable above iOS URL bar while the sheet extends under nav */
+          --sheet-safe-bottom: var(--nav-clear);
+          scroll-padding-bottom: var(--nav-clear);
+        }
+      }
+
+      /* TABLET: same logic */
+      @media (max-width:1024px) and (min-width:481px){
+        :root{
+          --nav-clear: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px));
+        }
+
+        .album-overlay{ padding-top: var(--grid-top-offset); }
+
+        .album-sheet{
+          --sheet-mx: var(--panel-pad-x);
+          margin: 0 var(--sheet-mx) 0 var(--sheet-mx);
+          height: calc(100% - var(--grid-top-offset) + var(--nav-clear));
+          max-height: calc(100% - var(--grid-top-offset) + var(--nav-clear));
+          align-self: flex-start;
+          width: calc(100% - (var(--sheet-mx) * 2));
+          min-width: 0;
+        }
+
+        .album-sheet .sheet-body{
+          --sheet-safe-bottom: var(--nav-clear);
+          scroll-padding-bottom: var(--nav-clear);
+        }
+      }
     </style>
 
     
