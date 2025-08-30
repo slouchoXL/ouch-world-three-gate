@@ -1156,18 +1156,28 @@
   }
 
   // EP grouping
-  function makeStemChips(owned=0,total=0){
-    const labels=['D','B','M','V','FX'];
-    const row=document.createElement("div");row.className="stems-row";
-    for(let i=0;i<total;i++){const slot=document.createElement("div");slot.className="stem-slot"+(i<owned?" collected":" empty");slot.textContent=labels[i]||"•";row.appendChild(slot);}
+  function makeStemChips(ownedPositions = [], total = 0) {
+    const labels = ['D','B','M','V','FX'];
+    const row = document.createElement("div");
+    row.className = "stems-row";
+    
+    for (let i = 0; i < total; i++) {
+      const slot = document.createElement("div");
+      const isOwned = ownedPositions.includes(i);
+      slot.className = "stem-slot" + (isOwned ? " collected" : " empty");
+      slot.textContent = labels[i] || "•";
+      row.appendChild(slot);
+    }
+    
     return row;
   }
-  function makeSongRow(name,owned,total){
-    const wrapper=document.createElement("div");wrapper.className="collection-card";wrapper.style.padding="12px";wrapper.style.margin="0";
-    wrapper.innerHTML=`<div class="collection-header" style="margin-bottom:8px;"><div class="collection-info"><h3 style="font-size:14px">${name}</h3></div><div class="item-completion ${owned===total?"complete":""}">${owned}/${total}</div></div>`;
-    wrapper.appendChild(makeStemChips(owned,total));
-    return wrapper;
-  }
+      function makeSongRow(name, ownedPositions, total){
+        const wrapper=document.createElement("div");wrapper.className="collection-card";wrapper.style.padding="12px";wrapper.style.margin="0";
+        const ownedCount = ownedPositions.length;
+        wrapper.innerHTML=`<div class="collection-header" style="margin-bottom:8px;"><div class="collection-info"><h3 style="font-size:14px">${name}</h3></div><div class="item-completion ${ownedCount===total?"complete":""}">${ownedCount}/${total}</div></div>`;
+        wrapper.appendChild(makeStemChips(ownedPositions, total));
+        return wrapper;
+      }
       
       function openEpOverlay(epTitle, songsInEp) {
         // overall progress
@@ -1191,7 +1201,7 @@
           const total = row.totalStems || 0;
 
           // your existing row factory (kept intact)
-          const rowEl = makeSongRow(name, owned, total);
+          const rowEl = makeSongRow(name, row.ownedStemPositions || [], total);
 
           // 🔗 Attach click handlers to each stem chip in this row
           // Assumes chips have class .stem-slot (matches your CSS)
