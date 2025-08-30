@@ -1606,6 +1606,34 @@
         alert('Login failed.');
       }
     });
+      
+      window.addEventListener('message', async (event) => {
+           if (event.data?.type === 'inventory-updated') {
+             console.log('[inventory] Received update notification from packs widget');
+             
+             try {
+               // Re-fetch fresh inventory data
+               const [catalogRaw, invRaw] = await Promise.all([
+                 jfetch('/api/catalog'),
+                 jfetch('/api/inventory')
+               ]);
+               
+               const catalog = normalizeCatalog(catalogRaw);
+               const inv = invRaw;
+               
+               // Re-render all sections
+               renderEPsGrouped(catalog, inv.progress?.songs || [], inv.progress?.singles || []);
+               renderCharactersAll(inv, catalog);
+               renderFragmentsAll(inv, catalog);
+               renderAlbumsFromCatalog(inv, catalog);
+               renderUnreleasedFromCatalog(catalog, inv.items || []);
+               
+               console.log('[inventory] Successfully refreshed after pack opening');
+             } catch (e) {
+               console.error('[inventory] Failed to refresh after pack update:', e);
+             }
+           }
+         });
   </script>
 
 

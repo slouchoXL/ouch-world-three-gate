@@ -386,14 +386,25 @@ async function onCollectClick(){
     const res = await addRes.json();
     console.log('[DEBUG] Collection response success:', res);
     console.log('[DEBUG] Collection response keys:', Object.keys(res));
+      console.log('[DEBUG] Response has inventory:', !!res.inventory);
+      console.log('[DEBUG] Response inventory items:', res.inventory?.items?.length);
 
-    if (res) {
-      inv = normalizeInventory(res);
-      console.log('[DEBUG] Normalized inv after collection:', inv);
-      console.log('[DEBUG] New balance after collection:', inv.balance?.COIN);
-      renderMeta();
-      console.log('[DEBUG] UI updated after collection');
-    }
+      if (res?.inventory) {
+          inv = normalizeInventory(res.inventory);
+          console.log('[DEBUG] Normalized inv after collection:', inv);
+          console.log('[DEBUG] New balance after collection:', inv.balance?.COIN);
+          renderMeta();
+          console.log('[DEBUG] UI updated after collection');
+          if (window.parent !== window) {
+                 window.parent.postMessage({
+                   type: 'inventory-updated',
+                   inventory: inv
+                 }, '*');
+               }
+          
+      }
+      
+      
 
     // IMPORTANT: Refresh inventory from backend like you do after pack opening
     try {
