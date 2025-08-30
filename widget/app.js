@@ -402,6 +402,7 @@ async function onCollectClick(){
     cta.onclick = null;
     cta.addEventListener('click', onOpenClick, { once:true });
     console.log('[DEBUG] Collection process completed successfully');
+    
   } catch(e){
     console.error('[DEBUG] Collection process failed:', e);
     console.error('[DEBUG] Error details:', {
