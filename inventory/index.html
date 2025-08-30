@@ -298,9 +298,20 @@
       .album-sheet .sheet-body::-webkit-scrollbar{width:0!important;height:0!important}
 
       /* EP overlay: stems spacing */
-      #albumSheetBody{display:grid;grid-template-columns:1fr;gap:16px}
+      #albumSheetBody{
+          display:grid;
+          grid-template-columns:1fr;
+          align-content: start;   /* don't distribute extra space across rows */
+            justify-content: start; /* just in case, keep left aligned */
+            grid-auto-rows: min-content; /* rows size to their contents */
+            align-items: start;
+          gap:16px}
       #albumSheetBody > .collection-card{
-        padding:16px !important;border-radius:12px;background:#111;border:1px solid #1a1a1a
+        padding:16px !important;
+        height: auto;
+        border-radius:12px;
+        background:#111;
+        border:1px solid #1a1a1a
       }
 
       /* Close buttons: big target + always on top */
@@ -603,7 +614,7 @@
 
   <!-- Menu Tray -->
   <div class="menu-tray" id="menuTray">
-    <a href="/landing-page/" class="menu-item">Home</a>
+    <a href="/" class="menu-item">Home</a>
     <a href="#" class="menu-item">Label</a>
     <a href="#" class="menu-item">Merch</a>
     <a href="/packs/" class="menu-item">Packs</a>
