@@ -1534,6 +1534,19 @@
           fragments:  inv.progress?.fragments?.length,
           characters: inv.progress?.characters?.length
         });
+        
+        console.log('[INVENTORY] Last 10 raw items:', inv.items?.slice(-10));
+        console.log('[INVENTORY] Progress songs:', inv.progress?.songs?.slice(-5));
+        console.log('[INVENTORY] Items that should be stems:',
+          inv.items?.filter(item => item.kind === 'stem').slice(-5)
+        );
+        console.log('[INVENTORY] Progress songs sample:', inv.progress?.songs?.slice(-3).map(song => ({
+          name: song.name,
+          ownedStems: song.ownedStems,
+          totalStems: song.totalStems,
+          epId: song.epId,
+          complete: song.complete
+        })));
 
         // Empty state
         if (!inv) {
