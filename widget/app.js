@@ -366,6 +366,14 @@ async function onCollectClick(){
     console.log('[DEBUG] Has inventory in response:', !!res.inventory);
     console.log('[DEBUG] Inventory items count:', res.inventory?.items?.length);
     console.log('[DEBUG] Inventory progress exists:', !!res.inventory?.progress);
+      
+      if (res?.inventory?.items) {
+        const newItems = res.inventory.items.slice(-5); // Get last 5 items (assuming they're the newest)
+        console.log('[DEBUG] Last 5 items in updated inventory:');
+        newItems.forEach((item, index) => {
+          console.log(`[DEBUG] Inventory Item ${index}: ID="${item.itemId}", Name="${item.name}", Rarity="${item.rarity}"`);
+        });
+      }
 
     if (res?.inventory) {
       inv = normalizeInventory(res.inventory);
