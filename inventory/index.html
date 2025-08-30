@@ -493,7 +493,7 @@
           --panel-pad-x: 20px;
           --grid-top-offset: 16px;  /* smaller top offset for tablet */
           --nav-gap: 10px;
-          --nav-clear: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + var(--nav-gap));
+          --nav-clear: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,16px) + var(--nav-gap));
         }
 
         .main-container{grid-template-columns:1fr;grid-template-rows:50svh 50svh;height:100svh;overflow:hidden}
@@ -505,7 +505,7 @@
 
         .inventory-content{
           padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + 32px);
-          scroll-padding-bottom: calc(env(safe-area-inset-bottom,0px) + 160px);
+          scroll-padding-bottom: calc(env(safe-area-inset-bottom,0px) + 180px);
         }
 
         .album-overlay{ padding-top: var(--grid-top-offset); }
@@ -554,7 +554,7 @@
 
   <!-- Menu Tray -->
   <div class="menu-tray" id="menuTray">
-    <a href="/landing-page/" class="menu-item">Home</a>
+    <a href="/" class="menu-item">Home</a>
     <a href="#" class="menu-item">Label</a>
     <a href="#" class="menu-item">Merch</a>
     <a href="/packs/" class="menu-item">Packs</a>
