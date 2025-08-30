@@ -959,6 +959,9 @@
             'Accept': 'application/json',
             'Content-Type': 'application/json',
             ...(await getAuthHeader()),
+            ...(localStorage.getItem('packs:playerId')
+            ? { 'X-Player-Id': localStorage.getItem('packs:playerId') }
+            : {}),
             ...(opts.headers || {}),
           };
           const res = await fetch(`${base}${path}`, { ...opts, headers });

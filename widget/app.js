@@ -8,6 +8,26 @@ BASE = BASE.replace(/\/+$/, ''); // trim trailing slashes
 // ===== Supabase client (REUSE the one created in index.html) ===========
 const supa = window.supa || null; // do NOT create another client here
 
+// ===== session bridge: parent → iframe =====
+window.addEventListener('message', async (e) => {
+  const msg = e?.data;
+  if (!msg || msg.type !== 'supabase-session') return;
+
+  try {
+    const { access_token, refresh_token } = msg.session || {};
+    if (access_token && refresh_token && supa?.auth) {
+      await supa.auth.setSession({ access_token, refresh_token });
+      console.log('[widget] ✅ session set from parent');
+      // Optional: if your UI needs to refresh after auth, do it here.
+      // e.g., re-fetch inventory or emit a custom event:
+      // document.dispatchEvent(new Event('supabase-session-ready'));
+    }
+  } catch (err) {
+    console.error('[widget] setSession failed:', err);
+  }
+});
+
+
 // ===== player id (anon fallback preserved for testing) =================
 const PLAYER_ID_KEY = 'packs:playerId';
 function makeUuid(){
@@ -77,11 +97,13 @@ async function getAuthHeader() {
 // Core fetch with correct headers
 async function jfetch(path, options = {}) {
   const url = `${BASE}${path}`;
-  const authHeader = await getAuthHeader();
+    const authHeader = await getAuthHeader();
+    const playerId = localStorage.getItem('packs:playerId');
   const headers = {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
-    ...authHeader,
+      ...authHeader,
+      ...(playerId ? { 'X-Player-Id': playerId } : {}),
     ...(options.headers || {})
   };
   const r = await fetch(url, { headers, ...options });

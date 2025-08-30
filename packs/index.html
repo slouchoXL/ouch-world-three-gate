@@ -349,51 +349,85 @@
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ'
       );
 
-      // Handle magic link tokens on parent page
-      (async function () {
+      (async function handleMagicLinkOnParent() {
         try {
-          if (location.hash && location.hash.includes('access_token')) {
+          if (window.supa && location.hash && location.hash.includes('access_token')) {
             console.log('[Parent] Processing magic link tokens...');
-            
+
             const params = new URLSearchParams(location.hash.slice(1));
-            const access_token = params.get('access_token');
-            const refresh_token = params.get('refresh_token');
-            const error = params.get('error');
+            const access_token   = params.get('access_token');
+            const refresh_token  = params.get('refresh_token');
+            const error          = params.get('error');
+            const error_desc     = params.get('error_description');
 
             if (error) {
-              console.error('[Parent] Auth error:', error);
-              alert(`Authentication error: ${params.get('error_description') || error}`);
+              console.error('[Parent] Auth error:', error, error_desc);
+              alert(`Authentication error: ${error_desc || error}`);
             } else if (access_token && refresh_token) {
               console.log('[Parent] Setting session from magic link...');
-              
-              const { data, error } = await window.supa.auth.setSession({
-                access_token,
-                refresh_token
-              });
-              
-              if (error) {
-                console.error('[Parent] Session error:', error);
-                alert(`Session error: ${error.message}`);
+              const { data, error: setErr } = await window.supa.auth.setSession({ access_token, refresh_token });
+
+              if (setErr) {
+                console.error('[Parent] Session error:', setErr);
+                alert(`Session error: ${setErr.message}`);
               } else {
                 console.log('[Parent] ✅ Authentication successful!');
-                
-                // Find the iframe and tell it to refresh
-                const iframe = document.querySelector('iframe');
+                const iframe = document.getElementById('packsFrame') || document.querySelector('iframe');
                 if (iframe) {
-                  console.log('[Parent] Notifying iframe of successful auth...');
-                  // The iframe will detect the auth state change automatically
+                  // 1) Original ping so the iframe can react if it listens for it
                   iframe.contentWindow.postMessage({ type: 'auth-success' }, '*');
+
+                  // 2) ALSO pass the actual Supabase session down to the iframe
+                  try {
+                    const sess = (data && data.session)
+                      ? data.session
+                      : (await window.supa.auth.getSession()).data.session;
+
+                    if (sess?.access_token && sess?.refresh_token) {
+                      iframe.contentWindow.postMessage({
+                        type: 'supabase-session',
+                        session: {
+                          access_token:  sess.access_token,
+                          refresh_token: sess.refresh_token
+                        }
+                      }, '*');
+                    }
+                  } catch (e) {
+                    console.warn('[Parent] Could not read Supabase session to post to iframe:', e);
+                  }
                 }
               }
             }
-            
-            // Clean the URL hash (remove tokens from address bar)
-            history.replaceState({}, '', location.pathname + location.search);
           }
         } catch (e) {
           console.error('[Parent] Magic link processing failed:', e);
+        } finally {
+          // Clean the URL hash (remove tokens from the address bar)
+          if (location.hash && location.hash.includes('access_token')) {
+            history.replaceState({}, '', location.pathname + location.search);
+          }
         }
       })();
+
+      // Additionally, on normal page loads (no hash), post the current session to the iframe
+      window.addEventListener('load', async () => {
+        try {
+          if (!window.supa?.auth) return;
+          const { data: { session } } = await window.supa.auth.getSession();
+          const iframe = document.getElementById('packsFrame') || document.querySelector('iframe');
+          if (iframe && session?.access_token && session?.refresh_token) {
+            iframe.contentWindow.postMessage({
+              type: 'supabase-session',
+              session: {
+                access_token:  session.access_token,
+                refresh_token: session.refresh_token
+              }
+            }, '*');
+          }
+        } catch (e) {
+          console.warn('[Parent] load→post session failed:', e);
+        }
+      });
       </script>
       
       <script>
