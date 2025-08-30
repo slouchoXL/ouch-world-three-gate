@@ -263,7 +263,7 @@
         position:absolute;inset:0;background:transparent;z-index:2000;
         display:flex;align-items:flex-start;justify-content:flex-start;
         pointer-events:none;
-        padding-top:var(--grid-top-offset);              /* ← overlay top = grid top */
+        padding-top:var(--grid-top-offset);              /* overlay top = grid top */
       }
       .album-overlay.show{pointer-events:auto}
       .album-overlay.show::before{
@@ -282,7 +282,7 @@
         grid-template-rows:auto 1fr;box-shadow:0 20px 60px rgba(0,0,0,.45);min-width:360px
       }
       .album-sheet .sheet-header{
-        position:relative;                                /* ensure close stacks correctly */
+        position:relative;
         display:flex;align-items:center;justify-content:space-between;gap:12px;
         padding:18px;border-bottom:1px solid #1a1a1a;background:linear-gradient(180deg,#0f0f0f,#0a0a0a)
       }
@@ -296,20 +296,21 @@
         scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 120px);
       }
       .album-sheet .sheet-body::-webkit-scrollbar{width:0!important;height:0!important}
-      .album-sheet .items-grid {
-        display: grid;
-        gap: 16px; /* more generous spacing than 12px */
-        grid-template-columns: 1fr;
+
+      /* EP overlay: stems spacing */
+      #albumSheetBody{display:grid;grid-template-columns:1fr;gap:16px}
+      #albumSheetBody > .collection-card{
+        padding:16px !important;border-radius:12px;background:#111;border:1px solid #1a1a1a
       }
 
-      /* Close buttons: big target + always on top + inner icon doesn’t steal clicks */
+      /* Close buttons: big target + always on top */
       .modal-close,.popup-close,.album-close{
         position:absolute;top:10px;right:10px;z-index:5;pointer-events:auto;
         width:44px;height:44px;display:flex;align-items:center;justify-content:center;
         -webkit-tap-highlight-color:transparent;
       }
-      .modal-close *,.popup-close *,.album-close *{pointer-events:none}  /* clicks go to the button */
-      .modal-close::after,.popup-close::after,.album-close::after{content:"";position:absolute;inset:-8px} /* extra hit */
+      .modal-close *,.popup-close *,.album-close *{pointer-events:none}
+      .modal-close::after,.popup-close::after,.album-close::after{content:"";position:absolute;inset:-8px}
 
       /* Action bar */
       .item-action-bar{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:1500}
@@ -324,7 +325,10 @@
 
       /* Phone layout */
       @media (max-width:480px){
-        :root{ --panel-pad-x:12px; --grid-top-offset:12px }   /* grid + overlay stay in lockstep */
+        :root{
+          --nav-clear: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px));
+        }
+
         .main-container{grid-template-columns:1fr;grid-template-rows:50svh 50svh;height:100svh;overflow:hidden}
         .viewport-panel{order:-1;height:50svh}
         .viewport-container{height:100%}
@@ -347,18 +351,18 @@
         .top-nav{padding:15px}
         .menu-tray{top:55px;left:15px}
 
-        /* Overlay: align to grid top and lift above the bottom nav + URL bar */
+        /* Overlay: from grid top → bottom of bottom nav */
         .album-overlay{padding-top:var(--grid-top-offset)}
         .album-sheet{
           --sheet-mx:var(--panel-pad-x);
-          margin:0 var(--sheet-mx) calc(12px + var(--bottom-nav-h) + env(safe-area-inset-bottom,0px)) var(--sheet-mx);
-          width:calc(100% - (var(--sheet-mx) * 2));
-          height:calc(50svh - 12px - var(--bottom-nav-h) - env(safe-area-inset-bottom,0px));
-          max-height:calc(50svh - 12px - var(--bottom-nav-h) - env(safe-area-inset-bottom,0px));
-          align-self:flex-end;min-width:0;
+          margin:0 var(--sheet-mx) var(--nav-clear) var(--sheet-mx);
+          height:calc(100% - var(--grid-top-offset));
+          max-height:calc(100% - var(--grid-top-offset));
+          align-self:flex-start; width:calc(100% - (var(--sheet-mx) * 2)); min-width:0;
         }
         .album-sheet .sheet-body{
-          --sheet-safe-bottom:calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + 24px);
+          --sheet-safe-bottom:var(--nav-clear);
+          scroll-padding-bottom:var(--nav-clear);
         }
 
         .item-action-bar{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
@@ -366,7 +370,7 @@
 
       /* Tablets */
       @media (max-width:1024px) and (min-width:481px){
-        :root{ --panel-pad-x:20px; --grid-top-offset:20px }
+        :root{ --panel-pad-x:20px; --grid-top-offset:20px; --nav-clear: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px)); }
         .main-container{grid-template-columns:1fr;grid-template-rows:50svh 50svh;height:100svh;overflow:hidden}
         .viewport-panel{order:-1;height:50svh}
         .item-action-bar{position:absolute;left:50%;bottom:calc(10px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:1500}
@@ -381,17 +385,16 @@
           scroll-padding-bottom:calc(env(safe-area-inset-bottom,0px) + 140px);
         }
 
-        /* Overlay mirrors panel padding for perfect grid alignment */
+        /* Overlay: from grid top → bottom of bottom nav (tablet) */
         .album-overlay{padding-top:var(--grid-top-offset)}
         .album-sheet{
           --sheet-mx:var(--panel-pad-x);
-          margin:0 var(--sheet-mx) calc(16px + var(--bottom-nav-h) + env(safe-area-inset-bottom,0px)) var(--sheet-mx);
-          width:calc(100% - (var(--sheet-mx) * 2));
-          height:calc(50svh - 16px - var(--bottom-nav-h) - env(safe-area-inset-bottom,0px));
-          max-height:calc(50svh - 16px - var(--bottom-nav-h) - env(safe-area-inset-bottom,0px));
-          align-self:flex-end;min-width:0;
+          margin:0 var(--sheet-mx) var(--nav-clear) var(--sheet-mx);
+          height:calc(100% - var(--grid-top-offset));
+          max-height:calc(100% - var(--grid-top-offset));
+          align-self:flex-start; width:calc(100% - (var(--sheet-mx) * 2)); min-width:0;
         }
-        .album-sheet .sheet-body{--sheet-safe-bottom:calc(var(--bottom-nav-h) + env(safe-area-inset-bottom,0px) + 24px)}
+        .album-sheet .sheet-body{--sheet-safe-bottom:var(--nav-clear);scroll-padding-bottom:var(--nav-clear)}
       }
 
       /* Locked state */
@@ -413,61 +416,32 @@
       .album-sheet .sheet-body .collection-progress,
       .album-sheet .sheet-header .sheet-progress,
       .album-overlay .collection-progress{display:none!important}
-      
-      /* === 1) Padding for stem/track blocks inside overlay === */
-      .album-sheet .items-grid {
-        display: grid;
-        gap: 16px; /* more generous spacing than 12px */
-        grid-template-columns: 1fr;
+
+      /* Albums grid like Characters (desktop & mobile) */
+      #albums .collection-section{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+      #albums .collection-card{
+        background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:20px;transition:all .2s ease;cursor:pointer;position:relative
+      }
+      #albums .collection-card:hover{transform:translateY(-2px);border-color:#333;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+      @media (max-width:640px){
+        #albums .collection-section{grid-template-columns:repeat(2,1fr);gap:12px}
+        #albums .collection-card{padding:16px}
       }
 
-      .album-sheet .item-card {
-        padding: 16px;              /* consistent with inventory grid cards */
-        border-radius: 12px;
-        background: #111;           /* same dark bg as grid tiles */
-        border: 1px solid #1a1a1a;  /* subtle divider */
+      /* Also support actual container ids/classes used by markup */
+      .albums-grid,#albums-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+      @media (max-width:640px){.albums-grid,#albums-grid{grid-template-columns:repeat(2,1fr);gap:12px}}
+      #albums-grid .unreleased-card{
+        border-radius:12px;border:1px solid #1a1a1a;background:#111;padding:20px;
+        transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease
       }
-
-      /* === 2) Albums grid like characters grid === */
-      /* === Albums grid like characters grid === */
-      #albums .collection-section {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 16px;
-      }
-
-      #albums .collection-card {
-        background: #111;
-        border: 1px solid #1a1a1a;
-        border-radius: 12px;
-        padding: 20px;
-        transition: all .2s ease;
-        cursor: pointer;
-        position: relative;
-      }
-
-      #albums .collection-card:hover {
-        transform: translateY(-2px);
-        border-color: #333;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-      }
-
-      /* Match Characters grid responsive shrink */
-      @media (max-width: 640px) {
-        #albums .collection-section {
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-        }
-        #albums .collection-card {
-          padding: 16px;
-        }
-      }
-
+      #albums-grid .unreleased-card:hover{transform:translateY(-2px);border-color:#333;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 
       /* Fix unreleased text wrapping */
       .unreleased-card h3{font-size:16px;font-weight:600;margin-bottom:8px;color:#fff;padding-right:0;word-wrap:break-word;hyphens:auto;line-height:1.4}
       .rarity-tag{display:none}
     </style>
+
     
 
 
