@@ -906,29 +906,51 @@
           window.__API_BASE = apiBase; // e.g., "https://backend-o9ot.onrender.com"
         })();
 
-        // 2) Build the same auth header the widget uses (Supabase JWT → Authorization, else X-Player-Id)
-        async function getAuthHeader() {
-          try {
-            if (window.supa?.auth) {
-              const { data: { session } } = await window.supa.auth.getSession();
+      // In inventory index.html, replace the getAuthHeader function with:
+      async function getAuthHeader() {
+        try {
+          if (window.supa?.auth) {
+            const sessionPromise = window.supa.auth.getSession();
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Timeout')), 1000)
+            );
+            
+            try {
+              const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
               if (session?.access_token) {
                 return { Authorization: `Bearer ${session.access_token}` };
               }
+            } catch (e) {
+              console.log('Supabase auth call timed out, falling back to localStorage');
             }
-            // fallback to persistent anon id (same key as packs widget)
-            const key = 'packs:playerId';
-            let pid = localStorage.getItem(key);
-            if (!pid) {
-              pid = (crypto.randomUUID && crypto.randomUUID()) ||
-                    ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-                      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
-              localStorage.setItem(key, pid);
-            }
-            return { 'X-Player-Id': pid };
-          } catch {
-            return {};
           }
+          
+          const authKey = 'sb-srdwkfjterotzjwzoauj-auth-token';
+          const authData = localStorage.getItem(authKey);
+          if (authData) {
+            try {
+              const parsed = JSON.parse(authData);
+              if (parsed.access_token && parsed.expires_at && parsed.expires_at > Date.now() / 1000) {
+                return { Authorization: `Bearer ${parsed.access_token}` };
+              }
+            } catch (e) {
+              console.log('Failed to parse localStorage auth token:', e);
+            }
+          }
+        } catch (e) {
+          console.log('Auth header error:', e);
         }
+        
+        const key = 'packs:playerId';
+        let pid = localStorage.getItem(key);
+        if (!pid) {
+          pid = (crypto.randomUUID && crypto.randomUUID()) ||
+                ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+                  (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+          localStorage.setItem(key, pid);
+        }
+        return { 'X-Player-Id': pid };
+      }
 
         // 3) Tiny fetch wrapper that always hits the same backend + sends identity headers
         async function jfetch(path, opts = {}) {

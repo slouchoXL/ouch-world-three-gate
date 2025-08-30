@@ -175,35 +175,6 @@ if (!stackEl) {
 }
 
 // ===== helpers =====
-
-// Add this function to app.js
-async function testBackendAuth() {
-  console.log('=== BACKEND AUTH TEST START ===');
-  try {
-    const whoami = await jfetch('/api/debug/whoami');
-    console.log('Whoami response:', whoami);
-    
-    const inventory = await jfetch('/api/inventory');
-    console.log('Current inventory balance:', inventory?.balance?.COIN);
-    console.log('Current inventory items count:', inventory?.items?.length);
-    
-    // Test if we can hit the debug endpoints
-    try {
-      const dbTest = await jfetch('/api/debug/db');
-      console.log('DB connection test:', dbTest.ok ? 'PASSED' : 'FAILED');
-    } catch (e) {
-      console.log('DB test failed:', e.message);
-    }
-    
-  } catch (e) {
-    console.error('Backend auth test failed:', e);
-  }
-  console.log('=== BACKEND AUTH TEST END ===');
-}
-
-// Make it available in console for manual testing
-window.testBackendAuth = testBackendAuth;
-
 function rarityClass(r){ return String(r || 'common').toLowerCase(); }
 function prettyRarity(r){ r = rarityClass(r); return r.charAt(0).toUpperCase() + r.slice(1); }
 
@@ -311,111 +282,52 @@ async function onCollectClick(){
   if (!overlay.hidden) return;
   cta.disabled = true;
   cta.textContent = 'Adding…';
-  
-  console.log('[DEBUG] Starting collection process...');
-  console.log('[DEBUG] Opening data:', opening);
-  console.log('[DEBUG] Current BASE URL:', BASE);
-  
   try{
     const itemIds = (opening?.results || []).map(it => it.itemId);
-    console.log('[DEBUG] Items to collect:', itemIds);
-    console.log('[DEBUG] Number of items:', itemIds.length);
+      // 🔎 Log exactly what we're sending
+      console.log('[add] payload', { itemIds });
 
-    // Check auth header before making request
-    const authHeader = await getAuthHeader();
-    console.log('[DEBUG] Auth header being sent:', authHeader);
-    console.log('[DEBUG] Auth header keys:', Object.keys(authHeader));
-
-    // Log the full request details
-    const requestUrl = `${BASE}/api/collection/add`;
-    const requestBody = JSON.stringify({ itemIds });
-    console.log('[DEBUG] Request URL:', requestUrl);
-    console.log('[DEBUG] Request body:', requestBody);
-    console.log('[DEBUG] Request headers:', {
-      'Content-Type': 'application/json',
-      ...authHeader,
-    });
-
-    const addRes = await fetch(requestUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeader,
-      },
-      body: requestBody,
-    });
-
-    console.log('[DEBUG] Response status:', addRes.status);
-    console.log('[DEBUG] Response status text:', addRes.statusText);
-    console.log('[DEBUG] Response headers:', Object.fromEntries(addRes.headers.entries()));
-
-    if (!addRes.ok) {
-      const errorText = await addRes.text();
-      console.error('[DEBUG] Response error body:', errorText);
-      console.error('[DEBUG] Full error details:', {
-        status: addRes.status,
-        statusText: addRes.statusText,
-        url: addRes.url,
-        headers: Object.fromEntries(addRes.headers.entries())
+      // 🔐 Call /add with the same auth header jfetch would use, but keep raw error text
+      const addRes = await fetch(`${BASE}/api/collection/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await getAuthHeader()),
+        },
+        body: JSON.stringify({ itemIds }), // <-- if your server expects { items: [...] }, switch this
       });
-      throw new Error(`Add-to-inventory ${addRes.status}: ${errorText}`);
-    }
 
-    const res = await addRes.json();
-    console.log('[DEBUG] Collection response success:', res);
-    console.log('[DEBUG] Collection response keys:', Object.keys(res));
+      // 🧯 If the server 4xx/5xxs, dump the raw body so we see the DB/code error
+      if (!addRes.ok) {
+        const errorText = await addRes.text().catch(() => '');
+        console.error('[add] failed', addRes.status, errorText);
+        throw new Error(`Add-to-inventory ${addRes.status}: ${errorText}`);
+      }
+
+      // ✅ Normal path
+      const res = await addRes.json();
+      console.log('[add] success', res);
+
+
+    console.log('🔍 Collection response:', res); // DEBUG: See what backend returns
 
     if (res) {
       inv = normalizeInventory(res);
-      console.log('[DEBUG] Normalized inv after collection:', inv);
-      console.log('[DEBUG] New balance after collection:', inv.balance?.COIN);
+      console.log('📦 Normalized inv after collection:', inv); // DEBUG: Check normalized data
       renderMeta();
-      console.log('[DEBUG] UI updated after collection');
+      console.log('🖥️ UI updated after collection'); // DEBUG: Confirm UI update
     }
 
     // IMPORTANT: Refresh inventory from backend like you do after pack opening
     try {
-      console.log('[DEBUG] Refreshing inventory from backend after collection...');
+      console.log('🔄 Refreshing inventory from backend after collection...');
       const fresh = await jfetch('/api/inventory');
-      console.log('[DEBUG] Fresh inventory response:', fresh);
       inv = normalizeInventory(fresh);
-      console.log('[DEBUG] Final normalized inventory:', inv);
-      console.log('[DEBUG] Final balance:', inv.balance?.COIN);
       renderMeta();
-      console.log('[DEBUG] Inventory refreshed successfully');
+      console.log('✅ Inventory refreshed after collection:', inv.balance?.COIN);
     } catch (e) {
-      console.error('[DEBUG] Failed to refresh inventory after collection:', e);
-      console.error('[DEBUG] Refresh error details:', {
-        message: e.message,
-        stack: e.stack
-      });
+      console.error('❌ Failed to refresh inventory after collection:', e);
     }
-
-    console.log('[DEBUG] Cleaning up UI state...');
-    opening = null;
-    stackEl.hidden = true;
-    trayEl.hidden  = true;
-    packImg.hidden = false;
-
-    cta.textContent = 'Open Pack';
-    cta.disabled = false;
-    cta.onclick = null;
-    cta.addEventListener('click', onOpenClick, { once:true });
-    console.log('[DEBUG] Collection process completed successfully');
-  } catch(e){
-    console.error('[DEBUG] Collection process failed:', e);
-    console.error('[DEBUG] Error details:', {
-      message: e.message,
-      stack: e.stack,
-      name: e.name
-    });
-    showError(String(e.message || e));
-    cta.textContent = 'Open Pack';
-    cta.disabled = false;
-    cta.onclick = null;
-    cta.addEventListener('click', onOpenClick, { once:true });
-  }
-}
 
     opening = null;
     stackEl.hidden = true;
