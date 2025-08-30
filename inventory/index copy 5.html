@@ -987,17 +987,6 @@
    
    ***************************/
       
-      
-      function stemTitleToType(label) {
-        const m = String(label).toUpperCase();
-        if (m === 'V' || m === 'VOCALS') return 'vocals';
-        if (m === 'G' || m === 'GUITAR') return 'guitar';
-        if (m === 'B' || m === 'BASS')   return 'bass';
-        if (m === 'D' || m === 'DRUMS')  return 'drums';
-        return 'default';
-      }
-
-      
       // === Fragment Overlay helper (must exist before renderFragmentsAll uses it) ===
       function openFragmentOverlay(character, collected, total, _itemsClone /* ignored */) {
         const pct = total ? Math.min(100, Math.round((collected / total) * 100)) : 0;
@@ -1469,24 +1458,22 @@
         let catalog = {};
         let inv = null;
 
-        try {
-          const [catalogRaw, invRaw] = await Promise.all([
-            jfetch('/api/catalog'),
-            jfetch('/api/inventory')
+        try{
+          const [cRes, iRes] = await Promise.all([
+            fetch("/api/catalog",   { credentials: "include" }),
+            fetch("/api/inventory", { credentials: "include" })
           ]);
-          catalog = normalizeCatalog(catalogRaw);
-          inv = invRaw;
+
+          if (cRes.ok) {
+            const raw = await cRes.json();
+            catalog = normalizeCatalog(raw);     // ✅ normalize once here
+          }
+          if (iRes.ok) {
+            inv = await iRes.json();
+          }
         } catch (e) {
           console.warn("Inventory fetch failed", e);
         }
-        
-        try {
-          const who = await jfetch('/api/debug/whoami');
-          console.log('[whoami]', who);
-        } catch (err) {
-          console.warn("whoami failed", err);
-        }
-
 
         // If catalog wasn’t OK above, ensure it’s at least shaped
         if (!catalog || !catalog.eps) {
