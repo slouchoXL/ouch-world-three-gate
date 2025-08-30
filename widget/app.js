@@ -284,10 +284,30 @@ async function onCollectClick(){
   cta.textContent = 'Adding…';
   try{
     const itemIds = (opening?.results || []).map(it => it.itemId);
-    const res = await jfetch('/api/collection/add', {
-      method: 'POST',
-      body: JSON.stringify({ itemIds }),
-    });
+      // 🔎 Log exactly what we're sending
+      console.log('[add] payload', { itemIds });
+
+      // 🔐 Call /add with the same auth header jfetch would use, but keep raw error text
+      const addRes = await fetch(`${BASE}/api/collection/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await getAuthHeader()),
+        },
+        body: JSON.stringify({ itemIds }), // <-- if your server expects { items: [...] }, switch this
+      });
+
+      // 🧯 If the server 4xx/5xxs, dump the raw body so we see the DB/code error
+      if (!addRes.ok) {
+        const errorText = await addRes.text().catch(() => '');
+        console.error('[add] failed', addRes.status, errorText);
+        throw new Error(`Add-to-inventory ${addRes.status}: ${errorText}`);
+      }
+
+      // ✅ Normal path
+      const res = await addRes.json();
+      console.log('[add] success', res);
+
 
     console.log('🔍 Collection response:', res); // DEBUG: See what backend returns
 
