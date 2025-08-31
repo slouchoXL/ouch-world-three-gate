@@ -1138,7 +1138,7 @@
         container.innerHTML = '';
 
         // --- base unlocked from backend ---
-        const unlocked = new Set((inv.progress?.characters || []).map(c => c.characterId));
+        const unlocked = new Set((inv.progress?.characters || []).map(c => c.characterId ?? c.id));
 
         // --- helpers (local, minimal) ---
         const isCoverItem = (it) => {
