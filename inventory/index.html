@@ -1024,8 +1024,23 @@
 
       
       // === Fragment Overlay helper (must exist before renderFragmentsAll uses it) ===
-      function openFragmentOverlay(character, collected, total, _itemsClone /* ignored */) {
-        const pct = total ? Math.min(100, Math.round((collected / total) * 100)) : 0;
+      // Accept owned numbers (or a fragSet) as the 4th arg instead of relying on a global.
+      function openFragmentOverlay(character, collected, total, ownedNumbersOrFragSet /* used now */) {
+        // Derive ownedNumbers safely:
+        // - If 4th arg is an array → use it.
+        // - If it's an object with ownedFragmentNumbers → use that.
+        // - Else, try a global (if you later set window.fragmentsData), otherwise empty.
+        const ownedNumbers =
+          Array.isArray(ownedNumbersOrFragSet) ? ownedNumbersOrFragSet :
+          (ownedNumbersOrFragSet && Array.isArray(ownedNumbersOrFragSet.ownedFragmentNumbers))
+            ? ownedNumbersOrFragSet.ownedFragmentNumbers :
+            (window.fragmentsData && Array.isArray(window.fragmentsData.ownedFragmentNumbers))
+              ? window.fragmentsData.ownedFragmentNumbers :
+              [];
+
+        const safeTotal = Number.isFinite(total) ? total : ownedNumbers.length || 0;
+        const safeCollected = Number.isFinite(collected) ? collected : ownedNumbers.length;
+        const pct = safeTotal ? Math.min(100, Math.round((safeCollected / safeTotal) * 100)) : 0;
 
         const titleEl = document.getElementById("fragmentSheetTitle");
         const subEl   = document.getElementById("fragmentSheetSubtitle");
@@ -1041,7 +1056,7 @@
 
         // Header
         titleEl.textContent = character || "Fragments";
-        subEl.textContent   = `${collected}/${total} fragments`;
+        subEl.textContent   = `${safeCollected}/${safeTotal} fragment${safeTotal === 1 ? '' : 's'}`;
         pctEl.textContent   = pct + "%";
         fillEl.style.width  = pct + "%";
 
@@ -1051,33 +1066,31 @@
         rowCard.innerHTML = `
           <div class="item-header" style="justify-content:space-between;align-items:center">
             <strong style="font-weight:600">Fragments</strong>
-            <span class="item-completion ${collected === total ? "complete" : ""}">
-              ${collected}/${total}
+            <span class="item-completion ${safeCollected === safeTotal ? "complete" : ""}">
+              ${safeCollected}/${safeTotal}
             </span>
           </div>
           <div class="stems-row" id="fragmentChipRow"></div>
         `;
 
-
         const chips = rowCard.querySelector("#fragmentChipRow");
         chips.innerHTML = "";
-        for (let i = 1; i <= total; i++) {
-          const owned = fragmentsData.ownedFragmentNumbers?.includes(i) || false;
+
+        for (let i = 1; i <= safeTotal; i++) {
+          const owned = ownedNumbers.includes(i);
           const chip = document.createElement("div");
           chip.className = "stem-slot " + (owned ? "collected" : "empty");
           chip.textContent = i;
           chip.title = owned ? "Owned" : "Locked";
-          // Optional: click to show action bar
           chip.addEventListener("click", (e) => {
             e.stopPropagation();
             create3DFragment();
             showItemActions({
               title: `${character} – Fragment ${i}`,
               description: owned ? "Owned fragment" : "Locked fragment",
-              isOwned: owned   // 👈 gating Read More
+              isOwned: owned
             });
           });
-
           chips.appendChild(chip);
         }
 
@@ -1087,6 +1100,7 @@
         overlay.classList.add("show");
         overlay.setAttribute("aria-hidden", "false");
       }
+
 
       
   // Example: Characters (all, grey out locked)
@@ -1345,7 +1359,9 @@
       return;
     }
 
-    const ownedByChar = new Map((inv.progress?.fragments || []).map(f => [f.characterId || f.id, f.owned || 0]));
+    const fragProgress = new Map((inv.progress?.fragments || []).map(f => [f.characterId || f.id, f]));
+       const ownedByChar  = new Map((inv.progress?.fragments || []).map(f => [f.characterId || f.id, f.owned || 0]));
+
 
     // Card per character (grouped)
     list.forEach(set => {
@@ -1370,21 +1386,11 @@
 
       card.addEventListener("click", () => {
         // build a mini grid of 3 fragments for overlay
-        const fragList = document.createElement("div");
-        fragList.className = "items-grid";
-        for (let i = 1; i <= total; i++) {
-          const collected = i <= owned;
-          const div = document.createElement("div");
-          div.className = "item-card fragment-card" + (collected ? "" : " locked");
-          div.innerHTML = `
-            <div style="font-weight:600">${set.name} – Fragment ${i}</div>
-            <div class="item-completion ${collected ? "complete" : ""}">
-              ${collected ? "Owned" : "Locked"}
-            </div>
-          `;
-          fragList.appendChild(div);
-        }
-        openFragmentOverlay(set.name, owned, total, fragList);
+        const prog = fragProgress.get(set.id);
+               const ownedNums = prog?.ownedFragmentNumbers || [];
+               const safeOwned = Number.isFinite(prog?.owned) ? prog.owned : owned;
+               const safeTotal = Number.isFinite(prog?.total) ? prog.total : total;
+               openFragmentOverlay(set.name, safeOwned, safeTotal, ownedNums);
       });
 
       container.appendChild(card);
