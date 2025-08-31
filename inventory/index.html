@@ -1006,43 +1006,87 @@
     return out;
   }
 
-  function normalizeCatalog(c) {
-    const src0 = c || {};
-    const src  = src0.catalog ? src0.catalog : src0;
+      function normalizeCatalog(c) {
+        const src0 = c || {};
+        const src  = src0.catalog ? src0.catalog : src0;
 
-    // --- eps & singles: support both array and { eps, singles } shapes ---
-    let eps = [];
-    let singles = [];
+        // --- eps & singles: support both array and { eps, singles } shapes ---
+        let eps = [];
+        let singles = [];
 
-    const epsBlock = src.eps ?? src.albums ?? src.albumSets ?? null;
-    if (Array.isArray(epsBlock)) {
-      eps = flattenAny(epsBlock);
-    } else if (epsBlock && typeof epsBlock === 'object') {
-      eps     = flattenAny(epsBlock.eps || []);
-      // prefer top-level singles if present; else use nested singles; else fall back to tracks
-      singles = flattenAny(src.singles || epsBlock.singles || src.tracks || []);
-    } else {
-      // fallback if eps lives directly on src
-      eps     = flattenAny(src.eps || []);
-      singles = flattenAny(src.singles || src.tracks || []);
-    }
+        const epsBlock = src.eps ?? src.albums ?? src.albumSets ?? null;
+        if (Array.isArray(epsBlock)) {
+          eps = flattenAny(epsBlock);
+        } else if (epsBlock && typeof epsBlock === 'object') {
+          eps     = flattenAny(epsBlock.eps || []);
+          // prefer top-level singles if present; else use nested singles; else fall back to tracks
+          singles = flattenAny(src.singles || epsBlock.singles || src.tracks || []);
+        } else {
+          // fallback if eps lives directly on src
+          eps     = flattenAny(src.eps || []);
+          singles = flattenAny(src.singles || src.tracks || []);
+        }
 
-    // --- other sections (flatten robustly too) ---
-    const covers           = flattenAny(src.covers           ?? src.albumCovers     ?? src.coversAll       ?? []);
-    const fragmentSets     = flattenAny(src.fragmentSets     ?? src.fragments       ?? src.fragmentsets    ?? []);
-    const unreleased       = flattenAny(src.unreleased       ?? src.unreleasedTracks?? src.unreleased_items ?? []);
-    let   goldenCharacters = flattenAny(src.goldenCharacters ?? src.golden          ?? src.golden_chars    ?? []);
+        // --- COVERS: start with any top-level covers, then hydrate from EPs/Singles ---
+        let covers = flattenAny(src.covers ?? src.albumCovers ?? src.coversAll ?? []);
+        const covById = new Map();
 
-    // Derive golden from a generic characters list if not explicitly provided
-    if (!goldenCharacters.length && Array.isArray(src.characters)) {
-      goldenCharacters = src.characters.filter(ch => {
-        const k = String(ch?.kind || '').toLowerCase();
-        return k.includes('character_golden') || k.includes('gold');
-      });
-    }
+        // seed from top-level covers (if any)
+        (Array.isArray(covers) ? covers : []).forEach(cv => {
+          if (!cv?.id) return;
+          covById.set(cv.id, { ...cv });
+        });
 
-    return { eps, singles, covers, fragmentSets, unreleased, goldenCharacters };
-  }
+        // add/merge covers embedded on EPs
+        (Array.isArray(eps) ? eps : []).forEach(ep => {
+          const cv = ep?.cover;
+          if (!cv?.id) return;
+          const prev = covById.get(cv.id) || {};
+          covById.set(cv.id, {
+            id: cv.id,
+            kind: prev.kind || cv.kind || 'cover',
+            name: prev.name || cv.name || `${ep?.name || 'EP'} — Cover`,
+            image: prev.image || cv.image || '',
+            rarity: prev.rarity || cv.rarity,
+            epId: prev.epId || ep.id,
+            characterId: prev.characterId || cv.characterId || ep?.unlocksCharacter?.id || ep?.character?.id || null
+          });
+        });
+
+        // add/merge covers embedded on Singles
+        (Array.isArray(singles) ? singles : []).forEach(s => {
+          const cv = s?.cover;
+          if (!cv?.id) return;
+          const prev = covById.get(cv.id) || {};
+          covById.set(cv.id, {
+            id: cv.id,
+            kind: prev.kind || cv.kind || 'cover',
+            name: prev.name || cv.name || `${s?.name || 'Single'} — Cover`,
+            image: prev.image || cv.image || '',
+            rarity: prev.rarity || cv.rarity,
+            singleId: prev.singleId || s.id,
+            characterId: prev.characterId || cv.characterId || s?.unlocksCharacter?.id || s?.character?.id || null
+          });
+        });
+
+        covers = Array.from(covById.values());
+
+        // --- other sections (flatten robustly too) ---
+        const fragmentSets     = flattenAny(src.fragmentSets     ?? src.fragments       ?? src.fragmentsets    ?? []);
+        const unreleased       = flattenAny(src.unreleased       ?? src.unreleasedTracks?? src.unreleased_items ?? []);
+        let   goldenCharacters = flattenAny(src.goldenCharacters ?? src.golden          ?? src.golden_chars    ?? []);
+
+        // Derive golden from a generic characters list if not explicitly provided
+        if (!goldenCharacters.length && Array.isArray(src.characters)) {
+          goldenCharacters = src.characters.filter(ch => {
+            const k = String(ch?.kind || '').toLowerCase();
+            return k.includes('character_golden') || k.includes('gold');
+          });
+        }
+
+        return { eps, singles, covers, fragmentSets, unreleased, goldenCharacters };
+      }
+
 
   function isCoverItem(it){
     const kind = String(it?.kind || '').toLowerCase();
