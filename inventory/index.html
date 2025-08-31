@@ -1141,7 +1141,7 @@
         // --- base unlocks reported by backend ---
         const unlocked = new Set((inv.progress?.characters || []).map(c => c.characterId ?? c.id));
 
-        // --- EP complete + cover owned combo (kept if you already added it) ---
+        // --- EP complete + cover owned combo (client-side union) ---
         const isCoverItem = (it) => {
           const k = String(it?.kind || '').toLowerCase();
           const c = String(it?.category || it?.metadata?.category || '').toLowerCase();
@@ -1153,15 +1153,20 @@
           (catalog.covers || []).forEach(cv => {
             const name = cv?.name || cv?.title;
             if (!name) return;
-            coverTo.set(name, { epId: cv?.epId || cv?.albumId || null, characterId: cv?.characterId || cv?.charId || null });
+            coverTo.set(name, {
+              epId:        cv?.epId || cv?.albumId || null,
+              characterId: cv?.characterId || cv?.charId || null
+            });
           });
           const epByName = new Map((catalog.eps || []).map(ep => [String(ep?.name || '').toLowerCase(), ep?.id]));
           return { coverTo, epByName };
         };
+
         const epComplete = new Set((inv.progress?.eps || []).filter(e => e?.id && e?.complete).map(e => e.id));
         const items = Array.isArray(inv.items) ? inv.items : [];
         const ownedCovers = items.filter(isCoverItem);
         const { coverTo, epByName } = indexCovers(catalog);
+
         const coverEpIds = new Set();
         ownedCovers.forEach(it => {
           const nm = it?.name || it?.title || '';
@@ -1172,39 +1177,74 @@
             if (epIdByName) coverEpIds.add(epIdByName);
           }
         });
-        const epToChar = new Map();
-        (catalog.goldenCharacters || []).forEach(gc => { if (gc?.epId && (gc?.characterId || gc?.id)) epToChar.set(gc.epId, gc.characterId || gc.id); });
-        coverTo.forEach((info) => { if (info?.epId && info?.characterId) epToChar.set(info.epId, info.characterId); });
-        epToChar.forEach((charId, epId) => { if (epComplete.has(epId) && coverEpIds.has(epId) && charId) unlocked.add(charId); });
 
-        // --- NEW: unlock golden chars if player owns a golden-char item ---
+        // Map EP -> Character (now includes: ep.unlocksCharacter, covers.characterId, and any golden ep mapping you might have)
+        const epToChar = new Map();
+
+        // a) explicit mapping from EP metadata
+        (catalog.eps || []).forEach(ep => {
+          const ch = ep?.unlocksCharacter || ep?.character;
+          if (ep?.id && ch?.id) epToChar.set(ep.id, ch.id);
+        });
+
+        // b) covers may carry characterId
+        coverTo.forEach((info) => {
+          if (info?.epId && info?.characterId) epToChar.set(info.epId, info.characterId);
+        });
+
+        // c) optional: golden chars linked by epId (kept from your code)
+        (catalog.goldenCharacters || []).forEach(gc => {
+          if (gc?.epId && (gc?.characterId || gc?.id)) {
+            epToChar.set(gc.epId, gc.characterId || gc.id);
+          }
+        });
+
+        // Union: if EP complete AND its cover owned -> unlock its character
+        epToChar.forEach((charId, epId) => {
+          if (epComplete.has(epId) && coverEpIds.has(epId) && charId) unlocked.add(charId);
+        });
+
+        // --- unlock golden chars if player owns a golden-char item ---
         const ownedGoldenIds = new Set(
           items
             .filter(it => {
               const k = String(it?.kind || '').toLowerCase();
               const r = String(it?.rarity || '').toLowerCase();
-              // be generous: either explicit kind or legendary rarity marks golden character drops
               return k.includes('character_golden') || (r === 'legendary' && k.includes('character'));
             })
             .map(it => it.itemId)
         );
         ownedGoldenIds.forEach(id => unlocked.add(id));
 
-        // --- Build full list of characters to render ---
+        // --- Build full list of characters to render (add EP/single placeholders) ---
         const all = new Map();
 
-        // Fragment-set characters
+        // Fragments characters
         (Array.isArray(catalog.fragmentSets) ? catalog.fragmentSets : []).forEach(fs => {
           const id = fs?.characterId || fs?.id;
           if (!id) return;
           all.set(id, { id, name: fs?.name, image: fs?.image || fs?.coverImage || fs?.artUrl || '' });
         });
 
-        // Golden characters from catalog (ensure they appear even if not owned)
+        // Golden characters (always list)
         (Array.isArray(catalog.goldenCharacters) ? catalog.goldenCharacters : []).forEach(gc => {
           const id = gc?.characterId || gc?.id;
           if (!id) return;
           if (!all.has(id)) all.set(id, { id, name: gc?.name, image: gc?.image || '' });
+        });
+
+        // NEW: EP unlock characters (placeholders before unlock)
+        (Array.isArray(catalog.eps) ? catalog.eps : []).forEach(ep => {
+          const ch = ep?.unlocksCharacter || ep?.character;
+          if (!ch?.id) return;
+          if (!all.has(ch.id)) all.set(ch.id, { id: ch.id, name: ch.name, image: ch.image || '' });
+        });
+
+        // NEW: Single unlock characters (placeholders before unlock)
+        (Array.isArray(catalog.singles) ? catalog.singles : []).forEach(s => {
+          const ch = s?.unlocksCharacter || s?.character;
+          if (!ch?.id) return;
+          if (!all.has(ch.id)) all.set(ch.id, { id: ch.id, name: ch.name, image: ch.image || '' });
         });
 
         // Fallbacks from progress if catalog is thin
@@ -1219,18 +1259,18 @@
           all.set(id, { id, name: c?.name, image: c?.image || '' });
         });
 
-        // If player owns a golden char item that isn't in catalog, still show it
+        // If player owns a golden char item that's not in catalog, still show it
         ownedGoldenIds.forEach(id => {
           if (!all.has(id)) all.set(id, { id, name: 'Golden Character', image: '' });
         });
 
+        // Render
         const list = Array.from(all.values());
         if (!list.length) {
           container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No characters found.</div>`;
           return;
         }
 
-        // Render
         list.forEach(c => {
           const locked = !unlocked.has(c.id);
           const card = document.createElement('div');
@@ -1251,6 +1291,7 @@
           container.appendChild(card);
         });
       }
+
 
 
   // EP grouping
