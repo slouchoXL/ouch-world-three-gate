@@ -976,62 +976,101 @@
 
 
   
-      function asArray(val) {
-        if (Array.isArray(val)) return val;
-        if (val && typeof val === "object") return Object.values(val);
-        return [];
+  function asArray(val) {
+    if (Array.isArray(val)) return val;
+    if (val && typeof val === "object") return Object.values(val);
+    return [];
+  }
+  function unwrapOneLevel(arr) {
+    return (Array.isArray(arr) && arr.length === 1 && Array.isArray(arr[0])) ? arr[0] : arr;
+  }
+
+  // NEW: flatten *anything* into a flat array of objects
+  function flattenAny(input) {
+    const out = [];
+    const stack = Array.isArray(input)
+      ? input.slice()
+      : (input && typeof input === 'object' ? Object.values(input) : []);
+    while (stack.length) {
+      const v = stack.shift();
+      if (Array.isArray(v)) {
+        stack.push(...v);
+      } else if (v && typeof v === 'object' && (Array.isArray(v.eps) || Array.isArray(v.singles))) {
+        // handle shape: { eps: [...], singles: [...] }
+        if (Array.isArray(v.eps))     stack.push(...v.eps);
+        if (Array.isArray(v.singles)) stack.push(...v.singles);
+      } else if (v != null) {
+        out.push(v);
       }
-      function unwrapOneLevel(arr) {
-        return (Array.isArray(arr) && arr.length === 1 && Array.isArray(arr[0])) ? arr[0] : arr;
-      }
+    }
+    return out;
+  }
 
-      function normalizeCatalog(c) {
-        const src0 = c || {};
-        const src  = src0.catalog ? src0.catalog : src0;
+  function normalizeCatalog(c) {
+    const src0 = c || {};
+    const src  = src0.catalog ? src0.catalog : src0;
 
-        let eps              = src.eps              ?? src.albums          ?? src.albumSets       ?? [];
-        let singles          = src.singles          ?? src.tracks          ?? [];
-        let covers           = src.covers           ?? src.albumCovers     ?? src.coversAll       ?? [];
-        let fragmentSets     = src.fragmentSets     ?? src.fragments       ?? src.fragmentsets    ?? [];
-        let unreleased       = src.unreleased       ?? src.unreleasedTracks?? src.unreleased_items ?? [];
-        let goldenCharacters = src.goldenCharacters ?? src.golden          ?? src.golden_chars    ?? [];
+    // --- eps & singles: support both array and { eps, singles } shapes ---
+    let eps = [];
+    let singles = [];
 
-        // unwrap single nested arrays like [ [ {...} ] ]
-        eps              = unwrapOneLevel(asArray(eps));
-        singles          = unwrapOneLevel(asArray(singles));
-        covers           = unwrapOneLevel(asArray(covers));
-        fragmentSets     = unwrapOneLevel(asArray(fragmentSets));
-        unreleased       = unwrapOneLevel(asArray(unreleased));
-        goldenCharacters = unwrapOneLevel(asArray(goldenCharacters));
+    const epsBlock = src.eps ?? src.albums ?? src.albumSets ?? null;
+    if (Array.isArray(epsBlock)) {
+      eps = flattenAny(epsBlock);
+    } else if (epsBlock && typeof epsBlock === 'object') {
+      eps     = flattenAny(epsBlock.eps || []);
+      // prefer top-level singles if present; else use nested singles; else fall back to tracks
+      singles = flattenAny(src.singles || epsBlock.singles || src.tracks || []);
+    } else {
+      // fallback if eps lives directly on src
+      eps     = flattenAny(src.eps || []);
+      singles = flattenAny(src.singles || src.tracks || []);
+    }
 
-        return { eps, singles, covers, fragmentSets, unreleased, goldenCharacters };
-      }
+    // --- other sections (flatten robustly too) ---
+    const covers           = flattenAny(src.covers           ?? src.albumCovers     ?? src.coversAll       ?? []);
+    const fragmentSets     = flattenAny(src.fragmentSets     ?? src.fragments       ?? src.fragmentsets    ?? []);
+    const unreleased       = flattenAny(src.unreleased       ?? src.unreleasedTracks?? src.unreleased_items ?? []);
+    let   goldenCharacters = flattenAny(src.goldenCharacters ?? src.golden          ?? src.golden_chars    ?? []);
 
-      function isCoverItem(it){
-        const kind = String(it?.kind || '').toLowerCase();
-        const cat  = String(it?.category || it?.metadata?.category || '').toLowerCase();
-        const name = String(it?.name || it?.title || '');
-        return (
-          kind.includes('cover') || kind.includes('artwork') ||
-          cat.includes('cover')  || cat.includes('artwork') ||
-          /cover|artwork/i.test(name)
-        );
-      }
+    // Derive golden from a generic characters list if not explicitly provided
+    if (!goldenCharacters.length && Array.isArray(src.characters)) {
+      goldenCharacters = src.characters.filter(ch => {
+        const k = String(ch?.kind || '').toLowerCase();
+        return k.includes('character_golden') || k.includes('gold');
+      });
+    }
 
-      // Map covers to EP/character when available in catalog
-      function indexCovers(catalog){
-        const coverTo = new Map(); // name -> { epId?, characterId? }
-        (catalog.covers || []).forEach(cv => {
-          const name = cv?.name || cv?.title;
-          if (!name) return;
-          coverTo.set(name, {
-            epId:        cv?.epId || cv?.albumId || null,
-            characterId: cv?.characterId || cv?.charId || null
-          });
-        });
-        const epByName = new Map((catalog.eps || []).map(ep => [String(ep?.name || '').toLowerCase(), ep?.id]));
-        return { coverTo, epByName };
-      }
+    return { eps, singles, covers, fragmentSets, unreleased, goldenCharacters };
+  }
+
+  function isCoverItem(it){
+    const kind = String(it?.kind || '').toLowerCase();
+    const cat  = String(it?.category || it?.metadata?.category || '').toLowerCase();
+    const name = String(it?.name || it?.title || '');
+    return (
+      kind.includes('cover') || kind.includes('artwork') ||
+      cat.includes('cover')  || cat.includes('artwork')  ||
+      /cover|artwork/i.test(name)
+    );
+  }
+
+  // Map covers to EP/character when available in catalog
+  function indexCovers(catalog){
+    const coverTo = new Map(); // name -> { epId?, characterId? }
+    (catalog.covers || []).forEach(cv => {
+      const name = cv?.name || cv?.title;
+      if (!name) return;
+      coverTo.set(name, {
+        epId:        cv?.epId || cv?.albumId || null,
+        characterId: cv?.characterId || cv?.charId || null
+      });
+    });
+    // catalog.eps is now guaranteed flat
+    const epByName = new Map((catalog.eps || []).map(ep => [String(ep?.name || '').toLowerCase(), ep?.id]));
+    return { coverTo, epByName };
+  }
+
 
 
   /***************************
