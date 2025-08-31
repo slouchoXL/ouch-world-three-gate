@@ -366,26 +366,60 @@ async function onCollectClick(){
     console.log('[DEBUG] Has inventory in response:', !!res.inventory);
     console.log('[DEBUG] Inventory items count:', res.inventory?.items?.length);
     console.log('[DEBUG] Inventory progress exists:', !!res.inventory?.progress);
-      
-      if (res?.inventory?.items) {
-        const newItems = res.inventory.items.slice(-5); // Get last 5 items (assuming they're the newest)
-        console.log('[DEBUG] Last 5 items in updated inventory:');
-        newItems.forEach((item, index) => {
-          console.log(`[DEBUG] Inventory Item ${index}: ID="${item.itemId}", Name="${item.name}", Rarity="${item.rarity}"`);
-        });
+
+    // --- ADDED: expose dupe payout as a quick toast ---
+    if (res?.dupes) {
+      const shards = Number(res.dupes.awardedShards || 0);
+      const tokens = Number(
+        // prefer mintedTokens; fall back to possible variants
+        res.dupes.mintedTokens ?? res.dupes.minted_tokens ?? res.dupes.minted ?? 0
+      );
+
+      if (shards > 0 || tokens > 0) {
+        const parts = [];
+        if (shards > 0) parts.push(`+${shards} shard${shards === 1 ? '' : 's'}`);
+        if (tokens > 0) parts.push(`+${tokens} Guarantee token${tokens === 1 ? '' : 's'} 🎯`);
+        const msg = parts.join(' • ');
+        if (typeof showToast === 'function') {
+          showToast(msg);
+        } else {
+          // lightweight inline fallback toast
+          const el = document.createElement('div');
+          el.textContent = msg;
+          Object.assign(el.style, {
+            position:'fixed', left:'50%', bottom:'24px', transform:'translateX(-50%)',
+            background:'#111', color:'#fff', padding:'10px 14px', borderRadius:'8px',
+            boxShadow:'0 6px 18px rgba(0,0,0,.25)', zIndex:9999, opacity:0,
+            transition:'opacity .2s ease'
+          });
+          document.body.appendChild(el);
+          requestAnimationFrame(()=> el.style.opacity = 1);
+          setTimeout(()=> { el.style.opacity = 0; setTimeout(()=> el.remove(), 220); }, 2200);
+        }
       }
+    }
+    // --- /ADDED ---
+
+    if (res?.inventory?.items) {
+      const newItems = res.inventory.items.slice(-5);
+      console.log('[DEBUG] Last 5 items in updated inventory:');
+      newItems.forEach((item, index) => {
+        console.log(`[DEBUG] Inventory Item ${index}: ID="${item.itemId}", Name="${item.name}", Rarity="${item.rarity}"`);
+      });
+    }
 
     if (res?.inventory) {
       inv = normalizeInventory(res.inventory);
       console.log('[DEBUG] Normalized inventory:', inv);
       renderMeta();
       
-      // NEW: Notify parent
+      // Notify parent (inventory page) — include dupes so it can show a banner if desired
       console.log('[DEBUG] Sending message to parent...');
       if (window.parent !== window) {
         window.parent.postMessage({
           type: 'inventory-updated',
           inventory: inv,
+          dupes: res.dupes || null,
           debug: 'from-packs-widget'
         }, '*');
         console.log('[DEBUG] Message sent to parent');
@@ -416,6 +450,7 @@ async function onCollectClick(){
     cta.addEventListener('click', onOpenClick, { once:true });
   }
 }
+
 
   /*  opening = null;
     stackEl.hidden = true;
