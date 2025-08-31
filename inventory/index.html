@@ -1494,70 +1494,77 @@
         if (!container) return;
         container.innerHTML = "";
 
-        // --- EP/Album cards from catalog + progress ---
-        const byId = new Map();
-        asArray(catalog.eps).forEach(ep => {
-          if (!ep || !ep.id) return;
-          byId.set(ep.id, {
-            id: ep.id,
-            name: ep.name,
-            image: ep.coverImage || ep.image || ep.artUrl || ""
-          });
-        });
-        asArray(inv.progress?.eps).forEach(ep => {
-          if (!ep || !ep.id) return;
-          if (!byId.has(ep.id)) {
-            byId.set(ep.id, { id: ep.id, name: ep.name, image: "" });
-          }
-        });
-
-        const epProgress = new Map(asArray(inv.progress?.eps).map(e => [e.id, e]));
-        const epList = Array.from(byId.values());
-
-        // --- Owned covers (standalone collectibles) ---
-        const items = Array.isArray(inv.items) ? inv.items : [];
-        const ownedCovers = items.filter(it => {
-          const kind = String(it?.kind || '').toLowerCase();
-          const cat  = String(it?.category || it?.metadata?.category || '').toLowerCase();
-          const name = String(it?.name || it?.title || '');
-          const rarity = String(it?.rarity || '').toLowerCase();
-          // Heuristics: treat as cover if kind/category/name suggests it,
-          // or match your pack convention where covers are Uncommon.
+        // --- helpers ---
+        const asList = (v) => Array.isArray(v) ? v : (v ? [v] : []);
+        const norm = (s) => String(s || "").trim().toLowerCase();
+        const isCoverItem = (it) => {
+          const kind = norm(it?.kind);
+          const cat  = norm(it?.category || it?.metadata?.category);
+          const name = String(it?.name || it?.title || "");
           return (
-            kind.includes('cover') || kind.includes('artwork') ||
-            cat.includes('cover')  || cat.includes('artwork') ||
-            /cover|artwork/i.test(name) ||
-            rarity === 'uncommon'
+            kind.includes("cover") || kind.includes("artwork") ||
+            cat.includes("cover")  || cat.includes("artwork")  ||
+            /(^|\s|—)\s*cover\b/i.test(name)
           );
-        });
+        };
 
-        // Show empty state only if nothing to render at all
-        if (!epList.length && !ownedCovers.length) {
-          container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No albums or covers found.</div>`;
+        // Catalog covers list (what we want to show)
+        const covers = asList(catalog.covers).map(cv => ({
+          name: cv?.name || cv?.title || "Album Cover",
+          image: cv?.image || cv?.artUrl || "",
+          epId: cv?.epId || cv?.albumId || null
+        }));
+
+        // What the player owns (by name; deduped)
+        const items = Array.isArray(inv.items) ? inv.items : [];
+        const ownedCoverNames = new Set(
+          items.filter(isCoverItem).map(it => norm(it.name || it.title || it.itemId))
+        );
+
+        // If catalog has no covers but the player owns some, fallback to showing owned-only
+        if (!covers.length && ownedCoverNames.size) {
+          const uniqueOwned = Array.from(ownedCoverNames);
+          uniqueOwned.forEach(nm => {
+            const card = document.createElement("div");
+            card.className = "unreleased-card"; // reuse tile style
+            card.innerHTML = `
+              <h3>${nm}</h3>
+            `;
+            card.addEventListener("click", () => {
+              create3DStem("default");
+              showItemActions({ title: nm, description: "Owned album artwork", isOwned: true });
+            });
+            container.appendChild(card);
+          });
           return;
         }
 
-        // --- Render EP/Album progress cards ---
-        epList.forEach(ep => {
-          const prog     = epProgress.get(ep.id);
-          const unlocked = !!prog?.complete; // grey if not completed/unlocked
+        if (!covers.length) {
+          container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No album artwork found.</div>`;
+          return;
+        }
 
+        // Covers-only grid (owned vs locked)
+        covers.forEach(cv => {
+          const owned = ownedCoverNames.has(norm(cv.name));
           const card = document.createElement("div");
-          card.className = "unreleased-card" + (unlocked ? "" : " locked");
+          card.className = "unreleased-card" + (owned ? "" : " locked");
           card.innerHTML = `
-            ${ep.image ? `<img loading="lazy" src="${ep.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
-            <h3>${ep.name || "Album/EP"}</h3>
+            ${cv.image ? `<img loading="lazy" src="${cv.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
+            <h3>${cv.name}</h3>
           `;
           card.addEventListener("click", () => {
             create3DStem("default");
             showItemActions({
-              title: ep.name,
-              description: unlocked ? "Unlocked album" : "Locked album",
-              isOwned: unlocked
+              title: cv.name,
+              description: owned ? "Owned album artwork" : "Locked album artwork",
+              isOwned: owned
             });
           });
           container.appendChild(card);
         });
+      }
+
 
         // --- Render owned Covers (standalone items) ---
         ownedCovers.forEach(it => {
