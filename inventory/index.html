@@ -1400,33 +1400,46 @@
       }
 
   
-  function renderEPsGrouped(catalog={}, songs=[], singles=[]) {
+  // Group EPs; show one aggregated "Singles" card
+  function renderEPsGrouped(catalog = {}, songs = [], singles = [], epProgress = []) {
     const container = document.getElementById("stems-collections");
     if (!container) return;
     container.innerHTML = "";
 
-    // EP meta index
+    // --- EP meta (prefer catalog; backfill from progress so names don't show as "EP") ---
     const epMeta = new Map();
-    asArray(catalog.eps).forEach(ep => epMeta.set(ep.id, ep));
+    asArray(catalog.eps).forEach(ep => {
+      if (!ep?.id) return;
+      epMeta.set(ep.id, {
+        id: ep.id,
+        name: ep.name || "EP",
+        image: ep.coverImage || ep.image || ep.artUrl || ""
+      });
+    });
+    asArray(epProgress).forEach(ep => {
+      if (!ep?.id || epMeta.has(ep.id)) return;
+      epMeta.set(ep.id, { id: ep.id, name: ep.name || "EP", image: "" });
+    });
 
-    // Group songs by EP
+    // --- Group songs by EP id ---
     const byEp = new Map();
-    songs.forEach(row => {
-      const key = row.epId || "unknown";
+    asArray(songs).forEach(row => {
+      const key = row?.epId || "unknown";
       if (!byEp.has(key)) byEp.set(key, []);
       byEp.get(key).push(row);
     });
 
-    // EP cards
+    // --- EP cards ---
     byEp.forEach((songRows, epId) => {
       const meta = epMeta.get(epId);
       const name = meta?.name || (epId === "unknown" ? "Misc" : "EP");
 
       const totals = songRows.reduce((acc, r) => {
-        acc.owned += r.ownedStems || 0;
-        acc.total += r.totalStems || 0;
+        acc.owned += r?.ownedStems || 0;
+        acc.total += r?.totalStems || 0;
         return acc;
       }, { owned: 0, total: 0 });
+
       const pct = totals.total ? Math.round((totals.owned / totals.total) * 100) : 0;
 
       const card = document.createElement("div");
@@ -1435,7 +1448,7 @@
         <div class="collection-header">
           <div class="collection-info">
             <h3>${name}</h3>
-            <p>${songRows.length} Songs</p>
+            <p>${songRows.length} ${songRows.length === 1 ? "Song" : "Songs"}</p>
           </div>
           <div class="collection-progress">
             <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
@@ -1447,19 +1460,23 @@
       container.appendChild(card);
     });
 
-    // Singles: one card per Single (NOT grouped)
-    asArray(singles).forEach(s => {
-      const owned = s.ownedStems || 0;
-      const total = s.totalStems || 0;
-      const pct   = total ? Math.round((owned / total) * 100) : 0;
+    // --- ONE aggregated "Singles" card (UI only) ---
+    const singlesList = asArray(singles);
+    if (singlesList.length) {
+      const totals = singlesList.reduce((acc, s) => {
+        acc.owned += s?.ownedStems || 0;
+        acc.total += s?.totalStems || 0;
+        return acc;
+      }, { owned: 0, total: 0 });
+      const pct = totals.total ? Math.round((totals.owned / totals.total) * 100) : 0;
 
       const card = document.createElement("div");
       card.className = "collection-card";
       card.innerHTML = `
         <div class="collection-header">
           <div class="collection-info">
-            <h3>${s.name || "Single"}</h3>
-            <p>${owned}/${total} stems</p>
+            <h3>Singles</h3>
+            <p>${singlesList.length} ${singlesList.length === 1 ? "Single" : "Singles"}</p>
           </div>
           <div class="collection-progress">
             <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
@@ -1467,10 +1484,12 @@
           </div>
         </div>
       `;
-      card.addEventListener("click", () => openEpOverlay(s.name || "Single", [s]));
+      // Reuse the EP overlay to list each single row
+      card.addEventListener("click", () => openEpOverlay("Singles", singlesList));
       container.appendChild(card);
-    });
+    }
   }
+
 
   // Fragments, Albums, Unreleased (greyed if locked)
   function renderFragmentsAll(inv = {}, catalog = {}) {
@@ -1739,7 +1758,7 @@
         
         // Empty state
         if (!inv) {
-          renderEPsGrouped(catalog, [], []);
+            renderEPsGrouped(catalog, [], [], []);
           renderCharactersAll({}, catalog);
           renderFragmentsAll({}, catalog);
           renderAlbumsFromCatalog({}, catalog);
@@ -1762,7 +1781,12 @@
         })));
 
         // Real render
-        renderEPsGrouped(catalog, inv.progress?.songs || [], inv.progress?.singles || []);
+        renderEPsGrouped(
+          catalog,
+          inv.progress?.songs   || [],
+          inv.progress?.singles || [],
+          inv.progress?.eps     || []   // 👈 fallback source for EP names
+        );
         renderCharactersAll(inv, catalog);
         renderFragmentsAll(inv, catalog);
         renderAlbumsFromCatalog(inv, catalog);
