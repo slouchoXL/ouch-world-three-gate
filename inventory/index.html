@@ -1072,20 +1072,58 @@
         covers = Array.from(covById.values());
 
         // --- other sections (flatten robustly too) ---
-        const fragmentSets     = flattenAny(src.fragmentSets     ?? src.fragments       ?? src.fragmentsets    ?? []);
-        const unreleased       = flattenAny(src.unreleased       ?? src.unreleasedTracks?? src.unreleased_items ?? []);
-        let   goldenCharacters = flattenAny(src.goldenCharacters ?? src.golden          ?? src.golden_chars    ?? []);
+        const fragmentSets = flattenAny(src.fragmentSets ?? src.fragments ?? src.fragmentsets ?? []);
+        const unreleased   = flattenAny(src.unreleased   ?? src.unreleasedTracks ?? src.unreleased_items ?? []);
 
-        // Derive golden from a generic characters list if not explicitly provided
-        if (!goldenCharacters.length && Array.isArray(src.characters)) {
-          goldenCharacters = src.characters.filter(ch => {
-            const k = String(ch?.kind || '').toLowerCase();
-            return k.includes('character_golden') || k.includes('gold');
+        // --- GOLDEN CHARACTERS: robust discovery + de-dupe ---
+        const looksGolden = (x) => {
+          const k = String(x?.kind   || '').toLowerCase();
+          const r = String(x?.rarity || '').toLowerCase();
+          return k.includes('character_golden') || (k.includes('character') && r === 'legendary') || k.includes('gold');
+        };
+
+        // gather candidates from many likely places
+        let goldenCandidates = flattenAny(
+          src.goldenCharacters ?? src.golden ?? src.golden_chars ?? []
+        );
+
+        // common alternates (nested under a characters block)
+        if (!goldenCandidates.length && src.characters && typeof src.characters === 'object') {
+          if (Array.isArray(src.characters.goldenCharacters)) {
+            goldenCandidates = flattenAny(src.characters.goldenCharacters);
+          } else if (Array.isArray(src.characters)) {
+            goldenCandidates = src.characters.filter(looksGolden);
+          }
+        }
+
+        // shallow scan of top-level arrays as a last resort
+        if (!goldenCandidates.length && src && typeof src === 'object') {
+          Object.values(src).forEach(v => {
+            if (Array.isArray(v)) {
+              const pick = v.filter(looksGolden);
+              if (pick.length) goldenCandidates.push(...pick);
+            }
           });
         }
 
+        // de-dupe by id + normalize a few fields
+        const seen = new Map();
+        goldenCandidates.forEach(gc => {
+          const id = gc?.id || gc?.characterId;
+          if (!id || seen.has(id)) return;
+          seen.set(id, {
+            id,
+            name: gc.name || gc.title || id,
+            image: gc.image || gc.art || gc.artUrl || gc.coverImage || '',
+            kind: gc.kind || 'character_golden',
+            rarity: gc.rarity || 'legendary'
+          });
+        });
+        const goldenCharacters = Array.from(seen.values());
+
         return { eps, singles, covers, fragmentSets, unreleased, goldenCharacters };
       }
+
 
 
   function isCoverItem(it){
