@@ -1566,28 +1566,6 @@
       }
 
 
-        // --- Render owned Covers (standalone items) ---
-        ownedCovers.forEach(it => {
-          const name = it.name || it.title || 'Album Artwork';
-          const img  = it.imageUrl || it.artUrl || it.image || '';
-          const card = document.createElement("div");
-          card.className = "unreleased-card"; // same look as your Unreleased tiles
-          card.innerHTML = `
-            ${img ? `<img loading="lazy" src="${img}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
-            <h3>${name}</h3>
-          `;
-          card.addEventListener("click", () => {
-            create3DStem("default");
-            showItemActions({
-              title: name,
-              description: "Owned album artwork",
-              isOwned: true
-            });
-          });
-          container.appendChild(card);
-        });
-      }
-
 
       
       function renderUnreleasedFromCatalog(catalog = {}, items = []) {
