@@ -1494,69 +1494,76 @@
         if (!container) return;
         container.innerHTML = "";
 
-        // --- helpers ---
-        const asList = (v) => Array.isArray(v) ? v : (v ? [v] : []);
-        const norm = (s) => String(s || "").trim().toLowerCase();
-        const isCoverItem = (it) => {
+        // helpers
+        const asList = v => Array.isArray(v) ? v : (v ? [v] : []);
+        const norm   = s => String(s || "").trim().toLowerCase();
+        const stripCoverSuffix = s => String(s || "").replace(/\s*[-–—]\s*cover\b/i, ""); // remove "— Cover"
+        const isCoverItem = it => {
           const kind = norm(it?.kind);
           const cat  = norm(it?.category || it?.metadata?.category);
           const name = String(it?.name || it?.title || "");
           return (
             kind.includes("cover") || kind.includes("artwork") ||
             cat.includes("cover")  || cat.includes("artwork")  ||
-            /(^|\s|—)\s*cover\b/i.test(name)
+            /(^|\s|[-–—])\s*cover\b/i.test(name)
           );
         };
 
-        // Catalog covers list (what we want to show)
+        // catalog covers (if you have them)
         const covers = asList(catalog.covers).map(cv => ({
-          name: cv?.name || cv?.title || "Album Cover",
+          name:  cv?.name || cv?.title || "Album Cover",
           image: cv?.image || cv?.artUrl || "",
-          epId: cv?.epId || cv?.albumId || null
+          epId:  cv?.epId || cv?.albumId || null
         }));
 
-        // What the player owns (by name; deduped)
+        // owned covers from inventory items
         const items = Array.isArray(inv.items) ? inv.items : [];
-        const ownedCoverNames = new Set(
-          items.filter(isCoverItem).map(it => norm(it.name || it.title || it.itemId))
+        const ownedCoverKeys = new Set(
+          items
+            .filter(isCoverItem)
+            .map(it => norm(stripCoverSuffix(it.name || it.title || it.itemId)))
         );
 
-        // If catalog has no covers but the player owns some, fallback to showing owned-only
-        if (!covers.length && ownedCoverNames.size) {
-          const uniqueOwned = Array.from(ownedCoverNames);
-          uniqueOwned.forEach(nm => {
+        // If no catalog covers: render owned covers only (no placeholders)
+        if (!covers.length) {
+          const seen = new Set();
+          items.filter(isCoverItem).forEach(it => {
+            const displayName = stripCoverSuffix(it.name || it.title || "Album Artwork");
+            const key = norm(displayName);
+            if (seen.has(key)) return;
+            seen.add(key);
+
             const card = document.createElement("div");
-            card.className = "unreleased-card"; // reuse tile style
-            card.innerHTML = `
-              <h3>${nm}</h3>
-            `;
+            card.className = "unreleased-card";
+            card.innerHTML = `<h3>${displayName}</h3>`;
             card.addEventListener("click", () => {
               create3DStem("default");
-              showItemActions({ title: nm, description: "Owned album artwork", isOwned: true });
+              showItemActions({ title: displayName, description: "Owned album artwork", isOwned: true });
             });
             container.appendChild(card);
           });
+          if (!container.children.length) {
+            container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No album artwork found.</div>`;
+          }
           return;
         }
 
-        if (!covers.length) {
-          container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No album artwork found.</div>`;
-          return;
-        }
-
-        // Covers-only grid (owned vs locked)
+        // Covers from catalog (grey until owned)
         covers.forEach(cv => {
-          const owned = ownedCoverNames.has(norm(cv.name));
+          const displayName = stripCoverSuffix(cv.name);     // keep original case, remove suffix
+          const key         = norm(displayName);
+          const owned       = ownedCoverKeys.has(key);
+
           const card = document.createElement("div");
           card.className = "unreleased-card" + (owned ? "" : " locked");
           card.innerHTML = `
             ${cv.image ? `<img loading="lazy" src="${cv.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
-            <h3>${cv.name}</h3>
+            <h3>${displayName}</h3>
           `;
           card.addEventListener("click", () => {
             create3DStem("default");
             showItemActions({
-              title: cv.name,
+              title: displayName,
               description: owned ? "Owned album artwork" : "Locked album artwork",
               isOwned: owned
             });
