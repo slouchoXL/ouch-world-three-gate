@@ -895,6 +895,8 @@
    * HELPERS
    ***************************/
       
+      
+      
         // 1) Determine the shared API base (matches your packs widget behavior)
         (function () {
           const params = new URLSearchParams(location.search);
@@ -1005,12 +1007,38 @@
         return { eps, singles, covers, fragmentSets, unreleased, goldenCharacters };
       }
 
+      function isCoverItem(it){
+        const kind = String(it?.kind || '').toLowerCase();
+        const cat  = String(it?.category || it?.metadata?.category || '').toLowerCase();
+        const name = String(it?.name || it?.title || '');
+        return (
+          kind.includes('cover') || kind.includes('artwork') ||
+          cat.includes('cover')  || cat.includes('artwork') ||
+          /cover|artwork/i.test(name)
+        );
+      }
+
+      // Map covers to EP/character when available in catalog
+      function indexCovers(catalog){
+        const coverTo = new Map(); // name -> { epId?, characterId? }
+        (catalog.covers || []).forEach(cv => {
+          const name = cv?.name || cv?.title;
+          if (!name) return;
+          coverTo.set(name, {
+            epId:        cv?.epId || cv?.albumId || null,
+            characterId: cv?.characterId || cv?.charId || null
+          });
+        });
+        const epByName = new Map((catalog.eps || []).map(ep => [String(ep?.name || '').toLowerCase(), ep?.id]));
+        return { coverTo, epByName };
+      }
 
 
   /***************************
    * RENDER FUNCTIONS (progress + all/greyed)
    
    ***************************/
+      
       
       
       function stemTitleToType(label) {
@@ -1103,70 +1131,134 @@
 
 
       
-  // Example: Characters (all, grey out locked)
-  function renderCharactersAll(inv = {}, catalog = {}) {
-    const container = document.getElementById('characters-grid');
-    if (!container) return;
-    container.innerHTML = '';
+      // Example: Characters (all, grey out locked) + combo unlock (EP complete + cover owned)
+      function renderCharactersAll(inv = {}, catalog = {}) {
+        const container = document.getElementById('characters-grid');
+        if (!container) return;
+        container.innerHTML = '';
 
-    const unlocked = new Set((inv.progress?.characters || []).map(c => c.characterId));
+        // --- base unlocked from backend ---
+        const unlocked = new Set((inv.progress?.characters || []).map(c => c.characterId));
 
-    // Union: fragmentSets ∪ goldenCharacters ∪ unlocked (fallbacks)
-    const all = new Map();
+        // --- helpers (local, minimal) ---
+        const isCoverItem = (it) => {
+          const kind = String(it?.kind || '').toLowerCase();
+          const cat  = String(it?.category || it?.metadata?.category || '').toLowerCase();
+          const name = String(it?.name || it?.title || '');
+          return (
+            kind.includes('cover') || kind.includes('artwork') ||
+            cat.includes('cover')  || cat.includes('artwork')  ||
+            /cover|artwork/i.test(name)
+          );
+        };
+        const indexCovers = (catalog) => {
+          const coverTo = new Map(); // coverName -> { epId?, characterId? }
+          (catalog.covers || []).forEach(cv => {
+            const name = cv?.name || cv?.title;
+            if (!name) return;
+            coverTo.set(name, {
+              epId:        cv?.epId || cv?.albumId || null,
+              characterId: cv?.characterId || cv?.charId || null
+            });
+          });
+          const epByName = new Map((catalog.eps || []).map(ep => [String(ep?.name || '').toLowerCase(), ep?.id]));
+          return { coverTo, epByName };
+        };
 
-    asArray(catalog.fragmentSets).forEach(fs => {
-      const id = fs.characterId || fs.id;
-      if (!id) return;
-      all.set(id, { id, name: fs.name, image: fs.image || fs.coverImage || fs.artUrl || '' });
-    });
+        // --- combo unlock calculation ---
+        const epComplete = new Set((inv.progress?.eps || []).filter(e => e?.id && e?.complete).map(e => e.id));
+        const items = Array.isArray(inv.items) ? inv.items : [];
+        const ownedCovers = items.filter(isCoverItem);
 
-    asArray(catalog.goldenCharacters).forEach(gc => {
-      const id = gc.characterId || gc.id;
-      if (!id) return;
-      if (!all.has(id)) all.set(id, { id, name: gc.name, image: gc.image || '' });
-    });
+        const { coverTo, epByName } = indexCovers(catalog);
 
-    // Fallback: infer characters from fragment progress if catalog is thin
-    (inv.progress?.fragments || []).forEach(f => {
-      const id = f.characterId || f.id;
-      if (!id) return;
-      if (!all.has(id)) all.set(id, { id, name: f.name, image: '' });
-    });
+        // Convert owned covers -> epIds (prefer explicit mapping; fallback to name==EP name)
+        const coverEpIds = new Set();
+        ownedCovers.forEach(it => {
+          const nm = it?.name || it?.title || '';
+          const info = coverTo.get(nm);
+          if (info?.epId) {
+            coverEpIds.add(info.epId);
+          } else {
+            const epIdByName = epByName.get(String(nm).toLowerCase());
+            if (epIdByName) coverEpIds.add(epIdByName);
+          }
+        });
 
-    // Fallback: unlocked characters themselves (in case catalog is empty)
-    (inv.progress?.characters || []).forEach(c => {
-      const id = c.characterId || c.id;
-      if (!id) return;
-      if (!all.has(id)) all.set(id, { id, name: c.name, image: c.image || '' });
-    });
+        // Map epId -> characterId from catalog (prefer explicit)
+        const epToChar = new Map();
+        (catalog.goldenCharacters || []).forEach(gc => {
+          // if your schema stores the owning EP for a golden/skin character
+          if (gc?.epId && (gc?.characterId || gc?.id)) {
+            epToChar.set(gc.epId, gc.characterId || gc.id);
+          }
+        });
+        // covers may also carry characterId
+        coverTo.forEach((info) => {
+          if (info?.epId && info?.characterId) epToChar.set(info.epId, info.characterId);
+        });
 
-    const list = Array.from(all.values());
-    if (!list.length) {
-      container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No characters found.</div>`;
-      return;
-    }
+        // Union: if EP complete AND its cover owned -> unlock its character
+        epToChar.forEach((charId, epId) => {
+          if (epComplete.has(epId) && coverEpIds.has(epId) && charId) {
+            unlocked.add(charId);
+          }
+        });
 
-    list.forEach(c => {
-      const locked = !unlocked.has(c.id);
-      const card = document.createElement('div');
-      card.className = 'character-card' + (locked ? ' locked' : '');
-      card.innerHTML = `
-        <div class="character-thumb"><img loading="lazy" src="${c.image || ''}" alt=""></div>
-        <div class="character-name">${c.name || 'Character'}</div>
-      `;
-      card.addEventListener("click", () => {
-        if (locked) {
-          // locked character
-          create3DStem("default");
-          showItemActions({ title: c.name, description: "Locked character", isOwned: false });
+        // --- Build catalog of all characters to render (unchanged logic) ---
+        const all = new Map();
+
+        asArray(catalog.fragmentSets).forEach(fs => {
+          const id = fs.characterId || fs.id;
+          if (!id) return;
+          all.set(id, { id, name: fs.name, image: fs.image || fs.coverImage || fs.artUrl || '' });
+        });
+
+        asArray(catalog.goldenCharacters).forEach(gc => {
+          const id = gc.characterId || gc.id;
+          if (!id) return;
+          if (!all.has(id)) all.set(id, { id, name: gc.name, image: gc.image || '' });
+        });
+
+        // Fallbacks from progress if catalog is thin
+        (inv.progress?.fragments || []).forEach(f => {
+          const id = f.characterId || f.id;
+          if (!id) return;
+          if (!all.has(id)) all.set(id, { id, name: f.name, image: '' });
+        });
+        (inv.progress?.characters || []).forEach(c => {
+          const id = c.characterId || c.id;
+          if (!id) return;
+          if (!all.has(id)) all.set(id, { id, name: c.name, image: c.image || '' });
+        });
+
+        const list = Array.from(all.values());
+        if (!list.length) {
+          container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No characters found.</div>`;
           return;
         }
-        create3DStem("default");
-        showItemActions({ title: c.name, description: "Unlocked character", isOwned: true });
-      });
-      container.appendChild(card);
-    });
-  }
+
+        // --- Render ---
+        list.forEach(c => {
+          const locked = !unlocked.has(c.id);
+          const card = document.createElement('div');
+          card.className = 'character-card' + (locked ? ' locked' : '');
+          card.innerHTML = `
+            <div class="character-thumb"><img loading="lazy" src="${c.image || ''}" alt=""></div>
+            <div class="character-name">${c.name || 'Character'}</div>
+          `;
+          card.addEventListener("click", () => {
+            if (locked) {
+              create3DStem("default");
+              showItemActions({ title: c.name, description: "Locked character", isOwned: false });
+              return;
+            }
+            create3DStem("default");
+            showItemActions({ title: c.name, description: "Unlocked character", isOwned: true });
+          });
+          container.appendChild(card);
+        });
+      }
 
   // EP grouping
   function makeStemChips(ownedPositions = [], total = 0) {
@@ -1402,36 +1494,60 @@
         if (!container) return;
         container.innerHTML = "";
 
-        // Union of EPs from catalog & progress
+        // --- EP/Album cards from catalog + progress ---
         const byId = new Map();
         asArray(catalog.eps).forEach(ep => {
           if (!ep || !ep.id) return;
-          byId.set(ep.id, { id: ep.id, name: ep.name, image: ep.coverImage || ep.image || ep.artUrl || "" });
+          byId.set(ep.id, {
+            id: ep.id,
+            name: ep.name,
+            image: ep.coverImage || ep.image || ep.artUrl || ""
+          });
         });
         asArray(inv.progress?.eps).forEach(ep => {
           if (!ep || !ep.id) return;
-          if (!byId.has(ep.id)) byId.set(ep.id, { id: ep.id, name: ep.name, image: "" });
+          if (!byId.has(ep.id)) {
+            byId.set(ep.id, { id: ep.id, name: ep.name, image: "" });
+          }
         });
 
         const epProgress = new Map(asArray(inv.progress?.eps).map(e => [e.id, e]));
-        const list = Array.from(byId.values());
-        if (!list.length) {
-          container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No albums found.</div>`;
+        const epList = Array.from(byId.values());
+
+        // --- Owned covers (standalone collectibles) ---
+        const items = Array.isArray(inv.items) ? inv.items : [];
+        const ownedCovers = items.filter(it => {
+          const kind = String(it?.kind || '').toLowerCase();
+          const cat  = String(it?.category || it?.metadata?.category || '').toLowerCase();
+          const name = String(it?.name || it?.title || '');
+          const rarity = String(it?.rarity || '').toLowerCase();
+          // Heuristics: treat as cover if kind/category/name suggests it,
+          // or match your pack convention where covers are Uncommon.
+          return (
+            kind.includes('cover') || kind.includes('artwork') ||
+            cat.includes('cover')  || cat.includes('artwork') ||
+            /cover|artwork/i.test(name) ||
+            rarity === 'uncommon'
+          );
+        });
+
+        // Show empty state only if nothing to render at all
+        if (!epList.length && !ownedCovers.length) {
+          container.innerHTML = `<div class="item-card" style="text-align:center;opacity:.6">No albums or covers found.</div>`;
           return;
         }
 
-        list.forEach(ep => {
+        // --- Render EP/Album progress cards ---
+        epList.forEach(ep => {
           const prog     = epProgress.get(ep.id);
           const unlocked = !!prog?.complete; // grey if not completed/unlocked
 
           const card = document.createElement("div");
-          card.className = "unreleased-card" + (unlocked ? "" : " locked"); // reuse tile style
+          card.className = "unreleased-card" + (unlocked ? "" : " locked");
           card.innerHTML = `
             ${ep.image ? `<img loading="lazy" src="${ep.image}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
             <h3>${ep.name || "Album/EP"}</h3>
           `;
-
-          // 👇 Add this click handler
           card.addEventListener("click", () => {
             create3DStem("default");
             showItemActions({
@@ -1440,10 +1556,31 @@
               isOwned: unlocked
             });
           });
+          container.appendChild(card);
+        });
 
+        // --- Render owned Covers (standalone items) ---
+        ownedCovers.forEach(it => {
+          const name = it.name || it.title || 'Album Artwork';
+          const img  = it.imageUrl || it.artUrl || it.image || '';
+          const card = document.createElement("div");
+          card.className = "unreleased-card"; // same look as your Unreleased tiles
+          card.innerHTML = `
+            ${img ? `<img loading="lazy" src="${img}" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;">` : ""}
+            <h3>${name}</h3>
+          `;
+          card.addEventListener("click", () => {
+            create3DStem("default");
+            showItemActions({
+              title: name,
+              description: "Owned album artwork",
+              isOwned: true
+            });
+          });
           container.appendChild(card);
         });
       }
+
 
       
       function renderUnreleasedFromCatalog(catalog = {}, items = []) {
