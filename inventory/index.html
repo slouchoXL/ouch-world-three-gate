@@ -580,6 +580,21 @@
           top: 50% !important; left: 50% !important; transform: translate(-50%,-50%) !important;
           max-height: calc(100dvh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)) !important;
         }
+        
+        /* Stop sideways scroll in the scroller */
+        .inventory-content { overflow-x: hidden; }
+
+        /* Ensure columns never overflow due to intrinsic widths */
+        .characters-grid { grid-template-columns: repeat(auto-fill, minmax(0, 1fr)); }
+
+        @media (max-width: 480px) {
+          .characters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        /* Let cards/text shrink inside the column instead of forcing overflow */
+        .character-card { min-width: 0; }
+        .character-name { min-width: 0; }
+
 
       /* ========= MISC FIX ========= */
       /* remove stray brace that can cancel later rules (if present in your file) */
