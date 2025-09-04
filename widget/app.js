@@ -824,6 +824,20 @@ async function onOpenClick(){
     } catch (e) {
       console.error('❌ Failed to refresh inventory after pack opening:', e);
     }
+      
+      // 🔹 Step 2.1 — cinematic rarity burst (no clicks; auto-vanish)
+      if (
+        enable3D &&
+        window.__packs3D &&
+        window.__packsBurstFrom &&
+        Array.isArray(opening.results) &&
+        opening.results.length === 5
+      ) {
+        window.__packsBurstFrom(opening.results);
+
+        // If you want the 2D stack to wait ~900ms until the burst finishes, uncomment:
+        // await new Promise(r => setTimeout(r, 900));
+      }
 
     showStack(opening.results);
   } catch(e){
