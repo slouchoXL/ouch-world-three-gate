@@ -370,6 +370,25 @@ if (enable3D && threeCanvas) {
   window.__packs3D = packs3D;
 }
 
+/* ---- Step 2: Debug taps for console (safe) ---- */
+if (typeof window !== 'undefined') {
+  window.__packsDebug = {
+    // flags
+    get wants3D()   { return typeof wants3D   !== 'undefined' ? wants3D   : undefined; },
+    get enable3D()  { return typeof enable3D  !== 'undefined' ? enable3D  : undefined; },
+    get hasHandoff(){ return typeof hasHandoff!== 'undefined' ? hasHandoff: undefined; }, // ok if you haven't added it yet
+
+    // UI state
+    get ctaDisabled()    { try { return !!cta?.disabled; } catch { return undefined; } },
+    get canvasHidden()   { try { return !!threeCanvas?.hidden; } catch { return undefined; } },
+    get canvasOpacity()  { try { return threeCanvas ? getComputedStyle(threeCanvas).opacity : undefined; } catch { return undefined; } },
+    get pngVisible()     { try { return packImg ? !packImg.hidden && getComputedStyle(packImg).opacity : undefined; } catch { return undefined; } },
+
+    // objects to poke at
+    get packs3D()  { return typeof packs3D !== 'undefined' ? packs3D : undefined; },
+    packImg, threeCanvas, cta,
+  };
+}
 
 
 // ===== helpers =====
