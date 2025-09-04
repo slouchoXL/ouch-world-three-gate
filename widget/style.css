@@ -97,24 +97,32 @@ input, textarea, select { font-size: 16px; }
 /* stage centers pack and animations; fixed width by --packW */
 .stage{ display:grid; place-items:center; }
 /* The stage box the overlay must fit inside */
+/* Keep the stage sized independently of the image */
 .anchor{
   position: relative;
   width: calc(var(--packW) + 2*var(--pad));
-  height: var(--anchorH);                 /* was calc(var(--packW) * 1.4286) */
+  height: var(--anchorH);
   padding-inline: var(--pad);
   margin: 0 auto;
-  isolation: isolate;
+  isolation: isolate; /* creates a local stacking context — good */
+  /* optional safety: ensure it's never 0 if a var is missing */
+  min-height: 300px;
 }
 
-#three-canvas {
+/* Canvas fills the stage and sits above the PNG */
+#three-canvas{
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 5; /* behind stack(20)/tray(10)/overlay(50), above pack image */
-  display: block;
-  pointer-events: none; /* don't steal clicks yet */
+  z-index: 9;           /* above the PNG */
+  pointer-events: none;
 }
+
+/* PNG baseline and 3D fade */
+.pack-img{ position: relative; z-index: 0; }
+body.is-3d .pack-img{ opacity: 0; transition: opacity .2s ease; }
+
 
 
 
@@ -263,9 +271,5 @@ input, textarea, select { font-size: 16px; }
 
 
 /* When 3D mode is on, fade the PNG out so you can see the canvas */
-body.is-3d .pack-img {
-  opacity: 0;
-  transition: opacity .2s ease;
-}
-.pack-img { position: relative; z-index: 0; }   /* baseline */
+
 #three-canvas { z-index: 9; }                   /* above PNG, still below tray/stack/overlay */

@@ -222,8 +222,9 @@ let packs3D = null;
 
 if (enable3D && threeCanvas) {
   threeCanvas.hidden = false;     // show canvas when flag is on
-  packImg.hidden = true;          // <<< hard-hide the PNG for testing
-  packs3D = new PacksSceneManager(threeCanvas);
+  //packImg.hidden = true;          // <<< hard-hide the PNG testing
+    document.body.classList.add('is-3d');
+    packs3D = new PacksSceneManager(threeCanvas);
   window.__packs3D = packs3D;
 }
 
