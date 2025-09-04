@@ -220,21 +220,6 @@ if (!stackEl) {
 const threeCanvas = $('#three-canvas');
 let packs3D = null;
 
-if (enable3D && threeCanvas) {
-  threeCanvas.hidden = false;     // show canvas when flag is on
-  //packImg.hidden = true;          // <<< hard-hide the PNG testing
-    document.body.classList.add('is-3d');
-    packs3D = new PacksSceneManager(threeCanvas);
-  window.__packs3D = packs3D;
-}
-
-
-
-
-
-
-
-
 // ===== Step 1: Minimal 3D Scene Manager (stub) =====
 class PacksSceneManager {
   constructor(canvas) {
@@ -340,6 +325,14 @@ class PacksSceneManager {
     });
     this.renderer.dispose();
   }
+}
+
+if (enable3D && threeCanvas) {
+  threeCanvas.hidden = false;     // show canvas when flag is on
+  //packImg.hidden = true;          // <<< hard-hide the PNG testing
+    document.body.classList.add('is-3d');
+    packs3D = new PacksSceneManager(threeCanvas);
+  window.__packs3D = packs3D;
 }
 
 
