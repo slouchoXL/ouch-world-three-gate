@@ -220,6 +220,19 @@ if (!stackEl) {
 // --- Step 2: crossfade helper + handoff guard ---
 let hasHandoff = false;
 
+// ---- Debug taps for console ----
+window.__packsDebug = {
+  get enable3D() { return enable3D; },
+  get hasHandoff() { return hasHandoff; },
+  get pngVisible() { return !packImg.hidden && getComputedStyle(packImg).opacity; },
+  get canvasHidden() { return threeCanvas.hidden; },
+  get canvasOpacity() { return getComputedStyle(threeCanvas).opacity; },
+  get ctaDisabled() { return cta.disabled; },
+  // raw elements if you want to poke at them:
+  packImg, threeCanvas, cta,
+};
+
+
 async function crossfade(a, b, ms = 350) {
   // ensure starting states
   a.style.opacity = (a.style.opacity === '') ? '1' : a.style.opacity;
