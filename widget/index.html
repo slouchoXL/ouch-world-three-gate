@@ -82,11 +82,9 @@
     }
 
     /* 3D Canvas containers */
-    #pack-select {
-      position: absolute;
-      inset: 0;
-      z-index: 30;
-    }
+    /* Leave room equal to actions row height (+ a little gap) */
+    #pack-select { inset: 0 0 calc(var(--actionsH) + 8px) 0; }
+    
     #pack-select.hidden { display: none; }
     
     .select3d, .stage3d {
@@ -229,6 +227,13 @@
       cursor: not-allowed;
       filter: saturate(.6);
     }
+      
+      .actions { position: relative; z-index: 100; }
+      #pack-select { z-index: 10; }  /* keep it above the canvases, below the CTA */
+      
+     
+
+
 
     /* Error messages */
     .error[hidden] { display: none; }
