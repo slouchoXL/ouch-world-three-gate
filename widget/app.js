@@ -217,6 +217,29 @@ if (!stackEl) {
   anchor.appendChild(stackEl);
 }
 
+// --- Step 2: crossfade helper + handoff guard ---
+let hasHandoff = false;
+
+async function crossfade(a, b, ms = 350) {
+  // ensure starting states
+  a.style.opacity = (a.style.opacity === '') ? '1' : a.style.opacity;
+  b.style.opacity = '0';
+  b.hidden = false;
+
+  // animate both
+  a.style.transition = `opacity ${ms}ms ease`;
+  b.style.transition = `opacity ${ms}ms ease`;
+
+  // force a layout so transitions apply
+  void b.offsetWidth;
+
+  a.style.opacity = '0';
+  requestAnimationFrame(() => { b.style.opacity = '1'; });
+
+  return new Promise(r => setTimeout(r, ms));
+}
+
+
 const threeCanvas = $('#three-canvas');
 let packs3D = null;
 
@@ -328,12 +351,12 @@ class PacksSceneManager {
 }
 
 if (enable3D && threeCanvas) {
-  threeCanvas.hidden = false;     // show canvas when flag is on
-  //packImg.hidden = true;          // <<< hard-hide the PNG testing
-    document.body.classList.add('is-3d');
-    packs3D = new PacksSceneManager(threeCanvas);
+  // keep hidden; we’ll reveal on first click via crossfade
+  threeCanvas.hidden = true;
+  packs3D = new PacksSceneManager(threeCanvas);
   window.__packs3D = packs3D;
 }
+
 
 
 // ===== helpers =====
@@ -575,6 +598,15 @@ async function onCollectClick(){
     stackEl.hidden = true;
     trayEl.hidden = true;
     packImg.hidden = false;
+      
+      if (enable3D && threeCanvas) {
+        threeCanvas.hidden = true;
+        threeCanvas.style.opacity = '0';
+        packImg.style.opacity = '1';
+        hasHandoff = false;
+        // optional, if you ever set this elsewhere:
+        // document.body.classList.remove('is-3d');
+      }
 
     cta.textContent = 'Open Pack';
     cta.disabled = false;
@@ -737,6 +769,15 @@ async function onOpenClick(){
         return;
       }
     }
+      
+      // Step 2: handoff (only once per open cycle)
+      if (enable3D && threeCanvas && !hasHandoff) {
+        // keep CTA from double-firing while we fade + fetch
+        cta.disabled = true;
+        await crossfade(packImg, threeCanvas, 350);
+        hasHandoff = true;
+      }
+
 
     cta.hidden = true;
     cta.disabled = true;
