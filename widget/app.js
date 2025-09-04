@@ -27,6 +27,24 @@ window.addEventListener('message', async (e) => {
   }
 });
 
+// ===== 3D capability probe + feature flag (Step 0) =====
+function supportsWebGL() {
+  try {
+    const c = document.createElement('canvas');
+    return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
+  } catch {
+    return false;
+  }
+}
+
+// URL flag: ?three=1
+const wants3D  = new URLSearchParams(location.search).get('three') === '1';
+const enable3D = wants3D && supportsWebGL();
+
+// Handy for quick checks in console or other modules
+window.__PACKS_3D = { wants3D, enable3D };
+
+
 
 // ===== player id (anon fallback preserved for testing) =================
 const PLAYER_ID_KEY = 'packs:playerId';
@@ -195,6 +213,125 @@ if (!stackEl) {
   stackEl = el('div'); stackEl.id = 'stack'; stackEl.hidden = true;
   anchor.appendChild(stackEl);
 }
+
+const threeCanvas = $('#three-canvas');
+let packs3D = null;
+
+if (enable3D && threeCanvas) {
+  threeCanvas.hidden = false;          // show canvas when flag is on
+  packs3D = new PacksSceneManager(threeCanvas);
+  // Expose for quick debugging if needed:
+  window.__packs3D = packs3D;
+}
+
+
+// ===== Step 1: Minimal 3D Scene Manager (stub) =====
+class PacksSceneManager {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true,
+      powerPreference: 'high-performance'
+    });
+
+    // scene + camera
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    this.camera.position.set(0, 0, 6);
+
+    // lights (simple + cheap)
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(2, 4, 3);
+    this.scene.add(dir);
+
+    // placeholder mesh (replace later with pack GLB)
+    const geo = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+    const mat = new THREE.MeshStandardMaterial({ metalness: 0.2, roughness: 0.5 });
+    this.cube = new THREE.Mesh(geo, mat);
+    this.scene.add(this.cube);
+
+    // DPR + initial size
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this._resize(); // sets sizes + camera aspect
+
+    // binders
+    this._raf = null;
+    this._tick = this._tick.bind(this);
+    this._onResize = this._onResize.bind(this);
+    this._onVisibility = this._onVisibility.bind(this);
+
+    // events
+    window.addEventListener('resize', this._onResize);
+    document.addEventListener('visibilitychange', this._onVisibility);
+
+    // start loop
+    this._tick();
+  }
+
+  _resize() {
+    // fit to the canvas’ CSS size
+    const w = this.canvas.clientWidth;
+    const h = this.canvas.clientHeight;
+    if (w === 0 || h === 0) return;
+
+    // update renderer size only if needed
+    const needResize =
+      this.canvas.width  !== Math.floor(w * this.renderer.getPixelRatio()) ||
+      this.canvas.height !== Math.floor(h * this.renderer.getPixelRatio());
+
+    if (needResize) {
+      this.renderer.setSize(w, h, false);
+      this.camera.aspect = w / h;
+      this.camera.updateProjectionMatrix();
+    }
+  }
+
+  _tick(now) {
+    // cheap idle anim for visual confirmation
+    const t = (now || 0) * 0.001;
+    if (this.cube) {
+      this.cube.rotation.y = t * 0.6;
+      this.cube.rotation.x = t * 0.25;
+    }
+
+    this._resize();
+    this.renderer.render(this.scene, this.camera);
+    this._raf = requestAnimationFrame(this._tick);
+  }
+
+  _onResize() {
+    this._resize();
+  }
+
+  _onVisibility() {
+    if (document.hidden) {
+      if (this._raf) cancelAnimationFrame(this._raf);
+      this._raf = null;
+      return;
+    }
+    if (!this._raf) this._tick();
+  }
+
+  dispose() {
+    window.removeEventListener('resize', this._onResize);
+    document.removeEventListener('visibilitychange', this._onVisibility);
+    if (this._raf) cancelAnimationFrame(this._raf);
+    this._raf = null;
+
+    // dispose basic resources
+    this.scene.traverse((obj) => {
+      if (obj.isMesh) {
+        obj.geometry?.dispose?.();
+        if (obj.material?.dispose) obj.material.dispose();
+      }
+    });
+    this.renderer.dispose();
+  }
+}
+
 
 // ===== helpers =====
 

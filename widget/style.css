@@ -106,6 +106,17 @@ input, textarea, select { font-size: 16px; }
   isolation: isolate;
 }
 
+#three-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5; /* behind stack(20)/tray(10)/overlay(50), above pack image */
+  display: block;
+  pointer-events: none; /* don't steal clicks yet */
+}
+
+
 
 /* pack image */
 .pack-img{
