@@ -262,3 +262,8 @@ input, textarea, select { font-size: 16px; }
 }
 
 
+/* When 3D mode is on, fade the PNG out so you can see the canvas */
+body.is-3d .pack-img {
+  opacity: 0;
+  transition: opacity .2s ease;
+}

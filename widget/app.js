@@ -221,10 +221,12 @@ const threeCanvas = $('#three-canvas');
 let packs3D = null;
 
 if (enable3D && threeCanvas) {
-  threeCanvas.hidden = false;                // show canvas when flag is on
+  threeCanvas.hidden = false;                 // show canvas when flag is on
+  document.body.classList.add('is-3d');       // <<< add this line here
   packs3D = new PacksSceneManager(threeCanvas);
-  window.__packs3D = packs3D;                // handy for DevTools
+  window.__packs3D = packs3D;
 }
+
 
 
 
