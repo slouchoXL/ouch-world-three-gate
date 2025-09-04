@@ -879,3 +879,185 @@ init();
   }
 })();
 
+/* ==== Step 2.1 — Cinematic Rarity Burst (append-only) ==== */
+(() => {
+  const RARITY = {
+    common:    '#64748B',
+    rare:      '#3B82F6',
+    epic:      '#A855F7',
+    legendary: '#F59E0B',
+  };
+
+  function attachBurstAPI(manager) {
+    if (!manager || manager.__burstReady) return !!manager && manager.__burstReady;
+
+    const THREERef = (typeof THREE !== 'undefined') ? THREE : (manager.THREE || null);
+    if (!THREERef) {
+      console.warn('[burst] THREE not found; cannot attach burst API.');
+      return false;
+    }
+
+    const group = new THREERef.Group();
+    manager.scene.add(group);
+
+    manager.__burst = {
+      active: false,
+      start: 0,
+      ttl: 900,            // total lifetime in ms
+      spheres: [],
+      _raf: 0,
+      _last: 0,
+      group,
+    };
+
+    manager.startRarityBurst = function startRarityBurst(colors) {
+      try {
+        if (!Array.isArray(colors) || colors.length === 0) return;
+
+        // Clear any prior burst
+        manager.clearRarityBurst();
+
+        const sphereGeo = new THREERef.SphereGeometry(0.09, 16, 16);
+
+        for (let i = 0; i < colors.length; i++) {
+          const col = new THREERef.Color(colors[i] || RARITY.common);
+          const mat = new THREERef.MeshStandardMaterial({
+            color: col,
+            emissive: col,
+            emissiveIntensity: 0.9,
+            transparent: true,
+            opacity: 0.0,
+            metalness: 0.1,
+            roughness: 0.25,
+          });
+
+          const m = new THREERef.Mesh(sphereGeo, mat);
+
+          // Start near center; tweak Y if your pack sits higher.
+          m.position.set(0, 0.2, 0);
+
+          // Random outward velocity (m/s-ish)
+          const dir = new THREERef.Vector3(
+            (Math.random() * 2 - 1),
+            (Math.random() * 0.6 + 0.2),
+            (Math.random() * 2 - 1)
+          ).normalize();
+          const speed = 1.6 + Math.random() * 0.8;
+          m.userData = { v: dir.multiplyScalar(speed) };
+
+          group.add(m);
+          manager.__burst.spheres.push(m);
+        }
+
+        manager.__burst.active = true;
+        manager.__burst.start = performance.now();
+        manager.__burst._last = 0;
+
+        // Per-frame-ish update via rAF; your renderer is already running.
+        const tick = () => {
+          if (!manager.__burst.active) return;
+          const now = performance.now();
+          const t = now - manager.__burst.start;
+          const ttl = manager.__burst.ttl;
+
+          const last = manager.__burst._last || now - 16;
+          manager.__burst._last = now;
+
+          const dt = Math.min(33, now - last) / 1000; // seconds
+          const gravity = -2.2;
+
+          // Opacity ease: quick in (180ms), quick out (last 260ms)
+          const fadeIn = Math.min(t / 180, 1);
+          const fadeOut = t > ttl - 260 ? 1 - (t - (ttl - 260)) / 260 : 1;
+          const alpha = Math.max(0, Math.min(1, fadeIn * fadeOut));
+
+          for (const s of manager.__burst.spheres) {
+            s.userData.v.y += gravity * dt;
+            s.position.addScaledVector(s.userData.v, dt);
+            s.scale.setScalar(0.9 + (t / ttl) * 0.4);
+            s.material.opacity = alpha;
+          }
+
+          if (t >= ttl) {
+            manager.clearRarityBurst();
+            return;
+          }
+          manager.__burst._raf = requestAnimationFrame(tick);
+        };
+
+        manager.__burst._raf = requestAnimationFrame(tick);
+      } catch (e) {
+        console.warn('[burst] failed to start', e);
+      }
+    };
+
+    manager.clearRarityBurst = function clearRarityBurst() {
+      try {
+        if (manager.__burst._raf) cancelAnimationFrame(manager.__burst._raf);
+      } catch (_) {}
+      for (const s of manager.__burst.spheres) {
+        try { s.geometry.dispose?.(); } catch (_) {}
+        try { s.material.dispose?.(); } catch (_) {}
+        try { group.remove(s); } catch (_) {}
+      }
+      manager.__burst.spheres = [];
+      manager.__burst.active = false;
+      manager.__burst._raf = 0;
+      manager.__burst._last = 0;
+    };
+
+    manager.__burstReady = true;
+    return true;
+  }
+
+  function whenPacks3DReady(cb) {
+    const tryNow = () => {
+      if (window.__packs3D) { cb(window.__packs3D); return true; }
+      return false;
+    };
+    if (!tryNow()) {
+      const iid = setInterval(() => { if (tryNow()) clearInterval(iid); }, 50);
+      // safety timeout; not strictly necessary
+      setTimeout(() => clearInterval(iid), 10000);
+    }
+  }
+
+  // Attach burst API when the 3D manager exists
+  whenPacks3DReady(attachBurstAPI);
+
+  // Patch fetch so we can trigger the burst right when results arrive
+  if (typeof window !== 'undefined' && window.fetch && !window.__packsBurstFetchPatched) {
+    const origFetch = window.fetch.bind(window);
+    window.fetch = async function(input, init) {
+      const res = await origFetch(input, init);
+
+      try {
+        const url = (typeof input === 'string') ? input : (input && input.url) || '';
+        if (url && url.includes('/api/packs/open')) {
+          const clone = res.clone();
+          clone.json().then((data) => {
+            // Try a few common shapes
+            let items = null;
+            if (Array.isArray(data)) items = data;
+            else if (Array.isArray(data.items)) items = data.items;
+            else if (data && data.result && Array.isArray(data.result.items)) items = data.result.items;
+
+            if (items && items.length === 5) {
+              const colors = items.map(it => {
+                const r = (it && (it.rarity || it.rarityTier || it.tier)) || 'common';
+                return RARITY[r] || RARITY.common;
+              });
+              whenPacks3DReady((mgr) => {
+                attachBurstAPI(mgr);
+                mgr.startRarityBurst(colors);
+              });
+            }
+          }).catch(() => { /* non-JSON or early read; ignore */ });
+        }
+      } catch (_) { /* ignore */ }
+
+      return res;
+    };
+    window.__packsBurstFetchPatched = true;
+  }
+})();
