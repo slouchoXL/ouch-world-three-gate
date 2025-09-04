@@ -1695,6 +1695,219 @@
                         };
                       })();
 
+                      // Add this debugging code right after your existing JavaScript
+                      // Place this BEFORE the init() function call
+
+                      console.log('=== PACK DEBUGGING INITIALIZED ===');
+
+                      // 1. Check if button exists and is properly set up
+                      function debugButtonSetup() {
+                        const btn = document.getElementById('cta');
+                        console.log('=== BUTTON DEBUG ===');
+                        console.log('Button element:', btn);
+                        console.log('Button text:', btn?.textContent);
+                        console.log('Button disabled:', btn?.disabled);
+                        console.log('Button onclick:', btn?.onclick);
+                        console.log('Button onclick === startHandoff:', btn?.onclick === window.startHandoff);
+                        console.log('Phase:', window.phase);
+                        console.log('Selected pack:', window.selectedPack);
+                        
+                        if (btn) {
+                          // Check if button is clickable
+                          const rect = btn.getBoundingClientRect();
+                          const style = getComputedStyle(btn);
+                          console.log('Button position:', rect);
+                          console.log('Button z-index:', style.zIndex);
+                          console.log('Button pointer-events:', style.pointerEvents);
+                          
+                          // Check what element is on top at button center
+                          const centerX = rect.left + rect.width / 2;
+                          const centerY = rect.top + rect.height / 2;
+                          const elementAtCenter = document.elementFromPoint(centerX, centerY);
+                          console.log('Element at button center:', elementAtCenter);
+                          console.log('Is it the button?', elementAtCenter === btn);
+                        }
+                      }
+
+                      // 2. Debug the GLB loading process
+                      const originalLoadPackIntoCarousel = window.loadPackIntoCarousel;
+                      window.loadPackIntoCarousel = function(index) {
+                        console.log('=== LOADING PACK DEBUG ===');
+                        console.log('Loading pack index:', index);
+                        console.log('Pack config:', window.packConfigs[index]);
+                        console.log('GLTFLoader exists:', !!window.gltfLoader);
+                        
+                        // Call original function
+                        return originalLoadPackIntoCarousel.call(this, index);
+                      };
+
+                      // 3. Debug the handoff function
+                      const originalStartHandoff = window.startHandoff;
+                      window.startHandoff = function() {
+                        console.log('=== HANDOFF DEBUG ===');
+                        console.log('startHandoff called');
+                        console.log('Current phase:', window.phase);
+                        console.log('Selected pack:', window.selectedPack);
+                        console.log('Phase check passes:', window.phase === 'select');
+                        console.log('Selected pack exists:', !!window.selectedPack);
+                        
+                        if (window.phase !== 'select') {
+                          console.warn('HANDOFF BLOCKED: Wrong phase');
+                          return;
+                        }
+                        if (!window.selectedPack) {
+                          console.warn('HANDOFF BLOCKED: No selected pack');
+                          return;
+                        }
+                        
+                        console.log('Handoff proceeding...');
+                        return originalStartHandoff.call(this);
+                      };
+
+                      // 4. Debug GLB loading success/failure
+                      if (window.gltfLoader) {
+                        const originalLoad = window.gltfLoader.load;
+                        window.gltfLoader.load = function(url, onSuccess, onProgress, onError) {
+                          console.log('=== GLB LOADING DEBUG ===');
+                          console.log('Loading GLB:', url);
+                          
+                          const wrappedSuccess = function(gltf) {
+                            console.log('GLB LOADED SUCCESSFULLY:', url);
+                            console.log('GLTF data:', gltf);
+                            if (onSuccess) onSuccess(gltf);
+                          };
+                          
+                          const wrappedError = function(error) {
+                            console.error('GLB LOADING FAILED:', url, error);
+                            if (onError) onError(error);
+                          };
+                          
+                          const wrappedProgress = function(progress) {
+                            console.log('GLB Loading progress:', progress.loaded, '/', progress.total);
+                            if (onProgress) onProgress(progress);
+                          };
+                          
+                          return originalLoad.call(this, url, wrappedSuccess, wrappedProgress, wrappedError);
+                        };
+                      }
+
+                      // 5. Add click event listener to track all clicks
+                      document.addEventListener('click', function(e) {
+                        console.log('=== CLICK DEBUG ===');
+                        console.log('Clicked element:', e.target);
+                        console.log('Click coordinates:', e.clientX, e.clientY);
+                        console.log('Is CTA button?', e.target.id === 'cta');
+                        
+                        if (e.target.id === 'cta') {
+                          console.log('CTA BUTTON CLICKED!');
+                          console.log('Current phase:', window.phase);
+                          console.log('Button handler:', e.target.onclick);
+                          
+                          // Manual test of startHandoff
+                          setTimeout(() => {
+                            console.log('Testing startHandoff manually...');
+                            if (typeof window.startHandoff === 'function') {
+                              console.log('Calling startHandoff...');
+                              window.startHandoff();
+                            } else {
+                              console.error('startHandoff function not found!');
+                            }
+                          }, 100);
+                        }
+                      }, true);
+
+                      // 6. Debug scene initialization
+                      const originalInitCarouselScene = window.initCarouselScene;
+                      window.initCarouselScene = function() {
+                        console.log('=== CAROUSEL SCENE DEBUG ===');
+                        console.log('Initializing carousel scene...');
+                        const container = document.getElementById('select3d');
+                        console.log('Container element:', container);
+                        console.log('Container dimensions:', container?.offsetWidth, 'x', container?.offsetHeight);
+                        
+                        const result = originalInitCarouselScene.call(this);
+                        
+                        console.log('Carousel scene created:', window.carouselScene);
+                        console.log('Carousel camera created:', window.carouselCamera);
+                        console.log('Carousel renderer created:', window.carouselRenderer);
+                        
+                        return result;
+                      };
+
+                      // 7. Run diagnostics after page load
+                      window.addEventListener('load', function() {
+                        setTimeout(() => {
+                          console.log('=== POST-LOAD DIAGNOSTICS ===');
+                          debugButtonSetup();
+                          
+                          // Check Three.js availability
+                          console.log('Three.js available:', typeof THREE !== 'undefined');
+                          console.log('GLTFLoader available:', typeof THREE?.GLTFLoader !== 'undefined');
+                          
+                          // Check if init completed
+                          console.log('Carousel scene exists:', !!window.carouselScene);
+                          console.log('Stage scene exists:', !!window.stageScene);
+                          console.log('GLTF loader exists:', !!window.gltfLoader);
+                          
+                          // Check pack configs
+                          console.log('Pack configs:', window.packConfigs);
+                          
+                        }, 1000);
+                      });
+
+                      // 8. Manual test function you can call from console
+                      window.debugPack = {
+                        testButton: function() {
+                          console.log('=== MANUAL BUTTON TEST ===');
+                          debugButtonSetup();
+                        },
+                        
+                        testClick: function() {
+                          console.log('=== MANUAL CLICK TEST ===');
+                          const btn = document.getElementById('cta');
+                          if (btn && btn.onclick) {
+                            console.log('Calling button onclick handler...');
+                            btn.onclick();
+                          } else {
+                            console.log('Button or onclick handler not found');
+                          }
+                        },
+                        
+                        testHandoff: function() {
+                          console.log('=== MANUAL HANDOFF TEST ===');
+                          if (typeof window.startHandoff === 'function') {
+                            console.log('Calling startHandoff directly...');
+                            window.startHandoff();
+                          } else {
+                            console.log('startHandoff function not available');
+                          }
+                        },
+                        
+                        checkState: function() {
+                          console.log('=== STATE CHECK ===');
+                          console.log('Phase:', window.phase);
+                          console.log('Selected pack:', window.selectedPack);
+                          console.log('Items:', window.items);
+                          console.log('Active index:', window.activeIndex);
+                        },
+                        
+                        forcePhase: function(newPhase) {
+                          console.log('=== FORCE PHASE CHANGE ===');
+                          console.log('Changing phase from', window.phase, 'to', newPhase);
+                          window.phase = newPhase;
+                          if (typeof window.updateCTA === 'function') {
+                            window.updateCTA();
+                          }
+                        }
+                      };
+
+                      console.log('=== DEBUG TOOLS AVAILABLE ===');
+                      console.log('Use window.debugPack.testButton() to test button');
+                      console.log('Use window.debugPack.testClick() to simulate click');
+                      console.log('Use window.debugPack.testHandoff() to test handoff');
+                      console.log('Use window.debugPack.checkState() to check current state');
+                      console.log('Use window.debugPack.forcePhase("open") to skip to open phase');
+                      
                       async function init() {
                         try {
                           // Check WebGL support
