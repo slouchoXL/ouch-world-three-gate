@@ -825,21 +825,33 @@ async function onOpenClick(){
       console.error('❌ Failed to refresh inventory after pack opening:', e);
     }
       
-      // 🔹 Step 2.1 — cinematic rarity burst (no clicks; auto-vanish)
+      // 🔹 // 🔹 Step 2.1 — cinematic rarity burst (ensure it's visible above stack)
       if (
         enable3D &&
-        window.__packs3D &&
+        threeCanvas &&
         window.__packsBurstFrom &&
         Array.isArray(opening.results) &&
         opening.results.length === 5
       ) {
+        // Temporarily raise canvas above any PNG/card overlays
+        const prevZ = threeCanvas.style.zIndex;
+        threeCanvas.style.zIndex = '999';   // higher than your stack/tray
+        threeCanvas.hidden = false;         // belt & braces
+        threeCanvas.style.opacity = '1';
+
+        // Fire burst
         window.__packsBurstFrom(opening.results);
 
-        // If you want the 2D stack to wait ~900ms until the burst finishes, uncomment:
-        // await new Promise(r => setTimeout(r, 900));
+        // Let the burst finish before showing the 2D stack (prevents occlusion)
+        await new Promise(r => setTimeout(r, 900));
+
+        // Restore original z-index
+        threeCanvas.style.zIndex = prevZ || '9';
       }
 
-    showStack(opening.results);
+      // proceed with your existing 2D reveal
+      showStack(opening.results);
+
   } catch(e){
     console.error('❌ Pack opening failed:', e);
     showError(String(e.message || e));
