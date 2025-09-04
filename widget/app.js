@@ -221,82 +221,14 @@ const threeCanvas = $('#three-canvas');
 let packs3D = null;
 
 if (enable3D && threeCanvas) {
-  threeCanvas.hidden = false;          // show canvas when flag is on
+  threeCanvas.hidden = false;                // show canvas when flag is on
   packs3D = new PacksSceneManager(threeCanvas);
-  // Expose for quick debugging if needed:
-  window.__packs3D = packs3D;
+  window.__packs3D = packs3D;                // handy for DevTools
 }
 
 
-// --- Step 1: hello-cube bootstrap (safe, no CTAs touched) ---
-const params = new URLSearchParams(location.search);
-const enable3D = params.get('three') === '1';
 
-function supportsWebGL() {
-  try {
-    const c = document.createElement('canvas');
-    return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
-  } catch { return false; }
-}
 
-(function initHelloCube(){
-  if (!enable3D || !supportsWebGL()) return;
-
-  const canvas = document.getElementById('three-canvas');
-  if (!canvas) return;
-
-  // show the canvas for 3D mode
-  canvas.hidden = false;
-
-  const anchor = document.querySelector('.anchor');
-  const { THREE } = window;
-
-  // renderer
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-
-  // size to anchor box
-  function sizeToAnchor(){
-    const rect = anchor.getBoundingClientRect();
-    renderer.setSize(rect.width, rect.height, false);
-    camera.aspect = rect.width / rect.height;
-    camera.updateProjectionMatrix();
-  }
-
-  // scene + camera + light
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-  camera.position.set(0, 0, 3);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.9);
-  dir.position.set(2, 2, 3);
-  scene.add(dir);
-
-  // placeholder mesh (to be replaced later)
-  const geo = new THREE.BoxGeometry(1, 1, 1);
-  const mat  = new THREE.MeshStandardMaterial({ metalness: 0.2, roughness: 0.6 });
-  const cube = new THREE.Mesh(geo, mat);
-  scene.add(cube);
-
-  // keep in sync with responsive stage
-  window.addEventListener('resize', sizeToAnchor);
-  sizeToAnchor();
-
-  // run the loop
-  function tick(){
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.012;
-    renderer.render(scene, camera);
-    requestAnimationFrame(tick);
-  }
-  tick();
-
-  // optional: temporarily hide the PNG so you can see the cube clearly
-  // document.getElementById('packImg').hidden = true;
-
-  // expose for quick debugging
-  window.__packs3D = { renderer, scene, camera, cube };
-})();
 
 
 // ===== Step 1: Minimal 3D Scene Manager (stub) =====
