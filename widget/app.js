@@ -846,3 +846,32 @@ async function onOpenClick(){
 }
 
 init();
+/* ==== Always-on debug taps (final placement: LAST lines of app.js) ==== */
+(() => {
+  const safe = (fn) => { try { return fn(); } catch { return undefined; } };
+
+  // Build the object without touching undeclared vars until getters are read.
+  const dbg = {
+    // flags (safe even in module scope)
+    get enable3D()    { return safe(() => enable3D); },
+    get hasHandoff()  { return safe(() => hasHandoff); },
+
+    // ui state
+    get ctaDisabled()   { return safe(() => cta.disabled); },
+    get canvasHidden()  { return safe(() => threeCanvas.hidden); },
+    get canvasOpacity() { return safe(() => getComputedStyle(threeCanvas).opacity); },
+    get pngVisible()    { return safe(() => !packImg.hidden && getComputedStyle(packImg).opacity); },
+
+    // objects to poke at (may be undefined)
+    get packs3D()     { return safe(() => packs3D); },
+    get packImg()     { return safe(() => packImg); },
+    get threeCanvas() { return safe(() => threeCanvas); },
+    get cta()         { return safe(() => cta); },
+  };
+
+  // Publish to window every time (module-safe)
+  if (typeof window !== 'undefined') window.__packsDebug = dbg;
+
+  // Breadcrumb so you can see it ran
+  console.log('[debug] __packsDebug ready');
+})();
