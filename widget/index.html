@@ -11,7 +11,12 @@
     /* keep the iframe/page from side-scrolling */
     html, body { overflow-x: hidden; }
   </style>
-  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+    // expose THREE for non-module scripts like app.js
+    window.THREE = THREE;
+  </script>
+
 
   <!-- Supabase SDK (must load before we create a client) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
