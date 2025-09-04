@@ -721,48 +721,145 @@
       
       
       // ===== Pack Loading =====
+      // --- Hardened CTA + Handoff state ---
+      let packLoading = false;
+      let packReady   = false;
+
+      // Centralized CTA binder with robust logging & obstruction check
+      function bindCTA(handler, text, disabled) {
+        const btn = document.getElementById('cta');
+        if (!btn) return;
+
+        // Remove prior handler (if any)
+        if (btn.__handler) {
+          btn.removeEventListener('click', btn.__handler, false);
+          btn.__handler = null;
+        }
+
+        btn.textContent = text;
+        btn.disabled = !!disabled;
+
+        if (!disabled && typeof handler === 'function') {
+          btn.__handler = (e) => {
+            console.debug('[CTA] click ->', handler.name || 'anonymous', {
+              phase, packLoading, packReady,
+              hasSelected: !!selectedPack
+            });
+            handler(e);
+          };
+          btn.addEventListener('click', btn.__handler, false);
+        }
+
+        // Obstruction probe (is something on top of the button?)
+        try {
+          const r = btn.getBoundingClientRect();
+          const top = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
+          if (top && top !== btn && !btn.contains(top)) {
+            console.warn('[CTA] Button may be covered by:', top.id || top.className || top.tagName);
+          }
+        } catch {}
+
+        console.debug('[CTA] state', {
+          phase,
+          text: btn.textContent,
+          disabled: btn.disabled,
+          handler: handler && handler.name,
+          packLoading, packReady,
+          hasSelected: !!selectedPack
+        });
+      }
+
+      // Unified CTA text/enable logic
+      function updateCTA() {
+        switch (phase) {
+          case 'select':
+            bindCTA(
+              startHandoff,
+              packLoading ? 'Loading pack…' : 'Choose Pack',
+              packLoading || !packReady
+            );
+            break;
+          case 'handoff':
+            bindCTA(null, 'Preparing…', true);
+            break;
+          case 'open':
+            bindCTA(onOpenClick, 'Open Packs', false);
+            break;
+          case 'reveal':
+            bindCTA(null, 'Click item to accept', true);
+            break;
+          case 'done':
+            bindCTA(onCollectClick, 'Add to collection', false);
+            break;
+        }
+      }
+
+      // ===== Pack Loading (hardened) =====
       function loadPackIntoCarousel(index) {
         const config = packConfigs[index] || packConfigs[0];
         if (!config || !gltfLoader) return;
-        
+
+        // Mark as loading & pre-create selectedPack so guards are predictable
+        packLoading  = true;
+        packReady    = false;
+        selectedPack = { ...config, gltfData: null };
+        updateCTA();
         showLoading();
-        
+
         gltfLoader.load(
           config.glb,
           (gltf) => {
-            // Clear existing pack
+            // Clear existing pack in carousel
             const existingPack = carouselScene.getObjectByName('CAROUSEL_PACK');
             if (existingPack) carouselScene.remove(existingPack);
-            
-            const pack = gltf.scene || gltf.scenes[0];
+
+            const pack = gltf.scene || gltf.scenes?.[0];
             if (pack) {
               pack.name = 'CAROUSEL_PACK';
               pack.position.set(0, 0, 0);
               pack.scale.setScalar(1);
-              carouselScene.add(pack);
-              
-              // Gentle rotation animation
               pack.userData.rotationSpeed = 0.005;
+              carouselScene.add(pack);
             }
-            
-            selectedPack = { ...config, gltfData: gltf };
+
+            // Signal ready
+            selectedPack.gltfData = gltf;
+            packLoading = false;
+            packReady   = true;
             hideLoading();
+            updateCTA();
+            console.log('[PACK] carousel model ready:', selectedPack);
           },
           (progress) => {
-            const percent = (progress.loaded / progress.total) * 100;
-            updateLoadingProgress(percent, 100);
+            const percent = progress.total ? (progress.loaded / progress.total) * 100 : 0;
+            updateLoadingProgress(progress.loaded, progress.total || 100);
+            // keep CTA disabled while loading
           },
           (error) => {
             console.error('Failed to load pack GLB:', error);
+            packLoading = false;
+            packReady   = false;
+            selectedPack = null;
             hideLoading();
             showError('Failed to load pack model');
+            updateCTA();
           }
         );
       }
 
-      // ===== Phase Transitions =====
+      // ===== Phase Transitions (hardened) =====
       function startHandoff() {
-        if (phase !== 'select' || !selectedPack) return;
+        console.debug('[HANDOFF] start', { phase, packReady, hasSelected: !!selectedPack });
+
+        if (phase !== 'select') {
+          console.warn('[HANDOFF] blocked: wrong phase', phase);
+          return;
+        }
+        if (!packReady || !selectedPack) {
+          console.warn('[HANDOFF] blocked: pack not ready', { packReady, selectedPack });
+          updateCTA(); // keep disabled if needed
+          return;
+        }
 
         phase = 'handoff';
         updateCTA();
@@ -770,9 +867,9 @@
         // 300–500ms camera push-in on carousel
         if (carouselCamera && carouselRenderer) {
           const startPos = carouselCamera.position.clone();
-          const endPos = startPos.clone().multiplyScalar(0.8);
+          const endPos   = startPos.clone().multiplyScalar(0.8);
           const startFov = carouselCamera.fov;
-          const endFov = Math.max(48, startFov - 6);
+          const endFov   = Math.max(48, startFov - 6);
 
           const duration = 400;
           const t0 = performance.now();
@@ -792,18 +889,45 @@
       }
 
       function preloadPackIntoStage() {
-        if (!selectedPack || !gltfLoader) return;
+        if (!selectedPack) return;
 
+        // Prefer reusing the already-loaded GLTF to avoid a second network fetch
+        if (selectedPack.gltfData && (selectedPack.gltfData.scene || selectedPack.gltfData.scenes?.[0])) {
+          const src  = selectedPack.gltfData.scene || selectedPack.gltfData.scenes[0];
+          const pack = src.clone(true); // simple deep clone; OK for basic hierarchies
+          pack.name = 'STAGE_PACK';
+          pack.position.set(0, 0, 0);
+          pack.scale.setScalar(1);
+
+          // Set up animation mixer if available
+          if (selectedPack.gltfData.animations && selectedPack.gltfData.animations.length) {
+            const mixer = new THREE.AnimationMixer(pack);
+            const openClip = THREE.AnimationClip.findByName(selectedPack.gltfData.animations, selectedPack.openAnim);
+            if (openClip) {
+              pack.userData.mixer = mixer;
+              const act = mixer.clipAction(openClip);
+              act.setLoop(THREE.LoopOnce, 1);
+              act.clampWhenFinished = true;
+              pack.userData.openAction = act;
+            }
+          }
+
+          stageScene.add(pack);
+          completeHandoff();
+          return;
+        }
+
+        // Fallback: load again if we somehow don't have gltfData
+        if (!gltfLoader) return;
         gltfLoader.load(
           selectedPack.glb,
           (gltf) => {
-            const pack = gltf.scene || gltf.scenes[0];
+            const pack = gltf.scene || gltf.scenes?.[0];
             if (pack) {
               pack.name = 'STAGE_PACK';
               pack.position.set(0, 0, 0);
               pack.scale.setScalar(1);
 
-              // Animation mixer setup — ensure LoopOnce with 1 repetition + clamp
               if (gltf.animations && gltf.animations.length) {
                 const mixer = new THREE.AnimationMixer(pack);
                 const openClip = THREE.AnimationClip.findByName(gltf.animations, selectedPack.openAnim);
@@ -817,17 +941,19 @@
               }
               stageScene.add(pack);
             }
-            completeHandoff(); // do crossfade + camera pose-match
+            completeHandoff();
           },
           undefined,
           (error) => {
             console.error('Failed to preload pack into stage:', error);
             showError('Failed to load pack');
+            // Return to select if stage failed
+            phase = 'select';
+            updateCTA();
           }
         );
       }
-      
-      
+
       function completeHandoff() {
         // Pose-match stage camera to carousel camera BEFORE showing
         if (carouselCamera && stageCamera) {
@@ -838,7 +964,7 @@
         }
 
         const selectEl = document.getElementById('pack-select');
-        const stageEl = document.getElementById('pack-stage');
+        const stageEl  = document.getElementById('pack-stage');
 
         // Quick CSS crossfade (350ms)
         if (selectEl && stageEl) {
@@ -850,10 +976,7 @@
             stageEl.style.opacity = '1';
             selectEl.style.opacity = '0';
             setTimeout(() => {
-              // After fade: actually hide carousel and stop/remount renderer safely
               selectEl.classList.add('hidden');
-              // Do NOT permanently remove carousel renderer here; let reset handle rebuild.
-              // If you want to free GPU right now, detach canvas but keep ability to re-init later.
               if (carouselRenderer && carouselRenderer.domElement.parentNode) {
                 const container = carouselRenderer.domElement.parentNode;
                 container.removeChild(carouselRenderer.domElement);
@@ -861,14 +984,15 @@
             }, 360);
           });
         } else {
-          // Fallback if elements missing
           if (selectEl) selectEl.classList.add('hidden');
           if (stageEl) stageEl.hidden = false;
         }
 
         phase = 'open';
         updateCTA();
+        console.debug('[HANDOFF] complete -> phase=open');
       }
+
 
 
       async function onOpenClick() {
@@ -1697,6 +1821,12 @@
 
                       // Add this debugging code right after your existing JavaScript
                       // Place this BEFORE the init() function call
+                      
+                      // Add these after your function definitions:
+                      window.startHandoff = startHandoff;
+                      window.updateCTA = updateCTA;
+                      window.onOpenClick = onOpenClick;
+                      window.onCollectClick = onCollectClick;
 
                       console.log('=== PACK DEBUGGING INITIALIZED ===');
 
@@ -2038,9 +2168,20 @@
           }
         }
       });
-
+                      // Ensure functions are globally accessible
+                      Object.assign(window, {
+                        startHandoff,
+                        updateCTA,
+                        onOpenClick,
+                        onCollectClick,
+                        phase,
+                        selectedPack,
+                        packConfigs
+                      });
       // Initialize app
       init();
+                      
+                      
 
       // iFrame height & mobile gesture guards (preserved from original)
       (function(){
