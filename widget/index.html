@@ -1238,7 +1238,7 @@
         ctaBtn.textContent = 'Adding...';
         
         try {
-          const itemIds = items.map(item => item.itemId);
+            const itemIds = items.map(item => item.id || item.itemId);
           
           const addRes = await fetch(`${BASE}/api/collection/add`, {
             method: 'POST',
@@ -1442,18 +1442,25 @@
         return { balance: { COIN: 0 }, items: [] };
       }
 
-      function updateInventoryDisplay(inv) {
-        const balanceEl = document.getElementById('balance');
-        const priceEl = document.getElementById('price');
-        
-        if (balanceEl) {
-          balanceEl.textContent = `Balance: ${inv?.balance?.COIN ?? 0}`;
-        }
-        
-        if (priceEl && packConfigs[0]) {
-          priceEl.textContent = `Price: ${packConfigs[0].price.amount} ${packConfigs[0].price.currency}`;
-        }
-      }
+                      function updateInventoryDisplay(inv) {
+                        const balanceEl = document.getElementById('balance');
+                        const priceEl = document.getElementById('price');
+
+                        const balance = (inv && inv.balance) ? inv.balance : {};
+                        const price = packConfigs[0]?.price || { amount: 0, currency: 'COIN' };
+
+                        const keys = Object.keys(balance);
+                        const wanted = String(price.currency || 'COIN').toLowerCase();
+                        const key = keys.find(k => k.toLowerCase() === wanted) || keys[0];
+
+                        if (balanceEl) {
+                          balanceEl.textContent = key ? `Balance: ${balance[key]} ${key}` : 'Balance: 0';
+                        }
+                        if (priceEl) {
+                          priceEl.textContent = `Price: ${price.amount} ${price.currency}`;
+                        }
+                      }
+
 
       function openOverlay(cardBtn, src) {
         const overlay = document.getElementById('overlay');
