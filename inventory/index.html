@@ -581,11 +581,11 @@
           max-height: calc(100dvh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)) !important;
         }
         
-        /* Stop sideways scroll in the scroller */
+        /* Stop sideways scroll in the scroller
         .inventory-content { overflow-x: hidden; }
 
-        /* Ensure columns never overflow due to intrinsic widths */
-        .characters-grid { grid-template-columns: repeat(auto-fill, minmax(0, 1fr)); }
+        
+        .characters-grid { grid-template-columns: repeat(auto-fill, minmax(0, 1fr)); }*/
 
         @media (max-width: 480px) {
           .characters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

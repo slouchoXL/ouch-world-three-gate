@@ -526,12 +526,12 @@
 
       // Item GLB mapping
       const itemGLBs = {
-        'stem': '/assets/models/usb.glb',
-        'cover': '/assets/models/cover.glb',
-        'fragment': '/assets/models/paper.glb',
-        'unreleased': '/assets/models/box.glb',
-        'character_golden': '/assets/models/metahuman.glb',
-        'other': '/assets/models/box.glb'
+        stem: '/assets/models/usb.glb',
+        lore: '/assets/models/paper.glb',
+        artwork: '/assets/models/cover.glb',
+        booster: '/assets/models/booster.glb',
+        skin: '/assets/models/metahuman.glb',
+        other: '/assets/models/box.glb'
       };
 
       // Rarity colors
@@ -646,6 +646,75 @@
         };
       }
 
+      
+      
+      
+      // Canonical type/rarity mappers (aligns to roadmap contract)
+      function mapType(t = 'other') {
+        const x = String(t).toLowerCase();
+        if (x === 'cover' || x === 'artwork') return 'artwork';
+        if (x === 'fragment' || x === 'lore') return 'lore';
+        if (x === 'booster' || x === 'probability_booster') return 'booster';
+        if (x === 'stem') return 'stem';
+        if (x.startsWith('character') || x === 'skin') return 'skin';
+        return 'other';
+      }
+      function mapRarity(r = 'common') {
+        const x = String(r).toLowerCase();
+        return (x === 'common' || x === 'rare' || x === 'epic' || x === 'legendary') ? x : 'common';
+      }
+      function normalizeItems(payload) {
+        const arr = (payload && (payload.items || payload.results)) || [];
+        const five = padToFive(arr);
+        return five.map((raw, i) => ({
+          id: raw.id || raw.itemId || `placeholder-${i + 1}`,
+          label: raw.label || raw.name || 'Card',
+          rarity: mapRarity(raw.rarity),
+          type: mapType(raw.type || raw.kind),
+          status: i === 0 ? 'active' : 'pending',
+          glb: null
+        }));
+      }
+
+      // Simple, robust announcer (uses #app[aria-live="polite"])
+      function announce(msg) {
+        try {
+          const live = document.getElementById('app');
+          if (!live) return;
+          // change text each time to guarantee announcement
+          live.dataset.announceT = String(Date.now());
+          live.querySelector('.balance')?.setAttribute('aria-hidden', 'true');
+          live.querySelector('.price')?.setAttribute('aria-hidden', 'true');
+          live.setAttribute('data-last-msg', msg);
+          // No visible change; screen readers will pick up DOM mutation
+        } catch {}
+      }
+
+      // Tiny state logger + keyboard cheats
+      function logState(tag = '') {
+        console.log(`[STATE ${tag}]`, {
+          phase, activeIndex,
+          items: items.map(i => ({ id: i.id, t: i.type, r: i.rarity, s: i.status }))
+        });
+      }
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'd') logState('dump');
+        if (e.key === 'r') resetToInitialState();
+      });
+
+      // Lightweight FPS meter (console)
+      let __fpsLast = performance.now(), __fpsCount = 0;
+      function fpsTick() {
+        __fpsCount++;
+        const now = performance.now();
+        if (now - __fpsLast > 1000) {
+          console.log('FPS:', __fpsCount);
+          __fpsCount = 0; __fpsLast = now;
+        }
+      }
+      
+      
+      
       // ===== Pack Loading =====
       function loadPackIntoCarousel(index) {
         const config = packConfigs[index] || packConfigs[0];
@@ -689,40 +758,37 @@
       // ===== Phase Transitions =====
       function startHandoff() {
         if (phase !== 'select' || !selectedPack) return;
-        
+
         phase = 'handoff';
         updateCTA();
-        
-        // Camera push-in effect
+
+        // 300–500ms camera push-in on carousel
         if (carouselCamera && carouselRenderer) {
           const startPos = carouselCamera.position.clone();
           const endPos = startPos.clone().multiplyScalar(0.8);
-          
-          const duration = 500;
-          const startTime = performance.now();
-          
-          function animate() {
-            const elapsed = performance.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            // Eased interpolation
-            const eased = 1 - Math.pow(1 - progress, 3);
+          const startFov = carouselCamera.fov;
+          const endFov = Math.max(48, startFov - 6);
+
+          const duration = 400;
+          const t0 = performance.now();
+
+          (function anim() {
+            const t = Math.min((performance.now() - t0) / duration, 1);
+            const eased = 1 - Math.pow(1 - t, 3);
             carouselCamera.position.lerpVectors(startPos, endPos, eased);
-            
-            if (progress < 1) {
-              requestAnimationFrame(animate);
-            } else {
-              // Transition to stage
-              preloadPackIntoStage();
-            }
-          }
-          animate();
+            carouselCamera.fov = startFov + (endFov - startFov) * eased;
+            carouselCamera.updateProjectionMatrix();
+            if (t < 1) requestAnimationFrame(anim);
+            else preloadPackIntoStage();
+          })();
+        } else {
+          preloadPackIntoStage();
         }
       }
 
       function preloadPackIntoStage() {
         if (!selectedPack || !gltfLoader) return;
-        
+
         gltfLoader.load(
           selectedPack.glb,
           (gltf) => {
@@ -731,24 +797,22 @@
               pack.name = 'STAGE_PACK';
               pack.position.set(0, 0, 0);
               pack.scale.setScalar(1);
-              
-              // Store animation mixer
+
+              // Animation mixer setup — ensure LoopOnce with 1 repetition + clamp
               if (gltf.animations && gltf.animations.length) {
                 const mixer = new THREE.AnimationMixer(pack);
                 const openClip = THREE.AnimationClip.findByName(gltf.animations, selectedPack.openAnim);
                 if (openClip) {
                   pack.userData.mixer = mixer;
-                  pack.userData.openAction = mixer.clipAction(openClip);
-                  pack.userData.openAction.setLoop(THREE.LoopOnce);
-                  pack.userData.openAction.clampWhenFinished = true;
+                  const act = mixer.clipAction(openClip);
+                  act.setLoop(THREE.LoopOnce, 1);
+                  act.clampWhenFinished = true;
+                  pack.userData.openAction = act;
                 }
               }
-              
               stageScene.add(pack);
             }
-            
-            // Complete handoff
-            completeHandoff();
+            completeHandoff(); // do crossfade + camera pose-match
           },
           undefined,
           (error) => {
@@ -757,91 +821,105 @@
           }
         );
       }
-
+      
+      
       function completeHandoff() {
-        phase = 'open';
-        updateCTA();
-        
-        // Hide carousel, show stage
+        // Pose-match stage camera to carousel camera BEFORE showing
+        if (carouselCamera && stageCamera) {
+          stageCamera.position.copy(carouselCamera.position);
+          stageCamera.quaternion.copy(carouselCamera.quaternion);
+          stageCamera.fov = carouselCamera.fov;
+          stageCamera.updateProjectionMatrix();
+        }
+
         const selectEl = document.getElementById('pack-select');
         const stageEl = document.getElementById('pack-stage');
-        
-        if (selectEl) selectEl.classList.add('hidden');
-        if (stageEl) stageEl.hidden = false;
-        
-        // Stop carousel renderer, start stage renderer
-        if (carouselRenderer) {
-          const container = carouselRenderer.domElement.parentNode;
-          if (container) container.removeChild(carouselRenderer.domElement);
+
+        // Quick CSS crossfade (350ms)
+        if (selectEl && stageEl) {
+          stageEl.hidden = false;
+          selectEl.style.transition = stageEl.style.transition = 'opacity 350ms ease';
+          if (!selectEl.style.opacity) selectEl.style.opacity = '1';
+          stageEl.style.opacity = '0';
+          requestAnimationFrame(() => {
+            stageEl.style.opacity = '1';
+            selectEl.style.opacity = '0';
+            setTimeout(() => {
+              // After fade: actually hide carousel and stop/remount renderer safely
+              selectEl.classList.add('hidden');
+              // Do NOT permanently remove carousel renderer here; let reset handle rebuild.
+              // If you want to free GPU right now, detach canvas but keep ability to re-init later.
+              if (carouselRenderer && carouselRenderer.domElement.parentNode) {
+                const container = carouselRenderer.domElement.parentNode;
+                container.removeChild(carouselRenderer.domElement);
+              }
+            }, 360);
+          });
+        } else {
+          // Fallback if elements missing
+          if (selectEl) selectEl.classList.add('hidden');
+          if (stageEl) stageEl.hidden = false;
         }
+
+        phase = 'open';
+        updateCTA();
       }
 
-      // ===== Pack Opening Flow =====
+
       async function onOpenClick() {
         if (phase !== 'open') return;
-        
         try {
-          // Disable CTA during opening
           const ctaBtn = document.getElementById('cta');
           ctaBtn.disabled = true;
-          ctaBtn.textContent = 'Opening...';
-          
-          // Play pack opening animation
+          ctaBtn.textContent = 'Opening.';
+
+          // Play pack opening anim
           const pack = stageScene.getObjectByName('STAGE_PACK');
           if (pack?.userData?.openAction) {
             pack.userData.openAction.reset();
             pack.userData.openAction.play();
           }
-          
-          // Make API call for pack opening
-          const pack_config = packConfigs[0]; // Using first pack for demo
+
+          // Use the ACTUAL selected pack (was hardcoded to index 0)
+          const packId = (selectedPack && selectedPack.id) || (packConfigs[0] && packConfigs[0].id) || 'base_pack';
+
           const res = await jfetch('/api/packs/open', {
             method: 'POST',
-            body: JSON.stringify({
-              packId: pack_config.id,
-              idempotencyKey: makeUuid()
-            })
+            body: JSON.stringify({ packId, idempotencyKey: makeUuid() })
           });
-          
-          // Process results
-          items = padToFive(res.results || []).map((item, index) => ({
-            ...item,
-            status: index === 0 ? 'active' : 'pending',
-            glb: null,
-            rarity: item.rarity || 'common',
-            type: item.kind || 'other'
-          }));
-          
+
+          // Normalize to {id,type,rarity,label,status,glb}
+          items = normalizeItems(res);
           activeIndex = 0;
-          
-          // Update inventory
-          try {
-            const fresh = await jfetch('/api/inventory');
+
+          // Inventory refresh (non-blocking)
+          jfetch('/api/inventory').then((fresh) => {
             updateInventoryDisplay(normalizeInventory(fresh));
-          } catch (e) {
-            console.error('Failed to refresh inventory:', e);
-          }
-          
-          // Start burst and orbs
+          }).catch((e) => console.error('Failed to refresh inventory:', e));
+
+          // Burst + orbs, then reveal
           createBurstEffect();
           createRarityOrbs();
-          
-          // Transition to reveal phase
+
+          // A11y: announce rarity counts
+          const counts = items.reduce((a, i) => (a[i.rarity] = (a[i.rarity] || 0) + 1, a), {});
+          announce(`You pulled: ${counts.common || 0} Common, ${counts.rare || 0} Rare, ${counts.epic || 0} Epic, ${counts.legendary || 0} Legendary.`);
+
           phase = 'reveal';
           updateCTA();
-          
-          // Load and show first item
+
           loadActiveItem();
-          
+          logState('after-open');
+
         } catch (e) {
           console.error('Pack opening failed:', e);
           showError(String(e.message || e));
-          
           const ctaBtn = document.getElementById('cta');
           ctaBtn.disabled = false;
-          ctaBtn.textContent = 'Open Pack';
+          ctaBtn.textContent = 'Open Packs';
         }
       }
+
 
       // ===== Burst Effect =====
       function createBurstEffect() {
@@ -1008,24 +1086,27 @@
         );
       }
 
-      function addRarityGlow(mesh, rarity) {
-        const color = new THREE.Color(rarityColors[rarity] || rarityColors.common);
-        
-        // Add emissive material properties
-        mesh.traverse(child => {
-          if (child.isMesh && child.material) {
-            const materials = Array.isArray(child.material) ? child.material : [child.material];
-            materials.forEach(mat => {
-              if (mat.emissive) {
-                mat.emissive = color.clone().multiplyScalar(rarity === 'legendary' ? 0.3 :
-                                                          rarity === 'epic' ? 0.2 :
-                                                          rarity === 'rare' ? 0.1 : 0.05);
-              }
-            });
-          }
-        });
-      }
+                      function addRarityGlow(mesh, rarity) {
+                        const base = new THREE.Color(rarityColors[rarity] || rarityColors.common);
+                        const intensity =
+                          rarity === 'legendary' ? 0.35 :
+                          rarity === 'epic' ? 0.22 :
+                          rarity === 'rare' ? 0.12 : 0.06;
 
+                        mesh.traverse(child => {
+                          if (child.isMesh && child.material) {
+                            const mats = Array.isArray(child.material) ? child.material : [child.material];
+                            mats.forEach(mat => {
+                              if ('emissive' in mat) {
+                                mat.emissive.copy(base);
+                                if ('emissiveIntensity' in mat) {
+                                  mat.emissiveIntensity = intensity;
+                                }
+                              }
+                            });
+                          }
+                        });
+                      }
       function switchToItem(index) {
         if (phase !== 'reveal' || index < 0 || index >= items.length) return;
         if (items[index].status === 'accepted') return;
@@ -1048,41 +1129,37 @@
         loadActiveItem();
       }
 
-      function acceptActiveItem() {
-        if (phase !== 'reveal' || activeIndex < 0 || activeIndex >= items.length) return;
-        
-        const item = items[activeIndex];
-        if (!item || item.status === 'accepted') return;
-        
-        // Mark as accepted
-        item.status = 'accepted';
-        
-        // Update orb
-        if (rarityOrbs[activeIndex]) {
-          rarityOrbs[activeIndex].classList.add('accepted');
-        }
-        
-        // Animate to tray
-        animateItemToTray(item, activeIndex);
-        
-        // Find next pending item
-        let nextIndex = -1;
-        for (let i = 0; i < items.length; i++) {
-          if (items[i].status === 'pending') {
-            nextIndex = i;
-            break;
-          }
-        }
-        
-        if (nextIndex >= 0) {
-          activeIndex = nextIndex;
-          items[activeIndex].status = 'active';
-          loadActiveItem();
-        } else {
-          // All items accepted - show completion
-          completeReveal();
-        }
-      }
+                      let __acceptGuard = false;
+                      function acceptActiveItem() {
+                        if (phase !== 'reveal' || activeIndex < 0 || activeIndex >= items.length) return;
+                        if (__acceptGuard) return;
+                        const item = items[activeIndex];
+                        if (!item || item.status === 'accepted') return;
+
+                        __acceptGuard = true;
+                        setTimeout(() => (__acceptGuard = false), 300); // brief lock to avoid double-accepts
+
+                        // Mark accepted + orb UI
+                        item.status = 'accepted';
+                        if (rarityOrbs[activeIndex]) rarityOrbs[activeIndex].classList.add('accepted');
+
+                        // A11y announce
+                        const acceptedCount = items.filter(i => i.status === 'accepted').length;
+                        announce(`Sent “${item.label || item.name || 'Card'}” to tray (${acceptedCount} of 5).`);
+
+                        animateItemToTray(item, activeIndex);
+
+                        // Next pending → active
+                        let nextIndex = items.findIndex(i => i.status === 'pending');
+                        if (nextIndex >= 0) {
+                          activeIndex = nextIndex;
+                          items[activeIndex].status = 'active';
+                          loadActiveItem();
+                        } else {
+                          completeReveal();
+                        }
+                      }
+
 
       function animateItemToTray(item, index) {
         if (!item.glb) return;
@@ -1124,35 +1201,35 @@
       }
 
       // ===== CTA Management =====
-      function updateCTA() {
-        const ctaBtn = document.getElementById('cta');
-        if (!ctaBtn) return;
-        
-        switch (phase) {
-          case 'select':
-            ctaBtn.textContent = 'Choose Pack';
-            ctaBtn.disabled = false;
-            ctaBtn.onclick = startHandoff;
-            break;
-          case 'handoff':
-            ctaBtn.disabled = true;
-            break;
-          case 'open':
-            ctaBtn.textContent = 'Open Pack';
-            ctaBtn.disabled = false;
-            ctaBtn.onclick = onOpenClick;
-            break;
-          case 'reveal':
-            ctaBtn.textContent = 'Click item to accept';
-            ctaBtn.disabled = true;
-            break;
-          case 'done':
-            ctaBtn.textContent = 'Add to collection';
-            ctaBtn.disabled = false;
-            ctaBtn.onclick = onCollectClick;
-            break;
-        }
-      }
+                      function updateCTA() {
+                        const ctaBtn = document.getElementById('cta');
+                        if (!ctaBtn) return;
+
+                        switch (phase) {
+                          case 'select':
+                            ctaBtn.textContent = 'Choose Pack';
+                            ctaBtn.disabled = false;
+                            ctaBtn.onclick = startHandoff;
+                            break;
+                          case 'handoff':
+                            ctaBtn.disabled = true;
+                            break;
+                          case 'open':
+                            ctaBtn.textContent = 'Open Packs'; // plural per roadmap
+                            ctaBtn.disabled = false;
+                            ctaBtn.onclick = onOpenClick;
+                            break;
+                          case 'reveal':
+                            ctaBtn.textContent = 'Click item to accept';
+                            ctaBtn.disabled = true;
+                            break;
+                          case 'done':
+                            ctaBtn.textContent = 'Add to collection';
+                            ctaBtn.disabled = false;
+                            ctaBtn.onclick = onCollectClick;
+                            break;
+                        }
+                      }
 
       // ===== Collection Logic (preserved from original) =====
       async function onCollectClick() {
@@ -1218,38 +1295,45 @@
         }
       }
 
-      function resetToInitialState() {
-        phase = 'select';
-        items = [];
-        activeIndex = 0;
-        selectedPack = null;
-        
-        // Clear 3D scenes
-        if (stageScene) {
-          const pack = stageScene.getObjectByName('STAGE_PACK');
-          if (pack) stageScene.remove(pack);
-          const item = stageScene.getObjectByName('ACTIVE_ITEM');
-          if (item) stageScene.remove(item);
-        }
-        
-        // Hide elements
-        const stageEl = document.getElementById('pack-stage');
-        const selectEl = document.getElementById('pack-select');
-        const trayEl = document.getElementById('tray');
-        const orbsEl = document.getElementById('rarityOrbs');
-        
-        if (stageEl) stageEl.hidden = true;
-        if (selectEl) selectEl.classList.remove('hidden');
-        if (trayEl) {
-          trayEl.innerHTML = '';
-          trayEl.hidden = true;
-        }
-        if (orbsEl) orbsEl.hidden = true;
-        
-        // Reinitialize carousel
-        loadPackIntoCarousel(0);
-        updateCTA();
-      }
+                      function resetToInitialState() {
+                        phase = 'select';
+                        items = [];
+                        activeIndex = 0;
+                        selectedPack = null;
+
+                        // Clear stage
+                        if (stageScene) {
+                          const pack = stageScene.getObjectByName('STAGE_PACK');
+                          if (pack) stageScene.remove(pack);
+                          const item = stageScene.getObjectByName('ACTIVE_ITEM');
+                          if (item) stageScene.remove(item);
+                        }
+
+                        // Toggle DOM visibility
+                        const stageEl = document.getElementById('pack-stage');
+                        const selectEl = document.getElementById('pack-select');
+                        const trayEl = document.getElementById('tray');
+                        const orbsEl = document.getElementById('rarityOrbs');
+
+                        if (stageEl) { stageEl.hidden = true; stageEl.style.opacity = '1'; }
+                        if (selectEl) { selectEl.classList.remove('hidden'); selectEl.style.opacity = '1'; }
+
+                        if (trayEl) { trayEl.innerHTML = ''; trayEl.hidden = true; }
+                        if (orbsEl) orbsEl.hidden = true;
+
+                        // Rebuild carousel renderer if its canvas was removed during handoff
+                        const select3d = document.getElementById('select3d');
+                        if (select3d && (!carouselRenderer || !carouselRenderer.domElement || !carouselRenderer.domElement.parentNode)) {
+                          select3d.innerHTML = '';
+                          initCarouselScene(); // creates renderer + camera + scene
+                        }
+
+                        // Ensure at least first pack shows
+                        loadPackIntoCarousel(0);
+                        updateCTA();
+                        logState('reset');
+                      }
+
 
       // ===== Input Handling =====
       function setupInputHandling() {
