@@ -1504,6 +1504,191 @@
         ctaBtn.disabled = true;
         return false;
       }
+                      
+                      (function(){
+                        const Q = new URLSearchParams(location.search);
+                        let enabled = Q.get('debug') === '1';
+
+                        // Small HUD in the corner
+                        function hud(msg){
+                          let el = document.getElementById('__packs_dbg_hud');
+                          if(!el){
+                            el = document.createElement('div');
+                            el.id='__packs_dbg_hud';
+                            Object.assign(el.style,{
+                              position:'fixed',right:'8px',bottom:'8px',maxWidth:'60vw',
+                              background:'rgba(0,0,0,.8)',color:'#fff',padding:'8px 10px',
+                              border:'1px solid rgba(255,255,255,.15)',borderRadius:'8px',
+                              font:'12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+                              zIndex:99999, pointerEvents:'none', whiteSpace:'pre-wrap'
+                            });
+                            document.body.appendChild(el);
+                          }
+                          el.textContent = String(msg);
+                          return el;
+                        }
+
+                        // Highlight a DOM element
+                        function outline(el, color='#ff4d4f'){
+                          if(!el) return;
+                          el.__dbg_prevOutline = el.style.outline;
+                          el.style.outline = `2px dashed ${color}`;
+                          setTimeout(()=>{ if(el) el.style.outline = el.__dbg_prevOutline || ''; }, 1500);
+                        }
+
+                        // Is something sitting on top of the given element?
+                        function topStackOver(el){
+                          if(!el || !el.getBoundingClientRect) return [];
+                          const r = el.getBoundingClientRect();
+                          const cx = r.left + r.width/2;
+                          const cy = r.top + r.height/2;
+                          const stack = document.elementsFromPoint(cx, cy);
+                          return stack;
+                        }
+
+                        // Is element clickable (basic check)
+                        function isClickable(el){
+                          if(!el) return false;
+                          const cs = getComputedStyle(el);
+                          if(cs.pointerEvents === 'none' || cs.visibility === 'hidden' || cs.display === 'none') return false;
+                          if(el.disabled) return false;
+                          return true;
+                        }
+
+                        // Z-index test toggles (safe to leave off in prod)
+                        function applyZFixes(on){
+                          const actions = document.querySelector('.actions');
+                          const select = document.getElementById('pack-select');
+                          if(on){
+                            if(actions){ actions.style.position='relative'; actions.style.zIndex='100'; }
+                            if(select){ select.style.zIndex='10'; } // still above canvases, below CTA
+                          }else{
+                            if(actions){ actions.style.zIndex=''; actions.style.position=''; }
+                            if(select){ select.style.zIndex=''; }
+                          }
+                        }
+
+                        // Wrap updateCTA to log bindings
+                        const _updateCTA = window.updateCTA;
+                        if (typeof _updateCTA === 'function') {
+                          window.updateCTA = function(){
+                            const beforePhase = window.phase;
+                            const rv = _updateCTA.apply(this, arguments);
+                            try{
+                              const btn = document.getElementById('cta');
+                              const handler =
+                                (btn && btn.onclick === window.startHandoff) ? 'startHandoff' :
+                                (btn && btn.onclick === window.onOpenClick) ? 'onOpenClick' :
+                                (btn && btn.onclick === window.onCollectClick) ? 'onCollectClick' :
+                                (btn && btn.onclick) ? 'custom' : 'none';
+                              if (enabled) console.log(`[DBG] updateCTA: phase=${beforePhase}, text="${btn?.textContent}", disabled=${btn?.disabled}, handler=${handler}`);
+                            }catch(e){}
+                            return rv;
+                          };
+                        }
+
+                        // Wrap jfetch to inspect auth & responses (inventory, packs, etc.)
+                        if (typeof window.jfetch === 'function') {
+                          const _jfetch = window.jfetch;
+                          window.jfetch = async function(path, opts){
+                            if (enabled) console.groupCollapsed(`[DBG] jfetch ${opts?.method||'GET'} ${path}`);
+                            if (enabled) console.log('opts', opts);
+                            const res = await _jfetch.apply(this, arguments);
+                            if (enabled) console.log('response', res);
+                            if (enabled) console.groupEnd();
+                            return res;
+                          };
+                        }
+
+                        // Wrap updateInventoryDisplay to confirm currency key used
+                        if (typeof window.updateInventoryDisplay === 'function') {
+                          const _upd = window.updateInventoryDisplay;
+                          window.updateInventoryDisplay = function(inv){
+                            const keys = Object.keys(inv?.balance||{});
+                            if (enabled) console.log('[DBG] updateInventoryDisplay balance keys:', keys, 'chosen price currency:', window.packConfigs?.[0]?.price?.currency);
+                            return _upd.apply(this, arguments);
+                          };
+                        }
+
+                        // Click logger at capture phase: tells you what received the click
+                        document.addEventListener('click', (e)=>{
+                          if (!enabled) return;
+                          const path = (e.composedPath && e.composedPath()) || [];
+                          console.log('[DBG] click path:', path.map(n=> (n.id?('#'+n.id):n.className||n.tagName)));
+                        }, true);
+
+                        // Public helper to check CTA status + obstruction
+                        async function checkCTA(reason='manual'){
+                          const btn = document.getElementById('cta');
+                          const st  = document.getElementById('pack-stage');
+                          const sel = document.getElementById('pack-select');
+
+                          const lines = [];
+                          lines.push(`[CTA CHECK] (${reason})`);
+                          lines.push(`phase=${window.phase}`);
+                          if (!btn){ hud(lines.join('\n')); console.warn('[DBG] CTA not found'); return; }
+
+                          const clickable = isClickable(btn);
+                          const stack = topStackOver(btn);
+                          const top = stack[0];
+                          const blockedBy = (top && top !== btn && !btn.contains(top)) ? top : null;
+
+                          lines.push(`btn.disabled=${btn.disabled}`);
+                          lines.push(`btn.text="${btn.textContent || ''}"`);
+                          lines.push(`clickable=${clickable}`);
+                          lines.push(`topmost=${top ? (top.id?('#'+top.id): top.className || top.tagName) : 'none'}`);
+                          if (blockedBy){
+                            lines.push(`BLOCKED_BY=${blockedBy.id ? ('#'+blockedBy.id) : (blockedBy.className || blockedBy.tagName)}`);
+                            outline(blockedBy, '#ff4d4f');
+                          }
+                          if (sel && !sel.classList.contains('hidden')) lines.push('#pack-select is VISIBLE (select phase overlay)');
+
+                          hud(lines.join('\n'));
+                          outline(btn, blockedBy ? '#ff4d4f' : '#52c41a');
+
+                          // Suggest z-index test if blocked
+                          if (blockedBy && (blockedBy.id === 'pack-select' || blockedBy.classList.contains('select-step'))) {
+                            console.warn('[DBG] CTA likely covered by #pack-select. Toggle z-fixes with window.__packsDebug.zfix(true)');
+                          }
+                        }
+
+                        // Periodic phase/CTA probe while in select/handoff/open
+                        let iv=null;
+                        function startAutoProbe(){
+                          if(iv) return;
+                          iv=setInterval(()=>{
+                            if (!enabled) return;
+                            if (['select','handoff','open'].includes(window.phase)) checkCTA('auto');
+                          }, 1000);
+                        }
+
+                        // Key bindings: Shift+D toggles debug, Shift+Z toggles z-fixes
+                        window.addEventListener('keydown', (e)=>{
+                          if (e.shiftKey && e.key.toLowerCase() === 'd') {
+                            enabled = !enabled;
+                            hud(`Debug ${enabled?'ON':'OFF'}`);
+                            if (enabled) { startAutoProbe(); checkCTA('hotkey'); }
+                          }
+                          if (e.shiftKey && e.key.toLowerCase() === 'z') {
+                            const on = !(document.body.dataset.zfix === '1');
+                            document.body.dataset.zfix = on ? '1' : '0';
+                            applyZFixes(on);
+                            hud(`z-index fixes ${on?'ON':'OFF'}`);
+                            if (enabled) checkCTA('zfix-toggle');
+                          }
+                        });
+
+                        // Auto-enable if ?debug=1
+                        if (enabled) { startAutoProbe(); setTimeout(()=>checkCTA('init'), 500); }
+
+                        // Expose helpers in console
+                        window.__packsDebug = {
+                          on(){ enabled=true; startAutoProbe(); checkCTA('enable'); },
+                          off(){ enabled=false; hud('Debug OFF'); },
+                          cta(){ checkCTA('console'); },
+                          zfix(on){ applyZFixes(!!on); if (enabled) checkCTA('zfix-call'); },
+                        };
+                      })();
 
                       async function init() {
                         try {
