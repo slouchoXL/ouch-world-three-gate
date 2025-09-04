@@ -2,120 +2,380 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>Packs Widget</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <link rel="stylesheet" href="./style.css" />
 
   <style>
-    /* keep the iframe/page from side-scrolling */
-    html, body { overflow-x: hidden; }
+    /* Base system styles */
+    :root {
+      --packW: 420px;
+      --gapX: 16px;
+      --pad: 10px;
+      --trayScale: 0.82;
+      --thumbW: calc((var(--packW) * var(--trayScale) - 2*var(--pad) - 2*var(--gapX)) / 3);
+      --stackW: 60%;
+      --anchorRatio: 1.4286;
+      --anchorH: calc(var(--packW) * var(--anchorRatio));
+      --metaH: 34px;
+      --actionsH: 48px;
+      --bg:#0a0a0a; --card:#121212; --text:#eaeaea; --muted:#9aa0a6; --btn:#3b82f6;
+      
+      /* Rarity colors */
+      --common: #64748B;
+      --rare: #3B82F6;
+      --epic: #A855F7;
+      --legendary: #F59E0B;
+    }
+
+    * { box-sizing: border-box; }
+    
+    html, body {
+      height: 100%;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: none;
+      color: var(--text);
+      font-family: system-ui, -apple-system, Inter, Roboto, Arial, sans-serif;
+      touch-action: none;
+      -ms-touch-action: none;
+    }
+
+    input, textarea, select { font-size: 16px; }
+
+    .widget {
+      display: grid;
+      grid-template-rows: var(--metaH) var(--anchorH) var(--actionsH);
+      gap: 8px;
+      width: min(1200px, 96vw);
+      margin: 0 auto;
+      padding: 12px;
+      height: calc(var(--metaH) + var(--anchorH) + var(--actionsH) + 2*12px + 2*8px);
+    }
+
+    .meta {
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      height: var(--metaH);
+      margin-bottom: 0;
+    }
+    .meta .balance, .meta .price {
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+    }
+
+    .anchor {
+      position: relative;
+      width: calc(var(--packW) + 2*var(--pad));
+      height: var(--anchorH);
+      padding-inline: var(--pad);
+      margin: 0 auto;
+      isolation: isolate;
+    }
+
+    /* 3D Canvas containers */
+    #pack-select {
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+    }
+    #pack-select.hidden { display: none; }
+    
+    .select3d, .stage3d {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    #pack-stage.hidden { display: none; }
+
+    /* Fallback pack image */
+    .pack-img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 20px 40px rgba(0,0,0,.45));
+    }
+    .pack-img[hidden] { display: none; }
+
+    /* Rarity orbs */
+    .rarity-orbs {
+      position: absolute;
+      inset: 0;
+      z-index: 25;
+      pointer-events: none;
+    }
+    .rarity-orb {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 20px rgba(255,255,255,0.3);
+    }
+    .rarity-orb.common { background: var(--common); }
+    .rarity-orb.rare { background: var(--rare); box-shadow: 0 0 25px var(--rare); }
+    .rarity-orb.epic { background: var(--epic); box-shadow: 0 0 30px var(--epic); }
+    .rarity-orb.legendary { background: var(--legendary); box-shadow: 0 0 35px var(--legendary); }
+    .rarity-orb.accepted { opacity: 0.4; transform: scale(0.8); }
+
+    /* Tray for 2D thumbnails */
+    #tray {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      grid-template-columns: repeat(3, var(--thumbW));
+      grid-auto-rows: calc(var(--thumbW) * 1.4);
+      gap: var(--gapX);
+      justify-content: center;
+      align-content: center;
+    }
+    #tray[hidden] { display: none; }
+
+    #tray .tray-card {
+      width: var(--thumbW);
+      height: calc(var(--thumbW) * 1.4);
+      border-radius: 0;
+      border: none;
+      background: transparent;
+      overflow: visible;
+      padding: 0;
+      cursor: pointer;
+    }
+    #tray .tray-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Tray positioning */
+    #tray .tray-card[data-pos="1"] { grid-column: 1; grid-row: 1; }
+    #tray .tray-card[data-pos="2"] { grid-column: 2; grid-row: 1; }
+    #tray .tray-card[data-pos="3"] { grid-column: 3; grid-row: 1; }
+    #tray .tray-card[data-pos="4"] { grid-column: 1 / span 2; grid-row: 2; justify-self: center; }
+    #tray .tray-card[data-pos="5"] { grid-column: 2 / span 2; grid-row: 2; justify-self: center; }
+
+    /* Overlay for enlarge mode */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 50;
+    }
+    .overlay[hidden] { display: none; }
+    .overlay-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(2px);
+    }
+    .overlay-card {
+      position: relative;
+      z-index: 51;
+      box-sizing: border-box;
+      padding: 8px;
+      border-radius: 12px;
+      background: #000;
+      max-height: calc(100% - 24px);
+      max-width: calc(100% - 24px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .overlay-card img {
+      height: 100%;
+      width: auto;
+      max-height: calc(100% - 8px);
+      max-width: calc(100% - 8px);
+      aspect-ratio: 5 / 7;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Actions */
+    .actions {
+      display: grid;
+      place-items: center;
+      height: var(--actionsH);
+      margin-top: 0;
+    }
+    .btn {
+      padding: .6rem 1rem;
+      border-radius: 9px;
+      border: 1px solid #2a2a2a;
+      background: var(--btn);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+      filter: saturate(.6);
+    }
+
+    /* Error messages */
+    .error[hidden] { display: none; }
+    .error {
+      margin-top: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #4a1d1d;
+      background: #2a1111;
+      color: #ffb4b4;
+      text-align: center;
+    }
+
+    /* Loading indicator */
+    .loading-indicator {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 500;
+      color: #fff;
+      text-align: center;
+      font-size: 14px;
+      background: rgba(0,0,0,0.8);
+      padding: 20px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: opacity 0.3s ease;
+    }
+    .loading-progress {
+      width: 200px;
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+      margin: 10px 0;
+      overflow: hidden;
+    }
+    .loading-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4CAF50, #8BC34A);
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 2px;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      :root {
+        --packW: 300px;
+        --gapX: 12px;
+        --pad: 8px;
+        --stackW: 80%;
+        --trayScale: 0.95;
+      }
+    }
+    @media (max-width: 600px) {
+      :root {
+        --packW: 250px;
+        --gapX: 8px;
+        --pad: 10px;
+        --stackW: 80%;
+        --trayScale: 1.1;
+      }
+    }
   </style>
 
-  <!-- Supabase SDK (must load before we create a client) -->
+  <!-- Supabase SDK (unchanged) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
-  <!-- Supabase project config: set URL & anon key on window -->
   <script>
-    // These are safe to expose on the client.
-    window.__SUPABASE_URL = 'https://srdwkfjterotzjwzoauj.supabase.co';
-    window.__SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ';
+    window.__SUPABASE_URL='https://srdwkfjterotzjwzoauj.supabase.co';
+    window.__SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ';
   </script>
 
-  
-  <!-- Backend base (define BEFORE app.js so app.js can read it) -->
   <script>
     (function () {
-      const params = new URLSearchParams(location.search);
-      let apiBase = params.get('api') || 'https://backend-o9ot.onrender.com';
-      apiBase = String(apiBase || '').trim()
-        .replace(/\/+$/, '')
-        .replace(/\/api$/i, '');
-      window.__PACKS_API_BASE = apiBase; // e.g. "https://backend-o9ot.onrender.com"
+      const params=new URLSearchParams(location.search);
+      let apiBase=params.get('api')||'https://backend-o9ot.onrender.com';
+      apiBase=String(apiBase||'').trim().replace(/\/+$/,'').replace(/\/api$/i,'');
+      window.__PACKS_API_BASE=apiBase;
+    })();
+  </script>
+  <script>
+    window.supa = window.supabase.createClient(window.__SUPABASE_URL, window.__SUPABASE_ANON_KEY);
+  </script>
+
+  <!-- Magic-link handler (unchanged) -->
+  <script>
+    (async function(){
+      try{
+        if(window.supa && location.hash && location.hash.includes('access_token')){
+          const params=new URLSearchParams(location.hash.slice(1));
+          const access_token=params.get('access_token');
+          const refresh_token=params.get('refresh_token');
+          const error=params.get('error');
+          const error_description=params.get('error_description');
+          if(error){ alert(`Authentication error: ${error_description||error}`); history.replaceState({},'',location.pathname+location.search); return; }
+          if(access_token&&refresh_token){
+            const {error:e}=await window.supa.auth.setSession({access_token,refresh_token});
+            if(e) alert(`Session error: ${e.message}`); else window.location.reload();
+          }
+          history.replaceState({},'',location.pathname+location.search);
+        }
+      }catch(e){console.error('[supabase] Magic link processing failed:',e);}
     })();
   </script>
 
-  <!-- Create ONE global Supabase client everyone can reuse -->
-  <script>
-    if (!window.supabase) {
-      console.error('Supabase CDN failed to load');
-    } else {
-      window.supa = window.supabase.createClient(
-        window.__SUPABASE_URL,
-        window.__SUPABASE_ANON_KEY
-      );
-    }
-  </script>
-
-  <!-- Handle magic-link returns (hash with access_token), then clean URL -->
-  <script>
-  (async function () {
-    try {
-      if (window.supa && location.hash && location.hash.includes('access_token')) {
-        console.log('[supabase] Processing magic link hash...');
-        
-        const params = new URLSearchParams(location.hash.slice(1));
-        const access_token = params.get('access_token');
-        const refresh_token = params.get('refresh_token');
-        const error = params.get('error');
-        const error_description = params.get('error_description');
-
-        // Check for errors first
-        if (error) {
-          console.error('[supabase] Auth error:', error, error_description);
-          alert(`Authentication error: ${error_description || error}`);
-          history.replaceState({}, '', location.pathname + location.search);
-          return;
-        }
-
-        if (access_token && refresh_token) {
-          console.log('[supabase] Setting session from magic link...');
-          const { data, error } = await window.supa.auth.setSession({
-            access_token,
-            refresh_token
-          });
-          
-          if (error) {
-            console.error('[supabase] setSession error:', error);
-            alert(`Session error: ${error.message}`);
-          } else {
-            console.log('[supabase] Session set successfully:', data);
-            // Optionally reload the app or update UI
-            window.location.reload();
-          }
-        }
-
-        // Clean URL regardless of success/failure
-        history.replaceState({}, '', location.pathname + location.search);
-      }
-    } catch (e) {
-      console.error('[supabase] Magic link processing failed:', e);
-    }
-  })();
-  </script>
+  <!-- Three.js + loaders + controls + post FX -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 </head>
 
-
 <body>
-  <!-- Simple auth UI (must be in BODY, after client is created) -->
-  
-
-  <!-- Widget UI -->
   <div id="app" class="widget" aria-live="polite">
     <div class="topbar">
       <div class="meta">
         <div class="balance" id="balance">Balance: —</div>
-        <div class="price"   id="price">Price: —</div>
+        <div class="price" id="price">Price: —</div>
       </div>
     </div>
 
-    <div class="stage">
-      <div class="anchor">
-        <img class="pack-img" src="./assets/pack.png" alt="Pack" id="packImg" />
-        <div class="stack" id="stack" hidden></div>
-        <div class="tray"  id="tray"  hidden></div>
+    <!-- STEP 1: Pack Select (carousel on packs page) -->
+    <div id="pack-select" class="select-step">
+      <div id="select3d" class="select3d"></div>
+    </div>
 
-        <!-- overlay lives INSIDE the stage so it appears on top (not below) -->
+    <!-- Stage (used from Step 1.5 onward) -->
+    <div class="stage" id="pack-stage" hidden>
+      <div class="anchor">
+        <!-- Keep PNG as a hidden fallback -->
+        <img class="pack-img" src="./assets/pack.png" alt="Pack" id="packImg" hidden />
+
+        <!-- Stage 3D canvas host -->
+        <div id="stage3d" class="stage3d"></div>
+
+        <!-- Rarity orbs container -->
+        <div id="rarityOrbs" class="rarity-orbs" hidden></div>
+
+        <!-- Tray for 2D thumbnails -->
+        <div class="tray" id="tray" hidden></div>
+
+        <!-- Overlay for enlarge mode -->
         <div id="overlay" class="overlay" hidden>
           <div class="overlay-backdrop"></div>
           <div class="overlay-card">
@@ -126,71 +386,1183 @@
     </div>
 
     <div class="actions">
-      <button id="cta" class="btn">Open Packs</button>
+      <button id="cta" class="btn">Choose Pack</button>
     </div>
 
     <div id="error" class="error" hidden></div>
   </div>
-  
- 
 
-  <!-- Your app (module so we can use top-level await); after client + auth UI -->
-  <script type="module" src="./app.js"></script>
+  <!-- Loading Indicator -->
+  <div class="loading-indicator" id="loadingIndicator" style="display: none;">
+    <div>Loading Packs...</div>
+    <div class="loading-progress">
+      <div class="loading-bar" id="loadingBar"></div>
+    </div>
+    <div id="loadingText">0/100</div>
+  </div>
 
-  <!-- Resize notifier for parent iframe (optional) -->
   <script>
-    (function () {
-      function postHeight(){
-        const h = Math.max(
-          document.documentElement.scrollHeight,
-          document.body?.scrollHeight || 0
-        );
-        if (window.parent && window.parent !== window){
-          window.parent.postMessage({ type:'packs:height', height:h }, '*');
-        }
+      // ===== API Integration (preserved from original) =====
+      let BASE = '';
+      if (typeof window !== 'undefined' && window.__PACKS_API_BASE) {
+        BASE = window.__PACKS_API_BASE;
       }
-      window.addEventListener('load', postHeight);
-      window.addEventListener('resize', postHeight);
-      const mo = new MutationObserver(postHeight);
-      mo.observe(document.documentElement, { childList:true, subtree:true, attributes:true });
+      BASE = BASE.replace(/\/+$/, '');
 
-      // respond to parent “probe”
-      window.addEventListener('message', (e) => {
-        if ((e.data || {}).type === 'packs:probe') postHeight();
+      const supa = window.supa || null;
+
+      // Session bridge
+      window.addEventListener('message', async (e) => {
+        const msg = e?.data;
+        if (!msg || msg.type !== 'supabase-session') return;
+        try {
+          const { access_token, refresh_token } = msg.session || {};
+          if (access_token && refresh_token && supa?.auth) {
+            await supa.auth.setSession({ access_token, refresh_token });
+            console.log('[widget] ✅ session set from parent');
+          }
+        } catch (err) {
+          console.error('[widget] setSession failed:', err);
+        }
       });
 
-      postHeight();
-    })();
-  </script>
-  <script>
-  // iOS Safari fires "gesture*" events for pinch — block them
-  document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
-  document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
-  document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
-
-  // Block multi-touch zoom attempts (two+ fingers)
-  document.addEventListener('touchstart', function (e) {
-    if (e.touches && e.touches.length > 1) e.preventDefault();
-  }, { passive: false });
-
-  // Some iOS versions expose e.scale during pinch — block when not neutral
-  document.addEventListener('touchmove', function (e) {
-    if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault();
-  }, { passive: false });
-
-  // Stop double-tap-to-zoom without breaking single taps
-  (function () {
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', function (e) {
-      const now = Date.now();
-      if (now - lastTouchEnd <= 300) {
-        e.preventDefault(); // suppress second tap zoom
+      // Player ID management
+      const PLAYER_ID_KEY = 'packs:playerId';
+      function makeUuid(){
+        return (crypto.randomUUID && crypto.randomUUID()) ||
+          ([1e7]+-1e3+-4e3+-8e3+-1e11)
+            .replace(/[018]/g, c =>
+              (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c/4).toString(16));
       }
-      lastTouchEnd = now;
-    }, { passive: false });
-  })();
-      
-  </script>
 
-</body>
-</html>
+      let PLAYER_ID = localStorage.getItem(PLAYER_ID_KEY);
+      if (!PLAYER_ID) {
+        PLAYER_ID = makeUuid();
+        localStorage.setItem(PLAYER_ID_KEY, PLAYER_ID);
+      }
+
+      async function getAuthHeader() {
+        try {
+          if (supa?.auth) {
+            const sessionPromise = supa.auth.getSession();
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Timeout')), 1000)
+            );
+            
+            try {
+              const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+              if (session?.access_token) {
+                return { Authorization: `Bearer ${session.access_token}` };
+              }
+            } catch (e) {
+              console.log('Supabase auth call timed out, falling back to localStorage');
+            }
+          }
+          
+          const authKey = 'sb-srdwkfjterotzjwzoauj-auth-token';
+          const authData = localStorage.getItem(authKey);
+          if (authData) {
+            try {
+              const parsed = JSON.parse(authData);
+              if (parsed.access_token && parsed.expires_at && parsed.expires_at > Date.now() / 1000) {
+                console.log('Using localStorage auth token');
+                return { Authorization: `Bearer ${parsed.access_token}` };
+              }
+            } catch (e) {
+              console.log('Failed to parse localStorage auth token:', e);
+            }
+          }
+        } catch (e) {
+          console.log('Auth header error:', e);
+        }
+        
+        return { 'X-Player-Id': PLAYER_ID };
+      }
+
+      async function jfetch(path, options = {}) {
+        const url = `${BASE}${path}`;
+        const authHeader = await getAuthHeader();
+        const playerId = localStorage.getItem('packs:playerId');
+        const headers = {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...authHeader,
+          ...(playerId ? { 'X-Player-Id': playerId } : {}),
+          ...(options.headers || {})
+        };
+        const r = await fetch(url, { headers, ...options });
+        if (!r.ok) {
+          let msg = `${options.method || 'GET'} ${url} ${r.status}`;
+          try { const j = await r.json(); if (j && j.error) msg = j.error; } catch {}
+          throw new Error(msg);
+        }
+        return r.json();
+      }
+
+      // ===== 3D System Implementation =====
+      let carouselScene, carouselCamera, carouselRenderer;
+      let stageScene, stageCamera, stageRenderer;
+      let gltfLoader, dracoLoader;
+      let orbitControls = null;
+
+      // Phase state
+      let phase = 'select'; // select | handoff | open | reveal | done
+      let selectedPack = null;
+      let items = [];
+      let activeIndex = 0;
+      let rarityOrbs = [];
+
+      // Pack configurations
+      const packConfigs = [
+        {
+          id: 'base_pack',
+          name: 'Base Pack',
+          glb: '/assets/models/base_pack.glb',
+          openAnim: 'Open',
+          price: { amount: 100, currency: 'COIN' }
+        }
+        // Add more pack configurations as needed
+      ];
+
+      // Item GLB mapping
+      const itemGLBs = {
+        'stem': '/assets/models/usb.glb',
+        'cover': '/assets/models/cover.glb',
+        'fragment': '/assets/models/paper.glb',
+        'unreleased': '/assets/models/box.glb',
+        'character_golden': '/assets/models/metahuman.glb',
+        'other': '/assets/models/box.glb'
+      };
+
+      // Rarity colors
+      const rarityColors = {
+        common: 0x64748B,
+        rare: 0x3B82F6,
+        epic: 0xA855F7,
+        legendary: 0xF59E0B
+      };
+
+      const clock = new THREE.Clock();
+
+      // ===== Initialization =====
+      function initLoaders() {
+        gltfLoader = new THREE.GLTFLoader();
+        dracoLoader = new THREE.DRACOLoader();
+        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+        gltfLoader.setDRACOLoader(dracoLoader);
+      }
+
+      function showLoading() {
+        const indicator = document.getElementById('loadingIndicator');
+        if (indicator) {
+          indicator.style.display = 'block';
+          indicator.style.opacity = '1';
+        }
+      }
+
+      function hideLoading() {
+        const indicator = document.getElementById('loadingIndicator');
+        if (indicator) {
+          indicator.style.opacity = '0';
+          setTimeout(() => {
+            indicator.style.display = 'none';
+          }, 300);
+        }
+      }
+
+      function updateLoadingProgress(loaded, total) {
+        const bar = document.getElementById('loadingBar');
+        const text = document.getElementById('loadingText');
+        if (bar) {
+          const percent = (loaded / total) * 100;
+          bar.style.width = percent + '%';
+        }
+        if (text) {
+          text.textContent = `${loaded}/${total}`;
+        }
+      }
+
+      // ===== Scene Management =====
+      function initCarouselScene() {
+        const container = document.getElementById('select3d');
+        if (!container) return;
+
+        carouselScene = new THREE.Scene();
+        carouselScene.background = new THREE.Color(0x000000);
+        
+        carouselCamera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 0.1, 1000);
+        carouselCamera.position.set(0, 0, 3);
+        
+        carouselRenderer = new THREE.WebGLRenderer({ antialias: true });
+        carouselRenderer.setSize(container.offsetWidth, container.offsetHeight);
+        carouselRenderer.shadowMap.enabled = true;
+        carouselRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        container.appendChild(carouselRenderer.domElement);
+        
+        // Lighting
+        const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a2a, 0.7);
+        carouselScene.add(hemi);
+        
+        const key = new THREE.DirectionalLight(0xffffff, 1);
+        key.position.set(5, 8, 6);
+        key.castShadow = true;
+        carouselScene.add(key);
+        
+        loadPackIntoCarousel(0);
+      }
+
+      function initStageScene() {
+        const container = document.getElementById('stage3d');
+        if (!container) return;
+
+        stageScene = new THREE.Scene();
+        stageScene.background = new THREE.Color(0x000000);
+        
+        stageCamera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 0.1, 1000);
+        stageCamera.position.set(0, 0, 3);
+        
+        stageRenderer = new THREE.WebGLRenderer({ antialias: true });
+        stageRenderer.setSize(container.offsetWidth, container.offsetHeight);
+        stageRenderer.shadowMap.enabled = true;
+        stageRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        container.appendChild(stageRenderer.domElement);
+        
+        // Lighting
+        const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a2a, 0.7);
+        stageScene.add(hemi);
+        
+        const key = new THREE.DirectionalLight(0xffffff, 1);
+        key.position.set(5, 8, 6);
+        key.castShadow = true;
+        stageScene.add(key);
+        
+        // Store light references
+        stageScene.userData.lights = { hemi, key };
+        stageScene.userData.lightLevels = {
+          hemi: hemi.intensity,
+          key: key.intensity
+        };
+      }
+
+      // ===== Pack Loading =====
+      function loadPackIntoCarousel(index) {
+        const config = packConfigs[index] || packConfigs[0];
+        if (!config || !gltfLoader) return;
+        
+        showLoading();
+        
+        gltfLoader.load(
+          config.glb,
+          (gltf) => {
+            // Clear existing pack
+            const existingPack = carouselScene.getObjectByName('CAROUSEL_PACK');
+            if (existingPack) carouselScene.remove(existingPack);
+            
+            const pack = gltf.scene || gltf.scenes[0];
+            if (pack) {
+              pack.name = 'CAROUSEL_PACK';
+              pack.position.set(0, 0, 0);
+              pack.scale.setScalar(1);
+              carouselScene.add(pack);
+              
+              // Gentle rotation animation
+              pack.userData.rotationSpeed = 0.005;
+            }
+            
+            selectedPack = { ...config, gltfData: gltf };
+            hideLoading();
+          },
+          (progress) => {
+            const percent = (progress.loaded / progress.total) * 100;
+            updateLoadingProgress(percent, 100);
+          },
+          (error) => {
+            console.error('Failed to load pack GLB:', error);
+            hideLoading();
+            showError('Failed to load pack model');
+          }
+        );
+      }
+
+      // ===== Phase Transitions =====
+      function startHandoff() {
+        if (phase !== 'select' || !selectedPack) return;
+        
+        phase = 'handoff';
+        updateCTA();
+        
+        // Camera push-in effect
+        if (carouselCamera && carouselRenderer) {
+          const startPos = carouselCamera.position.clone();
+          const endPos = startPos.clone().multiplyScalar(0.8);
+          
+          const duration = 500;
+          const startTime = performance.now();
+          
+          function animate() {
+            const elapsed = performance.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Eased interpolation
+            const eased = 1 - Math.pow(1 - progress, 3);
+            carouselCamera.position.lerpVectors(startPos, endPos, eased);
+            
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              // Transition to stage
+              preloadPackIntoStage();
+            }
+          }
+          animate();
+        }
+      }
+
+      function preloadPackIntoStage() {
+        if (!selectedPack || !gltfLoader) return;
+        
+        gltfLoader.load(
+          selectedPack.glb,
+          (gltf) => {
+            const pack = gltf.scene || gltf.scenes[0];
+            if (pack) {
+              pack.name = 'STAGE_PACK';
+              pack.position.set(0, 0, 0);
+              pack.scale.setScalar(1);
+              
+              // Store animation mixer
+              if (gltf.animations && gltf.animations.length) {
+                const mixer = new THREE.AnimationMixer(pack);
+                const openClip = THREE.AnimationClip.findByName(gltf.animations, selectedPack.openAnim);
+                if (openClip) {
+                  pack.userData.mixer = mixer;
+                  pack.userData.openAction = mixer.clipAction(openClip);
+                  pack.userData.openAction.setLoop(THREE.LoopOnce);
+                  pack.userData.openAction.clampWhenFinished = true;
+                }
+              }
+              
+              stageScene.add(pack);
+            }
+            
+            // Complete handoff
+            completeHandoff();
+          },
+          undefined,
+          (error) => {
+            console.error('Failed to preload pack into stage:', error);
+            showError('Failed to load pack');
+          }
+        );
+      }
+
+      function completeHandoff() {
+        phase = 'open';
+        updateCTA();
+        
+        // Hide carousel, show stage
+        const selectEl = document.getElementById('pack-select');
+        const stageEl = document.getElementById('pack-stage');
+        
+        if (selectEl) selectEl.classList.add('hidden');
+        if (stageEl) stageEl.hidden = false;
+        
+        // Stop carousel renderer, start stage renderer
+        if (carouselRenderer) {
+          const container = carouselRenderer.domElement.parentNode;
+          if (container) container.removeChild(carouselRenderer.domElement);
+        }
+      }
+
+      // ===== Pack Opening Flow =====
+      async function onOpenClick() {
+        if (phase !== 'open') return;
+        
+        try {
+          // Disable CTA during opening
+          const ctaBtn = document.getElementById('cta');
+          ctaBtn.disabled = true;
+          ctaBtn.textContent = 'Opening...';
+          
+          // Play pack opening animation
+          const pack = stageScene.getObjectByName('STAGE_PACK');
+          if (pack?.userData?.openAction) {
+            pack.userData.openAction.reset();
+            pack.userData.openAction.play();
+          }
+          
+          // Make API call for pack opening
+          const pack_config = packConfigs[0]; // Using first pack for demo
+          const res = await jfetch('/api/packs/open', {
+            method: 'POST',
+            body: JSON.stringify({
+              packId: pack_config.id,
+              idempotencyKey: makeUuid()
+            })
+          });
+          
+          // Process results
+          items = padToFive(res.results || []).map((item, index) => ({
+            ...item,
+            status: index === 0 ? 'active' : 'pending',
+            glb: null,
+            rarity: item.rarity || 'common',
+            type: item.kind || 'other'
+          }));
+          
+          activeIndex = 0;
+          
+          // Update inventory
+          try {
+            const fresh = await jfetch('/api/inventory');
+            updateInventoryDisplay(normalizeInventory(fresh));
+          } catch (e) {
+            console.error('Failed to refresh inventory:', e);
+          }
+          
+          // Start burst and orbs
+          createBurstEffect();
+          createRarityOrbs();
+          
+          // Transition to reveal phase
+          phase = 'reveal';
+          updateCTA();
+          
+          // Load and show first item
+          loadActiveItem();
+          
+        } catch (e) {
+          console.error('Pack opening failed:', e);
+          showError(String(e.message || e));
+          
+          const ctaBtn = document.getElementById('cta');
+          ctaBtn.disabled = false;
+          ctaBtn.textContent = 'Open Pack';
+        }
+      }
+
+      // ===== Burst Effect =====
+      function createBurstEffect() {
+        if (!items.length) return;
+        
+        const burstGroup = new THREE.Group();
+        burstGroup.name = 'BURST_EFFECT';
+        
+        items.forEach((item, index) => {
+          const color = new THREE.Color(rarityColors[item.rarity] || rarityColors.common);
+          const particleCount = getRarityParticleCount(item.rarity);
+          
+          // Create particles for this rarity
+          const geometry = new THREE.SphereGeometry(0.02, 8, 8);
+          const material = new THREE.MeshBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: 0.8
+          });
+          
+          for (let i = 0; i < particleCount; i++) {
+            const particle = new THREE.Mesh(geometry, material.clone());
+            
+            // Random burst direction
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.random() * Math.PI;
+            const speed = 0.5 + Math.random() * 1.5;
+            
+            particle.position.set(0, 0, 0);
+            particle.userData = {
+              velocity: new THREE.Vector3(
+                Math.sin(phi) * Math.cos(theta) * speed,
+                Math.sin(phi) * Math.sin(theta) * speed,
+                Math.cos(phi) * speed
+              ),
+              startTime: performance.now(),
+              lifetime: 800 + Math.random() * 400
+            };
+            
+            burstGroup.add(particle);
+          }
+        });
+        
+        stageScene.add(burstGroup);
+        
+        // Animate burst
+        function animateBurst() {
+          const currentTime = performance.now();
+          let particlesActive = false;
+          
+          burstGroup.children.forEach(particle => {
+            const elapsed = currentTime - particle.userData.startTime;
+            const progress = elapsed / particle.userData.lifetime;
+            
+            if (progress < 1) {
+              particlesActive = true;
+              particle.position.add(particle.userData.velocity.clone().multiplyScalar(0.016));
+              particle.material.opacity = 0.8 * (1 - progress);
+              particle.userData.velocity.multiplyScalar(0.98); // Slow down
+            } else {
+              particle.visible = false;
+            }
+          });
+          
+          if (particlesActive) {
+            requestAnimationFrame(animateBurst);
+          } else {
+            stageScene.remove(burstGroup);
+          }
+        }
+        
+        animateBurst();
+      }
+
+      function getRarityParticleCount(rarity) {
+        switch (rarity) {
+          case 'legendary': return 25;
+          case 'epic': return 20;
+          case 'rare': return 15;
+          case 'common':
+          default: return 10;
+        }
+      }
+
+      // ===== Rarity Orbs =====
+      function createRarityOrbs() {
+        const orbsContainer = document.getElementById('rarityOrbs');
+        if (!orbsContainer) return;
+        
+        orbsContainer.innerHTML = '';
+        orbsContainer.hidden = false;
+        rarityOrbs = [];
+        
+        items.forEach((item, index) => {
+          const orb = document.createElement('div');
+          orb.className = `rarity-orb ${item.rarity}`;
+          orb.setAttribute('data-index', index);
+          orb.setAttribute('aria-label', `Item ${index + 1} - ${item.rarity} - ${item.label || item.name}`);
+          
+          // Position orbs in a circle
+          const angle = (index / items.length) * Math.PI * 2 - Math.PI / 2;
+          const radius = Math.min(orbsContainer.offsetWidth, orbsContainer.offsetHeight) * 0.35;
+          const x = Math.cos(angle) * radius + orbsContainer.offsetWidth / 2 - 12;
+          const y = Math.sin(angle) * radius + orbsContainer.offsetHeight / 2 - 12;
+          
+          orb.style.left = x + 'px';
+          orb.style.top = y + 'px';
+          
+          orb.addEventListener('click', () => switchToItem(index));
+          
+          orbsContainer.appendChild(orb);
+          rarityOrbs.push(orb);
+        });
+      }
+
+      // ===== Item Management =====
+      function loadActiveItem() {
+        if (activeIndex < 0 || activeIndex >= items.length) return;
+        
+        const item = items[activeIndex];
+        if (!item || item.glb) return; // Already loaded
+        
+        const glbPath = itemGLBs[item.type] || itemGLBs['other'];
+        
+        gltfLoader.load(
+          glbPath,
+          (gltf) => {
+            const itemMesh = gltf.scene || gltf.scenes[0];
+            if (itemMesh) {
+              // Clear existing active item
+              const existingItem = stageScene.getObjectByName('ACTIVE_ITEM');
+              if (existingItem) stageScene.remove(existingItem);
+              
+              itemMesh.name = 'ACTIVE_ITEM';
+              itemMesh.position.set(0, 0, 0);
+              itemMesh.scale.setScalar(0.8);
+              
+              // Add rarity-based glow
+              addRarityGlow(itemMesh, item.rarity);
+              
+              // Make clickable
+              itemMesh.userData.clickable = true;
+              itemMesh.userData.itemIndex = activeIndex;
+              
+              stageScene.add(itemMesh);
+              item.glb = itemMesh;
+            }
+          },
+          undefined,
+          (error) => {
+            console.error('Failed to load item GLB:', error);
+            // Use fallback box
+            const geometry = new THREE.BoxGeometry(1, 1.4, 0.1);
+            const material = new THREE.MeshLambertMaterial({
+              color: rarityColors[item.rarity] || rarityColors.common
+            });
+            const fallback = new THREE.Mesh(geometry, material);
+            fallback.name = 'ACTIVE_ITEM';
+            fallback.userData.clickable = true;
+            fallback.userData.itemIndex = activeIndex;
+            stageScene.add(fallback);
+            item.glb = fallback;
+          }
+        );
+      }
+
+      function addRarityGlow(mesh, rarity) {
+        const color = new THREE.Color(rarityColors[rarity] || rarityColors.common);
+        
+        // Add emissive material properties
+        mesh.traverse(child => {
+          if (child.isMesh && child.material) {
+            const materials = Array.isArray(child.material) ? child.material : [child.material];
+            materials.forEach(mat => {
+              if (mat.emissive) {
+                mat.emissive = color.clone().multiplyScalar(rarity === 'legendary' ? 0.3 :
+                                                          rarity === 'epic' ? 0.2 :
+                                                          rarity === 'rare' ? 0.1 : 0.05);
+              }
+            });
+          }
+        });
+      }
+
+      function switchToItem(index) {
+        if (phase !== 'reveal' || index < 0 || index >= items.length) return;
+        if (items[index].status === 'accepted') return;
+        
+        // Update orb states
+        rarityOrbs.forEach((orb, i) => {
+          orb.classList.toggle('accepted', items[i].status === 'accepted');
+        });
+        
+        activeIndex = index;
+        items[activeIndex].status = 'active';
+        
+        // Reset other items to pending
+        items.forEach((item, i) => {
+          if (i !== activeIndex && item.status !== 'accepted') {
+            item.status = 'pending';
+          }
+        });
+        
+        loadActiveItem();
+      }
+
+      function acceptActiveItem() {
+        if (phase !== 'reveal' || activeIndex < 0 || activeIndex >= items.length) return;
+        
+        const item = items[activeIndex];
+        if (!item || item.status === 'accepted') return;
+        
+        // Mark as accepted
+        item.status = 'accepted';
+        
+        // Update orb
+        if (rarityOrbs[activeIndex]) {
+          rarityOrbs[activeIndex].classList.add('accepted');
+        }
+        
+        // Animate to tray
+        animateItemToTray(item, activeIndex);
+        
+        // Find next pending item
+        let nextIndex = -1;
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].status === 'pending') {
+            nextIndex = i;
+            break;
+          }
+        }
+        
+        if (nextIndex >= 0) {
+          activeIndex = nextIndex;
+          items[activeIndex].status = 'active';
+          loadActiveItem();
+        } else {
+          // All items accepted - show completion
+          completeReveal();
+        }
+      }
+
+      function animateItemToTray(item, index) {
+        if (!item.glb) return;
+        
+        // Remove from scene
+        stageScene.remove(item.glb);
+        
+        // Add to 2D tray
+        const trayEl = document.getElementById('tray');
+        if (trayEl) {
+          const trayCard = document.createElement('button');
+          trayCard.className = 'tray-card';
+          trayCard.setAttribute('data-pos', (index + 1).toString());
+          
+          const img = document.createElement('img');
+          img.src = '/assets/card-front.png'; // Use your PNG fallback
+          img.alt = item.label || item.name || 'Card';
+          
+          trayCard.appendChild(img);
+          trayCard.addEventListener('click', () => openOverlay(trayCard, img.src));
+          
+          trayEl.appendChild(trayCard);
+          trayEl.hidden = false;
+        }
+      }
+
+      function completeReveal() {
+        phase = 'done';
+        updateCTA();
+        
+        // Hide orbs
+        const orbsContainer = document.getElementById('rarityOrbs');
+        if (orbsContainer) orbsContainer.hidden = true;
+        
+        // Show collection CTA
+        const ctaBtn = document.getElementById('cta');
+        ctaBtn.textContent = 'Add to collection';
+        ctaBtn.disabled = false;
+      }
+
+      // ===== CTA Management =====
+      function updateCTA() {
+        const ctaBtn = document.getElementById('cta');
+        if (!ctaBtn) return;
+        
+        switch (phase) {
+          case 'select':
+            ctaBtn.textContent = 'Choose Pack';
+            ctaBtn.disabled = false;
+            ctaBtn.onclick = startHandoff;
+            break;
+          case 'handoff':
+            ctaBtn.disabled = true;
+            break;
+          case 'open':
+            ctaBtn.textContent = 'Open Pack';
+            ctaBtn.disabled = false;
+            ctaBtn.onclick = onOpenClick;
+            break;
+          case 'reveal':
+            ctaBtn.textContent = 'Click item to accept';
+            ctaBtn.disabled = true;
+            break;
+          case 'done':
+            ctaBtn.textContent = 'Add to collection';
+            ctaBtn.disabled = false;
+            ctaBtn.onclick = onCollectClick;
+            break;
+        }
+      }
+
+      // ===== Collection Logic (preserved from original) =====
+      async function onCollectClick() {
+        const ctaBtn = document.getElementById('cta');
+        ctaBtn.disabled = true;
+        ctaBtn.textContent = 'Adding...';
+        
+        try {
+          const itemIds = items.map(item => item.itemId);
+          
+          const addRes = await fetch(`${BASE}/api/collection/add`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(await getAuthHeader()),
+            },
+            body: JSON.stringify({ itemIds }),
+          });
+
+          if (!addRes.ok) {
+            const errorText = await addRes.text();
+            throw new Error(`Add-to-inventory ${addRes.status}: ${errorText}`);
+          }
+
+          const res = await addRes.json();
+          
+          // Handle dupe payouts
+          if (res?.dupes) {
+            const shards = Number(res.dupes.awardedShards || 0);
+            const tokens = Number(res.dupes.mintedTokens ?? res.dupes.minted_tokens ?? res.dupes.minted ?? 0);
+
+            if (shards > 0 || tokens > 0) {
+              const parts = [];
+              if (shards > 0) parts.push(`+${shards} shard${shards === 1 ? '' : 's'}`);
+              if (tokens > 0) parts.push(`+${tokens} Guarantee token${tokens === 1 ? '' : 's'} 🎯`);
+              const msg = parts.join(' • ');
+              showToast(msg);
+            }
+          }
+
+          if (res?.inventory) {
+            updateInventoryDisplay(normalizeInventory(res.inventory));
+            
+            // Notify parent
+            if (window.parent !== window) {
+              window.parent.postMessage({
+                type: 'inventory-updated',
+                inventory: normalizeInventory(res.inventory),
+                dupes: res.dupes || null,
+                debug: 'from-packs-widget'
+              }, '*');
+            }
+          }
+
+          // Reset to initial state
+          resetToInitialState();
+          
+        } catch (e) {
+          console.error('Collection failed:', e);
+          showError(String(e.message || e));
+          ctaBtn.textContent = 'Add to collection';
+          ctaBtn.disabled = false;
+        }
+      }
+
+      function resetToInitialState() {
+        phase = 'select';
+        items = [];
+        activeIndex = 0;
+        selectedPack = null;
+        
+        // Clear 3D scenes
+        if (stageScene) {
+          const pack = stageScene.getObjectByName('STAGE_PACK');
+          if (pack) stageScene.remove(pack);
+          const item = stageScene.getObjectByName('ACTIVE_ITEM');
+          if (item) stageScene.remove(item);
+        }
+        
+        // Hide elements
+        const stageEl = document.getElementById('pack-stage');
+        const selectEl = document.getElementById('pack-select');
+        const trayEl = document.getElementById('tray');
+        const orbsEl = document.getElementById('rarityOrbs');
+        
+        if (stageEl) stageEl.hidden = true;
+        if (selectEl) selectEl.classList.remove('hidden');
+        if (trayEl) {
+          trayEl.innerHTML = '';
+          trayEl.hidden = true;
+        }
+        if (orbsEl) orbsEl.hidden = true;
+        
+        // Reinitialize carousel
+        loadPackIntoCarousel(0);
+        updateCTA();
+      }
+
+      // ===== Input Handling =====
+      function setupInputHandling() {
+        // Stage click detection
+        if (stageRenderer) {
+          const raycaster = new THREE.Raycaster();
+          const mouse = new THREE.Vector2();
+          
+          stageRenderer.domElement.addEventListener('click', (event) => {
+            if (phase !== 'reveal') return;
+            
+            const rect = stageRenderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, stageCamera);
+            
+            const activeItem = stageScene.getObjectByName('ACTIVE_ITEM');
+            if (activeItem) {
+              const intersects = raycaster.intersectObject(activeItem, true);
+              if (intersects.length > 0) {
+                acceptActiveItem();
+              }
+            }
+          });
+        }
+      }
+
+      // ===== Animation Loop =====
+      function animate() {
+        requestAnimationFrame(animate);
+        
+        const deltaTime = clock.getDelta();
+        
+        // Update carousel pack rotation
+        if (carouselScene && phase === 'select') {
+          const pack = carouselScene.getObjectByName('CAROUSEL_PACK');
+          if (pack && pack.userData.rotationSpeed) {
+            pack.rotation.y += pack.userData.rotationSpeed;
+          }
+        }
+        
+        // Update stage pack animation
+        if (stageScene && phase === 'open') {
+          const pack = stageScene.getObjectByName('STAGE_PACK');
+          if (pack?.userData?.mixer) {
+            pack.userData.mixer.update(deltaTime);
+          }
+        }
+        
+        // Render active scene
+        if (phase === 'select' && carouselRenderer && carouselScene && carouselCamera) {
+          carouselRenderer.render(carouselScene, carouselCamera);
+        } else if (stageRenderer && stageScene && stageCamera) {
+          stageRenderer.render(stageScene, stageCamera);
+        }
+      }
+
+      // ===== Utility Functions (preserved from original) =====
+      function showError(msg) {
+        const errorEl = document.getElementById('error');
+        if (errorEl) {
+          errorEl.textContent = msg;
+          errorEl.hidden = false;
+          setTimeout(() => errorEl.hidden = true, 3000);
+        }
+      }
+
+      function showToast(msg) {
+        const el = document.createElement('div');
+        el.textContent = msg;
+        Object.assign(el.style, {
+          position: 'fixed', left: '50%', bottom: '24px', transform: 'translateX(-50%)',
+          background: '#111', color: '#fff', padding: '10px 14px', borderRadius: '8px',
+          boxShadow: '0 6px 18px rgba(0,0,0,.25)', zIndex: '9999', opacity: '0',
+          transition: 'opacity .2s ease'
+        });
+        document.body.appendChild(el);
+        requestAnimationFrame(() => el.style.opacity = '1');
+        setTimeout(() => {
+          el.style.opacity = '0';
+          setTimeout(() => el.remove(), 220);
+        }, 2200);
+      }
+
+      function padToFive(results = []) {
+        if (results.length >= 5) return results.slice(0, 5);
+        const out = results.slice();
+        const need = 5 - out.length;
+        for (let i = 0; i < need; i++) {
+          out.push({
+            itemId: `placeholder-${i + 1}`,
+            name: 'Card',
+            rarity: 'common',
+            imageUrl: '/assets/card-front.png',
+            isDupe: false,
+            type: 'other'
+          });
+        }
+        return out;
+      }
+
+      function normalizeInventory(x) {
+        if (x && x.inventory) return x.inventory;
+        if (x && (x.balance || x.items)) return x;
+        return { balance: { COIN: 0 }, items: [] };
+      }
+
+      function updateInventoryDisplay(inv) {
+        const balanceEl = document.getElementById('balance');
+        const priceEl = document.getElementById('price');
+        
+        if (balanceEl) {
+          balanceEl.textContent = `Balance: ${inv?.balance?.COIN ?? 0}`;
+        }
+        
+        if (priceEl && packConfigs[0]) {
+          priceEl.textContent = `Price: ${packConfigs[0].price.amount} ${packConfigs[0].price.currency}`;
+        }
+      }
+
+      function openOverlay(cardBtn, src) {
+        const overlay = document.getElementById('overlay');
+        const overlayImg = document.getElementById('overlay-img');
+        const trayEl = document.getElementById('tray');
+        
+        if (overlay && overlayImg) {
+          overlayImg.src = src;
+          overlay.hidden = false;
+          
+          if (trayEl) trayEl.classList.add('has-preview');
+          cardBtn.classList.add('is-active');
+        }
+      }
+
+      function closeOverlay() {
+        const overlay = document.getElementById('overlay');
+        const trayEl = document.getElementById('tray');
+        
+        if (overlay) overlay.hidden = true;
+        if (trayEl) trayEl.classList.remove('has-preview');
+        
+        const active = document.querySelector('.tray-card.is-active');
+        if (active) active.classList.remove('is-active');
+      }
+
+      // ===== Authentication & Initialization (preserved from original) =====
+      async function requireSignedInOrPrompt() {
+        if (!supa) return false;
+        const { data: { session } } = await supa.auth.getSession();
+        if (session?.user) return true;
+
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'show_login_modal' }, '*');
+        } else {
+          window.location.href = '/packs';
+        }
+        
+        const ctaBtn = document.getElementById('cta');
+        ctaBtn.textContent = 'Sign in required';
+        ctaBtn.disabled = true;
+        return false;
+      }
+
+                      async function init() {
+                        try {
+                          // Check WebGL support
+                          const canvas = document.createElement('canvas');
+                          const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                          if (!gl) {
+                            console.warn('WebGL not supported - falling back to 2D mode');
+                            return initFallback();
+                          }
+                          
+                          // Initialize 3D system
+                          initLoaders();
+                          initCarouselScene();
+                          initStageScene();
+                          setupInputHandling();
+                          
+                          // Fetch real pack data from backend and update config
+                          try {
+                            const packsResp = await jfetch('/api/packs');
+                            if (packsResp.packs && packsResp.packs.length > 0) {
+                              const realPack = packsResp.packs[0]; // Use first pack from backend
+                              console.log('Using real pack data:', realPack);
+                              
+                              // Update packConfigs with real backend data
+                              packConfigs[0] = {
+                                id: realPack.id,           // "starter" from your JSON
+                                name: realPack.name,       // "Starter Pack"
+                                glb: '/assets/models/starter_pack.glb', // You may need to create this GLB
+                                openAnim: 'Open',
+                                price: realPack.price      // { amount: 100, currency: "Credits" }
+                              };
+                              
+                              console.log('Updated pack config:', packConfigs[0]);
+                            } else {
+                              console.warn('No packs returned from backend, using fallback');
+                            }
+                          } catch (packError) {
+                            console.error('Failed to fetch pack data:', packError);
+                            // Keep default config but update the ID to match your backend
+                            packConfigs[0].id = 'starter';
+                            packConfigs[0].name = 'Starter Pack';
+                            packConfigs[0].price = { amount: 100, currency: 'Credits' };
+                          }
+                          
+                          // Check authentication
+                          const ok = await requireSignedInOrPrompt();
+                          if (!ok) {
+                            console.log('User not signed in - showing sign-in prompt');
+                            return;
+                          }
+
+                          // Load inventory
+                          const invResp = await jfetch('/api/inventory');
+                          updateInventoryDisplay(normalizeInventory(invResp));
+                          
+                          // Set initial state
+                          updateCTA();
+                          
+                          // Start animation loop
+                          animate();
+                          
+                          console.log('3D Pack system initialized successfully');
+                          
+                        } catch (e) {
+                          console.error('3D initialization failed:', e);
+                          showError(String(e.message || e));
+                          initFallback();
+                        }
+                      }
+      async function initFallback() {
+        // Fallback to original 2D system if 3D fails
+        console.log('Using 2D fallback mode');
+        
+        const selectEl = document.getElementById('pack-select');
+        const stageEl = document.getElementById('pack-stage');
+        const packImg = document.getElementById('packImg');
+        
+        if (selectEl) selectEl.classList.add('hidden');
+        if (stageEl) stageEl.hidden = false;
+        if (packImg) packImg.hidden = false;
+        
+        phase = 'open';
+        updateCTA();
+      }
+
+      // Auth state monitoring (preserved from original)
+      if (supa?.auth) {
+        supa.auth.onAuthStateChange(async (event, session) => {
+          console.log(`Auth state changed: ${event}`, session?.user?.id || 'no user');
+          
+          if (event === 'SIGNED_IN' && session?.user) {
+            try {
+              const fresh = await jfetch('/api/inventory');
+              updateInventoryDisplay(normalizeInventory(fresh));
+              console.log('Inventory refreshed after sign-in');
+            } catch (e) {
+              console.error('Failed to refresh inventory after sign-in:', e);
+            }
+          } else if (event === 'SIGNED_OUT') {
+            const ctaBtn = document.getElementById('cta');
+            ctaBtn.textContent = 'Sign in to open packs';
+            ctaBtn.disabled = false;
+          }
+        });
+      }
+
+      // Event listeners
+      const overlay = document.getElementById('overlay');
+      if (overlay) overlay.addEventListener('click', closeOverlay);
+
+      // Window resize handling
+      window.addEventListener('resize', () => {
+        if (carouselRenderer && carouselCamera) {
+          const container = document.getElementById('select3d');
+          if (container) {
+            carouselCamera.aspect = container.offsetWidth / container.offsetHeight;
+            carouselCamera.updateProjectionMatrix();
+            carouselRenderer.setSize(container.offsetWidth, container.offsetHeight);
+          }
+        }
+        
+        if (stageRenderer && stageCamera) {
+          const container = document.getElementById('stage3d');
+          if (container) {
+            stageCamera.aspect = container.offsetWidth / container.offsetHeight;
+            stageCamera.updateProjectionMatrix();
+            stageRenderer.setSize(container.offsetWidth, container.offsetHeight);
+          }
+        }
+      });
+
+      // Initialize app
+      init();
+
+      // iFrame height & mobile gesture guards (preserved from original)
+      (function(){
+        function postHeight(){
+          const h=Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight||0);
+          if(window.parent && window.parent!==window){ window.parent.postMessage({type:'packs:height',height:h},'*'); }
+        }
+        addEventListener('load',postHeight); addEventListener('resize',postHeight);
+        new MutationObserver(postHeight).observe(document.documentElement,{childList:true,subtree:true,attributes:true});
+        addEventListener('message',(e)=>{ if((e.data||{}).type==='packs:probe') postHeight(); });
+        postHeight();
+      })();
+
+      document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+      document.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false});
+      document.addEventListener('gestureend',e=>e.preventDefault(),{passive:false});
+      document.addEventListener('touchstart',e=>{ if(e.touches && e.touches.length>1) e.preventDefault(); },{passive:false});
+      document.addEventListener('touchmove',e=>{ if(typeof e.scale==='number' && e.scale!==1) e.preventDefault(); },{passive:false});
+      (function(){ let last=0; document.addEventListener('touchend',e=>{ const now=Date.now(); if(now-last<=300) e.preventDefault(); last=now; },{passive:false}); })();
