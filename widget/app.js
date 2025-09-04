@@ -221,16 +221,7 @@ if (!stackEl) {
 let hasHandoff = false;
 
 // ---- Debug taps for console ----
-window.__packsDebug = {
-  get enable3D() { return enable3D; },
-  get hasHandoff() { return hasHandoff; },
-  get pngVisible() { return !packImg.hidden && getComputedStyle(packImg).opacity; },
-  get canvasHidden() { return threeCanvas.hidden; },
-  get canvasOpacity() { return getComputedStyle(threeCanvas).opacity; },
-  get ctaDisabled() { return cta.disabled; },
-  // raw elements if you want to poke at them:
-  packImg, threeCanvas, cta,
-};
+
 
 
 async function crossfade(a, b, ms = 350) {
@@ -846,32 +837,45 @@ async function onOpenClick(){
 }
 
 init();
-/* ==== Always-on debug taps (final placement: LAST lines of app.js) ==== */
+
+
+/* ==== Debug taps (safe, parent-bridged) ==== */
 (() => {
   const safe = (fn) => { try { return fn(); } catch { return undefined; } };
 
-  // Build the object without touching undeclared vars until getters are read.
   const dbg = {
-    // flags (safe even in module scope)
-    get enable3D()    { return safe(() => enable3D); },
-    get hasHandoff()  { return safe(() => hasHandoff); },
+    // flags
+    get enable3D()     { return safe(() => enable3D); },
+    get hasHandoff()   { return safe(() => hasHandoff); },
 
-    // ui state
-    get ctaDisabled()   { return safe(() => cta.disabled); },
-    get canvasHidden()  { return safe(() => threeCanvas.hidden); },
-    get canvasOpacity() { return safe(() => getComputedStyle(threeCanvas).opacity); },
-    get pngVisible()    { return safe(() => !packImg.hidden && getComputedStyle(packImg).opacity); },
+    // UI state
+    get pngVisible()   { return safe(() => !packImg.hidden && getComputedStyle(packImg).opacity); },
+    get canvasHidden() { return safe(() => threeCanvas.hidden); },
+    get canvasOpacity(){ return safe(() => getComputedStyle(threeCanvas).opacity); },
+    get ctaDisabled()  { return safe(() => cta.disabled); },
 
-    // objects to poke at (may be undefined)
-    get packs3D()     { return safe(() => packs3D); },
-    get packImg()     { return safe(() => packImg); },
-    get threeCanvas() { return safe(() => threeCanvas); },
-    get cta()         { return safe(() => cta); },
+    // objects
+    get packs3D()      { return safe(() => packs3D); },
+    get packImg()      { return safe(() => packImg); },
+    get threeCanvas()  { return safe(() => threeCanvas); },
+    get cta()          { return safe(() => cta); },
   };
 
-  // Publish to window every time (module-safe)
-  if (typeof window !== 'undefined') window.__packsDebug = dbg;
+  if (typeof window !== 'undefined') {
+    // Always attach inside the widget
+    window.__packsDebug = dbg;
 
-  // Breadcrumb so you can see it ran
-  console.log('[debug] __packsDebug ready');
+    // Also attach to parent *if* same-origin (so you can use the parent console)
+    try {
+      if (window.parent && window.parent !== window) {
+        // Accessing parent.location throws if cross-origin, hence the try/catch
+        if (window.parent.location.origin === window.location.origin) {
+          window.parent.__packsDebug = dbg;
+        }
+      }
+    } catch {}
+
+    console.log('[debug] __packsDebug attached', { inIframe: window.parent !== window });
+  }
 })();
+
