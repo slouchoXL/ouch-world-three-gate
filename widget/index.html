@@ -342,7 +342,7 @@
   </script>
 
   <!-- Three.js + loaders + controls + post FX -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
   <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
   <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -590,7 +590,17 @@
       // ===== Scene Management =====
       function initCarouselScene() {
         const container = document.getElementById('select3d');
-        if (!container) return;
+        if (!container) {
+          console.error('select3d container not found');
+          return;
+        }
+
+        // Wait for container to have dimensions
+        if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+          console.warn('Container has no dimensions, retrying...');
+          setTimeout(() => initCarouselScene(), 100);
+          return;
+        }
 
         carouselScene = new THREE.Scene();
         carouselScene.background = new THREE.Color(0x000000);
@@ -1331,31 +1341,25 @@
 
       // ===== CTA Management =====
                       function updateCTA() {
-                        const ctaBtn = document.getElementById('cta');
-                        if (!ctaBtn) return;
-
                         switch (phase) {
                           case 'select':
-                            ctaBtn.textContent = 'Choose Pack';
-                            ctaBtn.disabled = false;
-                            ctaBtn.onclick = startHandoff;
+                            bindCTA(
+                              startHandoff,
+                              packLoading ? 'Loading pack…' : 'Choose Pack',
+                              packLoading || !packReady
+                            );
                             break;
                           case 'handoff':
-                            ctaBtn.disabled = true;
+                            bindCTA(null, 'Preparing…', true);
                             break;
                           case 'open':
-                            ctaBtn.textContent = 'Open Packs'; // plural per roadmap
-                            ctaBtn.disabled = false;
-                            ctaBtn.onclick = onOpenClick;
+                            bindCTA(onOpenClick, 'Open Packs', false);
                             break;
                           case 'reveal':
-                            ctaBtn.textContent = 'Click item to accept';
-                            ctaBtn.disabled = true;
+                            bindCTA(null, 'Click item to accept', true);
                             break;
                           case 'done':
-                            ctaBtn.textContent = 'Add to collection';
-                            ctaBtn.disabled = false;
-                            ctaBtn.onclick = onCollectClick;
+                            bindCTA(onCollectClick, 'Add to collection', false);
                             break;
                         }
                       }
@@ -2040,13 +2044,36 @@
                       
                       async function init() {
                         try {
-                          // Check WebGL support
+                          // Check WebGL support first
                           const canvas = document.createElement('canvas');
                           const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
                           if (!gl) {
-                            console.warn('WebGL not supported - falling back to 2D mode');
+                            console.warn('WebGL not supported - using 2D fallback');
                             return initFallback();
                           }
+
+                          // Check if GLB assets exist
+                          const testLoad = new Promise((resolve, reject) => {
+                            const testLoader = new THREE.GLTFLoader();
+                            testLoader.load('/assets/models/base_pack.glb', resolve, undefined, reject);
+                          });
+
+                          await Promise.race([
+                            testLoad,
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('Asset load timeout')), 5000))
+                          ]);
+
+                          // If we get here, 3D should work
+                          initLoaders();
+                          initCarouselScene();
+                          initStageScene();
+                          setupInputHandling();
+                          
+                        } catch (e) {
+                          console.error('3D initialization failed:', e);
+                          return initFallback();
+                        }
+                      }
                           
                           // Initialize 3D system
                           initLoaders();
@@ -2058,28 +2085,31 @@
                           try {
                             const packsResp = await jfetch('/api/packs');
                             if (packsResp.packs && packsResp.packs.length > 0) {
-                              const realPack = packsResp.packs[0]; // Use first pack from backend
-                              console.log('Using real pack data:', realPack);
+                              const realPack = packsResp.packs[0];
                               
-                              // Update packConfigs with real backend data
+                              // Validate required fields
+                              if (!realPack.id || !realPack.name || !realPack.price) {
+                                throw new Error('Invalid pack data from backend');
+                              }
+                              
                               packConfigs[0] = {
-                                id: realPack.id,           // "starter" from your JSON
-                                name: realPack.name,       // "Starter Pack"
-                                glb: '/assets/models/starter_pack.glb', // You may need to create this GLB
+                                id: realPack.id,
+                                name: realPack.name,
+                                glb: `/assets/models/${realPack.id}_pack.glb`, // Dynamic path
                                 openAnim: 'Open',
-                                price: realPack.price      // { amount: 100, currency: "Credits" }
+                                price: realPack.price
                               };
-                              
-                              console.log('Updated pack config:', packConfigs[0]);
-                            } else {
-                              console.warn('No packs returned from backend, using fallback');
                             }
                           } catch (packError) {
-                            console.error('Failed to fetch pack data:', packError);
-                            // Keep default config but update the ID to match your backend
-                            packConfigs[0].id = 'starter';
-                            packConfigs[0].name = 'Starter Pack';
-                            packConfigs[0].price = { amount: 100, currency: 'Credits' };
+                            console.error('Pack fetch failed:', packError);
+                            // Keep working defaults
+                            packConfigs[0] = {
+                              id: 'starter',
+                              name: 'Starter Pack',
+                              glb: '/assets/pack.png', // Fallback to 2D
+                              openAnim: 'Open',
+                              price: { amount: 100, currency: 'COIN' }
+                            };
                           }
                           
                           // Check authentication
