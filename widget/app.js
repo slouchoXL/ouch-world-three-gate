@@ -247,7 +247,7 @@ async function crossfade(a, b, ms = 350) {
 const threeCanvas = $('#three-canvas');
 let packs3D = null;
 
-// ===== Step 1: Minimal 3D Scene Manager (stub) =====
+// ===== Step 1: Minimal 3D Scene Manager (stub) =====// ===== Step 1+3: 3D Scene Manager with sequential reveal =====
 class PacksSceneManager {
   constructor(canvas) {
     this.canvas = canvas;
@@ -269,18 +269,35 @@ class PacksSceneManager {
     dir.position.set(2, 4, 3);
     this.scene.add(dir);
 
-    // placeholder mesh (replace later with pack GLB)
+    // placeholder pack (cube) — hidden during reveal
     const geo = new THREE.BoxGeometry(1.4, 1.4, 1.4);
     const mat = new THREE.MeshStandardMaterial({ metalness: 0.2, roughness: 0.5 });
     this.cube = new THREE.Mesh(geo, mat);
     this.scene.add(this.cube);
 
-    // DPR + initial size
+    // --- Step 3: sequential reveal state ---
+    this.reveal = {
+      items: [],             // raw 5 items
+      groups: [],            // THREE.Group per item
+      status: [],            // 'pending' | 'active' | 'accepted'
+      activeIndex: -1,
+      accepting: false,
+      acceptAnim: null,      // { t0, dur, start, end, startScale, endScale }
+      groupRoot: new THREE.Group()
+    };
+    this.scene.add(this.reveal.groupRoot);
+
+    // callbacks the app can set
+    this.onAcceptProgress = null;  // (acceptedCount, total)
+    this.onAllAccepted   = null;   // ()
+
+    // sizing / timing
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this._resize(); // sets sizes + camera aspect
+    this._resize();
+    this._raf = null;
+    this._lastNow = 0;
 
     // binders
-    this._raf = null;
     this._tick = this._tick.bind(this);
     this._onResize = this._onResize.bind(this);
     this._onVisibility = this._onVisibility.bind(this);
@@ -294,12 +311,10 @@ class PacksSceneManager {
   }
 
   _resize() {
-    // fit to the canvas’ CSS size
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
     if (w === 0 || h === 0) return;
 
-    // update renderer size only if needed
     const needResize =
       this.canvas.width  !== Math.floor(w * this.renderer.getPixelRatio()) ||
       this.canvas.height !== Math.floor(h * this.renderer.getPixelRatio());
@@ -311,22 +326,192 @@ class PacksSceneManager {
     }
   }
 
+  // ---------- Step 3 helpers & API ----------
+  _getRarityColor(r) {
+    const map = {
+      common:    0x64748B,
+      rare:      0x3B82F6,
+      epic:      0xA855F7,
+      legendary: 0xF59E0B,
+    };
+    return map[(r || 'common').toLowerCase()] || map.common;
+  }
+
+  _buildPlaceholder(item) {
+    const g = new THREE.Group();
+
+    const geo = new THREE.BoxGeometry(0.6, 0.35, 0.2);
+    const color = this._getRarityColor(item.rarity);
+    const mat = new THREE.MeshStandardMaterial({
+      color,
+      metalness: 0.2,
+      roughness: 0.4,
+      emissive: new THREE.Color(color),
+      emissiveIntensity:
+        item.rarity === 'legendary' ? 0.8 :
+        item.rarity === 'epic'      ? 0.55 :
+        item.rarity === 'rare'      ? 0.35 : 0.18
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    g.add(mesh);
+
+    g.userData = { rot: Math.random() * Math.PI * 2, easeIn: null };
+    g.position.set(0, 0.25, 0);
+    g.visible = false;
+    g.scale.setScalar(0.001);
+    return g;
+  }
+
+  // Hide/show the pack placeholder (cube) during reveal
+  hidePack() { if (this.cube) this.cube.visible = false; }
+  showPack() { if (this.cube) { this.cube.visible = true; this.cube.scale.setScalar(1); } }
+
+  // Public: load items (placeholders for now)
+  setItems(items = []) {
+    // clear previous
+    for (const grp of this.reveal.groups) this.reveal.groupRoot.remove(grp);
+    this.reveal.items = items.slice(0, 5);
+    this.reveal.groups = [];
+    this.reveal.status = [];
+    this.reveal.activeIndex = -1;
+    this.reveal.accepting = false;
+    this.reveal.acceptAnim = null;
+
+    for (let i = 0; i < this.reveal.items.length; i++) {
+      const grp = this._buildPlaceholder(this.reveal.items[i]);
+      this.reveal.groupRoot.add(grp);
+      this.reveal.groups.push(grp);
+      this.reveal.status.push('pending');
+    }
+  }
+
+  // Public: show only item i
+  showActive(i) {
+    if (!this.reveal.groups[i]) return;
+    this.reveal.groups.forEach((g, idx) => {
+      if (!g) return;
+      g.visible = (idx === i);
+      if (idx !== i) g.scale.setScalar(0.001);
+    });
+    this.reveal.activeIndex = i;
+    this.reveal.status[i] = 'active';
+    const g = this.reveal.groups[i];
+    g.userData.easeIn = { t0: performance.now(), dur: 220 };
+  }
+
+  // Public: accept current → arc to tray, then advance
+  acceptActive() {
+    if (this.reveal.accepting) return;
+    const i = this.reveal.activeIndex;
+    const g = this.reveal.groups[i];
+    if (!g || this.reveal.status[i] !== 'active') return;
+
+    this.reveal.accepting = true;
+    this.reveal.status[i] = 'accepted';
+
+    const now = performance.now();
+    this.reveal.acceptAnim = {
+      t0: now,
+      dur: 320,
+      start: g.position.clone(),
+      end: new THREE.Vector3(0.9, -0.3, -0.4), // toward tray; tweak as needed
+      startScale: g.scale.x,
+      endScale: 0.001
+    };
+  }
+
+  // Per-frame update for reveal & accept
+  _updateReveal(deltaMs) {
+    const rv = this.reveal;
+    if (!rv.groups.length) return;
+
+    // idle motion for active
+    const i = rv.activeIndex;
+    if (i >= 0) {
+      const g = rv.groups[i];
+      if (g && g.visible) {
+        g.userData.rot += deltaMs * 0.0012;
+        g.rotation.y = g.userData.rot;
+        g.position.y = 0.25 + Math.sin(g.userData.rot * 2.0) * 0.03;
+      }
+    }
+
+    // ease-in for active
+    if (i >= 0) {
+      const g = rv.groups[i];
+      const ease = g?.userData?.easeIn;
+      if (ease) {
+        const t = performance.now() - ease.t0;
+        const a = Math.min(1, t / ease.dur);
+        const eased = a < 1 ? (1 - Math.cos(Math.PI * a)) * 0.5 : 1; // cosine ease
+        const s = 0.001 + (0.999 * eased);
+        g.scale.setScalar(s);
+        if (a >= 1) g.userData.easeIn = null;
+      }
+    }
+
+    // accept animation
+    if (rv.accepting && rv.acceptAnim) {
+      const { t0, dur, start, end, startScale, endScale } = rv.acceptAnim;
+      const t = performance.now() - t0;
+      const a = Math.min(1, t / dur);
+
+      // quadratic bezier arc (lifted mid control point)
+      const cp = start.clone().lerp(end, 0.5).add(new THREE.Vector3(0, 0.35, 0));
+      const p1 = start.clone().lerp(cp, a);
+      const p2 = cp.clone().lerp(end, a);
+      const pos = p1.lerp(p2, a);
+
+      const g = rv.groups[rv.activeIndex];
+      if (g) {
+        g.position.copy(pos);
+        const s = startScale + (endScale - startScale) * a;
+        g.scale.setScalar(s);
+        g.visible = true;
+      }
+
+      if (a >= 1) {
+        const acceptedCount = rv.status.filter(s => s === 'accepted').length;
+        if (g) g.visible = false;
+
+        rv.accepting = false;
+        rv.acceptAnim = null;
+
+        const nextIdx = rv.status.findIndex(s => s === 'pending');
+        if (typeof this.onAcceptProgress === 'function') {
+          this.onAcceptProgress(acceptedCount, rv.items.length);
+        }
+        if (nextIdx >= 0) {
+          this.showActive(nextIdx);
+        } else {
+          rv.activeIndex = -1;
+          if (typeof this.onAllAccepted === 'function') this.onAllAccepted();
+        }
+      }
+    }
+  }
+
   _tick(now) {
-    // cheap idle anim for visual confirmation
-    const t = (now || 0) * 0.001;
-    if (this.cube) {
+    const ts = (typeof now === 'number') ? now : performance.now();
+    const deltaMs = this._lastNow ? (ts - this._lastNow) : 16;
+    this._lastNow = ts;
+
+    // idle pack rotation (only if visible)
+    if (this.cube && this.cube.visible) {
+      const t = ts * 0.001;
       this.cube.rotation.y = t * 0.6;
       this.cube.rotation.x = t * 0.25;
     }
+
+    // step 3 updates
+    this._updateReveal(deltaMs);
 
     this._resize();
     this.renderer.render(this.scene, this.camera);
     this._raf = requestAnimationFrame(this._tick);
   }
 
-  _onResize() {
-    this._resize();
-  }
+  _onResize() { this._resize(); }
 
   _onVisibility() {
     if (document.hidden) {
@@ -336,18 +521,6 @@ class PacksSceneManager {
     }
     if (!this._raf) this._tick();
   }
-    
-    // 👉 ADD THESE HELPERS INSIDE THE CLASS
-    hidePack() {
-      if (this.cube) this.cube.visible = false;
-    }
-    showPack() {
-      if (this.cube) {
-        this.cube.visible = true;
-        this.cube.scale.setScalar(1);
-      }
-    }
-    // 👈 END OF HELPERS
 
   dispose() {
     window.removeEventListener('resize', this._onResize);
@@ -355,7 +528,6 @@ class PacksSceneManager {
     if (this._raf) cancelAnimationFrame(this._raf);
     this._raf = null;
 
-    // dispose basic resources
     this.scene.traverse((obj) => {
       if (obj.isMesh) {
         obj.geometry?.dispose?.();
