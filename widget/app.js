@@ -251,6 +251,7 @@ async function crossfade(a, b, ms = 350) {
 const threeCanvas = $('#three-canvas');
 let packs3D = null;
 
+// Resolve folders relative to this file (works inside iframe/subpaths)
 const WIDGET_BASE = new URL('.', import.meta.url).href;
 const ASSET_DIRS = [
   new URL('assets/3d/', WIDGET_BASE).href,
@@ -258,15 +259,18 @@ const ASSET_DIRS = [
   new URL('assets/', WIDGET_BASE).href,
 ];
 
-const ITEM_ASSETS = {
-  stem:     "/assets/models/usb.glb",
-  lore:     "/assets/models/paper.glb",
-  artwork:  "/assets/models/cover.glb",
-  booster:  "/assets/models/booster.glb",
-  skin:     "/assets/models/metahuman.glb",
-  other:    "/assets/models/box.glb",
-  fallback: "/assets/models/box.glb",
+// Canonical type -> candidate filenames (try in order)
+const ASSET_FILES = {
+  stem:       ['usb.glb'],
+  lore:       ['paper.glb'],
+  artwork:    ['cover.glb'],
+  booster:    ['booster.glb'],
+  unreleased: ['CD.glb', 'cd.glb'],   // try both casings
+  skin:       ['metahuman.glb'],
+  other:      ['box.glb'],
+  fallback:   ['box.glb'],
 };
+
 
 // ===== Step 1: Minimal 3D Scene Manager (stub) =====// ===== Step 1+3: 3D Scene Manager with sequential reveal =====
 class PacksSceneManager {
@@ -369,33 +373,44 @@ class PacksSceneManager {
     return map[(r || 'common').toLowerCase()] || map.common;
   }
     
-    // Try to infer a canonical type from various fields
+    // 1) Infer canonical type from item fields OR fall back from rarity
     _inferItemType(item) {
-      const raw =
-        (item?.type ?? item?.category ?? item?.kind ?? item?.label ?? item?.name ?? '')
-          .toString().toLowerCase();
+      const raw = [
+        item?.type, item?.category, item?.kind, item?.label, item?.name
+      ].filter(Boolean).join(' ').toLowerCase();
 
-      // direct matches
-      if (/(^|\b)(stem|usb)(\b|$)/.test(raw)) return 'stem';
-      if (/(^|\b)(lore|paper|note|story)(\b|$)/.test(raw)) return 'lore';
-      if (/(^|\b)(art|artwork|cover|image|poster)(\b|$)/.test(raw)) return 'artwork';
-      if (/(^|\b)(booster|boost|prob(ability)?)(\b|$)/.test(raw)) return 'booster';
-      if (/(^|\b)(skin|metahuman|avatar|character)(\b|$)/.test(raw)) return 'skin';
+      // direct keyword buckets
+      if (/\b(stem|usb)\b/.test(raw)) return 'stem';
+      if (/\b(lore|paper|note|story)\b/.test(raw)) return 'lore';
+      if (/\b(art|artwork|cover|poster|image)\b/.test(raw)) return 'artwork';
+      if (/\b(booster|boost|prob(ability)?)\b/.test(raw)) return 'booster';
+      if (/\b(unreleased|cd|disc|album)\b/.test(raw)) return 'unreleased';
+      if (/\b(skin|metahuman|avatar|character)\b/.test(raw)) return 'skin';
 
-      // if backend gives the exact canonical word already
-      if (['stem','lore','artwork','booster','skin','other'].includes(raw)) return raw;
+      // exact canonical type already
+      if (['stem','lore','artwork','booster','unreleased','skin','other'].includes(raw)) return raw;
 
-      // fallback
-      return 'other';
+      // fallback by rarity (your breakdown)
+      const r = String(item?.rarity || '').toLowerCase();
+      if (r === 'legendary') return 'skin';
+      if (r === 'epic')      return 'unreleased';
+      if (r === 'rare')      return 'artwork'; // if this specific item is a Booster, keyword above will catch it
+      // common: split between stem and lore; prefer stem unless we see paper-ish words
+      return /\b(lore|paper|note|story)\b/.test(raw) ? 'lore' : 'stem';
     }
 
-    // Build a list of candidate URLs to try for the inferred type
+    // 2) Build candidate URLs from canonical type (tries multiple folders + casings)
     _getItemCandidates(item) {
-      const t = this._inferItemType(item);
-      const file = ITEM_ASSETS[t] || ITEM_ASSETS.other || ITEM_ASSETS.fallback || 'box.glb';
-      return ASSET_DIRS.map(dir => dir + file);
+      const canonical = this._inferItemType(item);
+      const files = ASSET_FILES[canonical] || ASSET_FILES.other || ASSET_FILES.fallback;
+      const urls = [];
+      for (const dir of ASSET_DIRS) {
+        for (const fname of files) urls.push(dir + fname);
+      }
+      return urls;
     }
 
+    // (keep your cached loader; identical logic okay)
     _loadGLBOnce(url) {
       if (this.assetCache.has(url)) return this.assetCache.get(url);
       const p = new Promise((resolve, reject) => {
@@ -408,25 +423,7 @@ class PacksSceneManager {
       return p;
     }
 
-    // Fit and center a model so it always looks good (no tiny/huge surprises)
-    _normalizeModel(root, targetSize = 0.6) {
-      const box = new THREE.Box3().setFromObject(root);
-      const size = new THREE.Vector3();
-      box.getSize(size);
-      const maxDim = Math.max(size.x, size.y, size.z) || 1;
-
-      const scale = targetSize / maxDim;
-      root.scale.multiplyScalar(scale);
-
-      // Recompute and center
-      const box2 = new THREE.Box3().setFromObject(root);
-      const center = new THREE.Vector3();
-      box2.getCenter(center);
-      root.position.sub(center);         // center at origin
-      root.position.y += 0.25;           // lift a bit to match your stage
-    }
-
-    // Attach the real GLB to an item group, replacing the placeholder box child
+    // 3) Attach the real model; try candidates in order; keep placeholder if all fail
     async _attachGLBToGroup(item, group) {
       const candidates = this._getItemCandidates(item);
 
@@ -436,27 +433,31 @@ class PacksSceneManager {
         if (gltf) break;
       }
       if (!gltf) {
-        console.warn("[3D] All candidate URLs failed for item:", item);
-        return; // keep placeholder
+        console.warn("[3D] All candidate URLs failed for item:", { item });
+        return; // keep rarity-colored placeholder
       }
 
-      // Clone safely (skins)
+      // Safe clone & normalize to camera framing
       let root = cloneSkeleton(gltf.scene);
-
-      // Clean up materials and fit to frame
       root.traverse((o) => {
         if (o.isMesh) {
-          o.castShadow = false;
-          o.receiveShadow = false;
-          if (o.material) {
-            o.material.transparent = !!o.material.transparent;
-            o.material.depthWrite = true;
-          }
+          o.castShadow = false; o.receiveShadow = false;
+          if (o.material) { o.material.depthWrite = true; }
         }
       });
-      this._normalizeModel(root, 0.6);
 
-      // Remove placeholder cube child[0], if present
+      // Fit to ~0.6m bounding-size and center a bit above stage
+      const box = new THREE.Box3().setFromObject(root);
+      const size = new THREE.Vector3(); box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      const scale = 0.6 / maxDim;
+      root.scale.multiplyScalar(scale);
+      const box2 = new THREE.Box3().setFromObject(root);
+      const center = new THREE.Vector3(); box2.getCenter(center);
+      root.position.sub(center);
+      root.position.y += 0.25;
+
+      // Swap out the placeholder box (child[0])
       try {
         const placeholder = group.children[0];
         if (placeholder) {
@@ -465,9 +466,9 @@ class PacksSceneManager {
           placeholder.material?.dispose?.();
         }
       } catch {}
-
       group.add(root);
     }
+
 
     
     _getItemUrl(type) {
