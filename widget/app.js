@@ -275,12 +275,27 @@ class PacksSceneManager {
     this.cube = new THREE.Mesh(geo, mat);
     this.scene.add(this.cube);
 
-    // DPR + initial size
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this._resize(); // sets sizes + camera aspect
+    // --- Step 3: sequential reveal state ---
+    this.reveal = {
+      items: [],             // raw 5 items
+      groups: [],            // THREE.Group per item
+      status: [],            // 'pending' | 'active' | 'accepted'
+      activeIndex: -1,
+      accepting: false,
+      acceptAnim: null,      // { t0, dur, start, end, startScale, endScale }
+      groupRoot: new THREE.Group()
+    };
+    this.scene.add(this.reveal.groupRoot);
+
+    // callbacks the app can set
+    this.onAcceptProgress = null;  // (acceptedCount, total)
+    this.onAllAccepted   = null;   // ()
+
+    // timing
+    this._raf = null;
+    this._lastNow = 0;
 
     // binders
-    this._raf = null;
     this._tick = this._tick.bind(this);
     this._onResize = this._onResize.bind(this);
     this._onVisibility = this._onVisibility.bind(this);
@@ -311,13 +326,190 @@ class PacksSceneManager {
     }
   }
 
+  // --- Step 3 helpers ---
+  _getRarityColor(r) {
+    const map = {
+      common:    0x64748B,
+      rare:      0x3B82F6,
+      epic:      0xA855F7,
+      legendary: 0xF59E0B,
+    };
+    return map[(r || 'common').toLowerCase()] || map.common;
+  }
+
+  _buildPlaceholder(item) {
+    const g = new THREE.Group();
+
+    // base shape (colored by rarity)
+    const geo = new THREE.BoxGeometry(0.6, 0.35, 0.2);
+    const color = this._getRarityColor(item.rarity);
+    const mat = new THREE.MeshStandardMaterial({
+      color,
+      metalness: 0.2,
+      roughness: 0.4,
+      emissive: new THREE.Color(color),
+      emissiveIntensity:
+        item.rarity === 'legendary' ? 0.8 :
+        item.rarity === 'epic'      ? 0.55 :
+        item.rarity === 'rare'      ? 0.35 : 0.18
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    g.add(mesh);
+
+    // idle motion seed
+    g.userData = { rot: Math.random() * Math.PI * 2, easeIn: null };
+
+    // start hidden and tiny at center
+    g.position.set(0, 0.25, 0);
+    g.visible = false;
+    g.scale.setScalar(0.001);
+
+    return g;
+  }
+
+  // Public API for Step 3
+  setItems(items = []) {
+    // clear previous
+    for (const grp of this.reveal.groups) this.reveal.groupRoot.remove(grp);
+    this.reveal.items = items.slice(0, 5);
+    this.reveal.groups = [];
+    this.reveal.status = [];
+    this.reveal.activeIndex = -1;
+    this.reveal.accepting = false;
+    this.reveal.acceptAnim = null;
+
+    for (let i = 0; i < this.reveal.items.length; i++) {
+      const grp = this._buildPlaceholder(this.reveal.items[i]);
+      this.reveal.groupRoot.add(grp);
+      this.reveal.groups.push(grp);
+      this.reveal.status.push('pending');
+    }
+  }
+
+  showActive(i) {
+    if (!this.reveal.groups[i]) return;
+    // hide all others
+    this.reveal.groups.forEach((g, idx) => {
+      if (!g) return;
+      g.visible = (idx === i);
+      if (idx !== i) g.scale.setScalar(0.001);
+    });
+    this.reveal.activeIndex = i;
+    this.reveal.status[i] = 'active';
+    const g = this.reveal.groups[i];
+    g.userData.easeIn = { t0: performance.now(), dur: 220 };
+  }
+
+  acceptActive() {
+    if (this.reveal.accepting) return;
+    const i = this.reveal.activeIndex;
+    const g = this.reveal.groups[i];
+    if (!g || this.reveal.status[i] !== 'active') return;
+
+    this.reveal.accepting = true;
+    this.reveal.status[i] = 'accepted';
+
+    const now = performance.now();
+    this.reveal.acceptAnim = {
+      t0: now,
+      dur: 320,
+      start: g.position.clone(),
+      end: new THREE.Vector3(0.9, -0.3, -0.4), // toward tray, tweak to taste
+      startScale: g.scale.x,
+      endScale: 0.001
+    };
+  }
+
+  _updateReveal(deltaMs) {
+    const rv = this.reveal;
+    if (!rv.groups.length) return;
+
+    // idle motion for active
+    const i = rv.activeIndex;
+    if (i >= 0) {
+      const g = rv.groups[i];
+      if (g && g.visible) {
+        g.userData.rot += deltaMs * 0.0012;
+        g.rotation.y = g.userData.rot;
+        const bob = Math.sin(g.userData.rot * 2.0) * 0.03;
+        g.position.y = 0.25 + bob;
+      }
+    }
+
+    // ease-in scale for active
+    if (i >= 0) {
+      const g = rv.groups[i];
+      const ease = g?.userData?.easeIn;
+      if (ease) {
+        const t = performance.now() - ease.t0;
+        const a = Math.min(1, t / ease.dur);
+        const eased = a < 1 ? (1 - Math.cos(Math.PI * a)) * 0.5 : 1;
+        const s = 0.001 + (0.999 * eased);
+        g.scale.setScalar(s);
+        if (a >= 1) g.userData.easeIn = null;
+      }
+    }
+
+    // accept animation
+    if (rv.accepting && rv.acceptAnim) {
+      const { t0, dur, start, end, startScale, endScale } = rv.acceptAnim;
+      const t = performance.now() - t0;
+      const a = Math.min(1, t / dur);
+
+      // quadratic bezier arc
+      const cp = start.clone().lerp(end, 0.5).add(new THREE.Vector3(0, 0.35, 0));
+      const p1 = start.clone().lerp(cp, a);
+      const p2 = cp.clone().lerp(end, a);
+      const pos = p1.lerp(p2, a);
+
+      const g = rv.groups[rv.activeIndex];
+      if (g) {
+        g.position.copy(pos);
+        const s = startScale + (endScale - startScale) * a;
+        g.scale.setScalar(s);
+        g.visible = true;
+      }
+
+      if (a >= 1) {
+        const acceptedCount = rv.status.filter(s => s === 'accepted').length;
+        if (g) g.visible = false;
+
+        rv.accepting = false;
+        rv.acceptAnim = null;
+
+        const nextIdx = rv.status.findIndex(s => s === 'pending');
+        if (typeof this.onAcceptProgress === 'function') {
+          this.onAcceptProgress(acceptedCount, rv.items.length);
+        }
+        if (nextIdx >= 0) {
+          this.showActive(nextIdx);
+        } else {
+          rv.activeIndex = -1;
+          if (typeof this.onAllAccepted === 'function') {
+            this.onAllAccepted();
+          }
+        }
+      }
+    }
+  }
+
   _tick(now) {
+    // robust timestamp (works on first manual call)
+    const ts = (typeof now === 'number') ? now : performance.now();
+    const deltaMs = this._lastNow ? (ts - this._lastNow) : 16;
+    this._lastNow = ts;
+
     // cheap idle anim for visual confirmation
-    const t = (now || 0) * 0.001;
+    const t = ts * 0.001;
     if (this.cube) {
       this.cube.rotation.y = t * 0.6;
       this.cube.rotation.x = t * 0.25;
     }
+
+    // step 3 updater
+    this._updateReveal(deltaMs);
 
     this._resize();
     this.renderer.render(this.scene, this.camera);
@@ -357,6 +549,8 @@ class PacksSceneManager {
 if (enable3D && threeCanvas) {
   // keep hidden; we’ll reveal on first click via crossfade
   threeCanvas.hidden = true;
+  // ensure base opacity is 0 for clean crossfades
+  if (!threeCanvas.style.opacity) threeCanvas.style.opacity = '0';
   packs3D = new PacksSceneManager(threeCanvas);
   window.__packs3D = packs3D;
 }
@@ -367,7 +561,7 @@ if (typeof window !== 'undefined') {
     // flags
     get wants3D()   { return typeof wants3D   !== 'undefined' ? wants3D   : undefined; },
     get enable3D()  { return typeof enable3D  !== 'undefined' ? enable3D  : undefined; },
-    get hasHandoff(){ return typeof hasHandoff!== 'undefined' ? hasHandoff: undefined; }, // ok if you haven't added it yet
+    get hasHandoff(){ return typeof hasHandoff!== 'undefined' ? hasHandoff: undefined; },
 
     // UI state
     get ctaDisabled()    { try { return !!cta?.disabled; } catch { return undefined; } },
@@ -825,7 +1019,7 @@ async function onOpenClick(){
       console.error('❌ Failed to refresh inventory after pack opening:', e);
     }
       
-      // 🔹 // 🔹 Step 2.1 — cinematic rarity burst (ensure it's visible above stack)
+      // 🔹 Step 2.1 — cinematic rarity burst (ensure it's visible above stack)
       if (
         enable3D &&
         threeCanvas &&
@@ -834,23 +1028,60 @@ async function onOpenClick(){
         opening.results.length === 5
       ) {
         // Temporarily raise canvas above any PNG/card overlays
-        const prevZ = threeCanvas.style.zIndex;
+        var prevZ = threeCanvas.style.zIndex;
+        var prevPE = threeCanvas.style.pointerEvents;
         threeCanvas.style.zIndex = '999';   // higher than your stack/tray
+        threeCanvas.style.pointerEvents = 'auto'; // allow canvas click to accept
         threeCanvas.hidden = false;         // belt & braces
         threeCanvas.style.opacity = '1';
 
         // Fire burst
         window.__packsBurstFrom(opening.results);
 
-        // Let the burst finish before showing the 2D stack (prevents occlusion)
+        // Let the burst finish before reveal begins
         await new Promise(r => setTimeout(r, 900));
-
-        // Restore original z-index
-        threeCanvas.style.zIndex = prevZ || '9';
       }
 
-      // proceed with your existing 2D reveal
-      showStack(opening.results);
+      // --- Step 3: 3D sequential reveal (strict order 1→5) ---
+      if (enable3D && packs3D && Array.isArray(opening.results) && opening.results.length === 5) {
+        // Prepare placeholders for the 5 items
+        packs3D.setItems(opening.results);
+        packs3D.showActive(0);
+
+        // Wire CTA and (optionally) canvas click to accept active
+        let acceptedCount = 0;
+        cta.hidden = false;
+        cta.disabled = false;
+        cta.textContent = `Take item (1/5)`;
+        cta.onclick = null;
+        const onAcceptClick = () => packs3D.acceptActive();
+        cta.addEventListener('click', onAcceptClick);
+
+        const onCanvasClick = () => packs3D.acceptActive();
+        threeCanvas.addEventListener('click', onCanvasClick);
+
+        packs3D.onAcceptProgress = (n, total) => {
+          acceptedCount = n;
+          const next = Math.min(n + 1, total);
+          cta.textContent = `Take item (${next}/${total})`;
+        };
+
+        packs3D.onAllAccepted = () => {
+          // cleanup listeners and restore canvas z-index / pointer-events
+          cta.removeEventListener('click', onAcceptClick);
+          threeCanvas.removeEventListener('click', onCanvasClick);
+          threeCanvas.style.zIndex = prevZ || '9';
+          threeCanvas.style.pointerEvents = prevPE || '';
+
+          // proceed to your existing 2D tray summary (no extra stack clicks)
+          showTray(opening.results);
+        };
+
+        // stop here — we won't call showStack now
+      } else {
+        // 2D fallback (no WebGL or not exactly 5 items)
+        showStack(opening.results);
+      }
 
   } catch(e){
     console.error('❌ Pack opening failed:', e);
@@ -1296,4 +1527,3 @@ init();
   // Breadcrumb so you can see the patch loaded
   console.log('[burst] Step 2.1 patch ready');
 })();
-
