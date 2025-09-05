@@ -6,11 +6,11 @@ if (typeof window !== 'undefined' && window.__PACKS_API_BASE) {
 BASE = BASE.replace(/\/+$/, ''); // trim trailing slashes
 
 
-import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
-import { DRACOLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js";
-import { clone as cloneSkeleton } from "https://unpkg.com/three@0.160.0/examples/jsm/utils/SkeletonUtils.js";
 
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 
 // ===== Supabase client (REUSE the one created in index.html) ===========
 const supa = window.supa || null; // do NOT create another client here
