@@ -7,6 +7,10 @@ BASE = BASE.replace(/\/+$/, ''); // trim trailing slashes
 
 
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js";
+import { clone as cloneSkeleton } from "https://unpkg.com/three@0.160.0/examples/jsm/utils/SkeletonUtils.js";
+
 
 // ===== Supabase client (REUSE the one created in index.html) ===========
 const supa = window.supa || null; // do NOT create another client here
@@ -247,6 +251,16 @@ async function crossfade(a, b, ms = 350) {
 const threeCanvas = $('#three-canvas');
 let packs3D = null;
 
+const ITEM_ASSETS = {
+  stem:     "/assets/models/usb.glb",
+  lore:     "/assets/models/paper.glb",
+  artwork:  "/assets/models/cover.glb",
+  booster:  "/assets/models/booster.glb",
+  skin:     "/assets/models/metahuman.glb",
+  other:    "/assets/models/box.glb",
+  fallback: "/assets/models/box.glb",
+};
+
 // ===== Step 1: Minimal 3D Scene Manager (stub) =====// ===== Step 1+3: 3D Scene Manager with sequential reveal =====
 class PacksSceneManager {
   constructor(canvas) {
@@ -274,6 +288,17 @@ class PacksSceneManager {
     const mat = new THREE.MeshStandardMaterial({ metalness: 0.2, roughness: 0.5 });
     this.cube = new THREE.Mesh(geo, mat);
     this.scene.add(this.cube);
+      
+      // Loaders + cache for item GLBs
+      this.gltf = new GLTFLoader();
+      const draco = new DRACOLoader();
+      draco.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
+      draco.setDecoderConfig({ type: "js" });
+      this.gltf.setDRACOLoader(draco);
+
+      // Cache: url -> GLTF (Promise of template scene)
+      this.assetCache = new Map();
+
 
     // --- Step 3: sequential reveal state ---
     this.reveal = {
@@ -336,31 +361,97 @@ class PacksSceneManager {
     };
     return map[(r || 'common').toLowerCase()] || map.common;
   }
+    
+    _getItemUrl(type) {
+      const t = String(type || "other").toLowerCase();
+      return ITEM_ASSETS?.[t] || ITEM_ASSETS?.other || ITEM_ASSETS?.fallback || "/assets/3d/box.glb";
+    }
 
-  _buildPlaceholder(item) {
-    const g = new THREE.Group();
+    _loadGLBOnce(url) {
+      if (this.assetCache.has(url)) return this.assetCache.get(url);
+      const p = new Promise((resolve, reject) => {
+        this.gltf.load(url, (gltf) => resolve(gltf), undefined, reject);
+      }).catch(err => {
+        console.warn("[3D] Failed to load", url, err);
+        return null;
+      });
+      this.assetCache.set(url, p);
+      return p;
+    }
 
-    const geo = new THREE.BoxGeometry(0.6, 0.35, 0.2);
-    const color = this._getRarityColor(item.rarity);
-    const mat = new THREE.MeshStandardMaterial({
-      color,
-      metalness: 0.2,
-      roughness: 0.4,
-      emissive: new THREE.Color(color),
-      emissiveIntensity:
-        item.rarity === 'legendary' ? 0.8 :
-        item.rarity === 'epic'      ? 0.55 :
-        item.rarity === 'rare'      ? 0.35 : 0.18
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    g.add(mesh);
+    // Attach the real GLB to an item group, replacing the placeholder box child
+    async _attachGLBToGroup(item, group) {
+      const url = this._getItemUrl(item.type);
+      const gltf = await this._loadGLBOnce(url);
+      if (!gltf) return;
 
-    g.userData = { rot: Math.random() * Math.PI * 2, easeIn: null };
-    g.position.set(0, 0.25, 0);
-    g.visible = false;
-    g.scale.setScalar(0.001);
-    return g;
-  }
+      // Safe clone (handles skins)
+      let root = cloneSkeleton(gltf.scene);
+
+      // Normalize: modest size, clean materials
+      root.traverse((o) => {
+        if (o.isMesh) {
+          o.castShadow = false;
+          o.receiveShadow = false;
+          if (o.material) {
+            o.material.transparent = !!o.material.transparent;
+            o.material.depthWrite = true;
+          }
+        }
+      });
+
+      // Pose/scale for your camera framing (tweak as needed)
+      const BASE_SCALE = 0.6;
+      root.scale.setScalar(BASE_SCALE);
+      root.rotation.set(0, 0, 0);
+      root.position.set(0, 0, 0);
+
+      // Remove the placeholder child (index 0) and insert GLB
+      try {
+        const placeholder = group.children[0];
+        if (placeholder) {
+          group.remove(placeholder);
+          placeholder.geometry?.dispose?.();
+          placeholder.material?.dispose?.();
+        }
+      } catch {}
+
+      group.add(root);
+    }
+
+
+    _buildPlaceholder(item) {
+      const g = new THREE.Group();
+
+      // Immediate placeholder so there’s no pop-in
+      const geo = new THREE.BoxGeometry(0.6, 0.35, 0.2);
+      const color = this._getRarityColor(item.rarity);
+      const mat = new THREE.MeshStandardMaterial({
+        color,
+        metalness: 0.2,
+        roughness: 0.4,
+        emissive: new THREE.Color(color),
+        emissiveIntensity:
+          item.rarity === 'legendary' ? 0.8 :
+          item.rarity === 'epic'      ? 0.55 :
+          item.rarity === 'rare'      ? 0.35 : 0.18
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      g.add(mesh);
+
+      // idle motion seed
+      g.userData = { rot: Math.random() * Math.PI * 2, easeIn: null };
+
+      // start hidden and tiny at center
+      g.position.set(0, 0.25, 0);
+      g.visible = false;
+      g.scale.setScalar(0.001);
+
+      // 🔹 Load real GLB asynchronously and swap it in when ready
+      this._attachGLBToGroup(item, g);
+
+      return g;
+    }
 
   // Hide/show the pack placeholder (cube) during reveal
   hidePack() { if (this.cube) this.cube.visible = false; }
