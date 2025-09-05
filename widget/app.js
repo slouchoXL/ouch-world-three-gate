@@ -252,24 +252,22 @@ const threeCanvas = $('#three-canvas');
 let packs3D = null;
 
 // Resolve folders relative to this file (works inside iframe/subpaths)
-const WIDGET_BASE = new URL('.', import.meta.url).href;
-const ASSET_DIRS = [
-  new URL('assets/3d/', WIDGET_BASE).href,
-  new URL('assets/models/', WIDGET_BASE).href,
-  new URL('assets/', WIDGET_BASE).href,
-];
+// Resolve URLs relative to this file (works in iframe/subpaths)
+const WIDGET_BASE = new URL('.', import.meta.url);
+const ASSET_DIR = new URL('assets/3d/', WIDGET_BASE);
 
-// Canonical type -> candidate filenames (try in order)
-const ASSET_FILES = {
-  stem:       ['usb.glb'],
-  lore:       ['paper.glb'],
-  artwork:    ['cover.glb'],
-  booster:    ['booster.glb'],
-  unreleased: ['CD.glb', 'cd.glb'],   // try both casings
-  skin:       ['metahuman.glb'],
-  other:      ['box.glb'],
-  fallback:   ['box.glb'],
+// Canonical type -> full URL
+const ITEM_ASSETS = {
+  stem:       new URL('usb.glb',        ASSET_DIR).href,
+  lore:       new URL('paper.glb',      ASSET_DIR).href,
+  artwork:    new URL('cover.glb',      ASSET_DIR).href,
+  booster:    new URL('booster.glb',    ASSET_DIR).href,
+  unreleased: new URL('CD.glb',         ASSET_DIR).href, // try 'CD.glb' case first
+  skin:       new URL('metahuman.glb',  ASSET_DIR).href,
+  other:      new URL('box.glb',        ASSET_DIR).href,
+  fallback:   new URL('box.glb',        ASSET_DIR).href,
 };
+
 
 
 // ===== Step 1: Minimal 3D Scene Manager (stub) =====// ===== Step 1+3: 3D Scene Manager with sequential reveal =====
@@ -471,10 +469,35 @@ class PacksSceneManager {
 
 
     
-    _getItemUrl(type) {
-      const t = String(type || "other").toLowerCase();
-      return ITEM_ASSETS?.[t] || ITEM_ASSETS?.other || ITEM_ASSETS?.fallback || "/assets/3d/box.glb";
+    // Infer a canonical type from your item + fallback by rarity, then return a URL
+    _getItemUrl(item) {
+      const raw = [
+        item?.type, item?.category, item?.kind, item?.label, item?.name
+      ].filter(Boolean).join(' ').toLowerCase();
+
+      // keyword buckets
+      if (/\b(stem|usb)\b/.test(raw)) return ITEM_ASSETS.stem;
+      if (/\b(lore|paper|note|story)\b/.test(raw)) return ITEM_ASSETS.lore;
+      if (/\b(booster|boost|prob(ability)?)\b/.test(raw)) return ITEM_ASSETS.booster;
+      if (/\b(art|artwork|cover|poster|image)\b/.test(raw)) return ITEM_ASSETS.artwork;
+      if (/\b(unreleased|cd|disc|album)\b/.test(raw)) return ITEM_ASSETS.unreleased;
+      if (/\b(skin|metahuman|avatar|character)\b/.test(raw)) return ITEM_ASSETS.skin;
+
+      // exact canonical type already
+      switch (String(item?.type || '').toLowerCase()) {
+        case 'stem': case 'lore': case 'artwork': case 'booster': case 'unreleased': case 'skin': case 'other':
+          return ITEM_ASSETS[item.type.toLowerCase()];
+      }
+
+      // fallback by rarity (your breakdown)
+      const r = String(item?.rarity || '').toLowerCase();
+      if (r === 'legendary') return ITEM_ASSETS.skin;
+      if (r === 'epic')      return ITEM_ASSETS.unreleased;
+      if (r === 'rare')      return ITEM_ASSETS.artwork; // booster will be caught by keywords above
+      // common → prefer stem unless we see paper-ish words
+      return /\b(lore|paper|note|story)\b/.test(raw) ? ITEM_ASSETS.lore : ITEM_ASSETS.stem;
     }
+
 
     _loadGLBOnce(url) {
       if (this.assetCache.has(url)) return this.assetCache.get(url);
@@ -490,7 +513,8 @@ class PacksSceneManager {
 
     // Attach the real GLB to an item group, replacing the placeholder box child
     async _attachGLBToGroup(item, group) {
-      const url = this._getItemUrl(item.type);
+        const url = this._getItemUrl(item);
+
       const gltf = await this._loadGLBOnce(url);
       if (!gltf) return;
 
