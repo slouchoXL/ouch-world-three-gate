@@ -254,7 +254,7 @@ let packs3D = null;
 // Resolve folders relative to this file (works inside iframe/subpaths)
 // Resolve URLs relative to this file (works in iframe/subpaths)
 const WIDGET_BASE = new URL('.', import.meta.url);
-const ASSET_DIR = new URL('assets/3d/', WIDGET_BASE);
+const ASSET_DIR = new URL('assets/models/', WIDGET_BASE);
 
 // Canonical type -> full URL
 const ITEM_ASSETS = {
