@@ -319,12 +319,13 @@ class PacksSceneManager {
       acceptAnim: null,      // { t0, dur, start, end, startScale, endScale }
       groupRoot: new THREE.Group()
     };
-    this.trayVisible = false;
     this.scene.add(this.reveal.groupRoot);
 
     // callbacks the app can set
     this.onAcceptProgress = null;  // (acceptedCount, total)
-    this.onAllAccepted   = null;   // ()
+    this.onAllAccepted   = null;
+      this.activeScaleFactor = 1.25;
+      this.trayScaleFactor = 1.35;   // ()
 
     // sizing / timing
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -449,8 +450,8 @@ class PacksSceneManager {
       const box = new THREE.Box3().setFromObject(root);
       const size = new THREE.Vector3(); box.getSize(size);
       const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      const scale = 0.85 / maxDim;
-      root.scale.multiplyScalar(scale);
+      const scale = 0.95 / maxDim;
+      root.scale.multiplyScalar(scale * (this.activeScaleFactor ?? 1));
       const box2 = new THREE.Box3().setFromObject(root);
       const center = new THREE.Vector3(); box2.getCenter(center);
       root.position.sub(center);
@@ -535,8 +536,8 @@ class PacksSceneManager {
       });
 
       // Pose/scale for your camera framing (tweak as needed)
-      const BASE_SCALE = 0.6;
-      root.scale.setScalar(BASE_SCALE);
+      const BASE_SCALE = 0.9;
+      root.scale.setScalar(BASE_SCALE * (this.activeScaleFactor ?? 1));
       root.rotation.set(0, 0, 0);
       root.position.set(0, 0, 0);
 
@@ -639,7 +640,6 @@ class PacksSceneManager {
       t0: now,
       dur: 320,
       start: g.position.clone(),
-      end: this._getNextTraySlot(),
       end: new THREE.Vector3(0.9, -0.3, -0.4), // toward tray; tweak as needed
       startScale: g.scale.x,
       endScale: 0.001
@@ -756,96 +756,13 @@ class PacksSceneManager {
 
     this.scene.traverse((obj) => {
       if (obj.isMesh) {
-        if (obj.geometry && obj.geometry.dispose) obj.geometry.dispose();
-        if (obj.material && obj.material.dispose) obj.material.dispose();
+        obj.geometry?.dispose?.();
+        if (obj.material?.dispose) obj.material.dispose();
       }
     });
     this.renderer.dispose();
   }
-}  // <-- end class PacksSceneManager
-
-/* ===== 3D Tray helpers (post-class) ===== */
-PacksSceneManager.prototype.setTrayVisibility = function(show){
-  this.trayVisible = !!show;
-  this.refreshTrayGroups && this.refreshTrayGroups();
-};
-
-PacksSceneManager.prototype.updateTraySlotsFromDOM = function(){
-  if (!this.renderer || !this.camera) return;
-  const canvas = this.renderer.domElement;
-  const rectCanvas = canvas.getBoundingClientRect();
-  const cards = Array.from(document.querySelectorAll('#tray .tray-card'));
-  this._traySlots = this._traySlots || [];
-  const planeZ = 0; // tray plane z
-  const plane = new THREE.Plane(new THREE.Vector3(0,0,1), -planeZ);
-  const ray = new THREE.Ray();
-  const tmpPoint = new THREE.Vector3();
-  cards.forEach((btn, i) => {
-    const r = btn.getBoundingClientRect();
-    const cx = (r.left + r.right) * 0.5 - rectCanvas.left;
-    const cy = (r.top + r.bottom) * 0.5 - rectCanvas.top;
-    const ndcX =  (cx / rectCanvas.width) * 2 - 1;
-    const ndcY = -(cy / rectCanvas.height) * 2 + 1;
-    const origin = this.camera.position.clone();
-    const dir = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(this.camera).sub(this.camera.position).normalize();
-    ray.set(origin, dir);
-    ray.intersectPlane(plane, tmpPoint);
-    this._traySlots[i] = (this._traySlots[i] || new THREE.Vector3()).copy(tmpPoint || new THREE.Vector3());
-  });
-};
-
-PacksSceneManager.prototype._getNextTraySlot = function(){
-  this._traySlots = this._traySlots || [
-    new THREE.Vector3(-1.8, -1.2, 0),
-    new THREE.Vector3(-0.9, -1.2, 0),
-    new THREE.Vector3( 0.0, -1.2, 0),
-    new THREE.Vector3( 0.9, -1.2, 0),
-    new THREE.Vector3( 1.8, -1.2, 0),
-  ];
-  const rv = this.reveal;
-  const acceptedCount = rv.status.filter(s => s === 'accepted').length;
-  return this._traySlots[Math.min(acceptedCount, this._traySlots.length-1)].clone();
-};
-
-PacksSceneManager.prototype.refreshTrayGroups = function(){
-  const rv = this.reveal;
-  if (!rv || !rv.groups) return;
-  let slot = 0;
-  for (let i=0;i<rv.groups.length;i++){
-    const g = rv.groups[i];
-    if (!g) continue;
-    if (rv.status[i] === 'accepted'){
-      const pos = (this._traySlots && this._traySlots[slot]) ? this._traySlots[slot] : null;
-      if (pos) {
-        if (this.trayVisible) { g.position.copy(pos); g.scale.setScalar(0.30); g.visible = true; } else { g.visible = false; }
-      }
-      slot++;
-    }
-  }
 }
-
-/* -- Simple 3D inspect of accepted tray item -- */
-PacksSceneManager.prototype.inspectAccepted = function(index){
-  const rv = this.reveal;
-  if (!rv || !rv.groups || !rv.groups[index]) return;
-  rv.groups.forEach((g, i) => {
-    if (!g) return;
-    if (i === index) { g.visible = true; g.position.set(0, 0.2, 0); g.scale.setScalar(0.95); }
-    else { g.visible = false; }
-  });
-  this._inspectingIndex = index;
-  const canvas = this.renderer.domElement;
-  const onExit = () => {
-    this.refreshTrayGroups();
-    if (!this.trayVisible) {
-      rv.groups.forEach(g => { if (g) g.visible = false; });
-    }
-    canvas.removeEventListener('click', onExit);
-    this._inspectingIndex = -1;
-  };
-  canvas.addEventListener('click', onExit, { once:true });
-};
-;
 
 if (enable3D && threeCanvas) {
   // keep hidden; we’ll reveal on first click via crossfade
@@ -996,29 +913,41 @@ function showTray(items){
     const img = el('img');
     img.src = cardFrontSrc(it);
     img.alt = it.name || 'Card';
+
+    
+    
     btn.classList.add('is-3d');
-    img.style.display='none';
-
-
-    btn.appendChild(img);
-    // 3D-aware click: prevent PNG overlay when 3D tray is active
+    img.style.display = 'none';
+btn.classList.add('is-3d');
+    img.style.display = 'none';
+btn.appendChild(img);
+    // 3D-aware click: prevent PNG overlay; call 3D inspect instead
 btn.addEventListener('click', () => {
-  if (btn.classList.contains('is-3d')) {
-    if (window.__packs3D && typeof window.__packs3D.inspectAccepted === 'function') {
-      const index = (typeof idx !== 'undefined') ? idx : Array.from(trayEl.querySelectorAll('.tray-card')).indexOf(btn);
-      window.__packs3D.inspectAccepted(index);
-    }
-    return;
+  if (window.__packs3D && typeof window.__packs3D.inspectAccepted === 'function') {
+    const index = idx;
+    window.__packs3D.inspectAccepted(index);
   }
-  openOverlay(btn, img.src);
 });
     trayEl.appendChild(btn);
+  function showTray(items){
+  stackEl.hidden = true;
+  trayEl.hidden  = false;
+  trayEl.classList.remove('has-preview');
+  trayEl.replaceChildren();
+
+  items.forEach((it, idx) => {
+    const pos = idx + 1;
+    const btn = el('button', 'tray-card');
+    btn.setAttribute('data-pos', String(pos));
+
+    const img = el('img');
+    img.src = cardFrontSrc(it);
+    img.alt = it.name || 'Card';
+
+    btn.appendChild(img);
+    btn.addEventListener('click', () => openOverlay(btn, img.src));
+    trayEl.appendChild(btn);
   });
-
-  // Align 3D tray to DOM & keep GLBs
-  if (packs3D && packs3D.updateTraySlotsFromDOM) packs3D.updateTraySlotsFromDOM();
-  if (packs3D && packs3D.refreshTrayGroups) packs3D.refreshTrayGroups();
-
 
   cta.textContent = 'Add to collection';
   cta.hidden = false;
@@ -1400,8 +1329,7 @@ async function onOpenClick(){
 
         // Proceed to your existing 2D tray summary
         showTray(opening.results);
-    try { packs3D.updateTraySlotsFromDOM && packs3D.updateTraySlotsFromDOM(); packs3D.setTrayVisibility && packs3D.setTrayVisibility(true); } catch(e) { console.warn(e); }
-  };
+      };
 
       // NOTE: Do not call showStack here; reveal will drive to tray.
       return;
@@ -1861,3 +1789,22 @@ init();
   console.log('[burst] Step 2.1 patch ready');
 })();
 
+
+
+/* -- Simple 3D inspect of accepted tray item -- */
+PacksSceneManager.prototype.inspectAccepted = function(index){
+  const rv = this.reveal;
+  const g = rv?.groups?.[index];
+  if (!g) return;
+  // show chosen GLB big in center; hide others
+  rv.groups.forEach((x,i) => { if (x) x.visible = (i === index); });
+  g.position.set(0, 0.25, 0);
+  g.scale.setScalar(1.15);
+  const canvas = this.renderer.domElement;
+  const onExit = () => {
+    // restore tray positions (if you have a tray layout helper)
+    if (typeof this.refreshTrayGroups === 'function') this.refreshTrayGroups();
+    canvas.removeEventListener('click', onExit);
+  };
+  canvas.addEventListener('click', onExit, { once:true });
+};
