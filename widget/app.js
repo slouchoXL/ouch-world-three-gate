@@ -319,6 +319,7 @@ class PacksSceneManager {
       acceptAnim: null,      // { t0, dur, start, end, startScale, endScale }
       groupRoot: new THREE.Group()
     };
+    this.trayVisible = false;
     this.scene.add(this.reveal.groupRoot);
 
     // callbacks the app can set
@@ -638,6 +639,7 @@ class PacksSceneManager {
       t0: now,
       dur: 320,
       start: g.position.clone(),
+      end: this._getNextTraySlot(),
       end: new THREE.Vector3(0.9, -0.3, -0.4), // toward tray; tweak as needed
       startScale: g.scale.x,
       endScale: 0.001
@@ -755,7 +757,69 @@ class PacksSceneManager {
     this.scene.traverse((obj) => {
       if (obj.isMesh) {
         obj.geometry?.dispose?.();
-        if (obj.material?.dispose) obj.material.dispose();
+        if (obj.material?.dispose) obj.material.dispose
+
+/* ===== 3D Tray helpers (post-class) ===== */
+
+PacksSceneManager.prototype.setTrayVisibility = function(show){
+  this.trayVisible = !!show;
+  this.refreshTrayGroups && this.refreshTrayGroups();
+};
+
+PacksSceneManager.prototype.updateTraySlotsFromDOM = function(){
+  if (!this.renderer || !this.camera) return;
+  const canvas = this.renderer.domElement;
+  const rectCanvas = canvas.getBoundingClientRect();
+  const cards = Array.from(document.querySelectorAll('#tray .tray-card'));
+  this._traySlots = this._traySlots || [];
+  const planeZ = 0; // tray plane z
+  const plane = new THREE.Plane(new THREE.Vector3(0,0,1), -planeZ);
+  const ray = new THREE.Ray();
+  const tmpPoint = new THREE.Vector3();
+  cards.forEach((btn, i) => {
+    const r = btn.getBoundingClientRect();
+    const cx = (r.left + r.right) * 0.5 - rectCanvas.left;
+    const cy = (r.top + r.bottom) * 0.5 - rectCanvas.top;
+    const ndcX =  (cx / rectCanvas.width) * 2 - 1;
+    const ndcY = -(cy / rectCanvas.height) * 2 + 1;
+    const origin = this.camera.position.clone();
+    const dir = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(this.camera).sub(this.camera.position).normalize();
+    ray.set(origin, dir);
+    ray.intersectPlane(plane, tmpPoint);
+    this._traySlots[i] = (this._traySlots[i] || new THREE.Vector3()).copy(tmpPoint || new THREE.Vector3());
+  });
+};
+
+PacksSceneManager.prototype._getNextTraySlot = function(){
+  this._traySlots = this._traySlots || [
+    new THREE.Vector3(-1.8, -1.2, 0),
+    new THREE.Vector3(-0.9, -1.2, 0),
+    new THREE.Vector3( 0.0, -1.2, 0),
+    new THREE.Vector3( 0.9, -1.2, 0),
+    new THREE.Vector3( 1.8, -1.2, 0),
+  ];
+  const rv = this.reveal;
+  const acceptedCount = rv.status.filter(s => s === 'accepted').length;
+  return this._traySlots[Math.min(acceptedCount, this._traySlots.length-1)].clone();
+};
+
+PacksSceneManager.prototype.refreshTrayGroups = function(){
+  const rv = this.reveal;
+  if (!rv || !rv.groups) return;
+  let slot = 0;
+  for (let i=0;i<rv.groups.length;i++){
+    const g = rv.groups[i];
+    if (!g) continue;
+    if (rv.status[i] === 'accepted'){
+      const pos = (this._traySlots && this._traySlots[slot]) ? this._traySlots[slot] : null;
+      if (pos) {
+        if (this.trayVisible) { g.position.copy(pos); g.scale.setScalar(0.22); g.visible = true; } else { g.visible = false; }
+      }
+      slot++;
+    }
+  }
+};
+();
       }
     });
     this.renderer.dispose();
@@ -911,11 +975,19 @@ function showTray(items){
     const img = el('img');
     img.src = cardFrontSrc(it);
     img.alt = it.name || 'Card';
+    btn.classList.add('is-3d');
+    img.style.display='none';
+
 
     btn.appendChild(img);
     btn.addEventListener('click', () => openOverlay(btn, img.src));
     trayEl.appendChild(btn);
   });
+
+  // Align 3D tray to DOM & keep GLBs
+  if (packs3D && packs3D.updateTraySlotsFromDOM) packs3D.updateTraySlotsFromDOM();
+  if (packs3D && packs3D.refreshTrayGroups) packs3D.refreshTrayGroups();
+
 
   cta.textContent = 'Add to collection';
   cta.hidden = false;
@@ -1297,7 +1369,8 @@ async function onOpenClick(){
 
         // Proceed to your existing 2D tray summary
         showTray(opening.results);
-      };
+    try { packs3D.updateTraySlotsFromDOM && packs3D.updateTraySlotsFromDOM(); packs3D.setTrayVisibility && packs3D.setTrayVisibility(true); } catch(e) { console.warn(e); }
+  };
 
       // NOTE: Do not call showStack here; reveal will drive to tray.
       return;
