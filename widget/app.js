@@ -320,6 +320,16 @@ class PacksSceneManager {
       groupRoot: new THREE.Group()
     };
     this.scene.add(this.reveal.groupRoot);
+      
+      // keep: this.scene.add(this.reveal.groupRoot);
+
+      // tray visibility flag: GLBs remain hidden in tray until all 5 are accepted
+      this.trayVisible = false;
+
+      // scale knobs (already present—adjust to taste)
+      this.activeScaleFactor = this.activeScaleFactor ?? 1.25; // centered/stack item
+      this.trayScaleFactor   = this.trayScaleFactor   ?? 1.35; // tray items
+
 
     // callbacks the app can set
     this.onAcceptProgress = null;  // (acceptedCount, total)
@@ -669,8 +679,9 @@ class PacksSceneManager {
         const t = performance.now() - ease.t0;
         const a = Math.min(1, t / ease.dur);
         const eased = a < 1 ? (1 - Math.cos(Math.PI * a)) * 0.5 : 1; // cosine ease
-        const s = 0.001 + (0.999 * eased);
-        g.scale.setScalar(s);
+          const s = 0.001 + (0.999 * eased);
+          g.scale.setScalar(s * (this.activeScaleFactor ?? 1));
+
         if (a >= 1) g.userData.easeIn = null;
       }
     }
@@ -709,9 +720,13 @@ class PacksSceneManager {
         if (nextIdx >= 0) {
           this.showActive(nextIdx);
         } else {
-          rv.activeIndex = -1;
-          if (typeof this.onAllAccepted === 'function') this.onAllAccepted();
-        }
+            rv.activeIndex = -1;
+            // show accepted GLBs in the tray
+            this.trayVisible = true;
+            if (typeof this.refreshTrayGroups === 'function') this.refreshTrayGroups();
+            if (typeof this.onAllAccepted === 'function') this.onAllAccepted();
+          }
+
       }
     }
   }
@@ -762,6 +777,43 @@ class PacksSceneManager {
     this.renderer.dispose();
   }
 }
+
+/* -- Lay out accepted GLBs into tray positions and toggle visibility -- */
+PacksSceneManager.prototype.refreshTrayGroups = function(){
+  try {
+    const rv = this.reveal;
+    if (!rv || !rv.groups || rv.groups.length === 0) return;
+
+    // simple 5-slot arc along bottom of frame (tune to match your UI)
+    const slots = [
+      new THREE.Vector3(-1.15, -0.70, -0.40),
+      new THREE.Vector3(-0.58, -0.78, -0.40),
+      new THREE.Vector3( 0.00, -0.84, -0.40),
+      new THREE.Vector3( 0.58, -0.78, -0.40),
+      new THREE.Vector3( 1.15, -0.70, -0.40),
+    ];
+
+    let slot = 0;
+    for (let i = 0; i < rv.groups.length; i++) {
+      const g  = rv.groups[i];
+      const st = rv.status[i];
+      if (!g) continue;
+
+      if (st === 'accepted') {
+        const pos = slots[Math.min(slot, slots.length - 1)];
+        g.position.copy(pos);
+        g.scale.setScalar(0.28 * (this.trayScaleFactor ?? 1));
+        g.visible = !!this.trayVisible;
+        slot++;
+      } else if (st === 'active') {
+        // keep active where it is
+      } else {
+        g.visible = false;
+      }
+    }
+  } catch(e) { /* no-op */ }
+};
+
 
 if (enable3D && threeCanvas) {
   // keep hidden; we’ll reveal on first click via crossfade
@@ -909,20 +961,31 @@ function showTray(items){
     const btn = el('button', 'tray-card');
     btn.setAttribute('data-pos', String(pos));
 
+    // Keep a PNG for layout fallback, but hide it for 3D-first tray
     const img = el('img');
     img.src = cardFrontSrc(it);
     img.alt = it.name || 'Card';
 
+    btn.classList.add('is-3d');
+    img.style.display = 'none';
     btn.appendChild(img);
-    btn.addEventListener('click', () => openOverlay(btn, img.src));
+
+    // 3D-aware click: inspect GLB instead of PNG overlay
+    btn.addEventListener('click', () => {
+      if (window.__packs3D && typeof window.__packs3D.inspectAccepted === 'function') {
+        window.__packs3D.inspectAccepted(idx);
+      }
+    });
+
     trayEl.appendChild(btn);
   });
 
   cta.textContent = 'Add to collection';
   cta.hidden = false;
   cta.disabled = false;
-  cta.onclick = onCollectClick;
+  cta.onclick = onCollectClick; // your original debug-rich handler
 }
+
 
 async function onCollectClick(){
   if (!overlay.hidden) return;
