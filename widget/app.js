@@ -535,7 +535,7 @@ class PacksSceneManager {
       });
 
       // Pose/scale for your camera framing (tweak as needed)
-      const BASE_SCALE = 0.6;
+      const BASE_SCALE = 1.2;
       root.scale.setScalar(BASE_SCALE);
       root.rotation.set(0, 0, 0);
       root.position.set(0, 0, 0);
@@ -817,7 +817,7 @@ PacksSceneManager.prototype.refreshTrayGroups = function(){
     if (rv.status[i] === 'accepted'){
       const pos = (this._traySlots && this._traySlots[slot]) ? this._traySlots[slot] : null;
       if (pos) {
-        if (this.trayVisible) { g.position.copy(pos); g.scale.setScalar(0.30); g.visible = true; } else { g.visible = false; }
+        if (this.trayVisible) { g.position.copy(pos); g.scale.setScalar(0.60); g.visible = true; } else { g.visible = false; }
       }
       slot++;
     }
@@ -830,7 +830,7 @@ PacksSceneManager.prototype.inspectAccepted = function(index){
   if (!rv || !rv.groups || !rv.groups[index]) return;
   rv.groups.forEach((g, i) => {
     if (!g) return;
-    if (i === index) { g.visible = true; g.position.set(0, 0.2, 0); g.scale.setScalar(0.95); }
+    if (i === index) { g.visible = true; g.position.set(0, 0.2, 0); g.scale.setScalar(1.4); }
     else { g.visible = false; }
   });
   this._inspectingIndex = index;
