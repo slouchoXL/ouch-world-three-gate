@@ -819,12 +819,6 @@ PacksSceneManager.prototype.refreshTrayGroups = function(){
     }
   }
 };
-();
-      }
-    });
-    this.renderer.dispose();
-  }
-}
 
 if (enable3D && threeCanvas) {
   // keep hidden; we’ll reveal on first click via crossfade
