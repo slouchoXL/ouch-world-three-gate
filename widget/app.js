@@ -454,7 +454,7 @@ class PacksSceneManager {
       const box2 = new THREE.Box3().setFromObject(root);
       const center = new THREE.Vector3(); box2.getCenter(center);
       root.position.sub(center);
-      root.position.y += 0.25;
+      root.position.y += 0.1;
 
       // Swap out the placeholder box (child[0])
       try {
@@ -577,7 +577,7 @@ class PacksSceneManager {
       g.userData = { rot: Math.random() * Math.PI * 2, easeIn: null };
 
       // start hidden and tiny at center
-      g.position.set(0, 0.25, 0);
+      g.position.set(0, 0.1, 0);
       g.visible = false;
       g.scale.setScalar(0.001);
 
@@ -658,7 +658,7 @@ class PacksSceneManager {
       if (g && g.visible) {
         g.userData.rot += deltaMs * 0.0012;
         g.rotation.y = g.userData.rot;
-        g.position.y = 0.25 + Math.sin(g.userData.rot * 2.0) * 0.03;
+        g.position.y = 0.1 + Math.sin(g.userData.rot * 2.0) * 0.03;
       }
     }
 
@@ -796,11 +796,11 @@ PacksSceneManager.prototype.updateTraySlotsFromDOM = function(){
 
 PacksSceneManager.prototype._getNextTraySlot = function(){
   this._traySlots = this._traySlots || [
-    new THREE.Vector3(-1.8, -1.2, 0),
-    new THREE.Vector3(-0.9, -1.2, 0),
-    new THREE.Vector3( 0.0, -1.2, 0),
-    new THREE.Vector3( 0.9, -1.2, 0),
-    new THREE.Vector3( 1.8, -1.2, 0),
+      new THREE.Vector3(-1.8, -1.0, 0), // Raised slightly from -1.2 to -1.0
+      new THREE.Vector3(-0.9, -1.0, 0),
+      new THREE.Vector3( 0.0, -1.0, 0),
+      new THREE.Vector3( 0.9, -1.0, 0),
+      new THREE.Vector3( 1.8, -1.0, 0),
   ];
   const rv = this.reveal;
   const acceptedCount = rv.status.filter(s => s === 'accepted').length;
@@ -830,7 +830,8 @@ PacksSceneManager.prototype.inspectAccepted = function(index){
   if (!rv || !rv.groups || !rv.groups[index]) return;
   rv.groups.forEach((g, i) => {
     if (!g) return;
-    if (i === index) { g.visible = true; g.position.set(0, 0.2, 0); g.scale.setScalar(1.4); }
+    if (i === index) { g.visible = true; g.position.set(0, 0.0, 0); g.scale.setScalar(1.4);
+        g.rotation.set(0, 0, 0); }
     else { g.visible = false; }
   });
   this._inspectingIndex = index;
