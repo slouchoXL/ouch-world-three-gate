@@ -449,7 +449,7 @@ class PacksSceneManager {
       const box = new THREE.Box3().setFromObject(root);
       const size = new THREE.Vector3(); box.getSize(size);
       const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      const scale = 0.6 / maxDim;
+      const scale = 0.85 / maxDim;
       root.scale.multiplyScalar(scale);
       const box2 = new THREE.Box3().setFromObject(root);
       const center = new THREE.Vector3(); box2.getCenter(center);
@@ -817,12 +817,35 @@ PacksSceneManager.prototype.refreshTrayGroups = function(){
     if (rv.status[i] === 'accepted'){
       const pos = (this._traySlots && this._traySlots[slot]) ? this._traySlots[slot] : null;
       if (pos) {
-        if (this.trayVisible) { g.position.copy(pos); g.scale.setScalar(0.22); g.visible = true; } else { g.visible = false; }
+        if (this.trayVisible) { g.position.copy(pos); g.scale.setScalar(0.30); g.visible = true; } else { g.visible = false; }
       }
       slot++;
     }
   }
+}
+
+/* -- Simple 3D inspect of accepted tray item -- */
+PacksSceneManager.prototype.inspectAccepted = function(index){
+  const rv = this.reveal;
+  if (!rv || !rv.groups || !rv.groups[index]) return;
+  rv.groups.forEach((g, i) => {
+    if (!g) return;
+    if (i === index) { g.visible = true; g.position.set(0, 0.2, 0); g.scale.setScalar(0.95); }
+    else { g.visible = false; }
+  });
+  this._inspectingIndex = index;
+  const canvas = this.renderer.domElement;
+  const onExit = () => {
+    this.refreshTrayGroups();
+    if (!this.trayVisible) {
+      rv.groups.forEach(g => { if (g) g.visible = false; });
+    }
+    canvas.removeEventListener('click', onExit);
+    this._inspectingIndex = -1;
+  };
+  canvas.addEventListener('click', onExit, { once:true });
 };
+;
 
 if (enable3D && threeCanvas) {
   // keep hidden; we’ll reveal on first click via crossfade
@@ -978,7 +1001,17 @@ function showTray(items){
 
 
     btn.appendChild(img);
-    btn.addEventListener('click', () => openOverlay(btn, img.src));
+    // 3D-aware click: prevent PNG overlay when 3D tray is active
+btn.addEventListener('click', () => {
+  if (btn.classList.contains('is-3d')) {
+    if (window.__packs3D && typeof window.__packs3D.inspectAccepted === 'function') {
+      const index = (typeof idx !== 'undefined') ? idx : Array.from(trayEl.querySelectorAll('.tray-card')).indexOf(btn);
+      window.__packs3D.inspectAccepted(index);
+    }
+    return;
+  }
+  openOverlay(btn, img.src);
+});
     trayEl.appendChild(btn);
   });
 
