@@ -111,6 +111,7 @@ input, textarea, select { font-size: 16px; }
 
 /* Canvas fills the stage and sits above the PNG */
 #three-canvas{
+    background: #FFFFFF;
   position: absolute;
   inset: 0;
   width: 100%;
