@@ -362,7 +362,8 @@ class PacksSceneManager {
     }
   }
 
-  // ---------- Step 3 helpers & API ----------
+  
+// ---------- Step 3 helpers & API ----------
   _getRarityColor(r) {
     const map = {
       common:    0x64748B,
@@ -370,10 +371,11 @@ class PacksSceneManager {
       epic:      0xA855F7,
       legendary: 0xF59E0B,
     };
-    return map[(r || 'common').toLowerCase()] || map.common;
+    const __k = (r || 'common');
+    return map[__k.toLowerCase()] || map.common;
   }
     
-    // 1) Infer canonical type from item fields OR fall back from rarity
+    // 1 Infer canonical type from item fields OR fall back from rarity
     _inferItemType(item) {
       const raw = [
         item?.type, item?.category, item?.kind, item?.label, item?.name
@@ -399,7 +401,7 @@ class PacksSceneManager {
       return /\b(lore|paper|note|story)\b/.test(raw) ? 'lore' : 'stem';
     }
 
-    // 2) Build candidate URLs from canonical type (tries multiple folders + casings)
+    // 2 Build candidate URLs from canonical type (tries multiple folders + casings)
     _getItemCandidates(item) {
       const canonical = this._inferItemType(item);
       const files = ASSET_FILES[canonical] || ASSET_FILES.other || ASSET_FILES.fallback;
@@ -423,7 +425,7 @@ class PacksSceneManager {
       return p;
     }
 
-    // 3) Attach the real model; try candidates in order; keep placeholder if all fail
+    // 3 Attach the real model; try candidates in order; keep placeholder if all fail
     async _attachGLBToGroup(item, group) {
       const candidates = this._getItemCandidates(item);
 
@@ -1776,7 +1778,7 @@ init();
     console.log('[burst] fetch patched');
   })();
 
-  // 3) If the 3D manager appears later, ensure the burst API is attached
+  // 3 If the 3D manager appears later, ensure the burst API is attached
   (function waitForManager() {
     if (is3DReady()) { attachBurstAPI(window.__packs3D); return; }
     const id = setInterval(() => {
@@ -1787,7 +1789,7 @@ init();
 
   // Breadcrumb so you can see the patch loaded
   console.log('[burst] Step 2.1 patch ready');
-})();
+}();
 
 
 
