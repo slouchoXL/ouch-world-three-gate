@@ -756,11 +756,15 @@ class PacksSceneManager {
 
     this.scene.traverse((obj) => {
       if (obj.isMesh) {
-        obj.geometry?.dispose?.();
-        if (obj.material?.dispose) obj.material.dispose
+        if (obj.geometry && obj.geometry.dispose) obj.geometry.dispose();
+        if (obj.material && obj.material.dispose) obj.material.dispose();
+      }
+    });
+    this.renderer.dispose();
+  }
+}  // <-- end class PacksSceneManager
 
 /* ===== 3D Tray helpers (post-class) ===== */
-
 PacksSceneManager.prototype.setTrayVisibility = function(show){
   this.trayVisible = !!show;
   this.refreshTrayGroups && this.refreshTrayGroups();
