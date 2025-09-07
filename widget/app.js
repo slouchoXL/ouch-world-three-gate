@@ -323,9 +323,7 @@ class PacksSceneManager {
 
     // callbacks the app can set
     this.onAcceptProgress = null;  // (acceptedCount, total)
-    this.onAllAccepted   = null;
-      this.activeScaleFactor = 1.25;
-      this.trayScaleFactor = 1.35;   // ()
+    this.onAllAccepted   = null;   // ()
 
     // sizing / timing
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -362,8 +360,7 @@ class PacksSceneManager {
     }
   }
 
-  
-// ---------- Step 3 helpers & API ----------
+  // ---------- Step 3 helpers & API ----------
   _getRarityColor(r) {
     const map = {
       common:    0x64748B,
@@ -375,7 +372,7 @@ class PacksSceneManager {
     return map[__k.toLowerCase()] || map.common;
   }
     
-    // 1 Infer canonical type from item fields OR fall back from rarity
+    // 1) Infer canonical type from item fields OR fall back from rarity
     _inferItemType(item) {
       const raw = [
         item?.type, item?.category, item?.kind, item?.label, item?.name
@@ -401,7 +398,7 @@ class PacksSceneManager {
       return /\b(lore|paper|note|story)\b/.test(raw) ? 'lore' : 'stem';
     }
 
-    // 2 Build candidate URLs from canonical type (tries multiple folders + casings)
+    // 2) Build candidate URLs from canonical type (tries multiple folders + casings)
     _getItemCandidates(item) {
       const canonical = this._inferItemType(item);
       const files = ASSET_FILES[canonical] || ASSET_FILES.other || ASSET_FILES.fallback;
@@ -425,7 +422,7 @@ class PacksSceneManager {
       return p;
     }
 
-    // 3 Attach the real model; try candidates in order; keep placeholder if all fail
+    // 3) Attach the real model; try candidates in order; keep placeholder if all fail
     async _attachGLBToGroup(item, group) {
       const candidates = this._getItemCandidates(item);
 
@@ -452,8 +449,8 @@ class PacksSceneManager {
       const box = new THREE.Box3().setFromObject(root);
       const size = new THREE.Vector3(); box.getSize(size);
       const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      const scale = 0.95 / maxDim;
-      root.scale.multiplyScalar(scale * (this.activeScaleFactor ?? 1));
+      const scale = 0.6 / maxDim;
+      root.scale.multiplyScalar(scale);
       const box2 = new THREE.Box3().setFromObject(root);
       const center = new THREE.Vector3(); box2.getCenter(center);
       root.position.sub(center);
@@ -538,8 +535,8 @@ class PacksSceneManager {
       });
 
       // Pose/scale for your camera framing (tweak as needed)
-      const BASE_SCALE = 0.9;
-      root.scale.setScalar(BASE_SCALE * (this.activeScaleFactor ?? 1));
+      const BASE_SCALE = 0.6;
+      root.scale.setScalar(BASE_SCALE);
       root.rotation.set(0, 0, 0);
       root.position.set(0, 0, 0);
 
@@ -916,17 +913,8 @@ function showTray(items){
     img.src = cardFrontSrc(it);
     img.alt = it.name || 'Card';
 
-    // 3D-first tray: hide PNG and route clicks to 3D inspect
-    btn.classList.add('is-3d');
-    img.style.display = 'none';
     btn.appendChild(img);
-
-    btn.addEventListener('click', () => {
-      if (window.__packs3D && typeof window.__packs3D.inspectAccepted === 'function') {
-        window.__packs3D.inspectAccepted(idx);
-      }
-    });
-
+    btn.addEventListener('click', () => openOverlay(btn, img.src));
     trayEl.appendChild(btn);
   });
 
@@ -1070,67 +1058,6 @@ async function onCollectClick(){
   }
 }
 
-    const res = await addRes.json();
-
-    // Optional: dupe payout toast
-    if (res?.dupes) {
-      const shards = Number(res.dupes.awardedShards || 0);
-      const tokens = Number(res.dupes.mintedTokens ?? res.dupes.minted_tokens ?? res.dupes.minted ?? 0);
-      if (shards > 0 || tokens > 0) {
-        const parts = [];
-        if (shards > 0) parts.push(`+${shards} shard${shards === 1 ? '' : 's'}`);
-        if (tokens > 0) parts.push(`+${tokens} Guarantee token${tokens === 1 ? '' : 's'} 🎯`);
-        const msg = parts.join(' • ');
-        if (typeof showToast === 'function') showToast(msg);
-      }
-    }
-
-    if (res?.inventory) {
-      inv = normalizeInventory(res.inventory);
-      renderMeta();
-
-      // Notify parent (inventory page)
-      if (window.parent && window.parent !== window) {
-        try {
-          window.parent.postMessage({
-            type: 'inventory-updated',
-            inventory: inv,
-            dupes: res.dupes || null,
-            debug: 'from-packs-widget'
-          }, '*');
-        } catch {}
-      }
-    }
-
-    // Reset UI back to start
-    opening = null;
-    stackEl.hidden = true;
-    trayEl.hidden  = true;
-    packImg.hidden = false;
-
-    if (enable3D && threeCanvas) {
-      threeCanvas.hidden = true;
-      threeCanvas.style.opacity = '0';
-      packImg.style.opacity = '1';
-      hasHandoff = false;
-    }
-    if (enable3D && window.__packs3D && typeof window.__packs3D.showPack === 'function') {
-      window.__packs3D.showPack();
-    }
-
-    cta.textContent = 'Open Pack';
-    cta.disabled = false;
-    cta.onclick = null;
-    cta.addEventListener('click', onOpenClick, { once:true });
-
-  } catch(e){
-    showError(String(e.message || e));
-    cta.textContent = 'Open Pack';
-    cta.disabled = false;
-    cta.onclick = null;
-    cta.addEventListener('click', onOpenClick, { once:true });
-  }
-}
 
 // ===== OVERLAY =====
 function openOverlay(cardBtn, src){
@@ -1422,7 +1349,188 @@ init();
   }
 })();
 
+/* ==== Step 2.1 — Cinematic Rarity Burst (append-only) ==== */
+(() => {
+  const RARITY = {
+    common:    '#64748B',
+    rare:      '#3B82F6',
+    epic:      '#A855F7',
+    legendary: '#F59E0B',
+  };
 
+  function attachBurstAPI(manager) {
+    if (!manager || manager.__burstReady) return !!manager && manager.__burstReady;
+
+    const THREERef = (typeof THREE !== 'undefined') ? THREE : (manager.THREE || null);
+    if (!THREERef) {
+      console.warn('[burst] THREE not found; cannot attach burst API.');
+      return false;
+    }
+
+    const group = new THREERef.Group();
+    manager.scene.add(group);
+
+    manager.__burst = {
+      active: false,
+      start: 0,
+      ttl: 900,            // total lifetime in ms
+      spheres: [],
+      _raf: 0,
+      _last: 0,
+      group,
+    };
+
+    manager.startRarityBurst = function startRarityBurst(colors) {
+      try {
+        if (!Array.isArray(colors) || colors.length === 0) return;
+
+        // Clear any prior burst
+        manager.clearRarityBurst();
+
+        const sphereGeo = new THREERef.SphereGeometry(0.09, 16, 16);
+
+        for (let i = 0; i < colors.length; i++) {
+          const col = new THREERef.Color(colors[i] || RARITY.common);
+          const mat = new THREERef.MeshStandardMaterial({
+            color: col,
+            emissive: col,
+            emissiveIntensity: 0.9,
+            transparent: true,
+            opacity: 0.0,
+            metalness: 0.1,
+            roughness: 0.25,
+          });
+
+          const m = new THREERef.Mesh(sphereGeo, mat);
+
+          // Start near center; tweak Y if your pack sits higher.
+          m.position.set(0, 0.2, 0);
+
+          // Random outward velocity (m/s-ish)
+          const dir = new THREERef.Vector3(
+            (Math.random() * 2 - 1),
+            (Math.random() * 0.6 + 0.2),
+            (Math.random() * 2 - 1)
+          ).normalize();
+          const speed = 1.6 + Math.random() * 0.8;
+          m.userData = { v: dir.multiplyScalar(speed) };
+
+          group.add(m);
+          manager.__burst.spheres.push(m);
+        }
+
+        manager.__burst.active = true;
+        manager.__burst.start = performance.now();
+        manager.__burst._last = 0;
+
+        // Per-frame-ish update via rAF; your renderer is already running.
+        const tick = () => {
+          if (!manager.__burst.active) return;
+          const now = performance.now();
+          const t = now - manager.__burst.start;
+          const ttl = manager.__burst.ttl;
+
+          const last = manager.__burst._last || now - 16;
+          manager.__burst._last = now;
+
+          const dt = Math.min(33, now - last) / 1000; // seconds
+          const gravity = -2.2;
+
+          // Opacity ease: quick in (180ms), quick out (last 260ms)
+          const fadeIn = Math.min(t / 180, 1);
+          const fadeOut = t > ttl - 260 ? 1 - (t - (ttl - 260)) / 260 : 1;
+          const alpha = Math.max(0, Math.min(1, fadeIn * fadeOut));
+
+          for (const s of manager.__burst.spheres) {
+            s.userData.v.y += gravity * dt;
+            s.position.addScaledVector(s.userData.v, dt);
+            s.scale.setScalar(0.9 + (t / ttl) * 0.4);
+            s.material.opacity = alpha;
+          }
+
+          if (t >= ttl) {
+            manager.clearRarityBurst();
+            return;
+          }
+          manager.__burst._raf = requestAnimationFrame(tick);
+        };
+
+        manager.__burst._raf = requestAnimationFrame(tick);
+      } catch (e) {
+        console.warn('[burst] failed to start', e);
+      }
+    };
+
+    manager.clearRarityBurst = function clearRarityBurst() {
+      try {
+        if (manager.__burst._raf) cancelAnimationFrame(manager.__burst._raf);
+      } catch (_) {}
+      for (const s of manager.__burst.spheres) {
+        try { s.geometry.dispose?.(); } catch (_) {}
+        try { s.material.dispose?.(); } catch (_) {}
+        try { group.remove(s); } catch (_) {}
+      }
+      manager.__burst.spheres = [];
+      manager.__burst.active = false;
+      manager.__burst._raf = 0;
+      manager.__burst._last = 0;
+    };
+
+    manager.__burstReady = true;
+    return true;
+  }
+
+  function whenPacks3DReady(cb) {
+    const tryNow = () => {
+      if (window.__packs3D) { cb(window.__packs3D); return true; }
+      return false;
+    };
+    if (!tryNow()) {
+      const iid = setInterval(() => { if (tryNow()) clearInterval(iid); }, 50);
+      // safety timeout; not strictly necessary
+      setTimeout(() => clearInterval(iid), 10000);
+    }
+  }
+
+  // Attach burst API when the 3D manager exists
+  whenPacks3DReady(attachBurstAPI);
+
+  // Patch fetch so we can trigger the burst right when results arrive
+  if (typeof window !== 'undefined' && window.fetch && !window.__packsBurstFetchPatched) {
+    const origFetch = window.fetch.bind(window);
+    window.fetch = async function(input, init) {
+      const res = await origFetch(input, init);
+
+      try {
+        const url = (typeof input === 'string') ? input : (input && input.url) || '';
+        if (url && url.includes('/api/packs/open')) {
+          const clone = res.clone();
+          clone.json().then((data) => {
+            // Try a few common shapes
+            let items = null;
+            if (Array.isArray(data)) items = data;
+            else if (Array.isArray(data.items)) items = data.items;
+            else if (data && data.result && Array.isArray(data.result.items)) items = data.result.items;
+
+            if (items && items.length === 5) {
+              const colors = items.map(it => {
+                const r = (it && (it.rarity || it.rarityTier || it.tier)) || 'common';
+                return RARITY[r] || RARITY.common;
+              });
+              whenPacks3DReady((mgr) => {
+                attachBurstAPI(mgr);
+                mgr.startRarityBurst(colors);
+              });
+            }
+          }).catch(() => { /* non-JSON or early read; ignore */ });
+        }
+      } catch (_) { /* ignore */ }
+
+      return res;
+    };
+    window.__packsBurstFetchPatched = true;
+  }
+})();
 /* ==== Step 2.1 — Cinematic Rarity Burst (explicit trigger) ==== */
 /* ==== Step 2.1 — Cinematic Rarity Burst (append-only, zero-touch) ==== */
 (() => {
@@ -1620,7 +1728,7 @@ init();
     console.log('[burst] fetch patched');
   })();
 
-  // 3 If the 3D manager appears later, ensure the burst API is attached
+  // 3) If the 3D manager appears later, ensure the burst API is attached
   (function waitForManager() {
     if (is3DReady()) { attachBurstAPI(window.__packs3D); return; }
     const id = setInterval(() => {
@@ -1632,23 +1740,3 @@ init();
   // Breadcrumb so you can see the patch loaded
   console.log('[burst] Step 2.1 patch ready');
 })();
-
-
-
-/* -- Simple 3D inspect of accepted tray item -- */
-PacksSceneManager.prototype.inspectAccepted = function(index){
-  const rv = this.reveal;
-  const g = rv?.groups?.[index];
-  if (!g) return;
-  // show chosen GLB big in center; hide others
-  rv.groups.forEach((x,i) => { if (x) x.visible = (i === index); });
-  g.position.set(0, 0.25, 0);
-  g.scale.setScalar(1.15);
-  const canvas = this.renderer.domElement;
-  const onExit = () => {
-    // restore tray positions (if you have a tray layout helper)
-    if (typeof this.refreshTrayGroups === 'function') this.refreshTrayGroups();
-    canvas.removeEventListener('click', onExit);
-  };
-  canvas.addEventListener('click', onExit, { once:true });
-};
