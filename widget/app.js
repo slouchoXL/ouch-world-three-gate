@@ -319,17 +319,8 @@ class PacksSceneManager {
       acceptAnim: null,      // { t0, dur, start, end, startScale, endScale }
       groupRoot: new THREE.Group()
     };
+    this.trayVisible = false;
     this.scene.add(this.reveal.groupRoot);
-      
-      // keep: this.scene.add(this.reveal.groupRoot);
-
-      // tray visibility flag: GLBs remain hidden in tray until all 5 are accepted
-      this.trayVisible = false;
-
-      // scale knobs (already present—adjust to taste)
-      this.activeScaleFactor = this.activeScaleFactor ?? 1.25; // centered/stack item
-      this.trayScaleFactor   = this.trayScaleFactor   ?? 1.35; // tray items
-
 
     // callbacks the app can set
     this.onAcceptProgress = null;  // (acceptedCount, total)
@@ -378,8 +369,7 @@ class PacksSceneManager {
       epic:      0xA855F7,
       legendary: 0xF59E0B,
     };
-    const __k = (r || 'common');
-    return map[__k.toLowerCase()] || map.common;
+    return map[(r || 'common').toLowerCase()] || map.common;
   }
     
     // 1) Infer canonical type from item fields OR fall back from rarity
@@ -459,7 +449,7 @@ class PacksSceneManager {
       const box = new THREE.Box3().setFromObject(root);
       const size = new THREE.Vector3(); box.getSize(size);
       const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      const scale = 0.6 / maxDim;
+      const scale = 0.85 / maxDim;
       root.scale.multiplyScalar(scale);
       const box2 = new THREE.Box3().setFromObject(root);
       const center = new THREE.Vector3(); box2.getCenter(center);
@@ -649,6 +639,7 @@ class PacksSceneManager {
       t0: now,
       dur: 320,
       start: g.position.clone(),
+      end: this._getNextTraySlot(),
       end: new THREE.Vector3(0.9, -0.3, -0.4), // toward tray; tweak as needed
       startScale: g.scale.x,
       endScale: 0.001
@@ -679,9 +670,8 @@ class PacksSceneManager {
         const t = performance.now() - ease.t0;
         const a = Math.min(1, t / ease.dur);
         const eased = a < 1 ? (1 - Math.cos(Math.PI * a)) * 0.5 : 1; // cosine ease
-          const s = 0.001 + (0.999 * eased);
-          g.scale.setScalar(s * (this.activeScaleFactor ?? 1));
-
+        const s = 0.001 + (0.999 * eased);
+        g.scale.setScalar(s);
         if (a >= 1) g.userData.easeIn = null;
       }
     }
@@ -720,13 +710,9 @@ class PacksSceneManager {
         if (nextIdx >= 0) {
           this.showActive(nextIdx);
         } else {
-            rv.activeIndex = -1;
-            // show accepted GLBs in the tray
-            this.trayVisible = true;
-            if (typeof this.refreshTrayGroups === 'function') this.refreshTrayGroups();
-            if (typeof this.onAllAccepted === 'function') this.onAllAccepted();
-          }
-
+          rv.activeIndex = -1;
+          if (typeof this.onAllAccepted === 'function') this.onAllAccepted();
+        }
       }
     }
   }
@@ -770,50 +756,96 @@ class PacksSceneManager {
 
     this.scene.traverse((obj) => {
       if (obj.isMesh) {
-        obj.geometry?.dispose?.();
-        if (obj.material?.dispose) obj.material.dispose();
+        if (obj.geometry && obj.geometry.dispose) obj.geometry.dispose();
+        if (obj.material && obj.material.dispose) obj.material.dispose();
       }
     });
     this.renderer.dispose();
   }
-}
+}  // <-- end class PacksSceneManager
 
-/* -- Lay out accepted GLBs into tray positions and toggle visibility -- */
-PacksSceneManager.prototype.refreshTrayGroups = function(){
-  try {
-    const rv = this.reveal;
-    if (!rv || !rv.groups || rv.groups.length === 0) return;
-
-    // simple 5-slot arc along bottom of frame (tune to match your UI)
-    const slots = [
-      new THREE.Vector3(-1.15, -0.70, -0.40),
-      new THREE.Vector3(-0.58, -0.78, -0.40),
-      new THREE.Vector3( 0.00, -0.84, -0.40),
-      new THREE.Vector3( 0.58, -0.78, -0.40),
-      new THREE.Vector3( 1.15, -0.70, -0.40),
-    ];
-
-    let slot = 0;
-    for (let i = 0; i < rv.groups.length; i++) {
-      const g  = rv.groups[i];
-      const st = rv.status[i];
-      if (!g) continue;
-
-      if (st === 'accepted') {
-        const pos = slots[Math.min(slot, slots.length - 1)];
-        g.position.copy(pos);
-        g.scale.setScalar(0.28 * (this.trayScaleFactor ?? 1));
-        g.visible = !!this.trayVisible;
-        slot++;
-      } else if (st === 'active') {
-        // keep active where it is
-      } else {
-        g.visible = false;
-      }
-    }
-  } catch(e) { /* no-op */ }
+/* ===== 3D Tray helpers (post-class) ===== */
+PacksSceneManager.prototype.setTrayVisibility = function(show){
+  this.trayVisible = !!show;
+  this.refreshTrayGroups && this.refreshTrayGroups();
 };
 
+PacksSceneManager.prototype.updateTraySlotsFromDOM = function(){
+  if (!this.renderer || !this.camera) return;
+  const canvas = this.renderer.domElement;
+  const rectCanvas = canvas.getBoundingClientRect();
+  const cards = Array.from(document.querySelectorAll('#tray .tray-card'));
+  this._traySlots = this._traySlots || [];
+  const planeZ = 0; // tray plane z
+  const plane = new THREE.Plane(new THREE.Vector3(0,0,1), -planeZ);
+  const ray = new THREE.Ray();
+  const tmpPoint = new THREE.Vector3();
+  cards.forEach((btn, i) => {
+    const r = btn.getBoundingClientRect();
+    const cx = (r.left + r.right) * 0.5 - rectCanvas.left;
+    const cy = (r.top + r.bottom) * 0.5 - rectCanvas.top;
+    const ndcX =  (cx / rectCanvas.width) * 2 - 1;
+    const ndcY = -(cy / rectCanvas.height) * 2 + 1;
+    const origin = this.camera.position.clone();
+    const dir = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(this.camera).sub(this.camera.position).normalize();
+    ray.set(origin, dir);
+    ray.intersectPlane(plane, tmpPoint);
+    this._traySlots[i] = (this._traySlots[i] || new THREE.Vector3()).copy(tmpPoint || new THREE.Vector3());
+  });
+};
+
+PacksSceneManager.prototype._getNextTraySlot = function(){
+  this._traySlots = this._traySlots || [
+    new THREE.Vector3(-1.8, -1.2, 0),
+    new THREE.Vector3(-0.9, -1.2, 0),
+    new THREE.Vector3( 0.0, -1.2, 0),
+    new THREE.Vector3( 0.9, -1.2, 0),
+    new THREE.Vector3( 1.8, -1.2, 0),
+  ];
+  const rv = this.reveal;
+  const acceptedCount = rv.status.filter(s => s === 'accepted').length;
+  return this._traySlots[Math.min(acceptedCount, this._traySlots.length-1)].clone();
+};
+
+PacksSceneManager.prototype.refreshTrayGroups = function(){
+  const rv = this.reveal;
+  if (!rv || !rv.groups) return;
+  let slot = 0;
+  for (let i=0;i<rv.groups.length;i++){
+    const g = rv.groups[i];
+    if (!g) continue;
+    if (rv.status[i] === 'accepted'){
+      const pos = (this._traySlots && this._traySlots[slot]) ? this._traySlots[slot] : null;
+      if (pos) {
+        if (this.trayVisible) { g.position.copy(pos); g.scale.setScalar(0.30); g.visible = true; } else { g.visible = false; }
+      }
+      slot++;
+    }
+  }
+}
+
+/* -- Simple 3D inspect of accepted tray item -- */
+PacksSceneManager.prototype.inspectAccepted = function(index){
+  const rv = this.reveal;
+  if (!rv || !rv.groups || !rv.groups[index]) return;
+  rv.groups.forEach((g, i) => {
+    if (!g) return;
+    if (i === index) { g.visible = true; g.position.set(0, 0.2, 0); g.scale.setScalar(0.95); }
+    else { g.visible = false; }
+  });
+  this._inspectingIndex = index;
+  const canvas = this.renderer.domElement;
+  const onExit = () => {
+    this.refreshTrayGroups();
+    if (!this.trayVisible) {
+      rv.groups.forEach(g => { if (g) g.visible = false; });
+    }
+    canvas.removeEventListener('click', onExit);
+    this._inspectingIndex = -1;
+  };
+  canvas.addEventListener('click', onExit, { once:true });
+};
+;
 
 if (enable3D && threeCanvas) {
   // keep hidden; we’ll reveal on first click via crossfade
@@ -961,31 +993,38 @@ function showTray(items){
     const btn = el('button', 'tray-card');
     btn.setAttribute('data-pos', String(pos));
 
-    // Keep a PNG for layout fallback, but hide it for 3D-first tray
     const img = el('img');
     img.src = cardFrontSrc(it);
     img.alt = it.name || 'Card';
-
     btn.classList.add('is-3d');
-    img.style.display = 'none';
+    img.style.display='none';
+
+
     btn.appendChild(img);
-
-    // 3D-aware click: inspect GLB instead of PNG overlay
-    btn.addEventListener('click', () => {
-      if (window.__packs3D && typeof window.__packs3D.inspectAccepted === 'function') {
-        window.__packs3D.inspectAccepted(idx);
-      }
-    });
-
+    // 3D-aware click: prevent PNG overlay when 3D tray is active
+btn.addEventListener('click', () => {
+  if (btn.classList.contains('is-3d')) {
+    if (window.__packs3D && typeof window.__packs3D.inspectAccepted === 'function') {
+      const index = (typeof idx !== 'undefined') ? idx : Array.from(trayEl.querySelectorAll('.tray-card')).indexOf(btn);
+      window.__packs3D.inspectAccepted(index);
+    }
+    return;
+  }
+  openOverlay(btn, img.src);
+});
     trayEl.appendChild(btn);
   });
+
+  // Align 3D tray to DOM & keep GLBs
+  if (packs3D && packs3D.updateTraySlotsFromDOM) packs3D.updateTraySlotsFromDOM();
+  if (packs3D && packs3D.refreshTrayGroups) packs3D.refreshTrayGroups();
+
 
   cta.textContent = 'Add to collection';
   cta.hidden = false;
   cta.disabled = false;
-  cta.onclick = onCollectClick; // your original debug-rich handler
+  cta.onclick = onCollectClick;
 }
-
 
 async function onCollectClick(){
   if (!overlay.hidden) return;
@@ -1122,6 +1161,23 @@ async function onCollectClick(){
 }
 
 
+  /*  opening = null;
+    stackEl.hidden = true;
+    trayEl.hidden  = true;
+    packImg.hidden = false;
+
+    cta.textContent = 'Open Pack';
+    cta.disabled = false;
+    cta.onclick = null;
+    cta.addEventListener('click', onOpenClick, { once:true });
+  } catch(e){
+    showError(String(e.message || e));
+    cta.textContent = 'Open Pack';
+    cta.disabled = false;
+    cta.onclick = null;
+    cta.addEventListener('click', onOpenClick, { once:true });
+  }
+}*/
 // ===== OVERLAY =====
 function openOverlay(cardBtn, src){
   overlayImg.src = src;
@@ -1344,7 +1400,8 @@ async function onOpenClick(){
 
         // Proceed to your existing 2D tray summary
         showTray(opening.results);
-      };
+    try { packs3D.updateTraySlotsFromDOM && packs3D.updateTraySlotsFromDOM(); packs3D.setTrayVisibility && packs3D.setTrayVisibility(true); } catch(e) { console.warn(e); }
+  };
 
       // NOTE: Do not call showStack here; reveal will drive to tray.
       return;
@@ -1803,3 +1860,4 @@ init();
   // Breadcrumb so you can see the patch loaded
   console.log('[burst] Step 2.1 patch ready');
 })();
+
