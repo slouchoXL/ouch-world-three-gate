@@ -1789,7 +1789,7 @@ init();
 
   // Breadcrumb so you can see the patch loaded
   console.log('[burst] Step 2.1 patch ready');
-}();
+})();
 
 
 
