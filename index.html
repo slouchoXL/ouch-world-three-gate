@@ -210,6 +210,36 @@
       /* When in carousel mode, your JS adds .tick → swap visibility */
       .carousel-btn.tick .icon-up { display: none; }
       .carousel-btn.tick .icon-tick { display: block; }
+      
+      .download-pill {
+        @extend .fixed-button; /* if using SCSS */
+      }
+
+      /* If you're using plain CSS (likely), just reuse the properties manually: */
+      .download-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: 8px 32px;              /* longer pill */
+        border-radius: 9999px;          /* fully rounded like menu/user buttons */
+        border: 1px solid rgba(255,255,255,0.9);
+        background: rgba(0,0,0,0.2);    /* same blurred glass look */
+        backdrop-filter: blur(10px);
+
+        font-size: 14px;
+        color: white;
+        text-decoration: none;
+        cursor: pointer;
+
+        transition: background 0.2s ease, color 0.2s ease;
+      }
+
+      .download-pill:hover {
+        background: white;
+        color: black;
+      }
+
 
       @media (max-width: 600px) {
         .carousel-btn { width: 30px; height: 30px; }
@@ -295,16 +325,14 @@
   
   <!-- Item Action Bar -->
   <div id="itemActionBar" class="item-action-bar">
-    <button id="enterCarouselBtn" class="carousel-btn" aria-label="Choose Character">
-      <!-- Up arrow (default, view mode) -->
-      <svg class="icon-up" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M19 15L12 8 5 15" />
-      </svg>
-      <!-- Tick (shown in carousel mode) -->
-      <svg class="icon-tick" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M5 12L10 17 19 8" />
-      </svg>
-    </button>
+    <a
+      id="downloadButton"
+      class="download-pill"
+      href="https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/sloucho_liveset_bricknastytour.wav"
+      download
+    >
+      download
+    </a>
   </div>
 
 
