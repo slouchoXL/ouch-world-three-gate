@@ -143,7 +143,7 @@
       
       .item-action-bar {
         position: fixed;
-        bottom: max(35px, env(safe-area-inset-bottom) + 12px);
+        bottom: max(60px, env(safe-area-inset-bottom) + 24px); /* higher off bottom */
         left: 50%;
         transform: translateX(-50%);
         display: flex;
@@ -151,6 +151,7 @@
         align-items: center;
         z-index: 1500;
       }
+
 
 
       @supports not (bottom: env(safe-area-inset-bottom)) {
@@ -223,19 +224,34 @@
         width: 30px;
         height: 30px;
         padding: 0;
-        font-size: 0; /* hide any text */
+        font-size: 0;             /* hide any stray text */
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
 
       /* icons inside the button */
       .icon-pill .icon {
-        display: none;
-        font-size: 14px; /* size of the ▶ / ❚❚ glyphs */
-        line-height: 1;
+        display: none;            /* we toggle visibility in states */
+        width: 100%;
+        height: 100%;
+        font-size: 13px;          /* base icon size */
+        line-height: 0;           /* remove text-baseline offset */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform: translateY(1px); /* tiny nudge to visually center */
       }
 
       /* default state: show play icon */
       .icon-pill .icon-play {
-        display: inline-block;
+        display: flex;
+      }
+
+      /* slightly smaller pause so it doesn't feel huge */
+      .icon-pill .icon-pause {
+        font-size: 11px;
+        letter-spacing: 1px; /* space between ❚ ❚ bars */
       }
 
       /* when .playing class is applied in JS, show pause instead */
@@ -243,8 +259,9 @@
         display: none;
       }
       .audio-pill.playing .icon-pause {
-        display: inline-block;
+        display: flex;
       }
+
 
   
 
@@ -360,16 +377,18 @@
       }
 
       @media (max-width: 600px) {
-      .item-action-bar {
-          position: fixed;
-          bottom: max(20px, env(safe-area-inset-bottom) + 12px); /* stay above home bar */
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex;
-          gap: 8px;
-          z-index: 1500;
+        .item-action-bar {
+            position: fixed;
+            bottom: max(70px, env(safe-area-inset-bottom) + 24px); /* more room above Safari bar */
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 1500;
+        }
       }
-      }
+
+
       
       @media (max-width: 600px) {
       .character-controls { position: fixed; left: 50%; bottom: 12vh; transform: translateX(-50%); z-index: 250; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
