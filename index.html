@@ -147,6 +147,8 @@
           left: 50%;
           transform: translateX(-50%);
           display: flex;
+          flex-direction: column;          /* stack buttons vertically */
+          align-items: center;             /* center horizontally */
           gap: 8px;
           z-index: 1500;
       }
@@ -157,6 +159,8 @@
       .item-action-bar.hidden {
           display: none;
       }
+
+      
       
       .circular-btn {
           width: 30px;
@@ -239,6 +243,39 @@
         background: white;
         color: black;
       }
+      
+      .audio-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: 6px 22px;
+        border-radius: 9999px;
+        border: 1px solid rgba(255,255,255,0.6);
+        background: rgba(0,0,0,0.4);
+        backdrop-filter: blur(10px);
+
+        font-size: 13px;
+        color: white;
+        text-transform: lowercase;
+        text-decoration: none;
+        cursor: pointer;
+
+        transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+      }
+
+      .audio-pill:hover {
+        background: white;
+        color: black;
+        border-color: rgba(255,255,255,0.9);
+      }
+
+      /* Optional: subtle state when playing */
+      .audio-pill.playing {
+        background: white;
+        color: black;
+      }
+
 
 
       @media (max-width: 600px) {
@@ -325,13 +362,22 @@
   
   <div id="itemActionBar" class="item-action-bar">
     <button
+      id="playPauseButton"
+      class="audio-pill"
+      type="button"
+    >
+      play
+    </button>
+
+    <button
       id="downloadButton"
       class="download-pill"
       type="button"
     >
-      download
+      download Mystery Gift
     </button>
   </div>
+
 
 
   
@@ -1275,24 +1321,67 @@
       btn.setAttribute('aria-label', 'Choose Character');
     }
 
+    // ===== Audio player (play/pause button) =====
+    (function () {
+      const AUDIO_SRC = 'https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/Sloucho_MysteryGift.mp3';
+
+      const playBtn = document.getElementById('playPauseButton');
+      if (!playBtn) return;
+
+      const audio = new Audio(AUDIO_SRC);
+      audio.preload = 'none';
+
+      function updateButton() {
+        if (audio.paused) {
+          playBtn.textContent = 'play';
+          playBtn.classList.remove('playing');
+        } else {
+          playBtn.textContent = 'pause';
+          playBtn.classList.add('playing');
+        }
+      }
+
+      playBtn.addEventListener('click', () => {
+        if (audio.paused) {
+          audio.play().catch(err => {
+            console.error('Audio play failed:', err);
+          });
+        } else {
+          audio.pause();
+        }
+        updateButton();
+      });
+
+      audio.addEventListener('ended', () => {
+        audio.currentTime = 0;
+        audio.pause();
+        updateButton();
+      });
+
+      // In case something else pauses/plays it in future
+      audio.addEventListener('play', updateButton);
+      audio.addEventListener('pause', updateButton);
+    })();
+
+    
     // ===== Download button wiring =====
     (function () {
       const downloadUrl =
-        'https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/sloucho_liveset_bricknastytour.wav';
+        'https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/Sloucho_MysteryGift.mp3';
 
       const btn = document.getElementById('downloadButton');
       if (!btn) return;
 
       btn.addEventListener('click', () => {
-        // Create a temporary hidden <a> to trigger the download
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = 'sloucho_liveset_bricknastytour.wav'; // suggested filename
+        a.download = 'Sloucho_MysteryGift.mp3'; // suggested filename
         document.body.appendChild(a);
         a.click();
         a.remove();
       });
     })();
+
 
 
 
