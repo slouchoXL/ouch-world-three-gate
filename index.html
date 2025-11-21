@@ -274,7 +274,7 @@
       }
       .audio-pill.playing .icon-pause {
         display: block;
-        
+        transform: translateX(1px);
         font-size: 12px;              /* slightly smaller so it feels balanced */
       }
 
@@ -408,7 +408,19 @@
 
       
       @media (max-width: 600px) {
-      .character-controls { position: fixed; left: 50%; bottom: 12vh; transform: translateX(-50%); z-index: 250; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+        .character-controls {
+          position: fixed;
+          left: 50%;
+          top: 16vh;        /* a bit lower on small screens, still above GLB */
+          bottom: auto;
+          transform: translateX(-50%);
+          z-index: 250;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity .2s ease;
+        }
+      }
+
       .character-controls.show { opacity: 1; pointer-events: auto; }
       .modal-close {
           position: absolute;
