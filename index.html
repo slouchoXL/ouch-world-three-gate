@@ -143,15 +143,18 @@
       
       .item-action-bar {
         position: fixed;
-        bottom: max(35px, env(safe-area-inset-bottom) + 12px); /* stay above home bar */
+        bottom: max(35px, env(safe-area-inset-bottom) + 20px);
         left: 50%;
         transform: translateX(-50%);
-        display: flex;
-        flex-direction: column;     /* stack vertically */
-        align-items: center;        /* center horizontally */
-        gap: 8px;
         z-index: 1500;
+
+        /* Center the player box */
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        pointer-events: none; /* so only the inner box grabs events */
       }
+
 
 
       @supports not (bottom: env(safe-area-inset-bottom)) {
@@ -161,16 +164,88 @@
           display: none;
       }
       
+      .audio-player {
+        pointer-events: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 12px;
+        border-radius: 9999px;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.25);
+        max-width: 380px;
+        width: min(90vw, 380px);
+      }
+
       .audio-scrubber {
         display: flex;
         align-items: center;
         gap: 8px;
-        flex: 1;
-        max-width: 280px; /* tweak to taste */
+        font-size: 12px;
       }
 
       #audioSeek {
-        width: 100%;
+        flex: 1;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.2);
+        outline: none;
+      }
+
+      /* Thumb styling (WebKit) */
+      #audioSeek::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: none;
+        margin-top: -4px;
+      }
+
+      /* Thumb styling (Firefox) */
+      #audioSeek::-moz-range-thumb {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: none;
+      }
+
+      .audio-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .icon-pill {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        font-size: 0;           /* hide any text */
+      }
+
+      .icon-pill .icon {
+        display: none;
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      /* Default: show play icon */
+      .icon-pill .icon-play {
+        display: inline-block;
+      }
+
+      /* When playing: show pause instead */
+      .audio-pill.playing .icon-play {
+        display: none;
+      }
+      .audio-pill.playing .icon-pause {
+        display: inline-block;
       }
 
       
@@ -370,44 +445,51 @@
   </div>
   
   <!-- Hidden audio element for streaming Mystery Gift -->
-  <!-- Hidden audio element for streaming Mystery Gift -->
   <audio
     id="mysteryGiftAudio"
-    preload="none"
-    src="/assets/Sloucho_MysteryStream.mp3"
+    preload="auto"
+    src="/audio/Sloucho_MysteryStream.mp3"
     style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
   ></audio>
 
 
+
   <div id="itemActionBar" class="item-action-bar">
-    <button
-      id="playPauseButton"
-      class="audio-pill"
-      type="button"
-    >
-      play
-    </button>
+    <div class="audio-player">
+      <!-- Scrubber on top -->
+      <div class="audio-scrubber">
+        <span id="audioCurrentTime">0:00</span>
+        <input
+          id="audioSeek"
+          type="range"
+          min="0"
+          value="0"
+          step="0.1"
+        />
+        <span id="audioDuration">0:00</span>
+      </div>
 
-    <!-- NEW: scrubber -->
-    <div class="audio-scrubber">
-      <span id="audioCurrentTime">0:00</span>
-      <input
-        id="audioSeek"
-        type="range"
-        min="0"
-        value="0"
-        step="0.1"
-      />
-      <span id="audioDuration">0:00</span>
+      <!-- Buttons underneath -->
+      <div class="audio-controls">
+        <button
+          id="playPauseButton"
+          class="audio-pill icon-pill"
+          type="button"
+          aria-label="Play audio"
+        >
+          <span class="icon icon-play" aria-hidden="true">▶</span>
+          <span class="icon icon-pause" aria-hidden="true">❚❚</span>
+        </button>
+
+        <button
+          id="downloadButton"
+          class="download-pill"
+          type="button"
+        >
+          download
+        </button>
+      </div>
     </div>
-
-    <button
-      id="downloadButton"
-      class="audio-pill"
-      type="button"
-    >
-      download
-    </button>
   </div>
 
 
@@ -1354,14 +1436,18 @@
       btn.setAttribute('aria-label', 'Choose Character');
     }
 
+    // ===== Audio player (play/pause + scrubber) =====
     (function () {
-      const playBtn = document.getElementById('playPauseButton');
-      const audioEl = document.getElementById('mysteryGiftAudio');
-      const seekBar = document.getElementById('audioSeek');
+      const playBtn       = document.getElementById('playPauseButton');
+      const audioEl       = document.getElementById('mysteryGiftAudio');
+      const seekBar       = document.getElementById('audioSeek');
       const currentTimeEl = document.getElementById('audioCurrentTime');
-      const durationEl = document.getElementById('audioDuration');
+      const durationEl    = document.getElementById('audioDuration');
 
       if (!playBtn || !audioEl) return;
+
+      // If you haven't already, consider: preload="auto" on the <audio> tag
+      // <audio id="mysteryGiftAudio" preload="auto" src="/audio/Sloucho_MysteryStream.mp3" ...>
 
       function formatTime(seconds) {
         if (!isFinite(seconds)) return '0:00';
@@ -1371,13 +1457,9 @@
       }
 
       function updateButton() {
-        if (audioEl.paused || audioEl.ended) {
-          playBtn.textContent = 'play';
-          playBtn.classList.remove('playing');
-        } else {
-          playBtn.textContent = 'pause';
-          playBtn.classList.add('playing');
-        }
+        const isPlaying = !(audioEl.paused || audioEl.ended);
+        playBtn.classList.toggle('playing', isPlaying);
+        playBtn.setAttribute('aria-label', isPlaying ? 'Pause audio' : 'Play audio');
       }
 
       playBtn.addEventListener('click', async () => {
@@ -1392,7 +1474,9 @@
         }
       });
 
-      // --- NEW: set up bar when metadata is ready ---
+      // Scrubber setup
+      let isSeeking = false;
+
       audioEl.addEventListener('loadedmetadata', () => {
         if (seekBar) {
           seekBar.max = audioEl.duration.toString();
@@ -1401,9 +1485,6 @@
           durationEl.textContent = formatTime(audioEl.duration);
         }
       });
-
-      // --- NEW: keep bar + time label in sync while playing ---
-      let isSeeking = false;
 
       audioEl.addEventListener('timeupdate', () => {
         if (seekBar && !isSeeking) {
@@ -1414,16 +1495,18 @@
         }
       });
 
-      // --- NEW: scrubbing logic ---
       if (seekBar) {
+        // While dragging: update label only
         seekBar.addEventListener('input', () => {
-          // user is dragging; move audio position live
           isSeeking = true;
-          audioEl.currentTime = Number(seekBar.value);
+          if (currentTimeEl) {
+            currentTimeEl.textContent = formatTime(Number(seekBar.value));
+          }
         });
 
+        // On release: actually seek
         seekBar.addEventListener('change', () => {
-          // drag finished
+          audioEl.currentTime = Number(seekBar.value);
           isSeeking = false;
         });
       }
@@ -1437,8 +1520,12 @@
         updateButton();
       });
 
+      // Initial state
+      if (currentTimeEl) currentTimeEl.textContent = '0:00';
+      if (durationEl) durationEl.textContent = '0:00';
       updateButton();
     })();
+
 
 
 
