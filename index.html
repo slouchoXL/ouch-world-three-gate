@@ -189,7 +189,6 @@
         outline: none;
       }
 
-      /* WebKit (iOS Safari, Chrome) */
       #audioSeek::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
@@ -198,8 +197,9 @@
         border-radius: 50%;
         background: #ffffff;
         border: none;
-        margin-top: -5px; /* adjust this if it still looks off: try -4 or -6 */
+        margin-top: -7px;   /* NEW: deeper offset = perfectly centered */
       }
+
 
       /* Firefox */
       #audioSeek::-moz-range-thumb {
@@ -214,9 +214,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        margin-top: 4px;
+        margin-top: 12px;   /* increased spacing */
       }
+
 
 
       
@@ -241,7 +241,11 @@
       /* default: show play icon only */
       .icon-pill .icon-play {
         display: block;
+        transform: translateX(1px) translateY(1px); /* NEW: nudge horizontally + vertically */
+        font-size: 14px;
+        line-height: 0;
       }
+
 
       /* when playing, swap to pause icon */
       .audio-pill.playing .icon-play {
