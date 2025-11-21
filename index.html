@@ -179,14 +179,12 @@
         font-size: 12px;
       }
 
-      /* Force Safari to stop adding hidden padding */
       #audioSeek {
         flex: 1;
         -webkit-appearance: none;
         appearance: none;
-
-        height: 14px;          /* same as thumb */
-        padding: 0;            /* IMPORTANT for Safari */
+        height: 14px;
+        padding: 0;
         background: transparent;
         outline: none;
       }
@@ -196,27 +194,25 @@
         height: 4px;
         background: rgba(255,255,255,0.2);
         border-radius: 999px;
-
-        /* Center track inside 14px range height */
-        margin-top: 5px;       /* (14 - 4) / 2 */
-        margin-bottom: 5px;
+        /* remove vertical margins – let it sit in the middle */
+        margin: 0;
       }
 
       /* THUMB (Safari/Chrome) */
       #audioSeek::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-
         width: 14px;
         height: 14px;
         border-radius: 50%;
         background: #fff;
         border: none;
 
-        margin-top: 0;         /* MUST BE ZERO */
-        position: relative;
-        top: -1px;             /* FINAL FIX: nudge up exactly one pixel */
+        /* THIS is what centers the thumb on the track */
+        margin-top: -5px;           /* -(thumb - track) / 2 */
+        position: static;           /* top: doesn’t do anything anyway */
       }
+
 
       /* Firefox track */
       #audioSeek::-moz-range-track {
