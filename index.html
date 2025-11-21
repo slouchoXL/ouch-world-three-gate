@@ -360,6 +360,35 @@
     </div>
   </div>
   
+  <!-- Hidden audio element for Mystery Gift -->
+  <audio
+    id="mysteryGiftAudio"
+    preload="none"
+    style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
+  >
+    <source src="https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/Sloucho_MysteryGift.mp3"
+            type="audio/mpeg">
+  </audio>
+
+  <div id="itemActionBar" class="item-action-bar">
+    <button
+      id="playPauseButton"
+      class="audio-pill"
+      type="button"
+    >
+      play
+    </button>
+
+    <button
+      id="downloadButton"
+      class="download-pill"
+      type="button"
+    >
+      download Mystery Gift
+    </button>
+  </div>
+
+  
   <div id="itemActionBar" class="item-action-bar">
     <button
       id="playPauseButton"
@@ -1326,13 +1355,16 @@
       const AUDIO_SRC = 'https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/Sloucho_MysteryGift.mp3';
 
       const playBtn = document.getElementById('playPauseButton');
-      if (!playBtn) return;
+      const audioEl = document.getElementById('mysteryGiftAudio');
+      if (!playBtn || !audioEl) return;
 
-      const audio = new Audio(AUDIO_SRC);
-      audio.preload = 'none';
+      // Make sure src is set (in case you ever tweak the <audio> tag)
+      if (!audioEl.src) {
+        audioEl.src = AUDIO_SRC;
+      }
 
       function updateButton() {
-        if (audio.paused) {
+        if (audioEl.paused || audioEl.ended) {
           playBtn.textContent = 'play';
           playBtn.classList.remove('playing');
         } else {
@@ -1342,25 +1374,25 @@
       }
 
       playBtn.addEventListener('click', () => {
-        if (audio.paused) {
-          audio.play().catch(err => {
+        if (audioEl.paused || audioEl.ended) {
+          audioEl.play().catch(err => {
             console.error('Audio play failed:', err);
           });
         } else {
-          audio.pause();
+          audioEl.pause();
         }
+        // In case play() is async, also update on the events below
         updateButton();
       });
 
-      audio.addEventListener('ended', () => {
-        audio.currentTime = 0;
-        audio.pause();
+      audioEl.addEventListener('ended', () => {
+        audioEl.currentTime = 0;
+        audioEl.pause();
         updateButton();
       });
 
-      // In case something else pauses/plays it in future
-      audio.addEventListener('play', updateButton);
-      audio.addEventListener('pause', updateButton);
+      audioEl.addEventListener('play', updateButton);
+      audioEl.addEventListener('pause', updateButton);
     })();
 
     
