@@ -357,14 +357,14 @@
   </div>
   
   <!-- Hidden audio element for streaming Mystery Gift -->
+  <!-- Hidden audio element for streaming Mystery Gift -->
   <audio
     id="mysteryGiftAudio"
     preload="none"
+    src="https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/Sloucho_MysteryStream.mp3"
     style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
-  >
-    <source src="https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/Sloucho_MysteryStream.mp3"
-            type="audio/mpeg">
-  </audio>
+  ></audio>
+
 
   <div id="itemActionBar" class="item-action-bar">
     <button
@@ -1329,17 +1329,9 @@
 
     // ===== Audio player (play/pause button) =====
     (function () {
-      const STREAM_URL =
-        'https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/Sloucho_MysteryStream.mp3';
-
       const playBtn = document.getElementById('playPauseButton');
       const audioEl = document.getElementById('mysteryGiftAudio');
       if (!playBtn || !audioEl) return;
-
-      // ensure src set (in case you change the <audio> tag later)
-      if (!audioEl.src) {
-        audioEl.src = STREAM_URL;
-      }
 
       function updateButton() {
         if (audioEl.paused || audioEl.ended) {
@@ -1351,26 +1343,34 @@
         }
       }
 
-      playBtn.addEventListener('click', () => {
-        if (audioEl.paused || audioEl.ended) {
-          audioEl.play().catch(err => {
-            console.error('Audio play failed:', err);
-          });
-        } else {
-          audioEl.pause();
+      playBtn.addEventListener('click', async () => {
+        try {
+          if (audioEl.paused || audioEl.ended) {
+            await audioEl.play();
+          } else {
+            audioEl.pause();
+          }
+        } catch (err) {
+          console.error('Audio play failed:', err);
         }
-        // final state will also be set by 'play'/'pause' listeners
-      });
-
-      audioEl.addEventListener('ended', () => {
-        audioEl.currentTime = 0;
-        audioEl.pause();
-        updateButton();
+        // visuals are driven by events below
       });
 
       audioEl.addEventListener('play', updateButton);
       audioEl.addEventListener('pause', updateButton);
+      audioEl.addEventListener('ended', () => {
+        audioEl.currentTime = 0;
+        updateButton();
+      });
+
+      // Optional: debug
+      audioEl.addEventListener('loadeddata', () => {
+        console.log('MysteryStream loaded, duration:', audioEl.duration);
+      });
+
+      updateButton(); // initial label = "play"
     })();
+
 
     
     // ===== Download button wiring =====
