@@ -179,44 +179,43 @@
         font-size: 12px;
       }
 
-      /* Base */
+      /* Force Safari to stop adding hidden padding */
       #audioSeek {
         flex: 1;
         -webkit-appearance: none;
         appearance: none;
+
         height: 14px;          /* same as thumb */
+        padding: 0;            /* IMPORTANT for Safari */
         background: transparent;
         outline: none;
       }
 
-      /* Track (the line) */
+      /* TRACK (Safari/Chrome) */
       #audioSeek::-webkit-slider-runnable-track {
         height: 4px;
-        margin: 5px 0;         /* vertical position of the line */
         background: rgba(255,255,255,0.2);
         border-radius: 999px;
+
+        /* Center track inside 14px range height */
+        margin-top: 5px;       /* (14 - 4) / 2 */
+        margin-bottom: 5px;
       }
 
-      /* Thumb (the circle) */
+      /* THUMB (Safari/Chrome) */
       #audioSeek::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
+
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        background: #ffffff;
+        background: #fff;
         border: none;
-        margin-top: -2px;      /* ⬅️ small negative nudge to bring it UP */
-      }
 
-
-      /* Firefox thumb (you already had this) */
-      #audioSeek::-moz-range-thumb {
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: #ffffff;
-        border: none;
+        margin-top: 0;         /* MUST BE ZERO */
+        position: relative;
+        top: -1px;             /* FINAL FIX: nudge up exactly one pixel */
       }
 
       /* Firefox track */
@@ -225,6 +224,16 @@
         background: rgba(255,255,255,0.2);
         border-radius: 999px;
       }
+
+      /* Firefox thumb */
+      #audioSeek::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #fff;
+        border: none;
+      }
+
 
       .audio-controls {
         display: flex;
