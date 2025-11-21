@@ -143,18 +143,14 @@
       
       .item-action-bar {
         position: fixed;
-        bottom: max(35px, env(safe-area-inset-bottom) + 20px);
+        bottom: max(35px, env(safe-area-inset-bottom) + 12px);
         left: 50%;
         transform: translateX(-50%);
-        z-index: 1500;
-
-        /* Center the player box */
         display: flex;
-        justify-content: center;
-        width: 100%;
-        pointer-events: none; /* so only the inner box grabs events */
+        flex-direction: column;
+        align-items: center;
+        z-index: 1500;
       }
-
 
 
       @supports not (bottom: env(safe-area-inset-bottom)) {
@@ -169,11 +165,8 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
-        padding: 0;                /* no outer padding */
-        background: transparent;   /* no capsule background */
-        border: none;              /* remove outer border */
-        max-width: 380px;
-        width: min(90vw, 380px);
+        max-width: 320px;        /* narrower than full screen */
+        width: min(80vw, 320px); /* responsive on small devices */
       }
 
 
@@ -181,6 +174,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        width: 100%;
         font-size: 12px;
       }
 
@@ -194,22 +188,22 @@
         outline: none;
       }
 
-      /* Thumb styling (WebKit) */
+      /* WebKit (iOS Safari, Chrome) */
       #audioSeek::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        width: 12px;
-        height: 12px;
+        width: 14px;
+        height: 14px;
         border-radius: 50%;
         background: #ffffff;
         border: none;
-        margin-top: -4px;
+        margin-top: -5px; /* adjust this if it still looks off: try -4 or -6 */
       }
 
-      /* Thumb styling (Firefox) */
+      /* Firefox */
       #audioSeek::-moz-range-thumb {
-        width: 12px;
-        height: 12px;
+        width: 14px;
+        height: 14px;
         border-radius: 50%;
         background: #ffffff;
         border: none;
@@ -218,36 +212,41 @@
       .audio-controls {
         display: flex;
         align-items: center;
-        justify-content: center;  /* center the play button */
+        justify-content: center;
         gap: 8px;
+        margin-top: 4px;
       }
+
 
       
       .icon-pill {
-        width: 40px;
-        height: 40px;
+        width: 30px;
+        height: 30px;
         padding: 0;
-        font-size: 0;           /* hide any text */
+        font-size: 0; /* hide any text */
       }
 
+      /* icons inside the button */
       .icon-pill .icon {
         display: none;
-        font-size: 18px;
+        font-size: 14px; /* size of the ▶ / ❚❚ glyphs */
         line-height: 1;
       }
 
-      /* Default: show play icon */
+      /* default state: show play icon */
       .icon-pill .icon-play {
         display: inline-block;
       }
 
-      /* When playing: show pause instead */
+      /* when .playing class is applied in JS, show pause instead */
       .audio-pill.playing .icon-play {
         display: none;
       }
       .audio-pill.playing .icon-pause {
         display: inline-block;
       }
+
+  
 
       
       .circular-btn {
@@ -303,9 +302,7 @@
       .carousel-btn.tick .icon-up { display: none; }
       .carousel-btn.tick .icon-tick { display: block; }
       
-      .download-pill {
-        @extend .fixed-button; /* if using SCSS */
-      }
+    
 
       /* If you're using plain CSS (likely), just reuse the properties manually: */
       .download-pill {
@@ -332,25 +329,18 @@
         color: black;
       }
 
+      /* base pill styles if you still have them */
       .audio-pill {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-
-        padding: 6px 24px;
         border-radius: 9999px;
         border: 1px solid rgba(255,255,255,0.8);
         background: rgba(0,0,0,0.5);
-        backdrop-filter: blur(10px);
-
-        font-size: 14px;
-        color: white;
-        text-decoration: none;
+        color: #fff;
         cursor: pointer;
-
-        transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        transition: background .2s ease, border-color .2s ease;
       }
-
 
       .audio-pill:hover {
         background: white;
