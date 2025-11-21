@@ -179,16 +179,25 @@
         font-size: 12px;
       }
 
+      /* Base range input: make it as tall as the thumb */
       #audioSeek {
         flex: 1;
         -webkit-appearance: none;
         appearance: none;
-        height: 4px;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.2);
+        height: 14px;                           /* same as thumb */
+        background: transparent;                /* track will draw background */
         outline: none;
       }
 
+      /* WebKit track (the line) */
+      #audioSeek::-webkit-slider-runnable-track {
+        height: 4px;                             /* thickness of the line */
+        margin: 5px 0;                           /* (14 - 4) / 2 = 5 → centers it */
+        background: rgba(255,255,255,0.2);
+        border-radius: 999px;
+      }
+
+      /* WebKit thumb (the circle) */
       #audioSeek::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
@@ -197,17 +206,23 @@
         border-radius: 50%;
         background: #ffffff;
         border: none;
-        margin-top: -5px; /* center on a 4px track */
+        margin-top: 0;                           /* no manual offset needed */
       }
 
-
-      /* Firefox */
+      /* Firefox thumb (you already had this) */
       #audioSeek::-moz-range-thumb {
         width: 14px;
         height: 14px;
         border-radius: 50%;
         background: #ffffff;
         border: none;
+      }
+
+      /* Firefox track */
+      #audioSeek::-moz-range-track {
+        height: 4px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 999px;
       }
 
       .audio-controls {
@@ -253,6 +268,7 @@
       }
       .audio-pill.playing .icon-pause {
         display: block;
+        transform: translateY(-1px);
         font-size: 12px;              /* slightly smaller so it feels balanced */
       }
 
