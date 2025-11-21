@@ -220,46 +220,36 @@
 
 
       
+      /* Circular play/pause button */
       .icon-pill {
         width: 30px;
         height: 30px;
         padding: 0;
-        font-size: 0;             /* hide any stray text */
+        font-size: 0;                 /* hide any text */
         display: inline-flex;
         align-items: center;
         justify-content: center;
       }
 
-      /* icons inside the button */
+      /* inner spans for icons */
       .icon-pill .icon {
-        display: none;            /* we toggle visibility in states */
-        width: 100%;
-        height: 100%;
-        font-size: 13px;          /* base icon size */
-        line-height: 0;           /* remove text-baseline offset */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transform: translateY(1px); /* tiny nudge to visually center */
+        display: none;                /* hidden by default */
+        font-size: 14px;              /* base icon size */
+        line-height: 0;               /* kill baseline offset */
       }
 
-      /* default state: show play icon */
+      /* default: show play icon only */
       .icon-pill .icon-play {
-        display: flex;
+        display: block;
       }
 
-      /* slightly smaller pause so it doesn't feel huge */
-      .icon-pill .icon-pause {
-        font-size: 11px;
-        letter-spacing: 1px; /* space between ❚ ❚ bars */
-      }
-
-      /* when .playing class is applied in JS, show pause instead */
+      /* when playing, swap to pause icon */
       .audio-pill.playing .icon-play {
         display: none;
       }
       .audio-pill.playing .icon-pause {
-        display: flex;
+        display: block;
+        font-size: 12px;              /* slightly smaller so it feels balanced */
       }
 
 
@@ -379,7 +369,7 @@
       @media (max-width: 600px) {
         .item-action-bar {
             position: fixed;
-            bottom: max(70px, env(safe-area-inset-bottom) + 24px); /* more room above Safari bar */
+            bottom: max(50px, env(safe-area-inset-bottom) + 18px);
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -387,6 +377,7 @@
             z-index: 1500;
         }
       }
+
 
 
       
@@ -482,15 +473,16 @@
 
       <!-- Single play/pause button centered underneath -->
       <div class="audio-controls">
-        <button
-          id="playPauseButton"
-          class="audio-pill icon-pill"
-          type="button"
-          aria-label="Play audio"
-        >
-          <span class="icon icon-play" aria-hidden="true">▶</span>
-          <span class="icon icon-pause" aria-hidden="true">❚❚</span>
-        </button>
+          <button
+            id="playPauseButton"
+            class="audio-pill icon-pill"
+            type="button"
+            aria-label="Play audio"
+          >
+            <span class="icon icon-play" aria-hidden="true">▶</span>
+            <span class="icon icon-pause" aria-hidden="true">❚❚</span>
+          </button>
+
       </div>
     </div>
   </div>
