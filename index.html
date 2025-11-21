@@ -131,7 +131,18 @@
     .form-button { width: 100%; background: rgba(255,255,255,0.92); color: #000; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; }
 
     /* Character selector overlay */
-    .character-controls { position: fixed; left: 50%; bottom: 8vh; transform: translateX(-50%); z-index: 250; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .character-controls {
+      position: fixed;
+      left: 50%;
+      top: 12vh;        /* moved ABOVE the GLB */
+      bottom: auto;
+      transform: translateX(-50%);
+      z-index: 250;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+
     .character-controls.show { opacity: 1; pointer-events: auto; }
     .character-info { display: grid; grid-template-rows: auto auto; gap: 8px; justify-items: center; min-width: 260px; }
     .character-header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
@@ -274,7 +285,7 @@
       }
       .audio-pill.playing .icon-pause {
         display: block;
-        transform: translateX(1px);
+        transform: translateX(.5px);
         font-size: 12px;              /* slightly smaller so it feels balanced */
       }
 
