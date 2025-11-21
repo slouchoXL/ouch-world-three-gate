@@ -323,16 +323,14 @@
     </div>
   </div>
   
-  <!-- Item Action Bar -->
   <div id="itemActionBar" class="item-action-bar">
-    <a
+    <button
       id="downloadButton"
       class="download-pill"
-      href="https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/sloucho_liveset_bricknastytour.wav"
-      download
+      type="button"
     >
       download
-    </a>
+    </button>
   </div>
 
 
@@ -1276,6 +1274,25 @@
       btn.classList.remove('tick');
       btn.setAttribute('aria-label', 'Choose Character');
     }
+
+    // ===== Download button wiring =====
+    (function () {
+      const downloadUrl =
+        'https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/sloucho_liveset_bricknastytour.wav';
+
+      const btn = document.getElementById('downloadButton');
+      if (!btn) return;
+
+      btn.addEventListener('click', () => {
+        // Create a temporary hidden <a> to trigger the download
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = 'sloucho_liveset_bricknastytour.wav'; // suggested filename
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+    })();
 
 
 
