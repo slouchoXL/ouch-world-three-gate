@@ -161,6 +161,19 @@
           display: none;
       }
       
+      .audio-scrubber {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        max-width: 280px; /* tweak to taste */
+      }
+
+      #audioSeek {
+        width: 100%;
+      }
+
+      
       .circular-btn {
           width: 30px;
           height: 30px;
@@ -375,14 +388,28 @@
       play
     </button>
 
+    <!-- NEW: scrubber -->
+    <div class="audio-scrubber">
+      <span id="audioCurrentTime">0:00</span>
+      <input
+        id="audioSeek"
+        type="range"
+        min="0"
+        value="0"
+        step="0.1"
+      />
+      <span id="audioDuration">0:00</span>
+    </div>
+
     <button
       id="downloadButton"
-      class="download-pill"
+      class="audio-pill"
       type="button"
     >
       download
     </button>
   </div>
+
 
 
 
@@ -1327,11 +1354,21 @@
       btn.setAttribute('aria-label', 'Choose Character');
     }
 
-    // ===== Audio player (play/pause button) =====
     (function () {
       const playBtn = document.getElementById('playPauseButton');
       const audioEl = document.getElementById('mysteryGiftAudio');
+      const seekBar = document.getElementById('audioSeek');
+      const currentTimeEl = document.getElementById('audioCurrentTime');
+      const durationEl = document.getElementById('audioDuration');
+
       if (!playBtn || !audioEl) return;
+
+      function formatTime(seconds) {
+        if (!isFinite(seconds)) return '0:00';
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
+      }
 
       function updateButton() {
         if (audioEl.paused || audioEl.ended) {
@@ -1353,23 +1390,56 @@
         } catch (err) {
           console.error('Audio play failed:', err);
         }
-        // visuals are driven by events below
       });
+
+      // --- NEW: set up bar when metadata is ready ---
+      audioEl.addEventListener('loadedmetadata', () => {
+        if (seekBar) {
+          seekBar.max = audioEl.duration.toString();
+        }
+        if (durationEl) {
+          durationEl.textContent = formatTime(audioEl.duration);
+        }
+      });
+
+      // --- NEW: keep bar + time label in sync while playing ---
+      let isSeeking = false;
+
+      audioEl.addEventListener('timeupdate', () => {
+        if (seekBar && !isSeeking) {
+          seekBar.value = audioEl.currentTime.toString();
+        }
+        if (currentTimeEl) {
+          currentTimeEl.textContent = formatTime(audioEl.currentTime);
+        }
+      });
+
+      // --- NEW: scrubbing logic ---
+      if (seekBar) {
+        seekBar.addEventListener('input', () => {
+          // user is dragging; move audio position live
+          isSeeking = true;
+          audioEl.currentTime = Number(seekBar.value);
+        });
+
+        seekBar.addEventListener('change', () => {
+          // drag finished
+          isSeeking = false;
+        });
+      }
 
       audioEl.addEventListener('play', updateButton);
       audioEl.addEventListener('pause', updateButton);
       audioEl.addEventListener('ended', () => {
         audioEl.currentTime = 0;
+        if (seekBar) seekBar.value = '0';
+        if (currentTimeEl) currentTimeEl.textContent = '0:00';
         updateButton();
       });
 
-      // Optional: debug
-      audioEl.addEventListener('loadeddata', () => {
-        console.log('MysteryStream loaded, duration:', audioEl.duration);
-      });
-
-      updateButton(); // initial label = "play"
+      updateButton();
     })();
+
 
 
     
