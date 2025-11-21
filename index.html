@@ -147,8 +147,6 @@
           left: 50%;
           transform: translateX(-50%);
           display: flex;
-          flex-direction: column;          /* stack buttons vertically */
-          align-items: center;             /* center horizontally */
           gap: 8px;
           z-index: 1500;
       }
@@ -159,8 +157,6 @@
       .item-action-bar.hidden {
           display: none;
       }
-
-      
       
       .circular-btn {
           width: 30px;
@@ -243,39 +239,6 @@
         background: white;
         color: black;
       }
-      
-      .audio-pill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-
-        padding: 6px 22px;
-        border-radius: 9999px;
-        border: 1px solid rgba(255,255,255,0.6);
-        background: rgba(0,0,0,0.4);
-        backdrop-filter: blur(10px);
-
-        font-size: 13px;
-        color: white;
-        text-transform: lowercase;
-        text-decoration: none;
-        cursor: pointer;
-
-        transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-      }
-
-      .audio-pill:hover {
-        background: white;
-        color: black;
-        border-color: rgba(255,255,255,0.9);
-      }
-
-      /* Optional: subtle state when playing */
-      .audio-pill.playing {
-        background: white;
-        color: black;
-      }
-
 
 
       @media (max-width: 600px) {
@@ -360,53 +323,15 @@
     </div>
   </div>
   
-  <!-- Hidden audio element for Mystery Gift -->
-  <audio
-    id="mysteryGiftAudio"
-    preload="none"
-    style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
-  >
-    <source src="https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/Sloucho_MysteryGift.mp3"
-            type="audio/mpeg">
-  </audio>
-
   <div id="itemActionBar" class="item-action-bar">
-    <button
-      id="playPauseButton"
-      class="audio-pill"
-      type="button"
-    >
-      play
-    </button>
-
     <button
       id="downloadButton"
       class="download-pill"
       type="button"
     >
-      download Mystery Gift
+      download
     </button>
   </div>
-
-  
-  <div id="itemActionBar" class="item-action-bar">
-    <button
-      id="playPauseButton"
-      class="audio-pill"
-      type="button"
-    >
-      play
-    </button>
-
-    <button
-      id="downloadButton"
-      class="download-pill"
-      type="button"
-    >
-      download Mystery Gift
-    </button>
-  </div>
-
 
 
   
@@ -1350,52 +1275,6 @@
       btn.setAttribute('aria-label', 'Choose Character');
     }
 
-    // ===== Audio player (play/pause button) =====
-    (function () {
-      const AUDIO_SRC = 'https://ouch-world-music.s3.eu-north-1.amazonaws.com/tracks/Sloucho_MysteryGift.mp3';
-
-      const playBtn = document.getElementById('playPauseButton');
-      const audioEl = document.getElementById('mysteryGiftAudio');
-      if (!playBtn || !audioEl) return;
-
-      // Make sure src is set (in case you ever tweak the <audio> tag)
-      if (!audioEl.src) {
-        audioEl.src = AUDIO_SRC;
-      }
-
-      function updateButton() {
-        if (audioEl.paused || audioEl.ended) {
-          playBtn.textContent = 'play';
-          playBtn.classList.remove('playing');
-        } else {
-          playBtn.textContent = 'pause';
-          playBtn.classList.add('playing');
-        }
-      }
-
-      playBtn.addEventListener('click', () => {
-        if (audioEl.paused || audioEl.ended) {
-          audioEl.play().catch(err => {
-            console.error('Audio play failed:', err);
-          });
-        } else {
-          audioEl.pause();
-        }
-        // In case play() is async, also update on the events below
-        updateButton();
-      });
-
-      audioEl.addEventListener('ended', () => {
-        audioEl.currentTime = 0;
-        audioEl.pause();
-        updateButton();
-      });
-
-      audioEl.addEventListener('play', updateButton);
-      audioEl.addEventListener('pause', updateButton);
-    })();
-
-    
     // ===== Download button wiring =====
     (function () {
       const downloadUrl =
@@ -1405,15 +1284,15 @@
       if (!btn) return;
 
       btn.addEventListener('click', () => {
+        // Create a temporary hidden <a> to trigger the download
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = 'Sloucho_MysteryGift.mp3'; // suggested filename
+        a.download = 'sloucho_liveset_bricknastytour.wav'; // suggested filename
         document.body.appendChild(a);
         a.click();
         a.remove();
       });
     })();
-
 
 
 
