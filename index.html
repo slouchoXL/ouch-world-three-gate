@@ -84,7 +84,7 @@
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; justify-content: space-between; align-items: center; padding: 20px;
     }
-    .menu-button, .login-button {
+    .menu-button {
       width: 30px; height: 30px;
       background: #000;
       border: 1px solid rgba(255, 255, 255, 0.25);
@@ -92,7 +92,18 @@
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       transition: border-color .2s ease, background .2s ease;
+      display:none !important;
     }
+      .login-button {
+        width: 30px; height: 30px;
+        background: #000;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: border-color .2s ease, background .2s ease;
+        
+      }
     .menu-button:hover, .login-button:hover { border-color: rgba(255, 255, 255, 0.45); }
     .menu-dots { display: flex; gap: 4px; }
     .dot { width: 3px; height: 3px; background: #fff; border-radius: 50%; }
@@ -1215,7 +1226,7 @@
     mouseNDC = new THREE.Vector2();
 
     // Events
-    renderer.domElement.addEventListener('click', onCanvasClick);
+    //  renderer.domElement.addEventListener('click', onCanvasClick);
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('mousemove', onMouseMove);
 
