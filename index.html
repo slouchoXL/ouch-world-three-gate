@@ -643,7 +643,9 @@
       bar.style.width = percent + '%';
     }
     if (text) {
-      text.textContent = `${loaded}/${total}`;
+        const percent = Math.round((loaded / total) * 100);
+        text.textContent = `${percent}/100`;
+
     }
   }
 
