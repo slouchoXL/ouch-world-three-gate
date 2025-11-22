@@ -102,7 +102,7 @@
         cursor: pointer;
         display: flex; align-items: center; justify-content: center;
         transition: border-color .2s ease, background .2s ease;
-        
+        display:none !important;
       }
     .menu-button:hover, .login-button:hover { border-color: rgba(255, 255, 255, 0.45); }
     .menu-dots { display: flex; gap: 4px; }
@@ -607,7 +607,7 @@
   }
 
   window.characterConfigs = [
-    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, y: 0.02, scaleMul: 0.6, trimStart: 1.5, trimEnd: 2.0 },
+    { name: "Sloucho", status: "Unlocked", url: "/assets/models/sloucho.glb", targetHeight: 1.4, y: 0.08, scaleMul: 0.6, trimStart: 1.5, trimEnd: 2.0 },
     { name: "Rás",     status: "Unlocked", url: "/assets/models/ras.glb",     targetHeight: 1.4, y: 0.05, scaleMul: 0.6, trimStart: 0.12, trimEnd: 0.10 },
     { name: "Super Maramu 2000", status: "Unlocked", url: "/assets/models/maramu.glb", targetHeight: 1.4, y: -0.15, scaleMul: 0.5, trimStart: 0.12, trimEnd: 0.10 }
   ];
