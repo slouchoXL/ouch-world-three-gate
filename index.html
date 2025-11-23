@@ -63,11 +63,12 @@
         position: fixed;
         inset: 0;
         background: rgba(0,0,0,0.96);
-        display: none;              /* we'll enable it via JS */
+        display: flex;              /* 🔁 show immediately */
         align-items: center;
         justify-content: center;
-        z-index: 9999;              /* above everything else */
+        z-index: 9999;
       }
+
 
       .password-modal {
         background: rgba(15,15,15,0.95);
@@ -536,7 +537,7 @@
       <div id="passwordOverlay" class="password-overlay">
         <div class="password-modal">
           <h1>Enter Password</h1>
-          <p>This page is part of an internal OUCH™ experiment.</p>
+          <p>This page is password protected by OUCH™.</p>
           <input
             type="password"
             id="sitePasswordInput"
@@ -1507,7 +1508,7 @@
       if (!overlay || !input || !submit) return;
 
       // Show the overlay as soon as JS runs
-      overlay.style.display = 'flex';
+
 
       function tryUnlock() {
         const value = (input.value || '').trim();
