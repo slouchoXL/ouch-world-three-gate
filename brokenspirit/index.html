@@ -345,34 +345,62 @@
         opacity: 0.85;
       }
 
+      /* Bounding box for all tracks */
       .audio-track-list {
-        margin-top: 10px;
+        margin-top: 16px;
+
+        /* centre under the scrubber */
+        margin-left: auto;
+        margin-right: auto;
+
+        width: 260px;          /* tweak to taste */
+        max-width: 90%;
+
+        background: rgba(0, 0, 0, 0.85);
+        border-radius: 18px;
+        padding: 6px;
+
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
+
         display: flex;
         flex-direction: column;
-        gap: 4px;
       }
 
+      /* Individual track rows */
       .audio-track {
-        background: rgba(0,0,0,0.5);
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 999px;
-        padding: 8px 32px;
-        font-size: 12px;
+        appearance: none;
+        border: none;
+        background: transparent;
         color: #fff;
-        text-align: center;
+        font: inherit;
+        font-size: 12px;
+
+        text-align: left;
+        padding: 8px 14px;
+        border-radius: 12px;
+
         cursor: pointer;
-        backdrop-filter: blur(10px);
-        transition: background .2s ease, border-color .2s ease;
+        display: block;
       }
 
-      .audio-track:hover {
-        border-color: rgba(255,255,255,0.6);
+      /* spacing between rows */
+      .audio-track + .audio-track {
+        margin-top: 2px;
       }
 
+      /* hover + keyboard focus */
+      .audio-track:hover,
+      .audio-track:focus-visible {
+        background: rgba(255, 255, 255, 0.08);
+        outline: none;
+      }
+
+      /* currently active/playing track */
       .audio-track.active {
-        border-color: rgba(255,255,255,0.9);
-        background: rgba(255,255,255,0.1);
+        background: rgba(255, 255, 255, 0.14);
       }
+
 
 
       
