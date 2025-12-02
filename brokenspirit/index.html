@@ -145,7 +145,7 @@
       top: 0;
       left: 0;
       right: 0;
-      bottom: 270px;   /* tweak this number until the spacing feels right */
+      bottom: 300px;   /* tweak this number until the spacing feels right */
       z-index: 1;
     }
     
@@ -153,7 +153,7 @@
     
     @media (max-width: 600px) {
       #scene-container {
-        bottom: 320px;  /* more reserved space for scrubber + track list */
+        bottom: 360px;  /* more reserved space for scrubber + track list */
       }
     }
 
@@ -410,9 +410,9 @@
       }
 
       .track-icon {
-        margin-left: 8px;
-        font-size: 12px;
-        opacity: 0.8;
+        width: 14px;
+        height: 14px;
+        position: relative;
       }
 
       /* spacing between rows */
@@ -432,14 +432,31 @@
         background: rgba(255, 255, 255, 0.14);
       }
 
-      /* When playing, swap icon */
-      .audio-track.playing .track-icon::before {
-        content: "❚❚";
+      .track-icon::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: 2px;
+        width: 0;
+        height: 0;
+        border-left: 8px solid #fff;
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+      }
+      
+      /* playing = pause bars */
+      .audio-track.playing .track-icon::before,
+      .audio-track.playing .track-icon::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        width: 3px;
+        height: 10px;
+        background: #fff;
       }
 
-      .audio-track .track-icon::before {
-        content: "▶";
-      }
+      .audio-track.playing .track-icon::before { left: 2px; }
+      .audio-track.playing .track-icon::after  { left: 8px; }
 
 
 
@@ -1249,7 +1266,7 @@
     root.scale.multiplyScalar(s);
   }
 
-  function frameCameraOnTargetHeight(camera, targetHeight = 1.8, pad = 1.8, centerYFactor = 0.45) {
+  function frameCameraOnTargetHeight(camera, targetHeight = 1.8, pad = 1.6, centerYFactor = 0.65) {
     const fovRad = (camera.fov * Math.PI) / 180;
     const halfH  = (targetHeight * pad) / 2;
     const dist   = halfH / Math.tan(fovRad / 2);
