@@ -145,7 +145,7 @@
       top: 0;
       left: 0;
       right: 0;
-      bottom: 180px;   /* tweak this number until the spacing feels right */
+      bottom: 230px;   /* tweak this number until the spacing feels right */
       z-index: 1;
     }
     
@@ -153,7 +153,7 @@
     
     @media (max-width: 600px) {
       #scene-container {
-        bottom: 210px;  /* more reserved space for scrubber + track list */
+        bottom: 250px;  /* more reserved space for scrubber + track list */
       }
     }
 
@@ -395,12 +395,24 @@
         font: inherit;
         font-size: 12px;
 
-        text-align: left;
         padding: 8px 14px;
         border-radius: 12px;
-
         cursor: pointer;
-        display: block;
+
+        display: flex;                 /* NEW: flex row */
+        align-items: center;
+        justify-content: space-between;/* title left, icon right */
+      }
+      
+      .track-title {
+        flex: 1;
+        text-align: left;
+      }
+
+      .track-icon {
+        margin-left: 8px;
+        font-size: 12px;
+        opacity: 0.8;
       }
 
       /* spacing between rows */
@@ -415,9 +427,18 @@
         outline: none;
       }
 
-      /* currently active/playing track */
+      /* Active track highlight stays the same */
       .audio-track.active {
         background: rgba(255, 255, 255, 0.14);
+      }
+
+      /* When playing, swap icon */
+      .audio-track.playing .track-icon::before {
+        content: "❚❚";
+      }
+
+      .audio-track .track-icon::before {
+        content: "▶";
       }
 
 
@@ -716,7 +737,7 @@
       </div>
 
       <!-- Single play/pause button centered underneath -->
-      <div class="audio-controls">
+      <!--  <div class="audio-controls">
           <button
             id="playPauseButton"
             class="audio-pill icon-pill"
@@ -731,40 +752,50 @@
       
       <!-- Track pills – titles live HERE only -->
           <div class="audio-track-list" id="audioTrackList">
-            <button
-              class="audio-track active"
-              data-src="/assets/Sloucho - All Night (ft. just lil).mp3"
-            >
-            All Night (ft. just lil)
-            </button>
+              <button
+                class="audio-track active"
+                data-src="/assets/Sloucho - All Night (ft. just lil).mp3"
+              >
+                <span class="track-title">All Night (ft. just lil)</span>
+                <span class="track-icon" aria-hidden="true">▶</span>
+              </button>
 
-            <button
-              class="audio-track"
-              data-src="/assets/Sloucho - Humans Only (ft. Crutch).mp3"
-            >
-            Humans Only (ft. Crutch)
-            </button>
+              <button
+                class="audio-track"
+                data-src="/assets/Sloucho - Humans Only (ft. Crutch).mp3"
+              >
+                <span class="track-title">Humans Only (ft. Crutch)</span>
+                <span class="track-icon" aria-hidden="true">▶</span>
+              </button>
+              
+              <button
+                class="audio-track"
+                data-src="/assets/Sloucho - Something Else (ft. Kibo).mp3"
+              >
+                <span class="track-title">Something Else (ft. Kibo)</span>
+                <span class="track-icon" aria-hidden="true">▶</span>
+              </button>
+              <!-- etc for the rest -->
 
-            <button
-              class="audio-track"
-              data-src="/assets/Sloucho - Something Else (ft. Kibo).mp3"
-            >
-            Something Else (ft. Kibo)
-            </button>
 
-            <button
-              class="audio-track"
-              data-src="/assets/Sloucho - Fake (ft. Gemma Dunleavy).mp3"
-            >
-            Fake (ft. Gemma Dunleavy)
-            </button>
+              <button
+                class="audio-track"
+                data-src="/assets/Sloucho - Fake (ft. Gemma Dunleavy).mp3"
+              >
+                <span class="track-title">Fake (ft. Gemma Dunleavy)</span>
+                <span class="track-icon" aria-hidden="true">▶</span>
+              </button>
+              <!-- etc for the rest -->
 
-            <button
-              class="audio-track"
-              data-src="/assets/Sloucho - Love is Fear.mp3"
-            >
-            Love is Fear
-            </button>
+              <button
+                class="audio-track"
+                data-src="/assets/Sloucho - Love is Fear.mp3"
+              >
+                <span class="track-title">Love is Fear</span>
+                <span class="track-icon" aria-hidden="true">▶</span>
+              </button>
+              <!-- etc for the rest -->
+
           </div>
          
     </div>
@@ -1113,7 +1144,7 @@
     window.character = root;
     
     // Update camera framing
-    frameCameraOnTargetHeight(camera, targetHeight, 1.4, 0.2);
+    frameCameraOnTargetHeight(camera, targetHeight, 1.8, 0.38);
     window.updateCharacterInfo();
     
     console.log(`${config.name} loaded from cache with preserved skeleton`);
@@ -1761,18 +1792,17 @@
 
     // ===== Audio playlist: 5 local tracks =====
     (function () {
-      const playBtn        = document.getElementById('playPauseButton');
       const audioEl        = document.getElementById('mysteryGiftAudio');
       const seekBar        = document.getElementById('audioSeek');
       const currentTimeEl  = document.getElementById('audioCurrentTime');
       const durationEl     = document.getElementById('audioDuration');
       const trackListEl    = document.getElementById('audioTrackList');
 
-      if (!playBtn || !audioEl) return;
+      if (!audioEl || !trackListEl) return;
 
-      const trackButtons = trackListEl
-        ? Array.from(trackListEl.querySelectorAll('.audio-track'))
-        : [];
+      const trackButtons = Array.from(
+        trackListEl.querySelectorAll('.audio-track')
+      );
 
       let currentIndex = 0;
       let isSeeking = false;
@@ -1784,21 +1814,20 @@
         return `${m}:${s.toString().padStart(2, '0')}`;
       }
 
-      function updateButton() {
-        const isPlaying = !(audioEl.paused || audioEl.ended);
-        playBtn.classList.toggle('playing', isPlaying);
-        playBtn.setAttribute('aria-label', isPlaying ? 'Pause audio' : 'Play audio');
-      }
-
-      function setActiveButton(index) {
+      function updateTrackStates(isPlaying) {
         trackButtons.forEach((btn, i) => {
-          btn.classList.toggle('active', i === index);
+          const playingThis = isPlaying && i === currentIndex;
+          btn.classList.toggle('active', i === currentIndex);
+          btn.classList.toggle('playing', playingThis);
         });
       }
 
       function loadTrack(index, autoplay = false) {
         if (!trackButtons.length) return;
-        if (index < 0 || index >= trackButtons.length) index = 0;
+
+        if (index < 0 || index >= trackButtons.length) {
+          index = 0;
+        }
 
         currentIndex = index;
         const btn = trackButtons[currentIndex];
@@ -1807,7 +1836,8 @@
 
         audioEl.src = src;
         audioEl.load();
-        setActiveButton(currentIndex);
+
+        updateTrackStates(false);
 
         if (autoplay) {
           audioEl
@@ -1816,17 +1846,22 @@
         }
       }
 
-      // Play / pause button
-      playBtn.addEventListener('click', async () => {
-        try {
-          if (audioEl.paused || audioEl.ended) {
-            await audioEl.play();
+      // Clicking a track row = play/pause that track
+      trackButtons.forEach((btn, index) => {
+        btn.addEventListener('click', () => {
+          // If you click the currently-selected track,
+          // toggle between play and pause
+          if (index === currentIndex) {
+            if (audioEl.paused || audioEl.ended) {
+              audioEl.play().catch(err => console.error(err));
+            } else {
+              audioEl.pause();
+            }
           } else {
-            audioEl.pause();
+            // Clicking a different track loads it & starts playing
+            loadTrack(index, true);
           }
-        } catch (err) {
-          console.error('Audio play failed:', err);
-        }
+        });
       });
 
       // Scrubber + timing
@@ -1862,28 +1897,26 @@
         });
       }
 
-      audioEl.addEventListener('play', updateButton);
-      audioEl.addEventListener('pause', updateButton);
+      audioEl.addEventListener('play', () => {
+        updateTrackStates(true);
+      });
+
+      audioEl.addEventListener('pause', () => {
+        updateTrackStates(false);
+      });
+
       audioEl.addEventListener('ended', () => {
         audioEl.currentTime = 0;
         if (seekBar) seekBar.value = '0';
         if (currentTimeEl) currentTimeEl.textContent = '0:00';
-        updateButton();
-        // (optional) auto-advance:
+        updateTrackStates(false);
+        // optional auto-advance:
         // loadTrack((currentIndex + 1) % trackButtons.length, true);
       });
 
-      // Clicking a pill loads that track + plays
-      trackButtons.forEach((btn, index) => {
-        btn.addEventListener('click', () => {
-          loadTrack(index, true);
-        });
-      });
-
-      // Initial state: first pill’s track loaded, not playing yet
+      // Initial state: first track loaded, not playing yet
       if (currentTimeEl) currentTimeEl.textContent = '0:00';
       if (durationEl) durationEl.textContent = '0:00';
-      updateButton();
       loadTrack(0, false);
     })();
 
