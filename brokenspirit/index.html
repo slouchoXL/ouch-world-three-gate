@@ -135,9 +135,28 @@
       }
 
 
-    .container { width: 100vw; height: 100vh; position: relative; }
-    #scene-container { position: absolute; inset: 0; z-index: 1; }
+    .container { 
+        width: 100vw;
+        height: 100vh;
+        position: relative; }
+    
+    #scene-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 180px;   /* tweak this number until the spacing feels right */
+      z-index: 1;
+    }
+    
     #scene-container canvas { display: block; cursor: pointer; }
+    
+    @media (max-width: 600px) {
+      #scene-container {
+        bottom: 210px;  /* more reserved space for scrubber + track list */
+      }
+    }
+
 
     /* Loading indicator */
     .loading-indicator {
@@ -354,7 +373,7 @@
         margin-right: auto;
 
         width: 260px;          /* tweak to taste */
-        max-width: 90%;
+        max-width: 75%;
 
         background: rgba(0, 0, 0, 0.85);
         border-radius: 18px;
