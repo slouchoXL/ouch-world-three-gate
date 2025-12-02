@@ -356,11 +356,17 @@
         background: rgba(0,0,0,0.5);
         border: 1px solid rgba(255,255,255,0.15);
         border-radius: 999px;
-        padding: 6px 12px;
+        padding: 8px 32px;
         font-size: 12px;
         color: #fff;
         text-align: center;
         cursor: pointer;
+        backdrop-filter: blur(10px);
+        transition: background .2s ease, border-color .2s ease;
+      }
+
+      .audio-track:hover {
+        border-color: rgba(255,255,255,0.6);
       }
 
       .audio-track.active {
@@ -648,14 +654,7 @@
   <div id="itemActionBar" class="item-action-bar">
     <div class="audio-player">
         
-        <!-- Track title -->
-         <div id="audioTrackTitle" class="audio-title">
-           Loading…
-         </div>
-        
-        
       <!-- Scrubber on top -->
-      
       
       <div class="audio-scrubber">
         <span id="audioCurrentTime">0:00</span>
@@ -683,14 +682,43 @@
 
       </div>
       
-      <!-- Track list -->
-         <div class="audio-track-list" id="audioTrackList">
-           <button class="audio-track active" data-index="0">Track 1 Title</button>
-           <button class="audio-track" data-index="1">Track 2 Title</button>
-           <button class="audio-track" data-index="2">Track 3 Title</button>
-           <button class="audio-track" data-index="3">Track 4 Title</button>
-           <button class="audio-track" data-index="4">Track 5 Title</button>
-         </div>
+      <!-- Track pills – titles live HERE only -->
+          <div class="audio-track-list" id="audioTrackList">
+            <button
+              class="audio-track active"
+              data-src="/assets/Sloucho - All Night (ft. just lil).mp3"
+            >
+            Sloucho – All Night (ft. just lil)
+            </button>
+
+            <button
+              class="audio-track"
+              data-src="/assets/Sloucho - Humans Only (ft. Crutch).mp3"
+            >
+            Sloucho – Humans Only (ft. Crutch)
+            </button>
+
+            <button
+              class="audio-track"
+              data-src="/assets/Sloucho - Something Else (ft. Kibo).mp3"
+            >
+            Sloucho – Something Else (ft. Kibo)
+            </button>
+
+            <button
+              class="audio-track"
+              data-src="/assets/Sloucho - Fake (ft. Gemma Dunleavy).mp3"
+            >
+            Sloucho – Fake (ft. Gemma Dunleavy)
+            </button>
+
+            <button
+              class="audio-track"
+              data-src="/assets/Sloucho - Love is Fear.mp3"
+            >
+            Sloucho – Love is Fear
+            </button>
+          </div>
          
     </div>
   </div>
@@ -1684,42 +1712,20 @@
       btn.setAttribute('aria-label', 'Choose Character');
     }
 
-    // ===== Audio playlist (5 tracks) =====
+    // ===== Audio playlist: 5 local tracks =====
     (function () {
       const playBtn        = document.getElementById('playPauseButton');
       const audioEl        = document.getElementById('mysteryGiftAudio');
       const seekBar        = document.getElementById('audioSeek');
       const currentTimeEl  = document.getElementById('audioCurrentTime');
       const durationEl     = document.getElementById('audioDuration');
-      const titleEl        = document.getElementById('audioTrackTitle');
       const trackListEl    = document.getElementById('audioTrackList');
 
       if (!playBtn || !audioEl) return;
 
-      // 🔊 1) Define your 5 tracks here (replace URLs with your AWS S3 links)
-      const tracks = [
-        {
-          title: "Sloucho – Something Else (ft. Kibo)",
-          url: "/assets/Sloucho - Something Else (ft. Kibo).mp3"
-        },
-        {
-          title: "Sloucho – Love is Fear",
-          url: "/assets/Sloucho - Love is Fear.mp3"
-        },
-        {
-          title: "Sloucho – Fake (ft. Gemma Dunleavy)",
-          url: "/assets/Sloucho - Fake (ft. Gemma Dunleavy).mp3"
-        },
-        {
-          title: "Sloucho – All Night (ft. just lil)",
-          url: "/assets/Sloucho - All Night (ft. just lil).mp3"
-        },
-        {
-          title: "Sloucho – Humans Only (ft. Crutch)",
-          url: "/assets/Sloucho - Humans Only (ft. Crutch).mp3"
-        }
-      ];
-
+      const trackButtons = trackListEl
+        ? Array.from(trackListEl.querySelectorAll('.audio-track'))
+        : [];
 
       let currentIndex = 0;
       let isSeeking = false;
@@ -1737,25 +1743,24 @@
         playBtn.setAttribute('aria-label', isPlaying ? 'Pause audio' : 'Play audio');
       }
 
-      function setActiveTrackButton(index) {
-        if (!trackListEl) return;
-        const buttons = trackListEl.querySelectorAll('.audio-track');
-        buttons.forEach((btn, i) => {
+      function setActiveButton(index) {
+        trackButtons.forEach((btn, i) => {
           btn.classList.toggle('active', i === index);
         });
       }
 
-      // 🚀 Load a track by index
       function loadTrack(index, autoplay = false) {
-        if (index < 0 || index >= tracks.length) return;
+        if (!trackButtons.length) return;
+        if (index < 0 || index >= trackButtons.length) index = 0;
+
         currentIndex = index;
+        const btn = trackButtons[currentIndex];
+        const src = btn.getAttribute('data-src');
+        if (!src) return;
 
-        const track = tracks[currentIndex];
-        audioEl.src = track.url;
+        audioEl.src = src;
         audioEl.load();
-
-        if (titleEl) titleEl.textContent = track.title || 'Untitled track';
-        setActiveTrackButton(currentIndex);
+        setActiveButton(currentIndex);
 
         if (autoplay) {
           audioEl
@@ -1764,7 +1769,7 @@
         }
       }
 
-      // ⏯ Play/Pause
+      // Play / pause button
       playBtn.addEventListener('click', async () => {
         try {
           if (audioEl.paused || audioEl.ended) {
@@ -1777,7 +1782,7 @@
         }
       });
 
-      // 📜 Time / scrubber
+      // Scrubber + timing
       audioEl.addEventListener('loadedmetadata', () => {
         if (seekBar) {
           seekBar.max = audioEl.duration.toString();
@@ -1812,34 +1817,26 @@
 
       audioEl.addEventListener('play', updateButton);
       audioEl.addEventListener('pause', updateButton);
-
-      // When a track finishes, just stop (or you can auto-advance if you want)
       audioEl.addEventListener('ended', () => {
         audioEl.currentTime = 0;
         if (seekBar) seekBar.value = '0';
         if (currentTimeEl) currentTimeEl.textContent = '0:00';
         updateButton();
-        // Auto-next example (optional):
-        // const nextIndex = (currentIndex + 1) % tracks.length;
-        // loadTrack(nextIndex, true);
+        // (optional) auto-advance:
+        // loadTrack((currentIndex + 1) % trackButtons.length, true);
       });
 
-      // 🎚 Track button clicks
-      if (trackListEl) {
-        trackListEl.querySelectorAll('.audio-track').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const idx = Number(btn.getAttribute('data-index') || '0');
-            loadTrack(idx, true);
-          });
+      // Clicking a pill loads that track + plays
+      trackButtons.forEach((btn, index) => {
+        btn.addEventListener('click', () => {
+          loadTrack(index, true);
         });
-      }
+      });
 
-      // Initial state
+      // Initial state: first pill’s track loaded, not playing yet
       if (currentTimeEl) currentTimeEl.textContent = '0:00';
       if (durationEl) durationEl.textContent = '0:00';
       updateButton();
-
-      // Load the first track on startup (no autoplay)
       loadTrack(0, false);
     })();
 
