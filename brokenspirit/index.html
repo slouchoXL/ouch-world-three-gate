@@ -651,6 +651,18 @@
           top: 10px;
           right: 10px;
       }
+      
+      /* Desktop adjustments */
+      @media (min-width: 900px) {
+        #controls {
+          bottom: 220px;       /* move scrubber UP */
+        }
+
+        .tracks-container {
+          bottom: 140px;       /* move tracklist UP */
+        }
+      }
+
 
   </style>
 </head>
@@ -660,7 +672,7 @@
       <div id="passwordOverlay" class="password-overlay">
         <div class="password-modal">
           <h1>Enter Password</h1>
-          <p>Act fast!! This page will self-destruct on Dec 12th.</p>
+          <p>This page will self-destruct on Dec 12th.</p>
           <input
             type="password"
             id="sitePasswordInput"
