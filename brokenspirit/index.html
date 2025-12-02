@@ -447,8 +447,8 @@
       .audio-track.playing .track-icon::before {
         content: "❚❚";
         position: absolute;
-        left: 3px;
-        top: 2px;
+        left: 1px;
+        top: 0px;
         border: none;           /* kill the triangle */
         width: auto;
         height: auto;
@@ -652,16 +652,12 @@
           right: 10px;
       }
       
-      /* Desktop adjustments */
       @media (min-width: 900px) {
-        #controls {
-          bottom: 220px;       /* move scrubber UP */
-        }
-
-        .tracks-container {
-          bottom: 140px;       /* move tracklist UP */
+        .audio-controls {
+          margin-top: -120px;   /* pull the scrubber upward */
         }
       }
+
 
 
   </style>
