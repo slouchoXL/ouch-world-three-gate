@@ -145,7 +145,7 @@
       top: 0;
       left: 0;
       right: 0;
-      bottom: 230px;   /* tweak this number until the spacing feels right */
+      bottom: 270px;   /* tweak this number until the spacing feels right */
       z-index: 1;
     }
     
@@ -153,7 +153,7 @@
     
     @media (max-width: 600px) {
       #scene-container {
-        bottom: 250px;  /* more reserved space for scrubber + track list */
+        bottom: 320px;  /* more reserved space for scrubber + track list */
       }
     }
 
@@ -373,7 +373,7 @@
         margin-right: auto;
 
         width: 260px;          /* tweak to taste */
-        max-width: 75%;
+        max-width: 90%;
 
         background: rgba(0, 0, 0, 0.85);
         border-radius: 18px;
@@ -736,19 +736,6 @@
         <span id="audioDuration">0:00</span>
       </div>
 
-      <!-- Single play/pause button centered underneath -->
-      <!--  <div class="audio-controls">
-          <button
-            id="playPauseButton"
-            class="audio-pill icon-pill"
-            type="button"
-            aria-label="Play audio"
-          >
-            <span class="icon icon-play" aria-hidden="true">▶</span>
-            <span class="icon icon-pause" aria-hidden="true">❚❚</span>
-          </button>
-
-      </div>
       
       <!-- Track pills – titles live HERE only -->
           <div class="audio-track-list" id="audioTrackList">
@@ -757,7 +744,7 @@
                 data-src="/assets/Sloucho - All Night (ft. just lil).mp3"
               >
                 <span class="track-title">All Night (ft. just lil)</span>
-                <span class="track-icon" aria-hidden="true">▶</span>
+                <span class="track-icon" aria-hidden="true"></span>
               </button>
 
               <button
@@ -765,7 +752,7 @@
                 data-src="/assets/Sloucho - Humans Only (ft. Crutch).mp3"
               >
                 <span class="track-title">Humans Only (ft. Crutch)</span>
-                <span class="track-icon" aria-hidden="true">▶</span>
+                <span class="track-icon" aria-hidden="true"></span>
               </button>
               
               <button
@@ -773,7 +760,7 @@
                 data-src="/assets/Sloucho - Something Else (ft. Kibo).mp3"
               >
                 <span class="track-title">Something Else (ft. Kibo)</span>
-                <span class="track-icon" aria-hidden="true">▶</span>
+                <span class="track-icon" aria-hidden="true"></span>
               </button>
               <!-- etc for the rest -->
 
@@ -783,7 +770,7 @@
                 data-src="/assets/Sloucho - Fake (ft. Gemma Dunleavy).mp3"
               >
                 <span class="track-title">Fake (ft. Gemma Dunleavy)</span>
-                <span class="track-icon" aria-hidden="true">▶</span>
+                <span class="track-icon" aria-hidden="true"></span>
               </button>
               <!-- etc for the rest -->
 
@@ -792,7 +779,7 @@
                 data-src="/assets/Sloucho - Love is Fear.mp3"
               >
                 <span class="track-title">Love is Fear</span>
-                <span class="track-icon" aria-hidden="true">▶</span>
+                <span class="track-icon" aria-hidden="true"></span>
               </button>
               <!-- etc for the rest -->
 
@@ -1144,7 +1131,7 @@
     window.character = root;
     
     // Update camera framing
-    frameCameraOnTargetHeight(camera, targetHeight, 1.8, 0.38);
+    frameCameraOnTargetHeight(camera, targetHeight);
     window.updateCharacterInfo();
     
     console.log(`${config.name} loaded from cache with preserved skeleton`);
@@ -1243,7 +1230,7 @@
         currentModel = root;
         window.character = root;
 
-        frameCameraOnTargetHeight(camera, targetHeight, 1.4, 0.2);
+        frameCameraOnTargetHeight(camera, targetHeight);
         window.updateCharacterInfo?.();
       },
       undefined,
@@ -1262,7 +1249,7 @@
     root.scale.multiplyScalar(s);
   }
 
-  function frameCameraOnTargetHeight(camera, targetHeight = 1.8, pad = 1.4, centerYFactor = 0.2) {
+  function frameCameraOnTargetHeight(camera, targetHeight = 1.8, pad = 1.8, centerYFactor = 0.45) {
     const fovRad = (camera.fov * Math.PI) / 180;
     const halfH  = (targetHeight * pad) / 2;
     const dist   = halfH / Math.tan(fovRad / 2);
