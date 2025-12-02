@@ -446,6 +446,12 @@
       
       .audio-track.playing .track-icon::before {
         content: "❚❚";
+        position: absolute;
+        left: 3px;
+        top: 2px;
+        border: none;           /* kill the triangle */
+        width: auto;
+        height: auto;
       }
 
 
@@ -654,7 +660,7 @@
       <div id="passwordOverlay" class="password-overlay">
         <div class="password-modal">
           <h1>Enter Password</h1>
-          <p>This page is password protected by OUCH™.</p>
+          <p>This page will self destruct on Dec 12th.</p>
           <input
             type="password"
             id="sitePasswordInput"
