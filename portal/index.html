@@ -862,19 +862,17 @@
     // ===== Card code + Supabase lookup =====
     async function initCardFlow() {
       // Look for /r/:code in the URL path
-      const path  = window.location.pathname;          // e.g. "/portal/BS-TEST-001"
-      const parts = path.split('/').filter(Boolean);   // ["portal", "BS-TEST-001"]
+      const path  = window.location.pathname;
+      const parts = path.split('/').filter(Boolean);
 
-      // If this is NOT a portal URL, allow the page to load normally
-      if (parts[0] !== 'portal') {
+      // We only run the card flow for /portal/<code>
+      // If there's no second segment, treat it as a normal page
+      if (parts[0] !== 'portal' || parts.length < 2) {
         console.log('[cards] No card code in URL – normal page load');
         return true;
       }
 
-     
-
-
-      const code = parts[1];
+      const code = parts[1]; // guaranteed to exist here
       if (!code) {
         console.warn('[cards] Missing card code segment');
         showInvalidCardMessage();
