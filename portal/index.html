@@ -41,11 +41,11 @@
             if (error) alert(`Session error: ${error.message}`); else window.location.reload();
           }
           
-          const { data: { user } } = await supa.auth.getUser();
+          const { data: { user } } = await window.supa.auth.getUser();
           const card = window.__CURRENT_CARD__;
 
           if (card && !card.claimed_by_email) {
-            await supa.from("NFCCard")
+            await window.supa.from("NFCCard")
               .update({
                 claimed_by_email: user.email,
                 claimed_at: new Date().toISOString()
@@ -871,7 +871,7 @@
         return true;
       }
 
-      const code = parts[1]; // "BS-TEST-001"
+     
 
 
       const code = parts[1];
@@ -890,7 +890,7 @@
       console.log('[cards] Looking up card with code:', code);
 
       const { data: card, error } = await window.supa
-        .from('cards')
+        .from('NFCCard')
         .select('*')
         .eq('public_code', code)
         .maybeSingle();
@@ -910,7 +910,7 @@
       // Card exists and is active – store globally for later use
       window.__CURRENT_CARD__ = card;
       console.log('[cards] Card OK:', card);
-      return true;
+      
       
       const { data: { user } } = await window.supa.auth.getUser();
 
@@ -958,7 +958,7 @@
 
       const code = window.__CURRENT_CARD__.public_code;
 
-      const { error } = await supa.auth.signInWithOtp({
+      const { error } = await window.supa.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: `${location.origin}/portal/${code}`
@@ -997,7 +997,7 @@
       const email = document.getElementById("returnEmail").value.trim();
       const code = window.__CURRENT_CARD__.public_code;
 
-      await supa.auth.signInWithOtp({
+      await window.supa.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: `${location.origin}/portal/${code}`
