@@ -859,6 +859,27 @@
 </div>
 
 <script>
+    
+    // Use the existing modal styles for the card portal
+    function renderCardPortal(innerHtml) {
+      let overlay = document.getElementById('card-modal-overlay');
+
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'card-modal-overlay';
+        overlay.className = 'modal-overlay show'; // uses your existing CSS
+        document.body.appendChild(overlay);
+      } else {
+        overlay.classList.add('show');
+      }
+
+      overlay.innerHTML = `
+        <div class="login-modal">
+          ${innerHtml}
+        </div>
+      `;
+    }
+
    
    // ===== Card code + Supabase lookup =====
    async function initCardFlow() {
@@ -929,84 +950,174 @@
 
     
     function showClaimUI(card) {
-      document.body.innerHTML = `
-        <div class="claim-box">
-          <h1>Unlock Your Broken Spirit Card</h1>
-          <p>This card has never been claimed.</p>
+      renderCardPortal(`
+        <h2 style="margin-bottom: 8px;">Unlock Your Broken Spirit Card</h2>
+        <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
+          This card has never been claimed.<br/>
+          Enter your email to link it to your account.
+        </p>
 
-          <input id="claimEmail" type="email" placeholder="Enter email" />
-
-          <button onclick="submitClaimEmail()">Claim Card</button>
-
-          <p id="claimError" style="color:#f77"></p>
+        <div class="form-group">
+          <input
+            id="claimEmail"
+            type="email"
+            class="form-input"
+            placeholder="Enter email"
+            autocomplete="email"
+          />
         </div>
-      `;
+
+        <button type="button" class="form-button" id="cardClaimButton">
+          Claim Card
+        </button>
+
+        <p id="claimError" style="font-size: 12px; color: #f97373; margin-top: 8px; min-height: 16px;"></p>
+      `);
+
+      const btn = document.getElementById('cardClaimButton');
+      if (btn) btn.addEventListener('click', submitClaimEmail);
     }
 
     async function submitClaimEmail() {
-      const email = document.getElementById("claimEmail").value.trim();
-      if (!email) return;
+      const input = document.getElementById("claimEmail");
+      const errorEl = document.getElementById("claimError");
+      if (!input || !errorEl) return;
 
-      const code = window.__CURRENT_CARD__.public_code;
+      const email = input.value.trim();
+      if (!email) {
+        errorEl.textContent = "Please enter an email address.";
+        input.focus();
+        return;
+      }
+
+      const code = window.__CURRENT_CARD__?.public_code;
+      if (!code) {
+        errorEl.textContent = "Missing card code.";
+        return;
+      }
 
       const { error } = await window.supa.auth.signInWithOtp({
         email,
         options: {
-            emailRedirectTo: `${location.origin}/portal?code=${code}`
-
+          emailRedirectTo: `${location.origin}/portal?code=${code}`
         }
       });
 
-
       if (error) {
-        document.getElementById("claimError").textContent = error.message;
+        errorEl.textContent = error.message;
         return;
       }
 
-      document.body.innerHTML = `<p>Check your email to finish claiming this card.</p>`;
+      renderCardPortal(`
+        <h2 style="margin-bottom: 8px;">Check your email</h2>
+        <p style="font-size: 14px; opacity: 0.8;">
+          We’ve sent a magic link to <strong>${email}</strong>.<br/>
+          Click it to finish claiming this card.
+        </p>
+      `);
     }
+
 
     function showAlreadyClaimedUI(card) {
-      document.body.innerHTML = `
-        <div class="claimed-box">
-          <h1>This card is already claimed</h1>
-          <p>Claimed by: <b>${card.claimed_by_email}</b></p>
-          <p>If this is incorrect, contact hello@brokenspirit.zone</p>
-        </div>
-      `;
+      renderCardPortal(`
+        <h2 style="margin-bottom: 8px;">Card already claimed</h2>
+        <p style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">
+          This card is registered to<br/>
+          <strong>${card.claimed_by_email}</strong>.
+        </p>
+        <p style="font-size: 13px; opacity: 0.7;">
+          If you bought this second-hand or think this is a mistake,
+          email <strong>hello@brokenspirit.zone</strong>.
+        </p>
+      `);
     }
 
-    function showReturnLoginUI(card) {
-      document.body.innerHTML = `
-        <h1>This card belongs to ${card.claimed_by_email}</h1>
-        <p>Enter your email to log back in.</p>
 
-        <input id="returnEmail" type="email" placeholder="Email" />
-        <button onclick="returnLogin()">Send magic link</button>
-      `;
+    function showReturnLoginUI(card) {
+      renderCardPortal(`
+        <h2 style="margin-bottom: 8px;">Log back in</h2>
+        <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
+          This card belongs to <strong>${card.claimed_by_email}</strong>.<br/>
+          Enter that email to get a new magic link.
+        </p>
+
+        <div class="form-group">
+          <input
+            id="returnEmail"
+            type="email"
+            class="form-input"
+            placeholder="Email"
+            autocomplete="email"
+          />
+        </div>
+
+        <button type="button" class="form-button" id="cardReturnButton">
+          Send login link
+        </button>
+
+        <p id="returnError" style="font-size: 12px; color: #f97373; margin-top: 8px; min-height: 16px;"></p>
+      `);
+
+      const btn = document.getElementById('cardReturnButton');
+      if (btn) btn.addEventListener('click', returnLogin);
     }
 
     async function returnLogin() {
-      const email = document.getElementById("returnEmail").value.trim();
-      const code = window.__CURRENT_CARD__.public_code;
+      const input = document.getElementById("returnEmail");
+      const errorEl = document.getElementById("returnError");
+      if (!input || !errorEl) return;
 
-      await window.supa.auth.signInWithOtp({
+      const email = input.value.trim();
+      if (!email) {
+        errorEl.textContent = "Please enter your email.";
+        input.focus();
+        return;
+      }
+
+      const code = window.__CURRENT_CARD__?.public_code;
+      if (!code) {
+        errorEl.textContent = "Missing card code.";
+        return;
+      }
+
+      const { error } = await window.supa.auth.signInWithOtp({
         email,
         options: {
-            emailRedirectTo: `${location.origin}/portal?code=${code}`
-
+          emailRedirectTo: `${location.origin}/portal?code=${code}`
         }
       });
 
-      document.body.innerHTML = `<p>Check your inbox.</p>`;
+      if (error) {
+        errorEl.textContent = error.message;
+        return;
+      }
+
+      renderCardPortal(`
+        <h2 style="margin-bottom: 8px;">Check your inbox</h2>
+        <p style="font-size: 14px; opacity: 0.8;">
+          We’ve sent a login link to <strong>${email}</strong>.
+        </p>
+      `);
     }
 
+
     function showDownloadUI(card) {
-      document.body.innerHTML = `
-        <h1>Your Broken Spirit Download</h1>
-        <a href="/downloads/bs-pack.zip" download>Download Pack</a>
-      `;
+      renderCardPortal(`
+        <h2 style="margin-bottom: 8px;">Your Broken Spirit Download</h2>
+        <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
+          This card is unlocked on your account.
+        </p>
+
+        <button
+          type="button"
+          class="form-button"
+          onclick="window.location.href='/downloads/bs-pack.zip'"
+        >
+          Download Pack
+        </button>
+      `);
     }
+
 
 
     function showInvalidCardMessage() {
