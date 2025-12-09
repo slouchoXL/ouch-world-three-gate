@@ -1159,6 +1159,87 @@
       `);
     }
 
+    <script>
+      async function gatePortalAccess() {
+        try {
+          // If we are in card flow (?code=...), don't gate — card UI is in charge.
+          const params = new URLSearchParams(window.location.search);
+          const codeFromUrl = (params.get('code') || '').trim();
+          if (codeFromUrl) {
+            console.log('[portal] In card flow (?code=...), skipping portal gate');
+            return;
+          }
+
+          if (!window.supa) {
+            console.warn('[portal] Supabase not ready, skipping gate');
+            return;
+          }
+
+          // 1) Check session
+          const { data: { user } } = await window.supa.auth.getUser();
+
+          if (!user) {
+            console.log('[portal] No logged-in user – locking portal');
+            showPortalLocked();
+            return;
+          }
+
+          // 2) Check if this email owns at least one active NFCCard
+          const { data: cards, error } = await window.supa
+            .from('NFCCard')
+            .select('id')
+            .eq('claimed_by_email', user.email)
+            .eq('active', true)
+            .limit(1);
+
+          if (error) {
+            console.error('[portal] Error checking NFCCard ownership:', error);
+            showPortalLocked();
+            return;
+          }
+
+          if (!cards || !cards.length) {
+            console.log('[portal] User logged in but has no active cards – locking portal');
+            showPortalLocked();
+            return;
+          }
+
+          console.log('[portal] Portal access granted for', user.email);
+          // Nothing else to do: user sees the normal portal.
+        } catch (err) {
+          console.error('[portal] gatePortalAccess failed:', err);
+          showPortalLocked();
+        }
+      }
+
+      function showPortalLocked() {
+        // Re-use your modal styling
+        const existing = document.getElementById('portalLockOverlay');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'portalLockOverlay';
+        overlay.className = 'modal-overlay show';
+
+        overlay.innerHTML = `
+          <div class="login-modal">
+            <h2 style="margin-bottom:8px;">Broken Spirit Portal</h2>
+            <p style="font-size:14px; opacity:0.8; margin-bottom:16px;">
+              You need a Broken Spirit NFC card linked to your account to access this page.
+            </p>
+            <button
+              type="button"
+              class="form-button"
+              onclick="window.location.href='https://YOUR-SHOPIFY-URL-HERE'"
+            >
+              Buy the Broken Spirit Card
+            </button>
+          </div>
+        `;
+
+        document.body.appendChild(overlay);
+      }
+    </script>
 
 
     function showInvalidCardMessage() {
@@ -2050,16 +2131,19 @@
     }
 
     
-    
-    // ===== Start =====
     // ===== Start =====
     window.addEventListener('load', async () => {
-      // 1) Check if this URL has a valid card (for /r/:code paths)
+      // 1) Run the card flow first (for ?code=... URLs)
       const cardOk = await initCardFlow();
-      // If this was a card URL and it failed, stop here (we already showed the error screen)
-      if (!cardOk) return;
 
-      // 2) Continue with your existing 3D + audio init
+      // If this was a card URL and the card UI took over (claim / download / error),
+      // stop here and don't boot the portal UI.
+      if (!cardOk) {
+        console.log('[boot] Card flow took over, skipping portal init');
+        return;
+      }
+
+      // 2) Normal portal initialisation (what you already had)
       // initPasswordGate(); // still disabled
       if (typeof THREE === 'undefined') {
         console.error('Three.js not loaded');
@@ -2082,7 +2166,11 @@
 
       document.getElementById('prevArrow')?.addEventListener('click', window.previousCharacter);
       document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
+
+      // 3) Finally, apply the portal lock if needed
+      gatePortalAccess();
     });
+
 
 
     window.addEventListener('keydown', (e) => {
