@@ -54,9 +54,51 @@
           }
         }
 
-        // Strip the hash (keep ?code=...) and load the clean URL once
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.hash = "";
+        // Try to claim the pending card (if we saved one)
+        let pendingCode = null;
+        try {
+          pendingCode = window.localStorage.getItem('bs_pending_code');
+        } catch (e) {
+          console.warn('[cards] Could not read pending code from storage:', e);
+        }
+
+        if (pendingCode) {
+          console.log('[cards] Claiming pending card:', pendingCode);
+          const { data: { user } } = await window.supa.auth.getUser();
+
+          if (user) {
+            const { data: card, error: fetchError } = await window.supa
+              .from('NFCCard')
+              .select('*')
+              .eq('public_code', pendingCode)
+              .maybeSingle();
+
+            if (!fetchError && card && !card.claimed_by_email && card.active !== false) {
+              const { error: claimError } = await window.supa
+                .from('NFCCard')
+                .update({
+                  claimed_by_email: user.email,
+                  claimed_at: new Date().toISOString()
+                })
+                .eq('id', card.id);
+
+              if (claimError) {
+                console.error('[cards] Error claiming pending card:', claimError);
+              } else {
+                console.log('[cards] Pending card claimed for', user.email);
+              }
+            }
+          }
+
+          try {
+            window.localStorage.removeItem('bs_pending_code');
+          } catch (e) {
+            console.warn('[cards] Could not clear pending code:', e);
+          }
+        }
+
+        // Strip the hash and send them to clean /portal
+        const cleanUrl = new URL(window.location.origin + '/portal');
         window.location.replace(cleanUrl.toString());
       } catch (e) {
         console.error("[supabase] Magic link processing failed:", e);
@@ -240,6 +282,19 @@
     .menu-item, .menu-item * { position: relative; z-index: 1; }
     .menu-item .menu-pill { background: transparent !important; padding: 0 !important; border-radius: 0 !important; }
 
+    /* Hide portal UI when the Broken Spirit portal is locked */
+    body.portal-locked .top-nav,
+    body.portal-locked .audio-player {
+      display: none !important;
+    }
+
+    /* Replace these selectors with your actual 3D container(s) */
+    body.portal-locked canvas,
+    body.portal-locked #scene-container,
+     {
+      display: none !important;
+    }
+    
     /* Modal */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
     .modal-overlay.show { display: flex; }
@@ -1037,10 +1092,18 @@
         return;
       }
 
+      // Remember which card we’re claiming
+      try {
+        window.localStorage.setItem('bs_pending_code', code);
+      } catch (e) {
+        console.warn('[cards] Could not persist pending code:', e);
+      }
+
       const { error } = await window.supa.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${location.origin}/portal?code=${code}`
+          // send them back to /portal (no ?code)
+          emailRedirectTo: `${location.origin}/portal`
         }
       });
 
@@ -1121,10 +1184,16 @@
         return;
       }
 
+      try {
+        window.localStorage.setItem('bs_pending_code', code);
+      } catch (e) {
+        console.warn('[cards] Could not persist pending code:', e);
+      }
+
       const { error } = await window.supa.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${location.origin}/portal?code=${code}`
+          emailRedirectTo: `${location.origin}/portal`
         }
       });
 
@@ -1212,33 +1281,35 @@
         }
       }
 
-      function showPortalLocked() {
-        // Re-use your modal styling
-        const existing = document.getElementById('portalLockOverlay');
-        if (existing) existing.remove();
+    function showPortalLocked() {
+      // mark the body as locked so we can hide the portal UI
+      document.body.classList.add('portal-locked');
 
-        const overlay = document.createElement('div');
-        overlay.id = 'portalLockOverlay';
-        overlay.className = 'modal-overlay show';
+      const existing = document.getElementById('portalLockOverlay');
+      if (existing) existing.remove();
 
-        overlay.innerHTML = `
-          <div class="login-modal">
-            <h2 style="margin-bottom:8px;">Broken Spirit Portal</h2>
-            <p style="font-size:14px; opacity:0.8; margin-bottom:16px;">
-              You need a Broken Spirit NFC card linked to your account to access this page.
-            </p>
-            <button
-              type="button"
-              class="form-button"
-              onclick="window.location.href='https://YOUR-SHOPIFY-URL-HERE'"
-            >
-              Buy the Broken Spirit Card
-            </button>
-          </div>
-        `;
+      const overlay = document.createElement('div');
+      overlay.id = 'portalLockOverlay';
+      overlay.className = 'modal-overlay show';
 
-        document.body.appendChild(overlay);
-      }
+      overlay.innerHTML = `
+        <div class="login-modal">
+          <h2 style="margin-bottom:8px;">Broken Spirit Portal</h2>
+          <p style="font-size:14px; opacity:0.8; margin-bottom:16px;">
+            You need a Broken Spirit NFC card linked to your account to access this page.
+          </p>
+          <button
+            type="button"
+            class="form-button"
+            onclick="window.location.href='https://YOUR-SHOPIFY-URL-HERE'"
+          >
+            Buy the Broken Spirit Card
+          </button>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+    }
 
 
 
