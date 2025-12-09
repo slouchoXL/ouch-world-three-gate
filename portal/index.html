@@ -859,65 +859,73 @@
 </div>
 
 <script>
-    // ===== Card code + Supabase lookup =====
-    async function initCardFlow() {
-      // Read ?code=... from the query string instead of the path
-      const params = new URLSearchParams(window.location.search);
-      const code = (params.get('code') || '').trim();
+   
+   // ===== Card code + Supabase lookup =====
+   async function initCardFlow() {
+     // Read ?code=... from the query string
+     const params = new URLSearchParams(window.location.search);
+     const code = (params.get('code') || '').trim();
 
-      if (!code) {
-        console.log('[cards] No card code in URL – normal page load');
-        return true; // just run the normal portal
-      }
+     // If there is no ?code, just run the normal portal
+     if (!code) {
+       console.log('[cards] No ?code in URL – normal page load');
+       return true;
+     }
 
-      if (!window.supa) {
-        console.error('[cards] Supabase client not initialised');
-        return true;
-      }
+     if (!window.supa) {
+       console.error('[cards] Supabase client not initialised');
+       return true;
+     }
 
-      console.log('[cards] Looking up card with code:', code);
+     console.log('[cards] Looking up card with code:', code);
 
-      const { data: card, error } = await window.supa
-        .from('NFCCard')
-        .select('*')
-        .eq('public_code', code)
-        .maybeSingle();
+     const { data: card, error } = await window.supa
+       .from('NFCCard')          // make sure this matches your table name
+       .select('*')
+       .eq('public_code', code)
+       .maybeSingle();
 
-      if (error) {
-        console.error('[cards] Error fetching card:', error);
-        showInvalidCardMessage();
-        return false;
-      }
+     if (error) {
+       console.error('[cards] Error fetching card:', error);
+       showInvalidCardMessage();
+       return false;
+     }
 
-      if (!card || card.active === false) {
-        console.warn('[cards] No active card found for code:', code);
-        showInvalidCardMessage();
-        return false;
-      }
+     if (!card || card.active === false) {
+       console.warn('[cards] No active card found for code:', code);
+       showInvalidCardMessage();
+       return false;
+     }
 
-      window.__CURRENT_CARD__ = card;
-      console.log('[cards] Card OK:', card);
+     // Card exists and is active – store globally for later use
+     window.__CURRENT_CARD__ = card;
+     console.log('[cards] Card OK:', card);
 
-      const { data: { user } } = await window.supa.auth.getUser();
+     const { data: { user } } = await window.supa.auth.getUser();
 
-      if (!card.claimed_by_email) {
-        showClaimUI(card);
-        return false;
-      }
+     // CASE A — card is unclaimed
+     if (!card.claimed_by_email) {
+       showClaimUI(card);
+       return false;
+     }
 
-      if (user && user.email !== card.claimed_by_email) {
-        showAlreadyClaimedUI(card);
-        return false;
-      }
+     // CASE B — card is claimed by someone else
+     if (user && user.email !== card.claimed_by_email) {
+       showAlreadyClaimedUI(card);
+       return false;
+     }
 
-      if (user && user.email === card.claimed_by_email) {
-        showDownloadUI(card);
-        return false;
-      }
+     // CASE C — card owner is logged in → allow download site
+     if (user && user.email === card.claimed_by_email) {
+       showDownloadUI(card);
+       return false;
+     }
 
-      showReturnLoginUI(card);
-      return false;
-    }
+     // CASE D — card is claimed but no session yet → force login
+     showReturnLoginUI(card);
+     return false;
+   }
+
 
     
     function showClaimUI(card) {
@@ -944,7 +952,8 @@
       const { error } = await window.supa.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${location.origin}/portal?code=${code}`
+            emailRedirectTo: `${location.origin}/portal?code=${code}`
+
         }
       });
 
@@ -984,7 +993,8 @@
       await window.supa.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${location.origin}/portal/${code}`
+            emailRedirectTo: `${location.origin}/portal?code=${code}`
+
         }
       });
 
