@@ -40,6 +40,22 @@
             const { error } = await window.supa.auth.setSession({ access_token, refresh_token });
             if (error) alert(`Session error: ${error.message}`); else window.location.reload();
           }
+          
+          const { data: { user } } = await supa.auth.getUser();
+          const card = window.__CURRENT_CARD__;
+
+          if (card && !card.claimed_by_email) {
+            await supa.from("NFCCard")
+              .update({
+                claimed_by_email: user.email,
+                claimed_at: new Date().toISOString()
+              })
+              .eq("id", card.id);
+
+            // Reload to show downloads
+            window.location.reload();
+          }
+
           history.replaceState({}, '', location.pathname + location.search);
         }
       } catch (e) { console.error('[supabase] Magic link processing failed:', e); }
@@ -846,14 +862,17 @@
     // ===== Card code + Supabase lookup =====
     async function initCardFlow() {
       // Look for /r/:code in the URL path
-      const path = window.location.pathname;          // e.g. "/r/Aj3n8s9LmQ"
-      const parts = path.split('/').filter(Boolean);  // ["r", "Aj3n8s9LmQ"]
+      const path  = window.location.pathname;          // e.g. "/portal/BS-TEST-001"
+      const parts = path.split('/').filter(Boolean);   // ["portal", "BS-TEST-001"]
 
-      // If this is NOT a card URL, allow the page to load normally
-      if (parts[0] !== 'r') {
+      // If this is NOT a portal URL, allow the page to load normally
+      if (parts[0] !== 'portal') {
         console.log('[cards] No card code in URL – normal page load');
-        return true; // OK to continue
+        return true;
       }
+
+      const code = parts[1]; // "BS-TEST-001"
+
 
       const code = parts[1];
       if (!code) {
@@ -892,7 +911,109 @@
       window.__CURRENT_CARD__ = card;
       console.log('[cards] Card OK:', card);
       return true;
+      
+      const { data: { user } } = await window.supa.auth.getUser();
+
+      // CASE A — card is unclaimed
+      if (!card.claimed_by_email) {
+        showClaimUI(card);
+        return false; // stop 3D site load
+      }
+
+      // CASE B — card is claimed by someone else
+      if (user && user.email !== card.claimed_by_email) {
+        showAlreadyClaimedUI(card);
+        return false;
+      }
+
+      // CASE C — card owner is logged in → allow download site
+      if (user && user.email === card.claimed_by_email) {
+        showDownloadUI(card);
+        return false; // (unless you want it to fall through)
+      }
+
+      // CASE D — card is claimed but no session yet → force login
+      showReturnLoginUI(card);
+      return false;
     }
+    
+    function showClaimUI(card) {
+      document.body.innerHTML = `
+        <div class="claim-box">
+          <h1>Unlock Your Broken Spirit Card</h1>
+          <p>This card has never been claimed.</p>
+
+          <input id="claimEmail" type="email" placeholder="Enter email" />
+
+          <button onclick="submitClaimEmail()">Claim Card</button>
+
+          <p id="claimError" style="color:#f77"></p>
+        </div>
+      `;
+    }
+
+    async function submitClaimEmail() {
+      const email = document.getElementById("claimEmail").value.trim();
+      if (!email) return;
+
+      const code = window.__CURRENT_CARD__.public_code;
+
+      const { error } = await supa.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${location.origin}/portal/${code}`
+        }
+      });
+
+      if (error) {
+        document.getElementById("claimError").textContent = error.message;
+        return;
+      }
+
+      document.body.innerHTML = `<p>Check your email to finish claiming this card.</p>`;
+    }
+
+    function showAlreadyClaimedUI(card) {
+      document.body.innerHTML = `
+        <div class="claimed-box">
+          <h1>This card is already claimed</h1>
+          <p>Claimed by: <b>${card.claimed_by_email}</b></p>
+          <p>If this is incorrect, contact hello@brokenspirit.zone</p>
+        </div>
+      `;
+    }
+
+    function showReturnLoginUI(card) {
+      document.body.innerHTML = `
+        <h1>This card belongs to ${card.claimed_by_email}</h1>
+        <p>Enter your email to log back in.</p>
+
+        <input id="returnEmail" type="email" placeholder="Email" />
+        <button onclick="returnLogin()">Send magic link</button>
+      `;
+    }
+
+    async function returnLogin() {
+      const email = document.getElementById("returnEmail").value.trim();
+      const code = window.__CURRENT_CARD__.public_code;
+
+      await supa.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${location.origin}/portal/${code}`
+        }
+      });
+
+      document.body.innerHTML = `<p>Check your inbox.</p>`;
+    }
+
+    function showDownloadUI(card) {
+      document.body.innerHTML = `
+        <h1>Your Broken Spirit Download</h1>
+        <a href="/downloads/bs-pack.zip" download>Download Pack</a>
+      `;
+    }
+
 
     function showInvalidCardMessage() {
       // Replace body content with a simple error screen
