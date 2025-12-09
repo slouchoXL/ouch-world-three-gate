@@ -868,16 +868,16 @@
 
      // If there is no ?code, just run the normal portal
      if (!code) {
-       console.log('[cards] No ?code in URL – normal page load');
+       console.log('[NFCCard] No ?code in URL – normal page load');
        return true;
      }
 
      if (!window.supa) {
-       console.error('[cards] Supabase client not initialised');
+       console.error('[NFCCard] Supabase client not initialised');
        return true;
      }
 
-     console.log('[cards] Looking up card with code:', code);
+     console.log('[NFCCard] Looking up card with code:', code);
 
      const { data: card, error } = await window.supa
        .from('NFCCard')          // make sure this matches your table name
@@ -886,20 +886,20 @@
        .maybeSingle();
 
      if (error) {
-       console.error('[cards] Error fetching card:', error);
+       console.error('[NFCCard] Error fetching card:', error);
        showInvalidCardMessage();
        return false;
      }
 
      if (!card || card.active === false) {
-       console.warn('[cards] No active card found for code:', code);
+       console.warn('[NFCCard] No active card found for code:', code);
        showInvalidCardMessage();
        return false;
      }
 
      // Card exists and is active – store globally for later use
      window.__CURRENT_CARD__ = card;
-     console.log('[cards] Card OK:', card);
+     console.log('[NFCCard] Card OK:', card);
 
      const { data: { user } } = await window.supa.auth.getUser();
 
