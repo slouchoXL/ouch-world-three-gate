@@ -861,27 +861,17 @@
 <script>
     // ===== Card code + Supabase lookup =====
     async function initCardFlow() {
-      // Look for /r/:code in the URL path
-      const path  = window.location.pathname;
-      const parts = path.split('/').filter(Boolean);
+      // Read ?code=... from the query string instead of the path
+      const params = new URLSearchParams(window.location.search);
+      const code = (params.get('code') || '').trim();
 
-      // We only run the card flow for /portal/<code>
-      // If there's no second segment, treat it as a normal page
-      if (parts[0] !== 'portal' || parts.length < 2) {
-        console.log('[cards] No card code in URL – normal page load');
-        return true;
-      }
-
-      const code = parts[1]; // guaranteed to exist here
       if (!code) {
-        console.warn('[cards] Missing card code segment');
-        showInvalidCardMessage();
-        return false; // stop further init
+        console.log('[cards] No card code in URL – normal page load');
+        return true; // just run the normal portal
       }
 
       if (!window.supa) {
         console.error('[cards] Supabase client not initialised');
-        // Let the page load anyway so it doesn't totally break
         return true;
       }
 
@@ -905,35 +895,30 @@
         return false;
       }
 
-      // Card exists and is active – store globally for later use
       window.__CURRENT_CARD__ = card;
       console.log('[cards] Card OK:', card);
-      
-      
+
       const { data: { user } } = await window.supa.auth.getUser();
 
-      // CASE A — card is unclaimed
       if (!card.claimed_by_email) {
         showClaimUI(card);
-        return false; // stop 3D site load
+        return false;
       }
 
-      // CASE B — card is claimed by someone else
       if (user && user.email !== card.claimed_by_email) {
         showAlreadyClaimedUI(card);
         return false;
       }
 
-      // CASE C — card owner is logged in → allow download site
       if (user && user.email === card.claimed_by_email) {
         showDownloadUI(card);
-        return false; // (unless you want it to fall through)
+        return false;
       }
 
-      // CASE D — card is claimed but no session yet → force login
       showReturnLoginUI(card);
       return false;
     }
+
     
     function showClaimUI(card) {
       document.body.innerHTML = `
@@ -959,9 +944,10 @@
       const { error } = await window.supa.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${location.origin}/portal/${code}`
+          emailRedirectTo: `${location.origin}/portal?code=${code}`
         }
       });
+
 
       if (error) {
         document.getElementById("claimError").textContent = error.message;
