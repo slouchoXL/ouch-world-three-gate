@@ -374,8 +374,6 @@
         bottom: 0;
         padding-bottom: env(safe-area-inset-bottom);
         z-index: 1500; /* below modals, above scene */
-        display: flex;
-        justify-content: center;
         pointer-events: none;
       }
 
@@ -386,37 +384,30 @@
       .audio-player {
         pointer-events: auto;
         width: 100%;
-        max-width: 1200px;
-        margin: 0 auto;
+        /* full width – no max-width, no centering */
         background: #000;
         display: flex;
         flex-direction: column;
       }
 
+
       /* Bottom bar */
 
       .audio-bottom-bar {
         display: grid;
-        grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1.6fr) auto;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-rows: auto auto;
         align-items: center;
         column-gap: 12px;
         padding: 8px 16px;
         border-top: 1px solid rgba(255, 255, 255, 0.25);
       }
 
-      /* Play button */
-
       .audio-main-btn {
-        width: 36px;
-        height: 36px;
-        border-radius: 4px;
-        border: 1px solid rgba(255, 255, 255, 0.85);
-        background: #000;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
+        grid-column: 1;
+        grid-row: 1;
       }
+
 
       .audio-main-icon {
         display: none;
@@ -463,9 +454,8 @@
       /* Now playing text (no forced uppercase on titles) */
 
       .audio-now-playing {
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
+        grid-column: 2;
+        grid-row: 1;
       }
       .audio-now-title {
         font-size: 12px;
@@ -489,68 +479,50 @@
         font-size: 11px;
       }
 
-      #audioSeek {
-        -webkit-appearance: none;
-        appearance: none;
+      .audio-progress-track {
+        position: relative;
         width: 100%;
-        height: 4px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.25); /* base line */
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.18);
-        outline: none;
-        padding: 0;
+        cursor: pointer;
+        overflow: hidden;
       }
 
-      /* Chrome/Safari thumb – centred on track */
-      #audioSeek::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: #ffffff;
-        margin-top: -5px; /* centres thumb vertically on 4px track */
+      .audio-progress-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 0%;
+        background: #ffffff;                /* white progress */
+        transform-origin: left center;
+        transform: scaleX(0);
       }
 
-      /* Firefox */
-      #audioSeek::-moz-range-track {
-        height: 4px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.18);
-      }
-      #audioSeek::-moz-range-thumb {
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: #ffffff;
-      }
 
       /* Chevron toggle (playlist) */
 
       .audio-bottom-icon {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        background: #000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
+        grid-column: 3;
+        grid-row: 1;
       }
-
+      
       .chevron-icon {
         width: 10px;
         height: 10px;
         border-right: 2px solid #ffffff;
         border-bottom: 2px solid #ffffff;
-        transform: rotate(45deg); /* collapsed = chevron up */
+        /* collapsed = pointing DOWN (to show list below) */
+        transform: rotate(-135deg);
         transition: transform 0.2s ease;
       }
 
-      /* When expanded, flip chevron down */
+      /* When expanded (track list visible), point UP */
       .audio-player:not(.collapsed) .chevron-icon {
-        transform: rotate(-135deg);
+        transform: rotate(45deg);
       }
+
 
       /* Track list */
 
@@ -628,11 +600,16 @@
         }
 
         .audio-bottom-progress {
-          grid-column: 1 / -2;
-          margin-top: 4px;
-        }
-      }
+          grid-column: 1 / 4;
+          grid-row: 2;
+          margin-top: 6px;
 
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          column-gap: 8px;
+          align-items: center;
+          font-size: 11px;
+        }
       
       /* Circular play/pause button */
       .icon-pill {
@@ -785,19 +762,6 @@
         .carousel-btn svg { width: 20px; height: 20px; } /* if you’re using inline SVGs */
       }
 
-      @media (max-width: 600px) {
-        .item-action-bar {
-            position: fixed;
-            bottom: max(50px, env(safe-area-inset-bottom) + 18px);
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 8px;
-            z-index: 1500;
-        }
-      }
-
-
 
       
       @media (max-width: 600px) {
@@ -828,11 +792,6 @@
           right: 10px;
       }
       
-      @media (min-width: 900px) {
-        .item-action-bar {
-          bottom: 170px;   /* raises scrubber + tracks together */
-        }
-      }
 
       /* When a card portal is active, hide the normal UI */
       body.card-portal-active .top-nav,
@@ -944,15 +903,12 @@
 
         <div class="audio-bottom-progress">
           <span id="audioCurrentTime">0:00</span>
-          <input
-            id="audioSeek"
-            type="range"
-            min="0"
-            value="0"
-            step="0.1"
-          />
+          <div class="audio-progress-track" id="audioProgressTrack">
+            <div class="audio-progress-fill" id="audioProgressFill"></div>
+          </div>
           <span id="audioDuration">0:00</span>
         </div>
+
 
         <button
           class="audio-bottom-icon"
@@ -2449,14 +2405,15 @@
 
     // ===== Audio playlist: WARP-STYLE BAR =====
     (function () {
-      const audioEl        = document.getElementById('mysteryGiftAudio');
-      const seekBar        = document.getElementById('audioSeek');
-      const currentTimeEl  = document.getElementById('audioCurrentTime');
-      const durationEl     = document.getElementById('audioDuration');
-      const trackListEl    = document.getElementById('audioTrackList');
-      const playPauseBtn   = document.getElementById('audioPlayPause');
-      const nowTitleEl     = document.getElementById('nowPlayingTitle');
-      const playerEl       = document.querySelector('.audio-player');
+      const audioEl         = document.getElementById('mysteryGiftAudio');
+      const progressTrack   = document.getElementById('audioProgressTrack');
+      const progressFill    = document.getElementById('audioProgressFill');
+      const currentTimeEl   = document.getElementById('audioCurrentTime');
+      const durationEl      = document.getElementById('audioDuration');
+      const trackListEl     = document.getElementById('audioTrackList');
+      const playPauseBtn    = document.getElementById('audioPlayPause');
+      const nowTitleEl      = document.getElementById('nowPlayingTitle');
+      const playerEl        = document.querySelector('.audio-player');
       const toggleTracksBtn = document.getElementById('audioToggleTracks');
 
       if (!audioEl || !trackListEl) return;
@@ -2465,9 +2422,12 @@
         trackListEl.querySelectorAll('.audio-track-row')
       );
 
-      let currentIndex = 0;
-      let isSeeking = false;
-      let isCollapsed = true;
+      let currentIndex  = 0;
+      let isScrubbing   = false;
+
+      function clamp01(x) {
+        return Math.max(0, Math.min(1, x));
+      }
 
       function formatTime(seconds) {
         if (!isFinite(seconds)) return '0:00';
@@ -2495,6 +2455,12 @@
         updateNowPlayingTitle();
       }
 
+      function updateProgressVisual() {
+        if (!progressTrack || !progressFill || !audioEl.duration) return;
+        const ratio = clamp01(audioEl.currentTime / audioEl.duration);
+        progressFill.style.transform = `scaleX(${ratio})`;
+      }
+
       function loadTrack(index, autoplay = false) {
         if (!trackButtons.length) return;
         if (index < 0 || index >= trackButtons.length) index = 0;
@@ -2508,15 +2474,9 @@
         audioEl.load();
 
         updateTrackStates(false);
-
-        if (autoplay) {
-          audioEl
-            .play()
-            .catch(err => console.error('Audio play failed:', err));
-        }
       }
 
-      // Click row: play / pause track
+      // Clicking a row = play/pause that track
       trackButtons.forEach((btn, index) => {
         btn.addEventListener('click', () => {
           if (index === currentIndex) {
@@ -2542,38 +2502,59 @@
         });
       }
 
-      // Scrubber + timing
+      // Scrubbing on the custom bar
+      function seekFromEvent(e) {
+        if (!progressTrack || !audioEl.duration) return;
+        const rect = progressTrack.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const ratio = clamp01((clientX - rect.left) / rect.width);
+        audioEl.currentTime = ratio * audioEl.duration;
+        updateProgressVisual();
+        if (currentTimeEl) currentTimeEl.textContent = formatTime(audioEl.currentTime);
+      }
+
+      if (progressTrack) {
+        progressTrack.addEventListener('mousedown', (e) => {
+          isScrubbing = true;
+          seekFromEvent(e);
+        });
+        window.addEventListener('mousemove', (e) => {
+          if (!isScrubbing) return;
+          seekFromEvent(e);
+        });
+        window.addEventListener('mouseup', () => {
+          isScrubbing = false;
+        });
+
+        progressTrack.addEventListener('touchstart', (e) => {
+          isScrubbing = true;
+          seekFromEvent(e);
+        }, { passive: true });
+        window.addEventListener('touchmove', (e) => {
+          if (!isScrubbing) return;
+          seekFromEvent(e);
+        }, { passive: true });
+        window.addEventListener('touchend', () => {
+          isScrubbing = false;
+        });
+      }
+
+      // Time + duration
       audioEl.addEventListener('loadedmetadata', () => {
-        if (seekBar) {
-          seekBar.max = audioEl.duration.toString();
-        }
         if (durationEl) {
           durationEl.textContent = formatTime(audioEl.duration);
         }
+        updateProgressVisual();
       });
 
       audioEl.addEventListener('timeupdate', () => {
-        if (seekBar && !isSeeking) {
-          seekBar.value = audioEl.currentTime.toString();
-        }
-        if (currentTimeEl) {
+        if (!isScrubbing && currentTimeEl) {
           currentTimeEl.textContent = formatTime(audioEl.currentTime);
         }
+        if (!isScrubbing) {
+          updateProgressVisual();
+        }
       });
-
-      if (seekBar) {
-        seekBar.addEventListener('input', () => {
-          isSeeking = true;
-          if (currentTimeEl) {
-            currentTimeEl.textContent = formatTime(Number(seekBar.value));
-          }
-        });
-
-        seekBar.addEventListener('change', () => {
-          audioEl.currentTime = Number(seekBar.value);
-          isSeeking = false;
-        });
-      }
 
       audioEl.addEventListener('play', () => {
         updateTrackStates(true);
@@ -2587,18 +2568,16 @@
 
       audioEl.addEventListener('ended', () => {
         audioEl.currentTime = 0;
-        if (seekBar) seekBar.value = '0';
         if (currentTimeEl) currentTimeEl.textContent = '0:00';
+        updateProgressVisual();
         updateTrackStates(false);
         if (playPauseBtn) playPauseBtn.classList.remove('playing');
       });
 
-      // Collapsible behaviour — scrubber always stays visible
+      // Collapsible behaviour (scrubber always visible)
       function setCollapsed(collapsed) {
-        isCollapsed = collapsed;
-        if (playerEl) {
-          playerEl.classList.toggle('collapsed', collapsed);
-        }
+        if (!playerEl) return;
+        playerEl.classList.toggle('collapsed', collapsed);
         if (toggleTracksBtn) {
           toggleTracksBtn.setAttribute('aria-expanded', (!collapsed).toString());
         }
@@ -2606,7 +2585,8 @@
 
       if (toggleTracksBtn) {
         toggleTracksBtn.addEventListener('click', () => {
-          setCollapsed(!isCollapsed);
+          const collapsed = playerEl?.classList.contains('collapsed');
+          setCollapsed(!collapsed);
         });
       }
 
@@ -2637,6 +2617,7 @@
       setCollapsed(true);
       populateTrackDurations();
     })();
+
 
 
 
