@@ -441,25 +441,23 @@
       }
 
 
+      /* Pause bars (also slightly smaller) */
       .audio-main-icon--pause {
-        width: 8px;     /* smaller container */
+        width: 8px;
         height: 8px;
         position: relative;
       }
-
       .audio-main-icon--pause::before,
       .audio-main-icon--pause::after {
         content: "";
         position: absolute;
         top: 0;
         bottom: 0;
-        width: 2px;      /* thinner bars */
+        width: 2px;
         background: #ffffff;
       }
-
-      .audio-main-icon--pause::before { left: 1; }
-      .audio-main-icon--pause::after  { right: 1; }
-
+      .audio-main-icon--pause::before { left: 1px; }
+      .audio-main-icon--pause::after  { right: 1px; }
 
       /* visibility toggling */
       .audio-main-btn .audio-main-icon--play {
