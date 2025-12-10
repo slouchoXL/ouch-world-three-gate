@@ -373,18 +373,20 @@
         right: 0;
         bottom: 0;
         padding-bottom: env(safe-area-inset-bottom);
-        z-index: 1500; /* below modals, above scene */
+        z-index: 1500;      /* below modals, above scene */
         pointer-events: none;
       }
 
       @supports not (bottom: env(safe-area-inset-bottom)) {
-        .item-action-bar { bottom: 0; }
+        .item-action-bar { bottom: 10; }
       }
 
       .audio-player {
         pointer-events: auto;
         width: 100%;
-        /* full width – no max-width, no centering */
+        max-width: none;    /* ensure no inherited max-width */
+        margin: 0;
+        border-radius: 0;
         background: #000;
         display: flex;
         flex-direction: column;
@@ -393,25 +395,23 @@
 
       /* Bottom bar */
 
+      /* Bottom bar: play, text row, chevron + scrubber row */
       .audio-bottom-bar {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        grid-template-rows: auto auto;
+        grid-template-columns: auto minmax(0, 1fr) auto;  /* play | text | chevron */
+        grid-template-rows: auto auto;                    /* row 1: text, row 2: scrubber */
         align-items: center;
         column-gap: 12px;
         padding: 8px 16px;
         border-top: 1px solid rgba(255, 255, 255, 0.25);
       }
 
+      /* Row 1 layout */
       .audio-main-btn {
         grid-column: 1;
         grid-row: 1;
       }
 
-
-      .audio-main-icon {
-        display: none;
-      }
 
       /* Play triangle */
       .audio-main-icon--play {
@@ -457,6 +457,7 @@
         grid-column: 2;
         grid-row: 1;
       }
+      
       .audio-now-title {
         font-size: 12px;
         line-height: 1.2;
@@ -513,14 +514,13 @@
         height: 10px;
         border-right: 2px solid #ffffff;
         border-bottom: 2px solid #ffffff;
-        /* collapsed = pointing DOWN (to show list below) */
-        transform: rotate(-135deg);
+        transform: rotate(45deg);           /* arrow pointing up */
         transition: transform 0.2s ease;
       }
 
-      /* When expanded (track list visible), point UP */
+      /* When expanded (track list visible), point DOWN */
       .audio-player:not(.collapsed) .chevron-icon {
-        transform: rotate(45deg);
+        transform: rotate(-135deg);         /* arrow pointing down */
       }
 
 
@@ -599,18 +599,19 @@
           row-gap: 6px;
         }
 
+        /* Row 2: scrubber always spans full width */
         .audio-bottom-progress {
-          grid-column: 1 / 4;
+          grid-column: 1 / 4;              /* span all three columns */
           grid-row: 2;
           margin-top: 6px;
-
           display: grid;
-          grid-template-columns: auto 1fr auto;
+          grid-template-columns: auto 1fr auto; /* current | bar | duration */
           column-gap: 8px;
           align-items: center;
           font-size: 11px;
         }
-      
+        
+        
       /* Circular play/pause button */
       .icon-pill {
         width: 30px;
@@ -2474,7 +2475,12 @@
         audioEl.load();
 
         updateTrackStates(false);
+
+        if (autoplay) {
+          audioEl.play().catch(err => console.error(err));
+        }
       }
+
 
       // Clicking a row = play/pause that track
       trackButtons.forEach((btn, index) => {
