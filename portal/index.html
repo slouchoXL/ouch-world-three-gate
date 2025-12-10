@@ -489,16 +489,10 @@
       /* Scrubber in bottom bar */
 
       .audio-bottom-progress {
-        grid-column: 1 / 4;
-        grid-row: 2;
-
-        margin-top: 10px;                   /* allow row-gap to handle spacing */
-        
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        align-items: center;
-        column-gap: 10px;           /* slightly wider spacing around times */
-        font-size: 12px;
+        grid-column: 1 / 4;      /* span all three columns */
+        grid-row: 2;             /* under the play/title/chevron row */
+        margin-top: 10px;        /* space between row 1 and the bar */
+        display: block;          /* simple block container */
       }
 
       .audio-progress-track {
