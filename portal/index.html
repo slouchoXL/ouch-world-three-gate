@@ -398,47 +398,47 @@
       .audio-bottom-bar {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;  /* play | text | chevron */
-        grid-template-rows: auto auto;                    /* row 1: text, row 2: scrubber */
+        grid-template-rows: auto auto;                    /* row 1: scrubber, row 2: text/buttons */
         align-items: center;
         column-gap: 12px;
         padding: 8px 16px;
         border-top: 1px solid rgba(255, 255, 255, 0.25);
       }
 
+      /* Row 2: controls + text */
       .audio-main-btn {
         grid-column: 1;
-        grid-row: 1;
-
-        /* give it a real button box, like your menu/login buttons */
+        grid-row: 2;
         width: 30px;
         height: 30px;
         background: #000;
         border: 1px solid rgba(255, 255, 255, 0.25);
         border-radius: 50%;
         cursor: pointer;
-
         display: flex;
         align-items: center;
         justify-content: center;
-
-        padding: 0;              /* override the global reset cleanly */
+        padding: 0;
       }
 
+      .audio-now-playing {
+        grid-column: 2;
+        grid-row: 2;
+      }
 
-
-      /* Play triangle */
+      /* Play triangle (smaller so it sits nicely in the 30px circle) */
       .audio-main-icon--play {
         width: 0;
         height: 0;
-        border-left: 12px solid #ffffff;
-        border-top: 7px solid transparent;
-        border-bottom: 7px solid transparent;
+        border-left: 8px solid #ffffff;
+        border-top: 6px solid transparent;
+        border-bottom: 6px solid transparent;
       }
 
-      /* Pause bars */
+      /* Pause bars (also slightly smaller) */
       .audio-main-icon--pause {
-        width: 14px;
-        height: 14px;
+        width: 10px;
+        height: 10px;
         position: relative;
       }
       .audio-main-icon--pause::before,
@@ -447,15 +447,18 @@
         position: absolute;
         top: 0;
         bottom: 0;
-        width: 3px;
+        width: 2px;
         background: #ffffff;
       }
       .audio-main-icon--pause::before { left: 1px; }
       .audio-main-icon--pause::after  { right: 1px; }
 
-      /* default: show play */
+      /* visibility toggling */
       .audio-main-btn .audio-main-icon--play {
         display: block;
+      }
+      .audio-main-btn .audio-main-icon--pause {
+        display: none;          /* HIDE pause by default */
       }
       .audio-main-btn.playing .audio-main-icon--play {
         display: none;
@@ -463,13 +466,9 @@
       .audio-main-btn.playing .audio-main-icon--pause {
         display: block;
       }
-
       /* Now playing text (no forced uppercase on titles) */
 
-      .audio-now-playing {
-        grid-column: 2;
-        grid-row: 1;
-      }
+ 
       
       .audio-now-title {
         font-size: 12px;
@@ -523,20 +522,16 @@
 
       .audio-bottom-icon {
         grid-column: 3;
-        grid-row: 1;
-
-        /* same circular treatment so it matches the left side */
+        grid-row: 2;
         width: 30px;
         height: 30px;
         background: #000;
         border: 1px solid rgba(255, 255, 255, 0.25);
         border-radius: 50%;
         cursor: pointer;
-
         display: flex;
         align-items: center;
         justify-content: center;
-
         padding: 0;
       }
 
@@ -546,13 +541,13 @@
         height: 10px;
         border-right: 2px solid #ffffff;
         border-bottom: 2px solid #ffffff;
-        transform: rotate(45deg);           /* arrow pointing up */
+        transform: rotate(-135deg);           /* arrow pointing up */
         transition: transform 0.2s ease;
       }
 
       /* When expanded (track list visible), point DOWN */
       .audio-player:not(.collapsed) .chevron-icon {
-        transform: rotate(-135deg);         /* arrow pointing down */
+        transform: rotate(45deg);         /* arrow pointing down */
       }
 
 
@@ -633,13 +628,13 @@
           row-gap: 6px;
         }
 
-        /* Row 2: scrubber always spans full width */
         .audio-bottom-progress {
           grid-column: 1 / 4;              /* span all three columns */
-          grid-row: 2;
-          margin-top: 6px;
+          grid-row: 1;
+          margin-bottom: 6px;              /* spacing between bar and text row */
+
           display: grid;
-          grid-template-columns: auto 1fr auto; /* current | bar | duration */
+          grid-template-columns: auto 1fr auto;  /* current | bar | duration */
           column-gap: 8px;
           align-items: center;
           font-size: 11px;
