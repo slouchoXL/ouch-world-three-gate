@@ -719,18 +719,29 @@
       }
 
       .carousel-btn {
-        appearance: none; -webkit-appearance: none;
-        bottom: 30px;
-        width: 30px; height: 30px;
+        appearance: none;
+        -webkit-appearance: none;
+
+        position: fixed;        /* make it float */
+        right: 28px;            /* tweak as desired */
+        bottom: 96px;           /* sit above the audio bar */
+
+        width: 30px;
+        height: 30px;
         background-color: rgba(0,0,0,0.8);
         border: 1px solid rgba(255,255,255,0.25);
         border-radius: 50%;
-        display: inline-flex; align-items: center; justify-content: center;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         backdrop-filter: blur(10px);
         transition: border-color .2s ease;
+        z-index: 500;           /* above scene, below modals */
       }
-      .carousel-btn:hover { border-color: rgba(255,255,255,0.45); }
-
+      .carousel-btn:hover {
+        border-color: rgba(255,255,255,0.45);
+      }
+      
       /* Icon sizing + stroke */
       .carousel-btn svg {
         width: 18px; height: 18px;
@@ -909,9 +920,25 @@
         <div class="character-name" id="characterName">Default Character</div>
         <button class="arrow-btn" id="nextArrow" title="Next">›</button>
       </div>
-    
     </div>
   </div>
+
+  <!-- Carousel toggle button -->
+  <button
+    id="enterCarouselBtn"
+    class="carousel-btn"
+    aria-label="Choose Character"
+  >
+    <!-- Up chevron icon -->
+    <svg class="icon-up" viewBox="0 0 24 24" aria-hidden="true">
+      <polyline points="6 14 12 8 18 14" />
+    </svg>
+    <!-- Tick icon -->
+    <svg class="icon-tick" viewBox="0 0 24 24" aria-hidden="true">
+      <polyline points="5 13 10 18 19 7" />
+    </svg>
+  </button>
+
   
   <!-- Hidden audio element for streaming Mystery Gift -->
   <audio
@@ -2204,7 +2231,7 @@
     mouseNDC = new THREE.Vector2();
 
     // Events
-    //  renderer.domElement.addEventListener('click', onCanvasClick);
+     renderer.domElement.addEventListener('click', onCanvasClick);
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('mousemove', onMouseMove);
 
