@@ -395,7 +395,6 @@
 
       /* Bottom bar */
 
-      /* Bottom bar: play, text row, chevron + scrubber row */
       .audio-bottom-bar {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;  /* play | text | chevron */
@@ -406,7 +405,7 @@
         border-top: 1px solid rgba(255, 255, 255, 0.25);
       }
 
-      /* Row 1 layout */
+      /* Row 1 */
       .audio-main-btn {
         grid-column: 1;
         grid-row: 1;
@@ -473,8 +472,12 @@
       /* Scrubber in bottom bar */
 
       .audio-bottom-progress {
+        grid-column: 1 / 4;   /* span all three columns */
+        grid-row: 2;
+        margin-top: 6px;
+
         display: grid;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: auto 1fr auto; /* current | bar | duration */
         column-gap: 8px;
         align-items: center;
         font-size: 11px;
@@ -594,8 +597,10 @@
 
       @media (max-width: 768px) {
         .audio-bottom-bar {
+            grid-column: 1 / 4;   /* span all three columns */
+              grid-row: 2;
+              margin-top: 6px;
           padding-inline: 10px;
-          grid-template-columns: auto minmax(0, 1fr) auto auto;
           row-gap: 6px;
         }
 
