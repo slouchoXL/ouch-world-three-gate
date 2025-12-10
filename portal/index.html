@@ -250,6 +250,16 @@
     body.portal-locked #scene-container {
       display: none !important;
     }
+      
+      /* Hide portal shell while JS decides what to show (prevents flash) */
+      body.portal-hidden .top-nav,
+      body.portal-hidden .audio-player,
+      body.portal-hidden .item-action-bar,
+      body.portal-hidden .character-controls,
+      body.portal-hidden canvas,
+      body.portal-hidden #scene-container {
+        visibility: hidden;
+      }
     
     /* Modal */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
@@ -699,7 +709,7 @@
 
   </style>
 </head>
-<body>
+<body class="portal-hidden">
     
       <!-- Password gate -->
       <div id="passwordOverlay" class="password-overlay">
@@ -2145,20 +2155,18 @@
     }
 
     
-    // ===== Start =====
     window.addEventListener('load', async () => {
       // 1) Run the card flow first (for ?code=... URLs)
       const cardOk = await initCardFlow();
 
       // If this was a card URL and the card UI took over (claim / download / error),
-      // stop here and don't boot the portal UI.
+      // stop here and don't boot the portal UI – keep portal-hidden so nothing flashes.
       if (!cardOk) {
         console.log('[boot] Card flow took over, skipping portal init');
         return;
       }
 
-      // 2) Normal portal initialisation (what you already had)
-      // initPasswordGate(); // still disabled
+      // 2) Normal portal initialisation (3D + audio)
       if (typeof THREE === 'undefined') {
         console.error('Three.js not loaded');
         return;
@@ -2167,24 +2175,28 @@
       initLoaders();
       initThreeJS();
 
-      // Start preloading in background while showing first character
       createCharacter();
       animate();
 
-      // Preload all characters after initial load
       setTimeout(() => {
-        preloadAllCharacters().then(() => {
-          console.log('🚀 All characters ready for instant switching!');
-        });
-      }, 1000); // Small delay to let initial character load first
+        preloadAllCharacters()
+          .then(() => console.log('🚀 All characters ready for instant switching!'))
+          .catch(err => console.error('Preload failed:', err));
+      }, 1000);
 
       document.getElementById('prevArrow')?.addEventListener('click', window.previousCharacter);
       document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
 
-      // 3) Finally, apply the portal lock if needed
-      gatePortalAccess();
-    });
+      // 3) Lock the portal for people without cards
+      await gatePortalAccess();
 
+      // 4) If the portal is NOT locked, reveal the shell (remove the anti-flash class)
+      if (!document.body.classList.contains('portal-locked')) {
+        document.body.classList.remove('portal-hidden');
+      }
+      // If it IS locked, portal-locked CSS + portal-hidden keep the background invisible,
+      // and only the "Buy the Broken Spirit Card" modal is visible.
+    });
 
 
     window.addEventListener('keydown', (e) => {
