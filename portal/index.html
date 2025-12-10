@@ -412,7 +412,7 @@
       /* Row 2: controls + text */
       .audio-main-btn {
         grid-column: 1;
-        grid-row: 2;
+        grid-row: 1;
         width: 30px;
         height: 30px;
         background: #000;
@@ -427,7 +427,7 @@
 
       .audio-now-playing {
         grid-column: 2;
-        grid-row: 2;
+        grid-row: 1;
       }
 
       /* Play triangle (smaller so it sits nicely in the 30px circle) */
@@ -490,9 +490,9 @@
 
       .audio-bottom-progress {
         grid-column: 1 / 4;
-        grid-row: 1;
+        grid-row: 2;
 
-        margin: 0;                  /* allow row-gap to handle spacing */
+        margin-top: 10px;                   /* allow row-gap to handle spacing */
         
         display: grid;
         grid-template-columns: auto 1fr auto;
@@ -504,7 +504,7 @@
       .audio-progress-track {
         position: relative;
         width: 100%;
-        height: 3px;
+        height: 8px;
         background: rgba(255, 255, 255, 0.25); /* base line */
         border-radius: 999px;
         cursor: pointer;
@@ -522,12 +522,16 @@
         transform: scaleX(0);
       }
 
+      .audio-bottom-progress span {
+        display: none;   /* hide current time + duration visually */
+      }
+
 
       /* Chevron toggle (playlist) */
 
       .audio-bottom-icon {
         grid-column: 3;
-        grid-row: 2;
+        grid-row: 1;
         width: 30px;
         height: 30px;
         background: #000;
