@@ -36,9 +36,9 @@
 
         if (error) {
           alert(`Authentication error: ${error_description || error}`);
-          const cleanUrl = new URL(window.location.href);
-          cleanUrl.hash = "";
-          history.replaceState({}, "", cleanUrl.toString());
+          const cleanErrUrl = new URL(window.location.href);
+          cleanErrUrl.hash = "";
+          history.replaceState({}, "", cleanErrUrl.toString());
           return;
         }
 
@@ -54,51 +54,9 @@
           }
         }
 
-        // Try to claim the pending card (if we saved one)
-        let pendingCode = null;
-        try {
-          pendingCode = window.localStorage.getItem('bs_pending_code');
-        } catch (e) {
-          console.warn('[cards] Could not read pending code from storage:', e);
-        }
-
-        if (pendingCode) {
-          console.log('[cards] Claiming pending card:', pendingCode);
-          const { data: { user } } = await window.supa.auth.getUser();
-
-          if (user) {
-            const { data: card, error: fetchError } = await window.supa
-              .from('NFCCard')
-              .select('*')
-              .eq('public_code', pendingCode)
-              .maybeSingle();
-
-            if (!fetchError && card && !card.claimed_by_email && card.active !== false) {
-              const { error: claimError } = await window.supa
-                .from('NFCCard')
-                .update({
-                  claimed_by_email: user.email,
-                  claimed_at: new Date().toISOString()
-                })
-                .eq('id', card.id);
-
-              if (claimError) {
-                console.error('[cards] Error claiming pending card:', claimError);
-              } else {
-                console.log('[cards] Pending card claimed for', user.email);
-              }
-            }
-          }
-
-          try {
-            window.localStorage.removeItem('bs_pending_code');
-          } catch (e) {
-            console.warn('[cards] Could not clear pending code:', e);
-          }
-        }
-
-        // Strip the hash and send them to clean /portal
-        const cleanUrl = new URL(window.location.origin + '/portal');
+        // Strip the hash but keep the existing path + query (so ?code=... stays)
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.hash = "";
         window.location.replace(cleanUrl.toString());
       } catch (e) {
         console.error("[supabase] Magic link processing failed:", e);
@@ -219,14 +177,15 @@
     }
 
 
-    /* Loading indicator */
-    .loading-indicator {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      z-index: 500; color: #fff; text-align: center; font-size: 14px;
-      background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px;
-      backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
-      transition: opacity 0.3s ease;
-    }
+      .loading-indicator {
+        display: none !important;  /* permanently hide the loader */
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        z-index: 500; color: #fff; text-align: center; font-size: 14px;
+        background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px;
+        backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
+        transition: opacity 0.3s ease;
+      }
+      
     .loading-progress {
       width: 200px; height: 4px; background: rgba(255,255,255,0.2);
       border-radius: 2px; margin: 10px 0; overflow: hidden;
@@ -284,14 +243,11 @@
 
     /* Hide portal UI when the Broken Spirit portal is locked */
     body.portal-locked .top-nav,
-    body.portal-locked .audio-player {
-      display: none !important;
-    }
-
-    /* Replace these selectors with your actual 3D container(s) */
+    body.portal-locked .audio-player,
+    body.portal-locked .item-action-bar,
+    body.portal-locked .character-controls,
     body.portal-locked canvas,
-    body.portal-locked #scene-container,
-     {
+    body.portal-locked #scene-container {
       display: none !important;
     }
     
@@ -1033,7 +989,8 @@
 
       // Happy path: user is logged in and owns the card
       if (user && user.email === card.claimed_by_email) {
-        showDownloadUI(card);
+        console.log('[cards] User owns this card – redirecting to main portal');
+        window.location.href = `${location.origin}/portal`;
         return false;
       }
 
@@ -1092,18 +1049,11 @@
         return;
       }
 
-      // Remember which card we’re claiming
-      try {
-        window.localStorage.setItem('bs_pending_code', code);
-      } catch (e) {
-        console.warn('[cards] Could not persist pending code:', e);
-      }
-
       const { error } = await window.supa.auth.signInWithOtp({
         email,
         options: {
-          // send them back to /portal (no ?code)
-          emailRedirectTo: `${location.origin}/portal`
+          // bring them back to the same card URL
+          emailRedirectTo: `${location.origin}/portal?code=${encodeURIComponent(code)}`
         }
       });
 
@@ -1120,7 +1070,6 @@
         </p>
       `);
     }
-
 
     function showAlreadyClaimedUI(card) {
       renderCardPortal(`
@@ -1184,16 +1133,10 @@
         return;
       }
 
-      try {
-        window.localStorage.setItem('bs_pending_code', code);
-      } catch (e) {
-        console.warn('[cards] Could not persist pending code:', e);
-      }
-
       const { error } = await window.supa.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${location.origin}/portal`
+          emailRedirectTo: `${location.origin}/portal?code=${encodeURIComponent(code)}`
         }
       });
 
