@@ -563,14 +563,16 @@
 
 
       /* Track list */
-
       .audio-track-list {
         border-top: 1px solid rgba(255, 255, 255, 0.18);
         border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-        max-height: 50vh;
+
+        /* Approx: header row + 5 song rows */
+        max-height: 260px;      /* tweak between ~230–280px to taste */
         overflow-y: auto;
+
         font-size: 12px;
-        padding-bottom: 24px; /* NEW: adds space before the bottom player */
+        padding-bottom: 24px;
       }
 
 
@@ -1103,7 +1105,7 @@
         
         <button class="audio-track-row"
                 data-src="/assets/brokenspirit_[demo_260225].mp3">
-          <span class="audio-col-index">14</span>
+          <span class="audio-col-index">15</span>
           <span class="audio-col-track">
             <span class="track-title">brokenspirit_[demo_260225]</span>
           </span>
