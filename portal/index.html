@@ -434,28 +434,32 @@
       .audio-main-icon--play {
         width: 0;
         height: 0;
-        border-left: 8px solid #ffffff;
-        border-top: 6px solid transparent;
-        border-bottom: 6px solid transparent;
+        border-left: 6px solid #ffffff;      /* smaller triangle */
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        transform: translateX(0);            /* remove offset */
       }
 
-      /* Pause bars (also slightly smaller) */
+
       .audio-main-icon--pause {
-        width: 10px;
-        height: 10px;
+        width: 8px;     /* smaller container */
+        height: 8px;
         position: relative;
       }
+
       .audio-main-icon--pause::before,
       .audio-main-icon--pause::after {
         content: "";
         position: absolute;
         top: 0;
         bottom: 0;
-        width: 2px;
+        width: 2px;      /* thinner bars */
         background: #ffffff;
       }
-      .audio-main-icon--pause::before { left: 1px; }
-      .audio-main-icon--pause::after  { right: 1px; }
+
+      .audio-main-icon--pause::before { left: 1; }
+      .audio-main-icon--pause::after  { right: 1; }
+
 
       /* visibility toggling */
       .audio-main-btn .audio-main-icon--play {
@@ -542,17 +546,21 @@
 
       
       .chevron-icon {
-        width: 10px;
-        height: 10px;
+        width: 8px;
+        height: 8px;
         border-right: 2px solid #ffffff;
         border-bottom: 2px solid #ffffff;
-        transform: rotate(45deg);           /* arrow pointing up */
         transition: transform 0.2s ease;
       }
 
-      /* When expanded (track list visible), point DOWN */
+      /* ▼ Collapsed (playlist hidden) = arrow DOWN */
+      .audio-player.collapsed .chevron-icon {
+        transform: rotate(-135deg);
+      }
+
+      /* ▲ Expanded (playlist visible) = arrow UP */
       .audio-player:not(.collapsed) .chevron-icon {
-        transform: rotate(-135deg);         /* arrow pointing down */
+        transform: rotate(45deg);
       }
 
 
