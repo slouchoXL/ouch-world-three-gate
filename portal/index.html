@@ -486,7 +486,7 @@
 
       .audio-bottom-progress {
         grid-column: 1 / 4;   /* span all three columns */
-        grid-row: 2;
+        grid-row: 1;
         margin-top: 6px;
 
         display: grid;
@@ -622,23 +622,12 @@
       @media (max-width: 768px) {
         .audio-bottom-bar {
             grid-column: 1 / 4;   /* span all three columns */
-              grid-row: 2;
+              grid-row: 1;
               margin-top: 6px;
           padding-inline: 10px;
           row-gap: 6px;
         }
 
-        .audio-bottom-progress {
-          grid-column: 1 / 4;              /* span all three columns */
-          grid-row: 1;
-          margin-bottom: 6px;              /* spacing between bar and text row */
-
-          display: grid;
-          grid-template-columns: auto 1fr auto;  /* current | bar | duration */
-          column-gap: 8px;
-          align-items: center;
-          font-size: 11px;
-        }
         
         
       /* Circular play/pause button */
