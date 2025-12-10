@@ -1080,10 +1080,9 @@
     
     function showClaimUI(card) {
       renderCardPortal(`
-        <h2 style="margin-bottom: 8px;">Unlock Your Broken Spirit Card</h2>
+        <h2 style="margin-bottom: 8px;">Activate Your Broken Spirit Card</h2>
         <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
-          This card has never been claimed.<br/>
-          Enter your email to link it to your account.
+          Enter your email to activate your account and claim your card.
         </p>
 
         <div class="form-group">
@@ -1142,7 +1141,7 @@
         <h2 style="margin-bottom: 8px;">Check your email</h2>
         <p style="font-size: 14px; opacity: 0.8;">
           We’ve sent a magic link to <strong>${email}</strong>.<br/>
-          Click it to finish claiming this card.
+          Click the link in your email to finish claiming this card.
         </p>
       `);
     }
@@ -1313,9 +1312,9 @@
 
       overlay.innerHTML = `
         <div class="login-modal">
-          <h2 style="margin-bottom:8px;">Broken Spirit Portal</h2>
+          <h2 style="margin-bottom:8px;">Broken Spirit</h2>
           <p style="font-size:14px; opacity:0.8; margin-bottom:16px;">
-            You need a Broken Spirit NFC card linked to your account to access this page.
+            You need a Broken Spirit NFC card to access this page.
           </p>
           <button
             type="button"
