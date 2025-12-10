@@ -397,13 +397,17 @@
 
       .audio-bottom-bar {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;  /* play | text | chevron */
-        grid-template-rows: auto auto;                    /* row 1: scrubber, row 2: text/buttons */
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-rows: auto auto;
+
+        padding: 14px 20px;          /* more breathing room */
+        row-gap: 10px;               /* space BETWEEN scrubber row + controls row */
+        column-gap: 16px;            /* more side spacing between play/title/chevron */
+
+        border-top: 1px solid rgba(255,255,255,0.25);
         align-items: center;
-        column-gap: 12px;
-        padding: 8px 16px;
-        border-top: 1px solid rgba(255, 255, 255, 0.25);
       }
+
 
       /* Row 2: controls + text */
       .audio-main-btn {
@@ -485,15 +489,16 @@
       /* Scrubber in bottom bar */
 
       .audio-bottom-progress {
-        grid-column: 1 / 4;   /* span all three columns */
+        grid-column: 1 / 4;
         grid-row: 1;
-        margin-top: 6px;
 
+        margin: 0;                  /* allow row-gap to handle spacing */
+        
         display: grid;
-        grid-template-columns: auto 1fr auto; /* current | bar | duration */
-        column-gap: 8px;
+        grid-template-columns: auto 1fr auto;
         align-items: center;
-        font-size: 11px;
+        column-gap: 10px;           /* slightly wider spacing around times */
+        font-size: 12px;
       }
 
       .audio-progress-track {
@@ -621,12 +626,16 @@
 
       @media (max-width: 768px) {
         .audio-bottom-bar {
-            grid-column: 1 / 4;   /* span all three columns */
-              grid-row: 1;
-              margin-top: 6px;
-          padding-inline: 10px;
-          row-gap: 6px;
+          padding: 14px 16px;
+          row-gap: 10px;
         }
+
+        .audio-bottom-progress {
+          column-gap: 12px;
+          font-size: 12px;
+        }
+      }
+
 
         
         
