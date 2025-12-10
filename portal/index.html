@@ -373,10 +373,14 @@
         right: 0;
         bottom: 0;
         padding-bottom: env(safe-area-inset-bottom);
-        z-index: 900; /* below modals (9999), above scene */
+        z-index: 1500; /* below modals, above scene */
         display: flex;
         justify-content: center;
-        pointer-events: none; /* only inside hits */
+        pointer-events: none;
+      }
+
+      @supports not (bottom: env(safe-area-inset-bottom)) {
+        .item-action-bar { bottom: 0; }
       }
 
       .audio-player {
@@ -384,22 +388,105 @@
         width: 100%;
         max-width: 1200px;
         margin: 0 auto;
+        background: #000;
         display: flex;
         flex-direction: column;
       }
 
-      /* Scrubber bar above the main player bar */
+      /* Bottom bar */
 
-      .audio-scrubber {
+      .audio-bottom-bar {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1.6fr) auto;
+        align-items: center;
+        column-gap: 12px;
+        padding: 8px 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.25);
+      }
+
+      /* Play button */
+
+      .audio-main-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        background: #000;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      .audio-main-icon {
+        display: none;
+      }
+
+      /* Play triangle */
+      .audio-main-icon--play {
+        width: 0;
+        height: 0;
+        border-left: 12px solid #ffffff;
+        border-top: 7px solid transparent;
+        border-bottom: 7px solid transparent;
+      }
+
+      /* Pause bars */
+      .audio-main-icon--pause {
+        width: 14px;
+        height: 14px;
+        position: relative;
+      }
+      .audio-main-icon--pause::before,
+      .audio-main-icon--pause::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: #ffffff;
+      }
+      .audio-main-icon--pause::before { left: 1px; }
+      .audio-main-icon--pause::after  { right: 1px; }
+
+      /* default: show play */
+      .audio-main-btn .audio-main-icon--play {
+        display: block;
+      }
+      .audio-main-btn.playing .audio-main-icon--play {
+        display: none;
+      }
+      .audio-main-btn.playing .audio-main-icon--pause {
+        display: block;
+      }
+
+      /* Now playing text (no forced uppercase on titles) */
+
+      .audio-now-playing {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .audio-now-title {
+        font-size: 12px;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .audio-now-artist {
+        font-size: 11px;
+        opacity: 0.7;
+      }
+
+      /* Scrubber in bottom bar */
+
+      .audio-bottom-progress {
         display: grid;
         grid-template-columns: auto 1fr auto;
-        align-items: center;
         column-gap: 8px;
-        padding: 4px 12px;
+        align-items: center;
         font-size: 11px;
-        background: #000;
-        border-top: 1px solid rgba(255, 255, 255, 0.15);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
       }
 
       #audioSeek {
@@ -413,7 +500,7 @@
         padding: 0;
       }
 
-      /* Chrome / Safari thumb */
+      /* Chrome/Safari thumb – centred on track */
       #audioSeek::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
@@ -421,7 +508,7 @@
         height: 14px;
         border-radius: 50%;
         background: #ffffff;
-        margin-top: -5px; /* center on track */
+        margin-top: -5px; /* centres thumb vertically on 4px track */
       }
 
       /* Firefox */
@@ -437,135 +524,46 @@
         background: #ffffff;
       }
 
-      /* Bottom bar – looks like Warp player */
-
-      .audio-bottom-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 8px 12px;
-        background: #000;
-      }
-
-      /* Left: main play/pause button */
-
-      .audio-main-btn {
-        width: 36px;
-        height: 36px;
-        border-radius: 4px;
-        border: 1px solid rgba(255, 255, 255, 0.85);
-        background: #000;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        margin-right: 10px;
-      }
-
-      /* Icon: triangle vs pause bars */
-
-      .audio-main-icon {
-        display: none;
-      }
-
-      .audio-main-icon--play {
-        width: 0;
-        height: 0;
-        border-left: 10px solid #ffffff;
-        border-top: 6px solid transparent;
-        border-bottom: 6px solid transparent;
-      }
-
-      .audio-main-icon--pause {
-        width: 12px;
-        height: 12px;
-        position: relative;
-      }
-      .audio-main-icon--pause::before,
-      .audio-main-icon--pause::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background: #ffffff;
-      }
-      .audio-main-icon--pause::before {
-        left: 1px;
-      }
-      .audio-main-icon--pause::after {
-        right: 1px;
-      }
-
-      /* default: show play */
-      .audio-main-btn .audio-main-icon--play {
-        display: block;
-      }
-
-      /* when playing */
-      .audio-main-btn.playing .audio-main-icon--play {
-        display: none;
-      }
-      .audio-main-btn.playing .audio-main-icon--pause {
-        display: block;
-      }
-
-      /* Centre: now playing text */
-
-      .audio-now-playing {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
-
-      .audio-now-title {
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .audio-now-artist {
-        font-size: 11px;
-        opacity: 0.7;
-      }
-
-      /* Right: small icons (queue, close) */
-
-      .audio-bottom-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
+      /* Chevron toggle (playlist) */
 
       .audio-bottom-icon {
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        border: 1px solid rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.6);
         background: #000;
-        color: #fff;
-        font-size: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
       }
 
-      /* Track list area – table-like, above player */
+      .chevron-icon {
+        width: 10px;
+        height: 10px;
+        border-right: 2px solid #ffffff;
+        border-bottom: 2px solid #ffffff;
+        transform: rotate(45deg); /* collapsed = chevron up */
+        transition: transform 0.2s ease;
+      }
+
+      /* When expanded, flip chevron down */
+      .audio-player:not(.collapsed) .chevron-icon {
+        transform: rotate(-135deg);
+      }
+
+      /* Track list */
 
       .audio-track-list {
-        background: #000;
-        padding: 12px 12px 8px;
         border-top: 1px solid rgba(255, 255, 255, 0.18);
         border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-        max-height: 45vh;
+        max-height: 50vh;
         overflow-y: auto;
         font-size: 12px;
+      }
+
+      .audio-player.collapsed .audio-track-list {
+        display: none;
       }
 
       .audio-track-header,
@@ -576,17 +574,13 @@
         align-items: center;
       }
 
-      /* header row */
-
       .audio-track-header {
-        padding: 4px 4px 8px;
+        padding: 6px 16px 8px;
         font-size: 11px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        opacity: 0.6;
+        opacity: 0.65;
       }
-
-      /* row buttons */
 
       .audio-track-row {
         width: 100%;
@@ -594,7 +588,7 @@
         background: transparent;
         color: #fff;
         text-align: left;
-        padding: 6px 4px;
+        padding: 6px 16px;
         cursor: pointer;
       }
 
@@ -602,12 +596,9 @@
         border-top: 1px solid rgba(255, 255, 255, 0.06);
       }
 
-      /* active / playing styling like Warp */
-
       .audio-track-row.active {
         background: rgba(255, 255, 255, 0.08);
       }
-
       .audio-track-row.playing {
         background: rgba(255, 255, 255, 0.16);
       }
@@ -627,39 +618,21 @@
         opacity: 0.7;
       }
 
-      
-      /* Collapsed state: only show bottom bar, hide scrubber + list */
-      .audio-player.collapsed .audio-scrubber,
-      .audio-player.collapsed .audio-track-list {
-        display: none;
-      }
+      /* Mobile layout tweaks */
 
-      /* Optional: tighten up bottom bar when collapsed */
-      .audio-player.collapsed .audio-bottom-bar {
-        border-top: 1px solid rgba(255, 255, 255, 0.18);
-      }
-
-      /* mobile: keep things readable */
-      @media (max-width: 600px) {
-        .audio-scrubber {
-          padding-inline: 8px;
-        }
+      @media (max-width: 768px) {
         .audio-bottom-bar {
-          padding-inline: 8px;
+          padding-inline: 10px;
+          grid-template-columns: auto minmax(0, 1fr) auto auto;
+          row-gap: 6px;
         }
-        .audio-track-list {
-          padding-inline: 8px;
+
+        .audio-bottom-progress {
+          grid-column: 1 / -2;
+          margin-top: 4px;
         }
       }
 
-
-
-      @supports not (bottom: env(safe-area-inset-bottom)) {
-        .item-action-bar { bottom: 35px; }
-      }
-      .item-action-bar.hidden {
-          display: none;
-      }
       
       /* Circular play/pause button */
       .icon-pill {
@@ -951,23 +924,9 @@
 
 
 
-  <!-- WARP-STYLE AUDIO PLAYER -->
   <div id="itemActionBar" class="item-action-bar">
-    <div class="audio-player">
-      <!-- Scrubber sits just above the bar -->
-      <div class="audio-scrubber">
-        <span id="audioCurrentTime">0:00</span>
-        <input
-          id="audioSeek"
-          type="range"
-          min="0"
-          value="0"
-          step="0.1"
-        />
-        <span id="audioDuration">0:00</span>
-      </div>
-
-      <!-- Bottom bar: play + now playing + controls -->
+    <div class="audio-player collapsed">
+      <!-- Bottom bar: play, now playing, scrubber, chevron -->
       <div class="audio-bottom-bar">
         <button id="audioPlayPause" class="audio-main-btn" aria-label="Play / pause">
           <span class="audio-main-icon audio-main-icon--play"></span>
@@ -976,37 +935,41 @@
 
         <div class="audio-now-playing">
           <div class="audio-now-title" id="nowPlayingTitle">
-            All Night (ft. just lil)
+            Something Else (ft. Kibo)
           </div>
           <div class="audio-now-artist">
             Sloucho
           </div>
         </div>
 
-        <div class="audio-bottom-actions">
-          <!-- purely visual icons; no behaviour required yet -->
-          <button
-            class="audio-bottom-icon"
-            id="audioToggleTracks"
-            aria-label="Toggle track list"
-            aria-expanded="true"
-          >
-            ☰
-          </button>
-
-          <button class="audio-bottom-icon" aria-label="Close player">
-            ×
-          </button>
+        <div class="audio-bottom-progress">
+          <span id="audioCurrentTime">0:00</span>
+          <input
+            id="audioSeek"
+            type="range"
+            min="0"
+            value="0"
+            step="0.1"
+          />
+          <span id="audioDuration">0:00</span>
         </div>
+
+        <button
+          class="audio-bottom-icon"
+          id="audioToggleTracks"
+          aria-label="Toggle playlist"
+          aria-expanded="false"
+        >
+          <span class="chevron-icon"></span>
+        </button>
       </div>
 
-      <!-- Track list section (like Warp’s list) -->
+      <!-- Track list (hidden when collapsed) -->
       <div class="audio-track-list" id="audioTrackList">
-
         <div class="audio-track-header">
           <span class="audio-col-index">#</span>
-          <span class="audio-col-track">TRACK</span>
-          <span class="audio-col-time">TIME</span>
+          <span class="audio-col-track">Track</span>
+          <span class="audio-col-time">Time</span>
         </div>
 
         <button
@@ -1017,7 +980,7 @@
           <span class="audio-col-track">
             <span class="track-title">All Night (ft. just lil)</span>
           </span>
-          <span class="audio-col-time">03:32</span>
+          <span class="audio-col-time"></span>
         </button>
 
         <button
@@ -1028,7 +991,7 @@
           <span class="audio-col-track">
             <span class="track-title">Humans Only (ft. Crutch)</span>
           </span>
-          <span class="audio-col-time">03:58</span>
+          <span class="audio-col-time"></span>
         </button>
 
         <button
@@ -1039,7 +1002,7 @@
           <span class="audio-col-track">
             <span class="track-title">Something Else (ft. Kibo)</span>
           </span>
-          <span class="audio-col-time">04:10</span>
+          <span class="audio-col-time"></span>
         </button>
 
         <button
@@ -1050,7 +1013,7 @@
           <span class="audio-col-track">
             <span class="track-title">Fake (ft. Gemma Dunleavy)</span>
           </span>
-          <span class="audio-col-time">03:47</span>
+          <span class="audio-col-time"></span>
         </button>
 
         <button
@@ -1061,12 +1024,12 @@
           <span class="audio-col-track">
             <span class="track-title">Love is Fear</span>
           </span>
-          <span class="audio-col-time">04:01</span>
+          <span class="audio-col-time"></span>
         </button>
-
       </div>
     </div>
   </div>
+
 
 
 
@@ -1228,7 +1191,7 @@
       renderCardPortal(`
         <h2 style="margin-bottom: 8px;">Activate Your Broken Spirit Card</h2>
         <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
-          Enter your email to activate your account and claim your card.
+          Enter your email to activate your account <br> and claim your card.
         </p>
 
         <div class="form-group">
@@ -1460,7 +1423,7 @@
         <div class="login-modal">
           <h2 style="margin-bottom:8px;">Broken Spirit</h2>
           <p style="font-size:14px; opacity:0.8; margin-bottom:16px;">
-            You need a Broken Spirit NFC card to access this page, buy the card and enter the OUCH™ universe.
+            A Broken Spirit NFC card is needed to access this page.
           </p>
           <button
             type="button"
@@ -2486,16 +2449,14 @@
 
     // ===== Audio playlist: WARP-STYLE BAR =====
     (function () {
-      const audioEl       = document.getElementById('mysteryGiftAudio');
-      const seekBar       = document.getElementById('audioSeek');
-      const currentTimeEl = document.getElementById('audioCurrentTime');
-      const durationEl    = document.getElementById('audioDuration');
-      const trackListEl   = document.getElementById('audioTrackList');
-      const playPauseBtn  = document.getElementById('audioPlayPause');
-      const nowTitleEl    = document.getElementById('nowPlayingTitle');
-
-      // NEW: elements needed for collapsing
-      const playerEl        = document.querySelector('.audio-player');
+      const audioEl        = document.getElementById('mysteryGiftAudio');
+      const seekBar        = document.getElementById('audioSeek');
+      const currentTimeEl  = document.getElementById('audioCurrentTime');
+      const durationEl     = document.getElementById('audioDuration');
+      const trackListEl    = document.getElementById('audioTrackList');
+      const playPauseBtn   = document.getElementById('audioPlayPause');
+      const nowTitleEl     = document.getElementById('nowPlayingTitle');
+      const playerEl       = document.querySelector('.audio-player');
       const toggleTracksBtn = document.getElementById('audioToggleTracks');
 
       if (!audioEl || !trackListEl) return;
@@ -2506,6 +2467,7 @@
 
       let currentIndex = 0;
       let isSeeking = false;
+      let isCollapsed = true;
 
       function formatTime(seconds) {
         if (!isFinite(seconds)) return '0:00';
@@ -2535,10 +2497,7 @@
 
       function loadTrack(index, autoplay = false) {
         if (!trackButtons.length) return;
-
-        if (index < 0 || index >= trackButtons.length) {
-          index = 0;
-        }
+        if (index < 0 || index >= trackButtons.length) index = 0;
 
         currentIndex = index;
         const btn = trackButtons[currentIndex];
@@ -2557,7 +2516,7 @@
         }
       }
 
-      // Clicking a row = play/pause that track
+      // Click row: play / pause track
       trackButtons.forEach((btn, index) => {
         btn.addEventListener('click', () => {
           if (index === currentIndex) {
@@ -2572,7 +2531,7 @@
         });
       });
 
-      // Play / pause button in the bar
+      // Play / pause button
       if (playPauseBtn) {
         playPauseBtn.addEventListener('click', () => {
           if (audioEl.paused || audioEl.ended) {
@@ -2634,21 +2593,13 @@
         if (playPauseBtn) playPauseBtn.classList.remove('playing');
       });
 
-      // Initial state
-      if (currentTimeEl) currentTimeEl.textContent = '0:00';
-      if (durationEl) durationEl.textContent = '0:00';
-      loadTrack(0, false);
-
-      // ===== Collapsible behaviour =====
-      let isCollapsed = true; // start collapsed (only bottom bar visible)
-
+      // Collapsible behaviour — scrubber always stays visible
       function setCollapsed(collapsed) {
         isCollapsed = collapsed;
         if (playerEl) {
           playerEl.classList.toggle('collapsed', collapsed);
         }
         if (toggleTracksBtn) {
-          // aria-expanded = true when list is visible
           toggleTracksBtn.setAttribute('aria-expanded', (!collapsed).toString());
         }
       }
@@ -2659,9 +2610,34 @@
         });
       }
 
-      // Apply initial collapsed state
+      // Load durations from actual audio files into the list
+      function populateTrackDurations() {
+        trackButtons.forEach(btn => {
+          const src = btn.getAttribute('data-src');
+          const timeEl = btn.querySelector('.audio-col-time');
+          if (!src || !timeEl) return;
+
+          const probe = new Audio();
+          probe.preload = 'metadata';
+          probe.src = src;
+          probe.addEventListener('loadedmetadata', () => {
+            const d = probe.duration;
+            if (isFinite(d)) {
+              timeEl.textContent = formatTime(d);
+            }
+          });
+        });
+      }
+
+      // Initial state
+      if (currentTimeEl) currentTimeEl.textContent = '0:00';
+      if (durationEl) durationEl.textContent = '0:00';
+
+      loadTrack(0, false);
       setCollapsed(true);
+      populateTrackDurations();
     })();
+
 
 
 
