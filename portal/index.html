@@ -405,11 +405,25 @@
         border-top: 1px solid rgba(255, 255, 255, 0.25);
       }
 
-      /* Row 1 */
       .audio-main-btn {
         grid-column: 1;
         grid-row: 1;
+
+        /* give it a real button box, like your menu/login buttons */
+        width: 30px;
+        height: 30px;
+        background: #000;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 50%;
+        cursor: pointer;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: 0;              /* override the global reset cleanly */
       }
+
 
 
       /* Play triangle */
@@ -510,7 +524,22 @@
       .audio-bottom-icon {
         grid-column: 3;
         grid-row: 1;
+
+        /* same circular treatment so it matches the left side */
+        width: 30px;
+        height: 30px;
+        background: #000;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 50%;
+        cursor: pointer;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: 0;
       }
+
       
       .chevron-icon {
         width: 10px;
