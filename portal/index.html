@@ -873,17 +873,17 @@
 
       .bs-hero {
         width: 100%;
-        height: 100vh;
+        min-height: 100vh;
         padding: 96px 24px 120px;   /* room for top nav + bottom audio */
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: flex-start; /* content starts at top */
-        text-align: center;
+        justify-content: flex-start;
+        text-align: center;         /* title centred only */
       }
 
-      /* Title fixed near top of hero */
+      /* Title */
       .bs-title {
         margin-bottom: 32px;
       }
@@ -893,16 +893,16 @@
         line-height: 1.4;
       }
 
-      model-viewer.bs-card-viewer {
+      /* GLB viewport (card) */
+      .bs-card-viewer {
         display: block;
-        width: 600px;
+        width: 420px;
         max-width: 90vw;
-        height: 80vh;          /* tall viewport */
+        height: 55vh;               /* smaller than before */
         border-radius: 12px;
         overflow: hidden;
         margin-bottom: 32px;
       }
-
 
       /* Body copy under the card */
       .bs-copy {
@@ -912,9 +912,8 @@
         margin-right: auto;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
           "SF Pro Display", "Segoe UI", sans-serif;
-        text-align: center;
+        text-align: left;           /* <- left-aligned paragraphs */
       }
-
 
       .bs-copy p {
         font-size: 13px;
@@ -931,27 +930,24 @@
         user-select: none;
       }
 
-      /* Optional: slightly bigger GLB on desktop */
+      /* Desktop tweak: a bit wider if there’s room */
       @media (min-width: 900px) {
         .bs-card-viewer {
-          width: 600px;
+          width: 480px;
+          height: 50vh;
         }
       }
-      
+
+      /* Mobile: slightly smaller viewport than before */
       @media (max-width: 768px) {
         .bs-hero {
-          padding: 56px 16px 96px;   /* a bit less top padding so the card moves up */
+          padding: 72px 16px 96px;
         }
 
-        model-viewer.bs-card-viewer {
-          width: 100vw;
+        .bs-card-viewer {
+          width: 100%;
           max-width: 100vw;
-          height: 70vh;              /* dominates the screen on phones */
-          margin-bottom: 24px;
-        }
-
-        .bs-copy {
-          text-align: left;          /* if you actually want left-aligned copy on mobile */
+          height: 50vh;             /* no longer massive on phones */
         }
       }
 
@@ -1325,6 +1321,15 @@
           <span class="audio-col-index">19</span>
           <span class="audio-col-track">
             <span class="track-title">brokenspirit_[demo_290125]</span>
+          </span>
+          <span class="audio-col-time"></span>
+        </button>
+        
+        <button class="audio-track-row"
+                data-src="/assets/brokenspirit_[demo_071024].mp3">
+          <span class="audio-col-index">20</span>
+          <span class="audio-col-track">
+            <span class="track-title">brokenspirit_[demo_071024]</span>
           </span>
           <span class="audio-col-time"></span>
         </button>
