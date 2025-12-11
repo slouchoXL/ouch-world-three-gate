@@ -78,7 +78,7 @@
     html, body {
           height: 100%;
           overflow: hidden;
-          font-family: PPMori, Arial, sans-serif;
+          font-family: 'PPMori', Arial, sans-serif;
           background: #000;
           color: #fff;
           touch-action: none;
@@ -894,7 +894,7 @@
 
       /* GLB viewer – larger card */
       .bs-card-viewer {
-        width: 340px;
+        width: 500px;
         max-width: 80vw;
         aspect-ratio: 3 / 4;
         border-radius: 12px;
@@ -932,7 +932,7 @@
       /* Optional: slightly bigger GLB on desktop */
       @media (min-width: 900px) {
         .bs-card-viewer {
-          width: 400px;
+          width: 600px;
         }
       }
 
@@ -979,6 +979,8 @@
             alt="Broken Spirit NFC card"
             camera-controls
             disable-zoom
+            camera-orbit="0deg 90deg 1.4m";
+            field-of-view="20deg";
             exposure="1.0"
             shadow-intensity="1"
             shadow-softness="0.8"
@@ -988,13 +990,13 @@
           <div class="bs-copy">
             <p>
               As we race towards our algorithmic demise, we may stop for a moment of reflection
-              and wonder... Was it really worth it?
+              and wonder... <br> Was it really worth it?
             </p>
 
             <p>
               Broken Spirit can be seen less as an EP but as an era, a period of great dejection,
               instability, growth, love, and acceptance. It is simply a collection of songs
-              created as an attempt to re-connect with the world, with eachother, with the physical,
+              created as an attempt to re-connect with the world, with the physical,
               with life itself and the possibility of hope. I have decided to include many of the
               demos and failed experiments that led to this project taking shape as an ode to the
               process and a means of tracing the journey.
@@ -1268,6 +1270,24 @@
           <span class="audio-col-index">15</span>
           <span class="audio-col-track">
             <span class="track-title">brokenspirit_[demo_260225]</span>
+          </span>
+          <span class="audio-col-time"></span>
+        </button>
+        
+        <button class="audio-track-row"
+                data-src="/assets/brokenspirit_[demo_040325].mp3">
+          <span class="audio-col-index">16</span>
+          <span class="audio-col-track">
+            <span class="track-title">brokenspirit_[demo_040325]</span>
+          </span>
+          <span class="audio-col-time"></span>
+        </button>
+        
+        <button class="audio-track-row"
+                data-src="/assets/brokenspirit_[demo_271024].mp3">
+          <span class="audio-col-index">17</span>
+          <span class="audio-col-track">
+            <span class="track-title">brokenspirit_[demo_271024]</span>
           </span>
           <span class="audio-col-time"></span>
         </button>
