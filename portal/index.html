@@ -893,13 +893,12 @@
         line-height: 1.4;
       }
 
-      /* GLB viewport (card) */
       .bs-card-viewer {
         display: block;
         width: 420px;
         max-width: 90vw;
-        aspect-ratio: 3/4;
-        height: auto;               /* smaller than before */
+        aspect-ratio: 3 / 4;
+        height: auto;
         border-radius: 12px;
         overflow: hidden;
         margin-bottom: 32px;
@@ -931,24 +930,18 @@
         user-select: none;
       }
 
-      /* Desktop tweak: a bit wider if there’s room */
       @media (min-width: 900px) {
         .bs-card-viewer {
-          width: 480px;
-         
+          width: 480px;      /* no height here */
         }
       }
 
-      /* Mobile: slightly smaller viewport than before */
+      /* Mobile – full width, same 3:4 ratio */
       @media (max-width: 768px) {
-        .bs-hero {
-          padding: 72px 16px 96px;
-        }
-
         .bs-card-viewer {
           width: 100%;
-          max-width: 90vw;
-               /* no longer massive on phones */
+          max-width: 90vw;   /* or 100vw if you want edge-to-edge */
+          /* no height here */
         }
       }
 
@@ -991,9 +984,9 @@
             camera-controls
             disable-zoom
 
-            camera-orbit="0deg 80deg 0.9m"
-            min-camera-orbit="-25deg 70deg 0.9m"
-            max-camera-orbit="25deg 90deg 0.9m"
+            camera-orbit="0deg 80deg auto"
+            min-camera-orbit="-15deg 70deg auto"
+            max-camera-orbit="15deg 90deg auto"
             orbit-sensitivity="0.5"
 
             field-of-view="20deg"
@@ -1002,6 +995,7 @@
             shadow-softness="0.8"
             environment-image="neutral">
           </model-viewer>
+
 
           <div class="bs-copy">
             <p>
