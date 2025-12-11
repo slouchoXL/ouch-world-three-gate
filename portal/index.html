@@ -213,6 +213,7 @@
       width: 0%; transition: width 0.3s ease; border-radius: 2px;
     }
 
+      /* Mobile / default: original padding */
       .top-nav {
         position: fixed;
         top: 0;
@@ -222,8 +223,16 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 28px;   /* match bottom chevron padding */
+        padding: 20px;                /* 20px on all sides for mobile */
       }
+
+      /* Desktop: match bottom chevron right padding */
+      @media (min-width: 769px) {
+        .top-nav {
+          padding: 20px 28px;         /* 28px left/right only on wider screens */
+        }
+      }
+
 
     .menu-button {
       width: 30px; height: 30px;
@@ -1024,7 +1033,7 @@
 
             <p>
               Broken Spirit can be seen less as an EP but as an era, a period of great dejection,
-              instability, growth, love, and acceptance. It is simply a collection of songs
+              instability, growth, love, and acceptance. It is simply a collection of 5 songs that were
               created as an attempt to re-connect with the world, with the physical,
               with life itself and the possibility of hope. I have decided to include many of the
               demos and failed experiments that led to this project taking shape as an ode to the
