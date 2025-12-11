@@ -889,24 +889,33 @@
       .bs-hero {
         width: 100%;
         min-height: 100vh;
-        padding: 96px 24px 120px;   /* room for top nav + bottom audio */
+        padding: 72px 24px 120px;   /* slightly closer to top, still clear of nav */
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: flex-start;
-        text-align: center;         /* title centred only */
+        text-align: center;
       }
 
-      /* Title */
+      /* When the playlist is expanded, give the page more bottom padding so
+         the last paragraph isn't hidden behind the fixed player */
+      body.player-expanded .bs-hero {
+        padding-bottom: 260px; /* tweak this up/down if you want */
+      }
+
+      @media (min-width: 900px) {
+        body.player-expanded .bs-hero {
+          padding-bottom: 220px;
+        }
+      }
+
+
+      /* Hide the bs-title header completely */
       .bs-title {
-        margin-bottom: 32px;
+        display: none;
       }
 
-      .bs-title h1 {
-        font-size: 18px;
-        line-height: 1.4;
-      }
 
       .bs-card-viewer {
         display: block;
@@ -1100,7 +1109,7 @@
         <!-- Hero: title at top, then GLB, then text -->
         <section class="bs-hero">
           <div class="bs-title">
-            <h1>OUCH™</h1>
+            <h1></h1>
           </div>
 
           <model-viewer
@@ -2230,7 +2239,12 @@
         if (toggleTracksBtn) {
           toggleTracksBtn.setAttribute('aria-expanded', (!collapsed).toString());
         }
+
+        // Tell the layout whether the playlist is expanded so we can add extra
+        // bottom padding and keep all the body copy scrollable.
+        document.body.classList.toggle('player-expanded', !collapsed);
       }
+
 
       if (toggleTracksBtn) {
         toggleTracksBtn.addEventListener('click', () => {
