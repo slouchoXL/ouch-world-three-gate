@@ -970,6 +970,51 @@
       body {
         scrollbar-width: none;
       }
+      
+      /* === Force top-nav and bottom chevron to share the exact same edge padding === */
+
+      :root {
+        --edge-pad-desktop: 28px;
+        --edge-pad-mobile: 16px;
+      }
+
+      /* Desktop defaults */
+      .top-nav,
+      .audio-bottom-bar {
+        padding-left: var(--edge-pad-desktop) !important;
+        padding-right: var(--edge-pad-desktop) !important;
+      }
+
+      /* Preserve existing vertical paddings */
+      .top-nav {
+        padding-top: 20px !important;
+        padding-bottom: 20px !important;
+      }
+
+      .audio-bottom-bar {
+        padding-top: 18px !important;
+        padding-bottom: 24px !important;
+      }
+
+      /* Mobile overrides */
+      @media (max-width: 768px) {
+        .top-nav,
+        .audio-bottom-bar {
+          padding-left: var(--edge-pad-mobile) !important;
+          padding-right: var(--edge-pad-mobile) !important;
+        }
+
+        .top-nav {
+          padding-top: 20px !important;
+          padding-bottom: 20px !important;
+        }
+
+        .audio-bottom-bar {
+          padding-top: 14px !important;
+          padding-bottom: 16px !important;
+        }
+      }
+
 
 
   </style>
