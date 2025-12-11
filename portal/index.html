@@ -2206,12 +2206,22 @@
       });
 
       audioEl.addEventListener('ended', () => {
-        audioEl.currentTime = 0;
-        if (currentTimeEl) currentTimeEl.textContent = '0:00';
-        updateProgressVisual();
-        updateTrackStates(false);
-        if (playPauseBtn) playPauseBtn.classList.remove('playing');
+        // Move to the next track in the playlist, if there is one
+        const nextIndex = currentIndex + 1;
+
+        if (nextIndex < trackButtons.length) {
+          // Load and autoplay the next track
+          loadTrack(nextIndex, true);
+        } else {
+          // Reached the end of the playlist: reset UI and stop
+          audioEl.currentTime = 0;
+          if (currentTimeEl) currentTimeEl.textContent = '0:00';
+          updateProgressVisual();
+          updateTrackStates(false);
+          if (playPauseBtn) playPauseBtn.classList.remove('playing');
+        }
       });
+
 
       // Collapsible behaviour (scrubber always visible)
       function setCollapsed(collapsed) {
