@@ -1047,28 +1047,17 @@
       }
 
 
-      body {
-        opacity: 0;
-        transition: opacity 1.2s ease;
-      }
-
-      /* Optional: keep these as semantic markers, but only control opacity */
-      body.site-hidden {
-        opacity: 0;
-      }
-
-      body.site-visible {
-        opacity: 1;
-      }
-
-
 
   </style>
 </head>
 <body class="portal-hidden">
     
     <div id="cinematicIntro" class="cinematic-intro">
-      <div class="intro-text">Welcome to Broken Spirit</div>
+        <div class="intro-text">
+          Welcome to Broken Spirit<br>
+          <span class="intro-sub">Tap anywhere to enter</span>
+        </div>
+
       <audio id="introSfx" src="/assets/woosh.mp3" preload="auto"></audio>
     </div>
 
@@ -2261,9 +2250,7 @@
       const intro    = document.getElementById("cinematicIntro");
       const introSfx = document.getElementById("introSfx");
 
-      // Ensure the site is invisible until BOTH intro + portal checks finish
-      document.body.classList.add("site-hidden");
-
+      
       // Helper: try to play SFX, and if autoplay is blocked, unlock on first tap/click
       function playIntroSfxWithUnlock() {
         if (!introSfx) return;
@@ -2272,14 +2259,16 @@
         const p = introSfx.play();
 
         if (p && typeof p.catch === "function") {
-          p.catch(() => {
-            // Browser blocked autoplay → wait for first user gesture
-            const unlock = () => {
-              introSfx.play().catch(() => {});
-              window.removeEventListener("pointerdown", unlock);
-            };
-            window.addEventListener("pointerdown", unlock, { once: true });
-          });
+            p.catch(() => {
+              const unlock = () => {
+                introSfx.play().catch(() => {});
+                window.removeEventListener("pointerdown", unlock);
+                window.removeEventListener("click", unlock);
+              };
+              window.addEventListener("pointerdown", unlock, { once: true });
+              window.addEventListener("click", unlock, { once: true });
+            });
+
         }
       }
 
@@ -2338,14 +2327,12 @@
       //---------------------------------------------------------------------------
       Promise.all([introDone, portalReady]).then(([_, passedGate]) => {
         if (!passedGate) {
-          // If portal is locked, site stays hidden (user sees lock modal instead)
-          return;
+          return; // locked case
         }
-
-        // Smoothly fade in the UI after the intro finishes
-        document.body.classList.remove("site-hidden");
-        document.body.classList.add("site-visible");
+        // Nothing to do here for opacity; portalReady already removed portal-hidden.
+        // The cinematic overlay handles the fade with its own transition.
       });
+
     });
 
 
