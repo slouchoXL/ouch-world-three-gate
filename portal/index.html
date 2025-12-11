@@ -355,7 +355,7 @@
     .character-controls {
       position: fixed;
       left: 50%;
-      top: 12vh;        /* moved ABOVE the GLB */
+      top: 40vh;        /* roughly mid-screen, below hero */
       bottom: auto;
       transform: translateX(-50%);
       z-index: 250;
@@ -363,6 +363,7 @@
       pointer-events: none;
       transition: opacity .2s ease;
     }
+
 
     .character-controls.show { opacity: 1; pointer-events: auto; }
     .character-info { display: grid; grid-template-rows: auto auto; gap: 8px; justify-items: center; min-width: 260px; }
@@ -730,9 +731,10 @@
         appearance: none;
         -webkit-appearance: none;
 
-        position: fixed;        /* make it float */
-        right: 28px;            /* tweak as desired */
-        bottom: 96px;           /* sit above the audio bar */
+        position: fixed;
+        left: 50%;              /* horizontal center */
+        bottom: 96px;           /* still above the audio player */
+        transform: translateX(-50%);
 
         width: 30px;
         height: 30px;
@@ -744,8 +746,9 @@
         justify-content: center;
         backdrop-filter: blur(10px);
         transition: border-color .2s ease;
-        z-index: 500;           /* above scene, below modals */
+        z-index: 500;
       }
+
       .carousel-btn:hover {
         border-color: rgba(255,255,255,0.45);
       }
@@ -821,12 +824,11 @@
       }
 
 
-      
       @media (max-width: 600px) {
         .character-controls {
           position: fixed;
           left: 50%;
-          top: 16vh;        /* a bit lower on small screens, still above GLB */
+          top: 45vh;      /* lower on small screens as well */
           bottom: auto;
           transform: translateX(-50%);
           z-index: 250;
@@ -835,6 +837,7 @@
           transition: opacity .2s ease;
         }
       }
+
 
       .character-controls.show { opacity: 1; pointer-events: auto; }
       .modal-close {
@@ -865,8 +868,10 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        text-align: left;
+        justify-content: flex-start;
+        text-align: center;   /* center everything in the hero */
       }
+
 
       .bs-card-viewer {
         width: 260px;
@@ -879,9 +884,12 @@
       .bs-copy {
         max-width: 640px;
         margin-top: 32px;
+        margin-left: auto;
+        margin-right: auto;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
           "SF Pro Display", "Segoe UI", sans-serif;
       }
+
 
       .bs-copy h1 {
         font-size: 18px;
@@ -895,6 +903,14 @@
         line-height: 1.5;
         margin-bottom: 14px;
       }
+      
+      .bs-hero,
+      .bs-hero * {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
 
       @media (min-width: 900px) {
         .bs-hero {
@@ -902,9 +918,10 @@
         }
 
         .bs-copy {
-          text-align: left;
+          text-align: left;   /* <<< remove this block */
         }
       }
+
 
 
   </style>
@@ -935,7 +952,7 @@
 
         <model-viewer
           class="bs-card-viewer"
-          src="/assets/models/usb.glb"
+          src="/assets/models/cd.glb"
           alt="Broken Spirit NFC card"
           camera-controls
           auto-rotate
