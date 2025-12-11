@@ -1035,8 +1035,9 @@
         font-size: 26px;
         letter-spacing: 0.04em;
         opacity: 0;
-        animation: introFade 2.8s ease forwards;
+        animation: introFade 4s ease forwards; /* was 2.8s */
       }
+
 
       @keyframes introFade {
         0%   { opacity: 0; transform: translateY(12px); }
@@ -2252,36 +2253,60 @@
       //---------------------------------------------------------------------------
       // INITIAL STATE
       //---------------------------------------------------------------------------
-      const intro       = document.getElementById("cinematicIntro");
-      const introSfx    = document.getElementById("introSfx");
+      const intro    = document.getElementById("cinematicIntro");
+      const introSfx = document.getElementById("introSfx");
 
       // Ensure the site is invisible until BOTH intro + portal checks finish
       document.body.classList.add("site-hidden");
 
+      // Helper: try to play SFX, and if autoplay is blocked, unlock on first tap/click
+      function playIntroSfxWithUnlock() {
+        if (!introSfx) return;
+
+        introSfx.volume = 0.6;
+        const p = introSfx.play();
+
+        if (p && typeof p.catch === "function") {
+          p.catch(() => {
+            // Browser blocked autoplay → wait for first user gesture
+            const unlock = () => {
+              introSfx.play().catch(() => {});
+              window.removeEventListener("pointerdown", unlock);
+            };
+            window.addEventListener("pointerdown", unlock, { once: true });
+          });
+        }
+      }
+
       //---------------------------------------------------------------------------
-      // 1. START CINEMATIC INTRO (runs in parallel with portal gating)
+      // 1. CINEMATIC INTRO (slightly longer)
       //---------------------------------------------------------------------------
       const introDone = new Promise((resolve) => {
-        // Play sound
-        if (introSfx) {
-          introSfx.volume = 0.6;
-          introSfx.play().catch(() => {});
+        if (!intro) {
+          resolve();
+          return;
         }
 
-        // Fade out intro after animation completes (~2.6s)
+        // Start SFX (or schedule it to start on first tap)
+        playIntroSfxWithUnlock();
+
+        // Make the intro a bit longer – tweak this value to taste (e.g. 3500–4500)
         setTimeout(() => {
           intro.classList.add("fade-out");
-        }, 2600);
+        }, 4000);
 
-        // Remove intro overlay
-        intro.addEventListener("transitionend", () => {
-          intro.style.display = "none";
-          resolve();                // intro is finished
-        });
+        intro.addEventListener(
+          "transitionend",
+          () => {
+            intro.style.display = "none";
+            resolve(); // intro is finished
+          },
+          { once: true }
+        );
       });
 
       //---------------------------------------------------------------------------
-      // 2. PORTAL GATING (also runs in parallel)
+      // 2. PORTAL GATING (runs in parallel)
       //---------------------------------------------------------------------------
       const portalReady = new Promise(async (resolve) => {
         // Handle cardFlow (?code=...)
@@ -2312,11 +2337,12 @@
           return;
         }
 
-        // Reveal the site smoothly
+        // Smoothly fade in the UI after the intro finishes
         document.body.classList.remove("site-hidden");
         document.body.classList.add("site-visible");
       });
     });
+
 
 
 
