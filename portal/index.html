@@ -394,6 +394,7 @@
         padding-bottom: 16px;
         z-index: 1500;      /* below modals, above scene */
         pointer-events: none;
+        background: #000;
       }
 
       @supports not (bottom: env(safe-area-inset-bottom)) {
@@ -409,6 +410,7 @@
         background: #000;
         display: flex;
         flex-direction: column;
+        padding-bottom: env(safe-area-inset-bottom, 16px);
       }
 
 
@@ -933,7 +935,7 @@
 
       @media (min-width: 900px) {
         .bs-card-viewer {
-          width: 400px;      /* no height here */
+          width: 380px;      /* no height here */
         }
       }
 
@@ -941,7 +943,7 @@
       @media (max-width: 768px) {
         .bs-card-viewer {
           width: 100%;
-          max-width: 90vw;   /* or 100vw if you want edge-to-edge */
+          max-width: 70vw;   /* or 100vw if you want edge-to-edge */
           /* no height here */
         }
       }
