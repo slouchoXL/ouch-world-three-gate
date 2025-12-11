@@ -905,8 +905,10 @@
         display: block;
       }
       .bs-card-viewer model-viewer {
-        width: 100%;
-        height: 100%;
+          display: block;
+           width: 100%;
+           height: 80vh;     /* desktop base size */
+           max-width: 90vw;
       }
 
 
@@ -943,6 +945,20 @@
           width: 600px;
         }
       }
+      
+      /* Put this near the bottom of your <style> block */
+      @media (max-width: 768px) {
+        .bs-hero {
+          padding: 72px 16px 96px;   /* less top/bottom padding on phones */
+        }
+
+        model-viewer.bs-card-viewer {
+          width: 100vw;              /* full width */
+          max-width: 100vw;
+          height: 70vh;              /* big, tall viewport */
+        }
+      }
+
 
         .bs-copy {
           text-align: left;   /* <<< remove this block */
@@ -1299,6 +1315,14 @@
           <span class="audio-col-time"></span>
         </button>
 
+        <button class="audio-track-row"
+                data-src="/assets/brokenspirit_[demo_151124].mp3">
+          <span class="audio-col-index">17</span>
+          <span class="audio-col-track">
+            <span class="track-title">brokenspirit_[demo_151124]</span>
+          </span>
+          <span class="audio-col-time"></span>
+        </button>
       </div>
     </div>
   </div>
