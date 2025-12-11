@@ -65,10 +65,7 @@
   </script>
 
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
-  
+ 
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
 
@@ -1070,7 +1067,7 @@
           <div class="bs-copy">
             <p>
               As we race towards our algorithmic demise, we may stop for a moment of reflection
-              and wonder... <br> Was it really worth it?
+              and wonder... <br> was it really worth it?
             </p>
 
             <p>
@@ -2452,198 +2449,7 @@
     });
   }
 
-  // ===== Three.js Setup =====
-  function initThreeJS() {
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x000000);
-      window.scene = scene;
-
-      const container = document.getElementById('scene-container');
-      const width  = container.clientWidth || window.innerWidth;
-      const height = container.clientHeight || Math.round(window.innerHeight * 0.6);
-
-      camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-      camera.position.set(0, 0, 5);
-      window.camera = camera;
-      camera.layers.enable(1);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(width, height);
-
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
-
-  
-    container.innerHTML = '';
-    container.appendChild(renderer.domElement);
-
-    // Lights
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a2a, 0.7); scene.add(hemi);
-    const key = new THREE.DirectionalLight(0xffffff, 1); key.position.set(5, 8, 6); key.castShadow = true; key.shadow.mapSize.set(2048,2048); key.shadow.camera.near=0.1; key.shadow.camera.far=50; scene.add(key);
-    const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(-4, 5, 6); scene.add(fill);
-    const rim  = new THREE.DirectionalLight(0x88aaff, 0.5); rim.position.set(-5, 2, -6); scene.add(rim);
-    
-    scene.userData.lights = { hemi, key, fill, rim };
-    scene.userData.lightLevels = {
-      hemi: hemi.intensity, key: key.intensity, fill: fill.intensity, rim: rim.intensity
-    };
-
-    // Raycasting
-    raycaster = new THREE.Raycaster();
-    mouseNDC = new THREE.Vector2();
-
-    // Events
-     renderer.domElement.addEventListener('click', onCanvasClick);
-    window.addEventListener('resize', onWindowResize);
-    window.addEventListener('mousemove', onMouseMove);
-
-    setFixedTitleWidth("Super Maramu 2000");
-  }
-
-  function animate() {
-    requestAnimationFrame(animate);
-    tickAnimations();
-    renderer.render(scene, camera);
-  }
-  
-  let clickPreventUntil = 0;
-  
-  function onCanvasClick(e) {
-    if (performance.now() < clickPreventUntil) return;
-
-    if (carousel && carousel.mode === 'carousel') {
-      const cfg = window.characterConfigs?.[window.currentCharacterIndex];
-      if (cfg && cfg.status !== 'Locked') exitCarousel(true);
-      return;
-    }
-
-    const root = currentModel || window.character;
-    if (!root || !camera || !renderer) return;
-
-    root.updateMatrixWorld(true);
-
-    const rect = renderer.domElement.getBoundingClientRect();
-    const ndc = new THREE.Vector2(
-      ((e.clientX - rect.left) / rect.width) * 2 - 1,
-      -((e.clientY - rect.top) / rect.height) * 2 + 1
-    );
-
-    raycaster.setFromCamera(ndc, camera);
-
-    const hits = raycaster.intersectObject(root, true);
-    if (hits.length > 0) {
-      window.onCharacterClick();
-      return;
-    }
-
-    // Fallback: screen-space AABB check
-    const box = new THREE.Box3().setFromObject(root);
-    if (!box.isEmpty()) {
-      const corners = [
-        new THREE.Vector3(box.min.x, box.min.y, box.min.z),
-        new THREE.Vector3(box.min.x, box.max.y, box.min.z),
-        new THREE.Vector3(box.max.x, box.min.y, box.min.z),
-        new THREE.Vector3(box.max.x, box.max.y, box.min.z),
-        new THREE.Vector3(box.min.x, box.min.y, box.max.z),
-        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
-        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
-        new THREE.Vector3(box.max.x, box.max.y, box.max.z),
-      ];
-      let minX =  Infinity, minY =  Infinity, maxX = -Infinity, maxY = -Infinity;
-      for (const v of corners) {
-        v.project(camera);
-        const sx = (v.x * 0.5 + 0.5) * rect.width  + rect.left;
-        const sy = (-v.y * 0.5 + 0.5) * rect.height + rect.top;
-        minX = Math.min(minX, sx); maxX = Math.max(maxX, sx);
-        minY = Math.min(minY, sy); maxY = Math.max(maxY, sy);
-      }
-      if (e.clientX >= minX && e.clientX <= maxX && e.clientY >= minY && e.clientY <= maxY) {
-        window.onCharacterClick();
-      }
-    }
-  }
-
-    function onWindowResize() {
-      const container = document.getElementById('scene-container');
-      if (!container || !camera || !renderer) return;
-
-      const width  = container.clientWidth || window.innerWidth;
-      const height = container.clientHeight || Math.round(window.innerHeight * 0.6);
-
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
-    }
-
-
-  function onMouseMove(e) {
-    mouseNDC.x =  (e.clientX / window.innerWidth)  * 2 - 1;
-    mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    if (carousel.mode === 'carousel') return;
-    checkHover();
-  }
-
-  function selectorOpen() {
-    return !!document.getElementById('characterControls')?.classList.contains('show');
-  }
-
-  function checkHover() {
-    if (!window.character) return;
-    if (selectorOpen()) {
-      if (lastHoverState) { setCharacterHighlight(false); lastHoverState = false; }
-      return;
-    }
-    raycaster.setFromCamera(mouseNDC, camera);
-    const intersects = raycaster.intersectObjects(window.character.children, true);
-    hoverActive = intersects.length > 0;
-    if (hoverActive !== lastHoverState) { setCharacterHighlight(hoverActive); lastHoverState = hoverActive; }
-  }
-
-  function setCharacterHighlight(active) {
-    if (!window.scene || !window.character) return;
-    if (active) {
-      if (!hoverLight) {
-        hoverLight = new THREE.PointLight(0x88aaff, 0.35, 3, 2);
-        hoverLight.castShadow = false;
-        hoverLight.position.set(0, 1.2, 1.6);
-        window.character.add(hoverLight);
-      }
-    } else {
-      if (hoverLight) { hoverLight.parent?.remove(hoverLight); hoverLight = null; }
-      window.character.traverse(obj => {
-           if (!obj.isMesh || !obj.material) return;
-           const restore = (m) => {
-             if (!m) return;
-             if ('emissive' in m) {
-               const orig = m.userData && m.userData._origEmissive;
-               if (orig) m.emissive.copy(orig);
-             }
-           };
-           if (Array.isArray(obj.material)) obj.material.forEach(restore); else restore(obj.material);
-         });
-    }
-  }
-
-  function setFixedTitleWidth(ghostString) {
-    const nameEl = document.getElementById('characterName');
-    if (!nameEl) return;
-    const measurer = document.createElement('span');
-    measurer.style.position = 'absolute';
-    measurer.style.visibility = 'hidden';
-    measurer.style.whiteSpace = 'nowrap';
-    measurer.style.fontFamily = getComputedStyle(nameEl).fontFamily;
-    measurer.style.fontSize = getComputedStyle(nameEl).fontSize;
-    measurer.style.fontWeight = getComputedStyle(nameEl).fontWeight;
-    measurer.textContent = ghostString;
-    document.body.appendChild(measurer);
-    const width = Math.ceil(measurer.getBoundingClientRect().width);
-    document.body.removeChild(measurer);
-    document.documentElement.style.setProperty('--title-width', width + 'px');
-    const info = document.querySelector('.character-info'); if (info) { void getComputedStyle(info).width; }
-  }
+ 
 
     // ===== UI bits =====
     function toggleMenu() { document.getElementById('menuTray').classList.toggle('open');
@@ -2714,24 +2520,24 @@
     }
 
     
-    window.addEventListener('load', async () => {
-          // 1) Run the card flow first (for ?code=... URLs)
-          const cardOk = await initCardFlow();
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1) Run the card flow first (for ?code=... URLs)
+      const cardOk = await initCardFlow();
 
-          // If this was a card URL and the card UI took over, stop here
-          if (!cardOk) {
-            console.log('[boot] Card flow took over, skipping portal init');
-            return;
-          }
+      if (!cardOk) {
+        console.log('[boot] Card flow took over, skipping portal init');
+        return;
+      }
 
-          // 2) Gate access via Supabase / card ownership
-          await gatePortalAccess();
+      // 2) Gate access via Supabase / card ownership
+      await gatePortalAccess();
 
-          // 3) If the portal is NOT locked, reveal the shell
-          if (!document.body.classList.contains('portal-locked')) {
-            document.body.classList.remove('portal-hidden');
-          }
-        });
+      // 3) If the portal is NOT locked, reveal the shell
+      if (!document.body.classList.contains('portal-locked')) {
+        document.body.classList.remove('portal-hidden');
+      }
+    });
+
 
 
 
