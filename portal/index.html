@@ -213,11 +213,18 @@
       width: 0%; transition: width 0.3s ease; border-radius: 2px;
     }
 
-    /* Top navigation */
-    .top-nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      display: flex; justify-content: space-between; align-items: center; padding: 20px;
-    }
+      .top-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 28px;   /* match bottom chevron padding */
+      }
+
     .menu-button {
       width: 30px; height: 30px;
       background: #000;
@@ -948,6 +955,15 @@
         }
       }
 
+      /* Hide scrollbar on WebKit browsers (Chrome, Safari) */
+      body::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* Hide scrollbar on Firefox */
+      body {
+        scrollbar-width: none;
+      }
 
 
   </style>
@@ -977,7 +993,7 @@
         <!-- Hero: title at top, then GLB, then text -->
         <section class="bs-hero">
           <div class="bs-title">
-            <h1>Broken Spirit</h1>
+            <h1>Welcome to Broken Spirit</h1>
           </div>
 
           <model-viewer
