@@ -838,10 +838,9 @@
 
       .character-controls.show { opacity: 1; pointer-events: auto; }
       .modal-close {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-      }
+        position: absolute;
+        top: 10px;
+        right: 10px;
       }
 
       .popup-close {
@@ -934,21 +933,20 @@
       <div class="container">
         <!-- your existing content starts here -->
 
-        <section class="bs-hero">
-          <model-viewer
-            class="bs-card-viewer"
-            src="/assets/models/usb.glb"  <!-- update to your actual path -->
-            alt="Broken Spirit NFC card"
-            camera-controls
-            auto-rotate
-            auto-rotate-delay="1000"
-            rotation-per-second="15deg"
-            disable-zoom
-            exposure="1.0"
-            shadow-intensity="1"
-            shadow-softness="0.8"
-            environment-image="neutral"
-          ></model-viewer>
+        <model-viewer
+          class="bs-card-viewer"
+          src="/assets/models/usb.glb"
+          alt="Broken Spirit NFC card"
+          camera-controls
+          auto-rotate
+          auto-rotate-delay="1000"
+          rotation-per-second="15deg"
+          disable-zoom
+          exposure="1.0"
+          shadow-intensity="1"
+          shadow-softness="0.8"
+          environment-image="neutral">
+        </model-viewer>
 
           <div class="bs-copy">
             <h1>Sloucho<br>Broken Spirit</h1>
@@ -2312,7 +2310,7 @@
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.1;
 
-    const container = document.getElementById('scene-container');
+  
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
