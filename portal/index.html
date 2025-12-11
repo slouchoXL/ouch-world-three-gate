@@ -906,7 +906,7 @@
 
       @media (min-width: 900px) {
         body.player-expanded .bs-hero {
-          padding-bottom: 280px;
+          padding-bottom: 270px;
         }
       }
 
@@ -1035,6 +1035,7 @@
         opacity: 1;
         pointer-events: auto;            /* allow tap/click */
         transition: opacity 1.2s ease;   /* fade overlay out */
+        cursor: pointer;
       }
 
       .cinematic-intro.fade-out {
@@ -1048,6 +1049,7 @@
         text-align: center;
         opacity: 1;
         transition: opacity 0.6s ease, transform 0.6s ease;
+        user-select: none;
       }
 
       .cinematic-intro .intro-sub {
@@ -1055,6 +1057,7 @@
         margin-top: 8px;
         font-size: 14px;
         opacity: 0.75;
+        user-select: none;
       }
 
       .cinematic-intro .intro-text.intro-text-hide {
