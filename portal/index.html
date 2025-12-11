@@ -1041,15 +1041,20 @@
 
       @keyframes introFade {
         0%   { opacity: 0; transform: translateY(12px); }
-        25%  { opacity: 1; transform: translateY(0); }
-        70%  { opacity: 1; }
-        100% { opacity: 0; transform: translateY(-12px); }
+        20%  { opacity: 1; transform: translateY(0); }
+        80%  { opacity: 1; transform: translateY(0); }
+        100% { opacity: 1; transform: translateY(0); }
       }
 
-      /* Site fade-in after intro */
-      body.site-hidden {
+
+      body {
         opacity: 0;
         transition: opacity 1.2s ease;
+      }
+
+      /* Optional: keep these as semantic markers, but only control opacity */
+      body.site-hidden {
+        opacity: 0;
       }
 
       body.site-visible {
@@ -2293,7 +2298,7 @@
         // Make the intro a bit longer – tweak this value to taste (e.g. 3500–4500)
         setTimeout(() => {
           intro.classList.add("fade-out");
-        }, 4000);
+        }, 4500);
 
         intro.addEventListener(
           "transitionend",
