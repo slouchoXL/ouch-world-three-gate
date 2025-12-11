@@ -76,15 +76,16 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
     html, body {
-      min-height: 100%;
-      overflow-x: hidden;
-      overflow-y: auto;
-      font-family: Arial, sans-serif;
-      background: #000;
-      color: #fff;
-      touch-action: pan-y;
-      -ms-touch-action: pan-y;
-    }
+          height: 100%;
+          overflow: hidden;
+          font-family: Arial, sans-serif;
+          background: #000;
+          color: #fff;
+          touch-action: none;
+          -ms-touch-action: none;
+        }
+
+
 
       
       /* Simple password gate overlay */
@@ -863,14 +864,17 @@
       /* Broken Spirit hero (card + text) */
 
       .bs-hero {
-        width: 100%;
-        padding: 80px 24px 40px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        text-align: center;   /* center everything in the hero */
-      }
+              width: 100%;
+              height: 100vh;                 /* fill the viewport */
+              padding: 80px 24px 120px;      /* leave room for audio bar at bottom */
+              box-sizing: border-box;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;       /* vertical centering */
+              text-align: center;            /* centre text + card */
+            }
+
 
 
       .bs-card-viewer {
@@ -882,13 +886,15 @@
       }
 
       .bs-copy {
-        max-width: 640px;
-        margin-top: 32px;
-        margin-left: auto;
-        margin-right: auto;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-          "SF Pro Display", "Segoe UI", sans-serif;
-      }
+              max-width: 640px;
+              margin-top: 32px;
+              margin-left: auto;
+              margin-right: auto;
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                "SF Pro Display", "Segoe UI", sans-serif;
+              text-align: center;
+            }
+
 
 
       .bs-copy h1 {
@@ -913,9 +919,11 @@
       }
 
       @media (min-width: 900px) {
-        .bs-hero {
-          padding-top: 120px;
-        }
+              .bs-hero {
+                padding-top: 120px;
+              }
+            }
+
 
         .bs-copy {
           text-align: left;   /* <<< remove this block */
@@ -970,37 +978,30 @@
 
             <p>
               As we race towards our algorithmic demise, we may stop for a moment of reflection
-              and wonder.. Was it really worth it?
+              and wonder... Was it really worth it?
             </p>
 
             <p>
-              Broken Spirit can be seen less as an EP but as an era, a period of great dejection,
-              instability, growth, love, and acceptance. It is simply a collection of songs
-              created as an attempt to re-connect with the world, with eachother, with the
-              physical, with life itself and the possibility of hope.
+            Broken Spirit can be seen less as an EP but as an era, a period of great dejection, instability, growth, love, and acceptance. It is simply a collection of songs created as an attempt to re-connect with the world, with eachother, with the physical, with life itself and the possibility of hope. I have decided to include many of the demos and failed experiments that led to this project taking shape as an ode to the process and a means of tracing the journey.
             </p>
 
             <p>
-              Reclaiming our personal autonomy is paramount to defeating the algorithm, the systems
-              that control us, and the future that has been imagined for us, this much is known.
-              And so, here is my offering, something that exists in the hands of the people, this
-              project is yours, it belongs to you free from any algorithm. It is yours to do with
-              as you please, sell it, pirate it, share it with a friend, the future is yours to shape.
+            Reclaiming our personal autonomy is paramount to defeating the algorithm, the systems that control us, and the future that has been imagined for us, this much is known. And so, here is my offering, something that exists in the hands of the people, this project is yours, it belongs to you free from any algorithm. It is yours to do with as you please, sell it, pirate it, share it with a friend, the future is yours to shape.
             </p>
           </div>
         </section>
 
-<div class="container">
-  <div id="scene-container"></div>
+        <!-- <div class="container">
+  <div id="scene-container"></div>-->
 
-  <!-- Loading Indicator -->
+  <!-- Loading Indicator
   <div class="loading-indicator" id="loadingIndicator" style="display: none;">
     <div>Entering OUCH™</div>
     <div class="loading-progress">
       <div class="loading-bar" id="loadingBar"></div>
     </div>
     <div id="loadingText">0/100</div>
-  </div>
+  </div>-->
 
   <!-- Top Navigation -->
   <div class="top-nav">
@@ -1023,7 +1024,7 @@
     <a href="/inventory/" class="menu-item"><span class="menu-pill">Inventory</span></a>
   </div>
 
-  <!-- Character Selector -->
+  <!-- Character Selector
   <div class="character-controls" id="characterControls">
     <div class="character-info">
       <div class="character-header">
@@ -1032,23 +1033,23 @@
         <button class="arrow-btn" id="nextArrow" title="Next">›</button>
       </div>
     </div>
-  </div>
+  </div> -->
 
-  <!-- Carousel toggle button -->
+  <!-- Carousel toggle button
   <button
     id="enterCarouselBtn"
     class="carousel-btn"
     aria-label="Choose Character"
   >
-    <!-- Up chevron icon -->
+    <!-- Up chevron icon
     <svg class="icon-up" viewBox="0 0 24 24" aria-hidden="true">
       <polyline points="6 14 12 8 18 14" />
     </svg>
-    <!-- Tick icon -->
+    <!-- Tick icon
     <svg class="icon-tick" viewBox="0 0 24 24" aria-hidden="true">
       <polyline points="5 13 10 18 19 7" />
     </svg>
-  </button>
+  </button> -->
 
   
   <!-- Hidden audio element for streaming Mystery Gift -->
@@ -2566,47 +2567,24 @@
 
     
     window.addEventListener('load', async () => {
-      // 1) Run the card flow first (for ?code=... URLs)
-      const cardOk = await initCardFlow();
+          // 1) Run the card flow first (for ?code=... URLs)
+          const cardOk = await initCardFlow();
 
-      // If this was a card URL and the card UI took over (claim / download / error),
-      // stop here and don't boot the portal UI – keep portal-hidden so nothing flashes.
-      if (!cardOk) {
-        console.log('[boot] Card flow took over, skipping portal init');
-        return;
-      }
+          // If this was a card URL and the card UI took over, stop here
+          if (!cardOk) {
+            console.log('[boot] Card flow took over, skipping portal init');
+            return;
+          }
 
-      // 2) Normal portal initialisation (3D + audio)
-      if (typeof THREE === 'undefined') {
-        console.error('Three.js not loaded');
-        return;
-      }
+          // 2) Gate access via Supabase / card ownership
+          await gatePortalAccess();
 
-      initLoaders();
-      initThreeJS();
+          // 3) If the portal is NOT locked, reveal the shell
+          if (!document.body.classList.contains('portal-locked')) {
+            document.body.classList.remove('portal-hidden');
+          }
+        });
 
-      createCharacter();
-      animate();
-
-      setTimeout(() => {
-        preloadAllCharacters()
-          .then(() => console.log('🚀 All characters ready for instant switching!'))
-          .catch(err => console.error('Preload failed:', err));
-      }, 1000);
-
-      document.getElementById('prevArrow')?.addEventListener('click', window.previousCharacter);
-      document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
-
-      // 3) Lock the portal for people without cards
-      await gatePortalAccess();
-
-      // 4) If the portal is NOT locked, reveal the shell (remove the anti-flash class)
-      if (!document.body.classList.contains('portal-locked')) {
-        document.body.classList.remove('portal-hidden');
-      }
-      // If it IS locked, portal-locked CSS + portal-hidden keep the background invisible,
-      // and only the "Buy the Broken Spirit Card" modal is visible.
-    });
 
 
     window.addEventListener('keydown', (e) => {
