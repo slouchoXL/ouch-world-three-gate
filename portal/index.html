@@ -213,7 +213,7 @@
       width: 0%; transition: width 0.3s ease; border-radius: 2px;
     }
 
-      /* Mobile / default: original padding */
+      /* Mobile / default */
       .top-nav {
         position: fixed;
         top: 0;
@@ -223,15 +223,16 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px;                /* 20px on all sides for mobile */
+        padding: 20px 16px;    /* 16px left/right to match mobile chevron */
       }
 
-      /* Desktop: match bottom chevron right padding */
+      /* Desktop: match bottom chevron right padding (28px) */
       @media (min-width: 769px) {
         .top-nav {
-          padding: 20px 28px;         /* 28px left/right only on wider screens */
+          padding: 20px 28px;
         }
       }
+
 
 
     .menu-button {
