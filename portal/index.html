@@ -2256,7 +2256,7 @@
     })();
 
 
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       //---------------------------------------------------------------------------
       // EARLY ROUTING: ARE WE IN CARD FLOW (?code=...) OR MAIN PORTAL?
       //---------------------------------------------------------------------------
@@ -2267,7 +2267,9 @@
       const introText = intro ? intro.querySelector(".intro-text") : null;
       const introSfx  = document.getElementById("introSfx");
 
-      // If this is a card flow (scanner → /portal?code=...), skip cinematic entirely
+      // --------------------------------------------------------------------------
+      // 1) CARD FLOW (?code=...) → NO CINEMATIC, CARD UI OWNS THE SCREEN
+      // --------------------------------------------------------------------------
       if (hasCode) {
         // Make sure the intro overlay never blocks the card UI
         if (intro) {
@@ -2291,10 +2293,71 @@
         return;
       }
 
-      //---------------------------------------------------------------------------
-      // MAIN PORTAL FLOW (NO ?code) → SHOW CINEMATIC “TAP TO ENTER”
-      //---------------------------------------------------------------------------
-      let introStarted   = false;
+      // --------------------------------------------------------------------------
+      // 2) MAIN PORTAL (NO ?code) → ONLY SHOW CINEMATIC FOR LOGGED-IN CARD OWNERS
+      // --------------------------------------------------------------------------
+
+      async function userHasActiveCard() {
+        if (!window.supa) return false;
+
+        try {
+          const { data: { user } } = await window.supa.auth.getUser();
+          if (!user) return false;
+
+          const { data: cards, error } = await window.supa
+            .from("NFCCard")
+            .select("id")
+            .eq("claimed_by_email", user.email)
+            .eq("active", true)
+            .limit(1);
+
+          if (error) {
+            console.error("[portal] Error checking NFCCard for intro:", error);
+            return false;
+          }
+
+          return !!(cards && cards.length);
+        } catch (err) {
+          console.error("[portal] Intro eligibility check failed:", err);
+          return false;
+        }
+      }
+
+      const shouldShowIntro = await userHasActiveCard();
+
+      // --------------------------------------------------------------------------
+      // 2a) NO ELIGIBLE USER → SKIP CINEMATIC, JUST GATE PORTAL
+      // --------------------------------------------------------------------------
+      if (!shouldShowIntro) {
+        // Hide the intro overlay completely
+        if (intro) {
+          intro.style.display = "none";
+        }
+
+        // Run normal portal gate – this will either:
+        // - unlock portal for logged-in card owner (edge cases), OR
+        // - show the "Buy card" / locked modal for non-owners / anonymous users.
+        await gatePortalAccess();
+
+        if (!document.body.classList.contains("portal-locked")) {
+          document.body.classList.remove("portal-hidden");
+        }
+
+        // Ensure the site is visible (no cinematic fade in this path)
+        document.body.classList.remove("site-hidden");
+        document.body.classList.add("site-visible");
+        return;
+      }
+
+      // --------------------------------------------------------------------------
+      // 3) ELIGIBLE USER (LOGGED-IN + HAS ACTIVE CARD) → SHOW CINEMATIC
+      // --------------------------------------------------------------------------
+
+      // From here down, we keep your "tap to enter" cinematic behavior.
+      // Site should stay hidden until intro + gate are complete.
+      document.body.classList.add("site-hidden");
+
+      let introStarted = false;
       let resolveIntroDone;
       const introDone = new Promise((resolve) => {
         resolveIntroDone = resolve;
@@ -2304,14 +2367,14 @@
         if (!intro || introStarted) return;
         introStarted = true;
 
-        // Play sound – now triggered by user gesture so autoplay should pass
+        // Play sound – triggered by user gesture so autoplay should pass
         if (introSfx) {
           introSfx.currentTime = 0;
           introSfx.volume = 0.6;
           introSfx.play().catch(() => {});
         }
 
-        // Fade the text out quickly, leaving pure black
+        // Fade the text out, leaving pure black
         if (introText) {
           introText.classList.add("intro-text-hide");
         }
@@ -2328,10 +2391,10 @@
             },
             { once: true }
           );
-        }, 1000);
+        }, 1000); // <<< 5 second hold on black after tap
       }
 
-      // Intro should wait indefinitely until tapped
+      // Intro waits indefinitely until tapped
       if (intro) {
         intro.addEventListener("pointerdown", startIntroSequence);
         intro.addEventListener("click", startIntroSequence);
@@ -2340,36 +2403,37 @@
         if (resolveIntroDone) resolveIntroDone();
       }
 
-      //---------------------------------------------------------------------------
-      // PORTAL GATING FOR MAIN PORTAL (NO ?code)
-      //---------------------------------------------------------------------------
+      // --------------------------------------------------------------------------
+      // 4) PORTAL GATING FOR MAIN PORTAL (NO ?code)
+      // --------------------------------------------------------------------------
       const portalReady = new Promise(async (resolve) => {
-        // No card flow here – just normal portal gating
         await gatePortalAccess();
 
-        // Reveal portal shell if user is allowed
-        if (!document.body.classList.contains("portal-locked")) {
+        const locked = document.body.classList.contains("portal-locked");
+
+        // Reveal portal shell only if user passed gate
+        if (!locked) {
           document.body.classList.remove("portal-hidden");
         }
 
-        resolve(true);
+        resolve(!locked);
       });
 
-      //---------------------------------------------------------------------------
-      // WHEN BOTH (INTRO + PORTAL) COMPLETE → SHOW PORTAL UI
-      //---------------------------------------------------------------------------
+      // --------------------------------------------------------------------------
+      // 5) WHEN BOTH (INTRO + PORTAL) COMPLETE → SHOW PORTAL UI
+      // --------------------------------------------------------------------------
       Promise.all([introDone, portalReady]).then(([_, passedGate]) => {
         if (!passedGate) {
           // Portal locked – lock modal / login flow owns the screen
           return;
         }
-        // At this point the intro overlay has faded away, and the portal shell is visible.
-        // If you’re still using body fade-in classes (site-hidden/site-visible), you can
-        // trigger them here. If not, you can omit this block.
+
+        // Intro overlay is gone, portal shell is visible → fade in site
         document.body.classList.remove("site-hidden");
         document.body.classList.add("site-visible");
       });
     });
+
 
 
 
