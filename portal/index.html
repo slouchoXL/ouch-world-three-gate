@@ -77,7 +77,8 @@
     
     html, body {
           height: 100%;
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
           font-family: 'PPMori', Arial, sans-serif;
           background: #000;
           color: #fff;
@@ -892,23 +893,14 @@
         line-height: 1.4;
       }
 
-      .bs-card-viewer {
-        width: 600px;             /* larger base width */
-        max-width: 90vw;          /* allow it to scale more on desktop */
-        height: 80vh;             /* ensure plenty of vertical room */
+      model-viewer.bs-card-viewer {
+        display: block;
+        width: 600px;
+        max-width: 90vw;
+        height: 80vh;          /* tall viewport */
         border-radius: 12px;
         overflow: hidden;
         margin-bottom: 32px;
-      }
-
-      .bs-card-viewer {
-        display: block;
-      }
-      .bs-card-viewer model-viewer {
-          display: block;
-           width: 100%;
-           height: 80vh;     /* desktop base size */
-           max-width: 90vw;
       }
 
 
@@ -946,22 +938,20 @@
         }
       }
       
-      /* Put this near the bottom of your <style> block */
       @media (max-width: 768px) {
         .bs-hero {
-          padding: 72px 16px 96px;   /* less top/bottom padding on phones */
+          padding: 56px 16px 96px;   /* a bit less top padding so the card moves up */
         }
 
         model-viewer.bs-card-viewer {
-          width: 100vw;              /* full width */
+          width: 100vw;
           max-width: 100vw;
-          height: 70vh;              /* big, tall viewport */
+          height: 70vh;              /* dominates the screen on phones */
+          margin-bottom: 24px;
         }
-      }
-
 
         .bs-copy {
-          text-align: left;   /* <<< remove this block */
+          text-align: left;          /* if you actually want left-aligned copy on mobile */
         }
       }
 
@@ -1003,7 +993,13 @@
             alt="Broken Spirit NFC card"
             camera-controls
             disable-zoom
-            field-of-view="20deg";
+
+            camera-orbit="0deg 80deg 0.9m"
+            min-camera-orbit="-25deg 70deg 0.9m"
+            max-camera-orbit="25deg 90deg 0.9m"
+            orbit-sensitivity="0.5"
+
+            field-of-view="20deg"
             exposure="1.0"
             shadow-intensity="1"
             shadow-softness="0.8"
@@ -1317,12 +1313,22 @@
 
         <button class="audio-track-row"
                 data-src="/assets/brokenspirit_[demo_151124].mp3">
-          <span class="audio-col-index">17</span>
+          <span class="audio-col-index">18</span>
           <span class="audio-col-track">
             <span class="track-title">brokenspirit_[demo_151124]</span>
           </span>
           <span class="audio-col-time"></span>
         </button>
+        
+        <button class="audio-track-row"
+                data-src="/assets/brokenspirit_[demo_290125].mp3">
+          <span class="audio-col-index">19</span>
+          <span class="audio-col-track">
+            <span class="track-title">brokenspirit_[demo_290125]</span>
+          </span>
+          <span class="audio-col-time"></span>
+        </button>
+        
       </div>
     </div>
   </div>
