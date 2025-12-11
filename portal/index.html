@@ -1012,13 +1012,62 @@
         }
       }
 
+      /* === CINEMATIC INTRO === */
+      .cinematic-intro {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999; /* above everything */
+        opacity: 1;
+        pointer-events: none;
+        transition: opacity 1.2s ease;
+      }
+
+      .cinematic-intro.fade-out {
+        opacity: 0;
+      }
+
+      .cinematic-intro .intro-text {
+        font-family: 'PPMori', sans-serif;
+        font-size: 26px;
+        letter-spacing: 0.04em;
+        opacity: 0;
+        animation: introFade 2.8s ease forwards;
+      }
+
+      @keyframes introFade {
+        0%   { opacity: 0; transform: translateY(12px); }
+        25%  { opacity: 1; transform: translateY(0); }
+        70%  { opacity: 1; }
+        100% { opacity: 0; transform: translateY(-12px); }
+      }
+
+      /* Site fade-in after intro */
+      body.site-hidden {
+        opacity: 0;
+        transition: opacity 1.2s ease;
+      }
+
+      body.site-visible {
+        opacity: 1;
+      }
+
 
 
   </style>
 </head>
 <body class="portal-hidden">
     
-      <!-- Password gate -->
+    <div id="cinematicIntro" class="cinematic-intro">
+      <div class="intro-text">Welcome to Broken Spirit</div>
+      <audio id="introSfx" src="/assets/woosh.mp3" preload="auto"></audio>
+    </div>
+
+    
+      <!-- Password gate
       <div id="passwordOverlay" class="password-overlay">
         <div class="password-modal">
           <h1>Enter Password</h1>
@@ -1035,7 +1084,7 @@
           </button>
           <div id="passwordError" class="password-error"></div>
         </div>
-      </div>
+      </div>-->
 
       <div class="container">
         <!-- Hero: title at top, then GLB, then text -->
@@ -1052,7 +1101,7 @@
             disable-pan
             disable-zoom
             disable-tap
-            interaction-prompt="none"
+            interaction-prompt="auto"
 
             camera-orbit="0deg 80deg auto"
             min-camera-orbit="-15deg 70deg auto"
@@ -1902,26 +1951,6 @@
       });
     }
 
-    
-    document.addEventListener('DOMContentLoaded', async () => {
-      // 1) Run the card flow first (for ?code=... URLs)
-      const cardOk = await initCardFlow();
-
-      if (!cardOk) {
-        console.log('[boot] Card flow took over, skipping portal init');
-        return;
-      }
-
-      // 2) Gate access via Supabase / card ownership
-      await gatePortalAccess();
-
-      // 3) If the portal is NOT locked, reveal the shell
-      if (!document.body.classList.contains('portal-locked')) {
-        document.body.classList.remove('portal-hidden');
-      }
-    });
-
-
 
 
     window.addEventListener('keydown', (e) => {
@@ -2218,6 +2247,76 @@
       populateTrackDurations();
     })();
 
+
+    document.addEventListener("DOMContentLoaded", () => {
+      //---------------------------------------------------------------------------
+      // INITIAL STATE
+      //---------------------------------------------------------------------------
+      const intro       = document.getElementById("cinematicIntro");
+      const introSfx    = document.getElementById("introSfx");
+
+      // Ensure the site is invisible until BOTH intro + portal checks finish
+      document.body.classList.add("site-hidden");
+
+      //---------------------------------------------------------------------------
+      // 1. START CINEMATIC INTRO (runs in parallel with portal gating)
+      //---------------------------------------------------------------------------
+      const introDone = new Promise((resolve) => {
+        // Play sound
+        if (introSfx) {
+          introSfx.volume = 0.6;
+          introSfx.play().catch(() => {});
+        }
+
+        // Fade out intro after animation completes (~2.6s)
+        setTimeout(() => {
+          intro.classList.add("fade-out");
+        }, 2600);
+
+        // Remove intro overlay
+        intro.addEventListener("transitionend", () => {
+          intro.style.display = "none";
+          resolve();                // intro is finished
+        });
+      });
+
+      //---------------------------------------------------------------------------
+      // 2. PORTAL GATING (also runs in parallel)
+      //---------------------------------------------------------------------------
+      const portalReady = new Promise(async (resolve) => {
+        // Handle cardFlow (?code=...)
+        const cardOk = await initCardFlow();
+        if (!cardOk) {
+          // card flow takes over (claim UI, login UI, etc.)
+          resolve(false);
+          return;
+        }
+
+        // Standard portal gating
+        await gatePortalAccess();
+
+        // Reveal portal shell if user is allowed
+        if (!document.body.classList.contains("portal-locked")) {
+          document.body.classList.remove("portal-hidden");
+        }
+
+        resolve(true);
+      });
+
+      //---------------------------------------------------------------------------
+      // 3. WHEN BOTH (INTRO + PORTAL) COMPLETE → FADE IN SITE
+      //---------------------------------------------------------------------------
+      Promise.all([introDone, portalReady]).then(([_, passedGate]) => {
+        if (!passedGate) {
+          // If portal is locked, site stays hidden (user sees lock modal instead)
+          return;
+        }
+
+        // Reveal the site smoothly
+        document.body.classList.remove("site-hidden");
+        document.body.classList.add("site-visible");
+      });
+    });
 
 
 
