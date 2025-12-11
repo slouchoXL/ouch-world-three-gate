@@ -78,13 +78,20 @@
     html, body {
           height: 100%;
           overflow: hidden;
-          font-family: Arial, sans-serif;
+          font-family: PPMori, Arial, sans-serif;
           background: #000;
           color: #fff;
           touch-action: none;
           -ms-touch-action: none;
         }
 
+      @font-face {
+        font-family: 'PPMori';
+        src: url('/assets/fonts/PPMori-Regular.woff2') format('woff2'),
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
 
 
       
@@ -963,12 +970,12 @@
         <!-- Hero: title at top, then GLB, then text -->
         <section class="bs-hero">
           <div class="bs-title">
-            <h1>Sloucho<br>Broken Spirit</h1>
+            <h1>Broken Spirit</h1>
           </div>
 
           <model-viewer
             class="bs-card-viewer"
-            src="/assets/models/cd.glb"
+            src="/assets/models/card.glb"
             alt="Broken Spirit NFC card"
             camera-controls
             disable-zoom
