@@ -2081,6 +2081,29 @@
         const s = Math.floor(seconds % 60);
         return `${m}:${s.toString().padStart(2, '0')}`;
       }
+      
+      // Media Session: lock-screen metadata (title, artist, artwork)
+      function updateMediaSessionMetadata() {
+        if (!('mediaSession' in navigator)) return;
+
+        const btn = trackButtons[currentIndex];
+        if (!btn) return;
+
+        const titleSpan = btn.querySelector('.track-title');
+        const title = titleSpan ? titleSpan.textContent.trim() : 'OUCH™';
+
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title,
+          artist: 'Sloucho',
+          album: 'Broken Spirit',
+          artwork: [
+            { src: '/assets/metadata.png',  sizes: '96x96',  type: 'image/png' },
+            { src: '/assets/metadata.png', sizes: '192x192', type: 'image/png' },
+            { src: '/assets/metadata.png', sizes: '512x512', type: 'image/png' }
+          ]
+        });
+      }
+
 
       function updateNowPlayingTitle() {
         if (!nowTitleEl) return;
@@ -2121,10 +2144,14 @@
 
         updateTrackStates(false);
 
+        // Update lock-screen metadata for this track
+        updateMediaSessionMetadata();
+
         if (autoplay) {
           audioEl.play().catch(err => console.error(err));
         }
       }
+
 
 
       // Clicking a row = play/pause that track
@@ -2210,12 +2237,21 @@
       audioEl.addEventListener('play', () => {
         updateTrackStates(true);
         if (playPauseBtn) playPauseBtn.classList.add('playing');
+
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'playing';
+        }
       });
 
       audioEl.addEventListener('pause', () => {
         updateTrackStates(false);
         if (playPauseBtn) playPauseBtn.classList.remove('playing');
+
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'paused';
+        }
       });
+
 
       audioEl.addEventListener('ended', () => {
         // Move to the next track in the playlist, if there is one
