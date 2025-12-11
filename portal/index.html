@@ -864,52 +864,56 @@
       /* Broken Spirit hero (card + text) */
 
       .bs-hero {
-              width: 100%;
-              height: 100vh;                 /* fill the viewport */
-              padding: 80px 24px 120px;      /* leave room for audio bar at bottom */
-              box-sizing: border-box;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;       /* vertical centering */
-              text-align: center;            /* centre text + card */
-            }
+        width: 100%;
+        height: 100vh;
+        padding: 96px 24px 120px;   /* room for top nav + bottom audio */
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start; /* content starts at top */
+        text-align: center;
+      }
 
+      /* Title fixed near top of hero */
+      .bs-title {
+        margin-bottom: 32px;
+      }
 
+      .bs-title h1 {
+        font-size: 18px;
+        line-height: 1.4;
+      }
 
+      /* GLB viewer – larger card */
       .bs-card-viewer {
-        width: 260px;
+        width: 340px;
         max-width: 80vw;
         aspect-ratio: 3 / 4;
         border-radius: 12px;
         overflow: hidden;
+        margin-bottom: 32px;
       }
 
+      /* Body copy under the card */
       .bs-copy {
-              max-width: 640px;
-              margin-top: 32px;
-              margin-left: auto;
-              margin-right: auto;
-              font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-                "SF Pro Display", "Segoe UI", sans-serif;
-              text-align: center;
-            }
-
-
-
-      .bs-copy h1 {
-        font-size: 18px;
-        line-height: 1.4;
-        margin-bottom: 20px;
+        max-width: 640px;
+        margin-top: 0;
+        margin-left: auto;
+        margin-right: auto;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          "SF Pro Display", "Segoe UI", sans-serif;
         text-align: center;
       }
+
 
       .bs-copy p {
         font-size: 13px;
         line-height: 1.5;
         margin-bottom: 14px;
       }
-      
+
+      /* Prevent blue highlight on hero text */
       .bs-hero,
       .bs-hero * {
         -webkit-user-select: none;
@@ -918,12 +922,12 @@
         user-select: none;
       }
 
+      /* Optional: slightly bigger GLB on desktop */
       @media (min-width: 900px) {
-              .bs-hero {
-                padding-top: 120px;
-              }
-            }
-
+        .bs-card-viewer {
+          width: 400px;
+        }
+      }
 
         .bs-copy {
           text-align: left;   /* <<< remove this block */
@@ -956,16 +960,17 @@
       </div>
 
       <div class="container">
-        <!-- Hero: GLB + text -->
+        <!-- Hero: title at top, then GLB, then text -->
         <section class="bs-hero">
+          <div class="bs-title">
+            <h1>Sloucho<br>Broken Spirit</h1>
+          </div>
+
           <model-viewer
             class="bs-card-viewer"
             src="/assets/models/cd.glb"
             alt="Broken Spirit NFC card"
             camera-controls
-            auto-rotate
-            auto-rotate-delay="1000"
-            rotation-per-second="15deg"
             disable-zoom
             exposure="1.0"
             shadow-intensity="1"
@@ -974,8 +979,6 @@
           </model-viewer>
 
           <div class="bs-copy">
-            <h1>Sloucho<br>Broken Spirit</h1>
-
             <p>
               As we race towards our algorithmic demise, we may stop for a moment of reflection
               and wonder... Was it really worth it?
@@ -999,6 +1002,7 @@
             </p>
           </div>
         </section>
+
 
 
         <!-- <div class="container">
