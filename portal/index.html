@@ -1020,10 +1020,10 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 999999; /* above everything */
+        z-index: 999999;   /* above everything */
         opacity: 1;
-        pointer-events: none;
-        transition: opacity 1.2s ease;
+        pointer-events: auto;            /* allow tap/click */
+        transition: opacity 1.2s ease;   /* fade overlay out */
       }
 
       .cinematic-intro.fade-out {
@@ -1034,8 +1034,21 @@
         font-family: 'PPMori', sans-serif;
         font-size: 26px;
         letter-spacing: 0.04em;
+        text-align: center;
+        opacity: 1;
+        transition: opacity 0.6s ease, transform 0.6s ease;
+      }
+
+      .cinematic-intro .intro-sub {
+        display: block;
+        margin-top: 8px;
+        font-size: 14px;
+        opacity: 0.75;
+      }
+
+      .cinematic-intro .intro-text.intro-text-hide {
         opacity: 0;
-        animation: introFade 4s ease forwards; /* was 2.8s */
+        transform: translateY(-6px);
       }
 
 
@@ -1053,13 +1066,13 @@
 <body class="portal-hidden">
     
     <div id="cinematicIntro" class="cinematic-intro">
-        <div class="intro-text">
-          Welcome to Broken Spirit<br>
-          <span class="intro-sub">Tap anywhere to enter</span>
-        </div>
-
+      <div class="intro-text">
+        Welcome to Broken Spirit
+        <span class="intro-sub">Tap to enter</span>
+      </div>
       <audio id="introSfx" src="/assets/woosh.mp3" preload="auto"></audio>
     </div>
+
 
     
       <!-- Password gate
@@ -2247,60 +2260,62 @@
       //---------------------------------------------------------------------------
       // INITIAL STATE
       //---------------------------------------------------------------------------
-      const intro    = document.getElementById("cinematicIntro");
-      const introSfx = document.getElementById("introSfx");
+      const intro     = document.getElementById("cinematicIntro");
+      const introText = intro ? intro.querySelector(".intro-text") : null;
+      const introSfx  = document.getElementById("introSfx");
 
-      
-      // Helper: try to play SFX, and if autoplay is blocked, unlock on first tap/click
-      function playIntroSfxWithUnlock() {
-        if (!introSfx) return;
+      // We no longer fade the whole body; portal shell is hidden via .portal-hidden
+      // until gatePortalAccess() decides what to show.
+      let introStarted = false;
 
-        introSfx.volume = 0.6;
-        const p = introSfx.play();
+      // Promise we resolve once the whole cinematic sequence (tap + 5s black + fade-out) is done
+      let resolveIntroDone;
+      const introDone = new Promise((resolve) => {
+        resolveIntroDone = resolve;
+      });
 
-        if (p && typeof p.catch === "function") {
-            p.catch(() => {
-              const unlock = () => {
-                introSfx.play().catch(() => {});
-                window.removeEventListener("pointerdown", unlock);
-                window.removeEventListener("click", unlock);
-              };
-              window.addEventListener("pointerdown", unlock, { once: true });
-              window.addEventListener("click", unlock, { once: true });
-            });
+      function startIntroSequence() {
+        if (!intro || introStarted) return;
+        introStarted = true;
 
+        // Play sound – this is triggered by user gesture so autoplay should pass
+        if (introSfx) {
+          introSfx.currentTime = 0;
+          introSfx.volume = 0.6;
+          introSfx.play().catch(() => {});
         }
+
+        // Fade the text out quickly, leaving pure black
+        if (introText) {
+          introText.classList.add("intro-text-hide");
+        }
+
+        // Hold on black for 5 seconds, then fade the overlay out
+        setTimeout(() => {
+          intro.classList.add("fade-out");
+
+          intro.addEventListener(
+            "transitionend",
+            () => {
+              intro.style.display = "none";
+              if (resolveIntroDone) resolveIntroDone();
+            },
+            { once: true }
+          );
+        }, 5000);
+      }
+
+      // Intro should wait indefinitely until tapped
+      if (intro) {
+        intro.addEventListener("pointerdown", startIntroSequence);
+        intro.addEventListener("click", startIntroSequence);
+      } else {
+        // No intro present – fail safe
+        if (resolveIntroDone) resolveIntroDone();
       }
 
       //---------------------------------------------------------------------------
-      // 1. CINEMATIC INTRO (slightly longer)
-      //---------------------------------------------------------------------------
-      const introDone = new Promise((resolve) => {
-        if (!intro) {
-          resolve();
-          return;
-        }
-
-        // Start SFX (or schedule it to start on first tap)
-        playIntroSfxWithUnlock();
-
-        // Make the intro a bit longer – tweak this value to taste (e.g. 3500–4500)
-        setTimeout(() => {
-          intro.classList.add("fade-out");
-        }, 4500);
-
-        intro.addEventListener(
-          "transitionend",
-          () => {
-            intro.style.display = "none";
-            resolve(); // intro is finished
-          },
-          { once: true }
-        );
-      });
-
-      //---------------------------------------------------------------------------
-      // 2. PORTAL GATING (runs in parallel)
+      // PORTAL GATING (runs in parallel)
       //---------------------------------------------------------------------------
       const portalReady = new Promise(async (resolve) => {
         // Handle cardFlow (?code=...)
@@ -2323,17 +2338,18 @@
       });
 
       //---------------------------------------------------------------------------
-      // 3. WHEN BOTH (INTRO + PORTAL) COMPLETE → FADE IN SITE
+      // WHEN BOTH (INTRO + PORTAL) COMPLETE → SHOW UI
       //---------------------------------------------------------------------------
       Promise.all([introDone, portalReady]).then(([_, passedGate]) => {
         if (!passedGate) {
-          return; // locked case
+          // Portal locked – the lock modal / card flow owns the screen
+          return;
         }
-        // Nothing to do here for opacity; portalReady already removed portal-hidden.
-        // The cinematic overlay handles the fade with its own transition.
+        // Nothing else to do: when the intro overlay fades out, the UI is already there.
+        // If you want an extra UI fade, we can add a class here later.
       });
-
     });
+
 
 
 
