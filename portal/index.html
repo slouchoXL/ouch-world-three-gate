@@ -213,28 +213,24 @@
       width: 0%; transition: width 0.3s ease; border-radius: 2px;
     }
 
-      /* Mobile / default */
       .top-nav {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
-        z-index: 100;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 16px;    /* 16px left/right to match mobile chevron */
+        padding: 20px 28px;   /* matches audio-bottom-bar right padding */
+        z-index: 1000;
       }
 
-      /* Desktop: match bottom chevron right padding (28px) */
-      @media (min-width: 769px) {
+      /* Mobile */
+      @media (max-width: 768px) {
         .top-nav {
-          padding: 20px 28px;
+          padding: 20px 16px; /* matches audio-bottom-bar right padding on mobile */
         }
       }
-
-
-
     .menu-button {
       width: 30px; height: 30px;
       background: #000;
