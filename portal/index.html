@@ -285,9 +285,11 @@
       body.portal-hidden .item-action-bar,
       body.portal-hidden .character-controls,
       body.portal-hidden canvas,
-      body.portal-hidden #scene-container {
+      body.portal-hidden #scene-container,
+      body.portal-hidden .bs-hero {
         visibility: hidden;
       }
+
     
     /* Modal */
     /* Modal – unified with password gate look */
@@ -2391,7 +2393,7 @@
             },
             { once: true }
           );
-        }, 1000); // <<< 5 second hold on black after tap
+        }, 2000); // <<< 5 second hold on black after tap
       }
 
       // Intro waits indefinitely until tapped
