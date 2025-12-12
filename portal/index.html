@@ -1073,6 +1073,26 @@
         100% { opacity: 1; transform: translateY(0); }
       }
 
+      /* Spiral background for the /portal locked overlay */
+      #portalLockOverlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+      }
+
+      #portalLockOverlay .portal-lock-bg {
+        position: absolute;
+        inset: 0;
+        background: url("/assets/spiral.png") center / contain no-repeat;
+        opacity: 0.45;              /* tweak */
+        filter: blur(0px);          /* optional */
+        pointer-events: none;       /* IMPORTANT: keep buttons clickable */
+      }
+
+      #portalLockOverlay .portal-lock-content {
+        position: relative;
+        z-index: 1;                 /* sits above the spiral */
+      }
 
 
   </style>
@@ -1679,7 +1699,7 @@
           </div>
 
           <p style="font-size:14px; opacity:0.82; margin:0 0 16px; line-height:1.45; text-align:center;">
-            If you have activated your Broken Spirit card on mobile, then log in using the same email to get desktop access.
+            If you have already activated your Broken Spirit card on mobile, then log in using the same email to get desktop access.
           </p>
 
           <div class="form-group">
@@ -1749,7 +1769,7 @@
           // Inline error state (stay here)
           if (!cards || !cards.length) {
             errorEl.textContent =
-              "That email is not linked to an active Broken Spirit card. Please check the spelling or try a different email.";
+              "That email is not linked to an active Broken Spirit card. Please check the spelling or try again using a different email.";
             input.focus();
             input.select?.();
             return;
@@ -1772,9 +1792,7 @@
             <p style="font-size: 14px; opacity: 0.82; margin-bottom: 10px; line-height:1.45;">
               We sent a login link to <strong>${escapeHtml(email)}</strong>.
             </p>
-            <p style="font-size: 13px; opacity: 0.7; line-height:1.45;">
-              Open it on this device to continue.
-            </p>
+            
           `);
         });
 
@@ -2054,34 +2072,37 @@
       overlay.className = 'modal-overlay show';
 
       overlay.innerHTML = `
-        <div class="login-modal" style="text-align:center;">
-          <h2 style="margin-bottom:8px;">To access this site you need
-      a Broken Spirit NFC Card</h2>
-          <p style="font-size:14px; opacity:0.8; margin-bottom:18px;">
-            
-          </p>
+        <div class="portal-lock-bg"></div>
 
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
-            <button
-              type="button"
-              class="form-button"
-              style="background: rgba(255,255,255,0.10); color:#fff; border: 1px solid rgba(255,255,255,0.18);"
-              onclick="window.location.href='https://YOUR-SHOPIFY-URL-HERE'"
-            >
-              Buy the card
-            </button>
+        <div class="portal-lock-content">
+          <div class="login-modal" style="text-align:center;">
+            <h2 style="margin-bottom:8px;">Access denied</h2>
+            <p style="font-size:14px; opacity:0.8; margin-bottom:18px;">
+              To access this site you need an official Broken Spirit NFC card.
+            </p>
 
-      <button
-        type="button"
-        class="form-button"
-        onclick="openCardEmailGate()"
-      >
-        I own a card
-      </button>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+              <button
+                type="button"
+                class="form-button"
+                style="background: rgba(255,255,255,0.10); color:#fff; border: 1px solid rgba(255,255,255,0.18);"
+                onclick="window.location.href='https://YOUR-SHOPIFY-URL-HERE'"
+              >
+                Buy the card
+              </button>
 
+              <button
+                type="button"
+                class="form-button"
+                onclick="openCardEmailGate()"
+              >
+                I own the card
+              </button>
+            </div>
           </div>
         </div>
       `;
+
 
       document.body.appendChild(overlay);
     }
