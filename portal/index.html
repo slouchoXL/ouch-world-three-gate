@@ -1628,151 +1628,137 @@
       // MODE: LOGIN (used from /portal → "I own the card")
       // ============================================================
       if (mode === "login") {
-        const renderGate = () => {
-          renderCardPortal(`
-            <div style="display:flex; align-items:center; justify-content:center; position:relative; margin-bottom:10px;">
-              <button
-                type="button"
-                id="cardGateBack"
-                aria-label="Back"
-                style="
-                  position:absolute; left:0;
-                  width:36px; height:36px;
-                  border-radius:999px;
-                  border:1px solid rgba(255,255,255,0.18);
-                  background: rgba(255,255,255,0.06);
-                  color:#fff;
-                  display:flex; align-items:center; justify-content:center;
-                  cursor:pointer;
-                "
-              >←</button>
-              <h2 style="margin:0;">Log back in</h2>
-            </div>
+        const backBtnStyle = `
+          position:absolute; left:0;
+          width:40px; height:40px;
+          border-radius:999px;
+          border:1px solid rgba(255,255,255,0.18);
+          background: rgba(255,255,255,0.06);
+          color:#fff;
+          display:flex; align-items:center; justify-content:center;
+          cursor:pointer;
+        `;
 
-            <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
-              You must already have activated your Broken Spirit card on mobile to log in on desktop.
-              If you’ve done this, enter the same email below.
-            </p>
+        const chevronLeftSvg = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+               xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M15 19L8 12L15 5" stroke="currentColor" stroke-width="2.2"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        `;
 
-            <div class="form-group">
-              <input
-                id="claimEmail"
-                type="email"
-                class="form-input"
-                placeholder="Enter email"
-                autocomplete="email"
-              />
-            </div>
-
-            <button type="button" class="form-button" id="cardClaimButton">
-              Send login link
+        renderCardPortal(`
+          <div style="display:flex; align-items:center; justify-content:center; position:relative; margin-bottom:16px; padding-left:52px; padding-right:10px;">
+            <button
+              type="button"
+              id="cardGateBack"
+              aria-label="Back"
+              style="${backBtnStyle}"
+            >
+              ${chevronLeftSvg}
             </button>
 
-            <p id="claimError" style="font-size: 12px; color: #f97373; margin-top: 10px; min-height: 18px;"></p>
+            <h2 style="margin:0; line-height:1.1;">Log back in</h2>
+          </div>
+
+          <p style="font-size: 14px; opacity: 0.82; margin: 0 0 18px; line-height:1.45;">
+            If you have activated your Broken Spirit card on mobile, then log in using the same email to get desktop access.
+          </p>
+
+          <div class="form-group" style="margin-top: 2px;">
+            <input
+              id="claimEmail"
+              type="email"
+              class="form-input"
+              placeholder="Enter email"
+              autocomplete="email"
+            />
+          </div>
+
+          <button type="button" class="form-button" id="cardClaimButton" style="margin-top:14px;">
+            Send login link
+          </button>
+
+          <p id="claimError" style="font-size: 12px; color: #f97373; margin-top: 12px; min-height: 18px;"></p>
+        `);
+
+        // Back chevron → back to the two-option overlay
+        document.getElementById("cardGateBack")?.addEventListener("click", () => {
+          closeCardPortalOverlay();
+          showPortalLocked();
+        });
+
+        const btn = document.getElementById("cardClaimButton");
+        const input = document.getElementById("claimEmail");
+        const errorEl = document.getElementById("claimError");
+
+        input?.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") btn?.click();
+        });
+
+        btn?.addEventListener("click", async () => {
+          if (!errorEl || !input) return;
+
+          errorEl.textContent = "";
+          const email = (input.value || "").trim();
+
+          if (!email) {
+            errorEl.textContent = "Please enter an email address.";
+            input.focus();
+            return;
+          }
+
+          if (!window.supa) {
+            errorEl.textContent = "Auth not ready. Please refresh and try again.";
+            return;
+          }
+
+          // 1) Verify email is attached to an ACTIVE card
+          const { data: cards, error: cardErr } = await window.supa
+            .from("NFCCard")
+            .select("id")
+            .eq("claimed_by_email", email)
+            .eq("active", true)
+            .limit(1);
+
+          if (cardErr) {
+            console.error("[cards] Email gate card lookup error:", cardErr);
+            errorEl.textContent = "Could not verify card ownership. Please try again.";
+            return;
+          }
+
+          // Inline error state (stay here)
+          if (!cards || !cards.length) {
+            errorEl.textContent =
+              "That email is not linked to an active Broken Spirit card. Please check the spelling or try a different email.";
+            input.focus();
+            input.select?.();
+            return;
+          }
+
+          // 2) Send magic link (redirect back to /portal)
+          const { error: otpErr } = await window.supa.auth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: `${location.origin}/portal` },
+          });
+
+          if (otpErr) {
+            errorEl.textContent = otpErr.message;
+            return;
+          }
+
+          // Success UI (NO back arrow here)
+          renderCardPortal(`
+            <h2 style="margin-bottom: 10px;">Check your email</h2>
+            <p style="font-size: 14px; opacity: 0.82; margin-bottom: 10px; line-height:1.45;">
+              We sent a login link to <strong>${escapeHtml(email)}</strong>.
+            </p>
+            <p style="font-size: 13px; opacity: 0.7; line-height:1.45;">
+              Open it on this device to continue.
+            </p>
           `);
+        });
 
-          // Back arrow → back to the two-option overlay
-          document.getElementById("cardGateBack")?.addEventListener("click", () => {
-            closeCardPortalOverlay();
-            showPortalLocked();
-          });
-
-          const btn = document.getElementById("cardClaimButton");
-          const input = document.getElementById("claimEmail");
-          const errorEl = document.getElementById("claimError");
-
-          input?.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") btn?.click();
-          });
-
-          btn?.addEventListener("click", async () => {
-            if (!errorEl || !input) return;
-
-            errorEl.textContent = "";
-            const email = (input.value || "").trim();
-
-            if (!email) {
-              errorEl.textContent = "Please enter an email address.";
-              input.focus();
-              return;
-            }
-
-            if (!window.supa) {
-              errorEl.textContent = "Auth not ready. Please refresh and try again.";
-              return;
-            }
-
-            // 1) Verify email is attached to an ACTIVE card
-            const { data: cards, error: cardErr } = await window.supa
-              .from("NFCCard")
-              .select("id")
-              .eq("claimed_by_email", email)
-              .eq("active", true)
-              .limit(1);
-
-            if (cardErr) {
-              console.error("[cards] Email gate card lookup error:", cardErr);
-              errorEl.textContent = "Could not verify card ownership. Please try again.";
-              return;
-            }
-
-            // Inline error state (stay here)
-            if (!cards || !cards.length) {
-              errorEl.textContent =
-                "That email is not linked to an active Broken Spirit card. Please check the spelling or try a different email.";
-              input.focus();
-              input.select?.();
-              return;
-            }
-
-            // 2) Send magic link (redirect back to /portal)
-            const { error: otpErr } = await window.supa.auth.signInWithOtp({
-              email,
-              options: { emailRedirectTo: `${location.origin}/portal` },
-            });
-
-            if (otpErr) {
-              errorEl.textContent = otpErr.message;
-              return;
-            }
-
-            // Success UI
-            renderCardPortal(`
-              <div style="display:flex; align-items:center; justify-content:center; position:relative; margin-bottom:10px;">
-                <button
-                  type="button"
-                  id="cardGateBack2"
-                  aria-label="Back"
-                  style="
-                    position:absolute; left:0;
-                    width:36px; height:36px;
-                    border-radius:999px;
-                    border:1px solid rgba(255,255,255,0.18);
-                    background: rgba(255,255,255,0.06);
-                    color:#fff;
-                    display:flex; align-items:center; justify-content:center;
-                    cursor:pointer;
-                  "
-                >←</button>
-                <h2 style="margin:0;">Check your email</h2>
-              </div>
-
-              <p style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">
-                We sent a login link to <strong>${escapeHtml(email)}</strong>.
-              </p>
-              <p style="font-size: 13px; opacity: 0.7;">
-                Open it on this device to continue.
-              </p>
-            `);
-
-            document.getElementById("cardGateBack2")?.addEventListener("click", () => {
-              closeCardPortalOverlay();
-              showPortalLocked();
-            });
-          });
-        };
-
-        renderGate();
         return; // IMPORTANT: prevents falling into activate flow
       }
 
@@ -1874,6 +1860,7 @@
         `);
       });
     }
+
 
 
     // ============================================================
@@ -2049,9 +2036,10 @@
 
       overlay.innerHTML = `
         <div class="login-modal" style="text-align:center;">
-          <h2 style="margin-bottom:8px;">Access denied</h2>
+          <h2 style="margin-bottom:8px;">To access this site you need
+      an official Broken Spirit NFC Card</h2>
           <p style="font-size:14px; opacity:0.8; margin-bottom:18px;">
-            To access this site you need <br> a Broken Spirit NFC card.
+            
           </p>
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
