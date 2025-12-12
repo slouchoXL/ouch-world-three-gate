@@ -1843,7 +1843,6 @@
       }
 
     function showPortalLocked() {
-      // mark the body as locked so we can hide the portal UI
       document.body.classList.add('portal-locked');
 
       const existing = document.getElementById('portalLockOverlay');
@@ -1856,13 +1855,34 @@
       overlay.innerHTML = `
         <div class="login-modal">
           <h2 style="margin-bottom:8px;">Access denied</h2>
+
           <p style="font-size:14px; opacity:0.8; margin-bottom:16px;">
-            A Broken Spirit card is required to access.
+            To enter the Broken Spirit portal you need an active Broken Spirit NFC card.
+            <br><br>
+            If you already activated a card, enter your email below to log in.
           </p>
+
+          <input
+            id="lockedEmailInput"
+            type="email"
+            placeholder="Email address"
+            class="form-input"
+            style="margin-bottom:12px;"
+          />
+
           <button
             type="button"
             class="form-button"
-            onclick="window.location.href='https://YOUR-SHOPIFY-URL-HERE'"
+            id="lockedEmailSubmit"
+            style="margin-bottom:16px;"
+          >
+            Send magic link
+          </button>
+
+          <button
+            type="button"
+            class="form-button"
+            onclick="window.location.href='https://YOUR-SHOPIFY-LINK'"
           >
             Buy the Broken Spirit Card
           </button>
@@ -1870,7 +1890,38 @@
       `;
 
       document.body.appendChild(overlay);
+
+      // Handle magic-link login flow right inside the modal
+      const submitBtn = document.getElementById('lockedEmailSubmit');
+      const emailInput = document.getElementById('lockedEmailInput');
+
+      submitBtn.addEventListener('click', async () => {
+        const email = (emailInput.value || '').trim();
+        if (!email) {
+          alert('Please enter your email address.');
+          return;
+        }
+
+        // Send Supabase magic link
+        const { error } = await window.supa.auth.signInWithOtp({ email });
+
+        if (error) {
+          console.error('[portal] Magic link error:', error);
+          alert('Failed to send magic link. Please try again.');
+          return;
+        }
+
+        // Replace modal content with confirmation
+        overlay.querySelector('.login-modal').innerHTML = `
+          <h2>Check your email</h2>
+          <p style="font-size:14px; opacity:0.8;">
+            We sent a login link to <strong>${email}</strong>.<br>
+            Open it on this device to access the portal.
+          </p>
+        `;
+      });
     }
+
 
 
 
