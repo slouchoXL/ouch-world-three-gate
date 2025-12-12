@@ -1222,7 +1222,7 @@
 
             <p>
               Reclaiming our personal autonomy is paramount to defeating the algorithm, the systems
-              that control us, and the future that has been imagined for us, this much is known.
+              of control, and the future that has been imagined for us, this much is known.
               And so, here is my offering, something that exists in the hands of the people, this
               project is yours, it belongs to you free from any algorithm. It is yours to do with
               as you please, sell it, pirate it, share it with a friend, the future is yours to shape.
@@ -1746,7 +1746,7 @@
           </div>
 
           <p style="font-size:14px; opacity:0.82; margin:0 0 16px; line-height:1.45; text-align:center;">
-            You must first activate your Broken Spirit card by scanning it with your mobile device and following the instructions. <br><br> If you already activated your Broken Spirit card then login below using the same email.
+           First activate your Broken Spirit card by scanning it with your mobile device and following the instructions. <br><br> If you already activated your Broken Spirit card then login below using the same email.
           </p>
 
           <div class="form-group">
@@ -2539,6 +2539,19 @@
 
         if ('mediaSession' in navigator) {
           navigator.mediaSession.playbackState = 'paused';
+        }
+      });
+
+      audioEl.addEventListener("loadedmetadata", () => {
+        updateMediaSessionMetadata();
+      });
+
+      audioEl.addEventListener("play", () => {
+        // Re-apply metadata at the moment of user gesture
+        updateMediaSessionMetadata();
+
+        if ("mediaSession" in navigator) {
+          navigator.mediaSession.playbackState = "playing";
         }
       });
 
