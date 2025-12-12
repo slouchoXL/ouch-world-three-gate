@@ -1622,10 +1622,16 @@
 
     
     function showClaimUI(card, opts = {}) {
-      const mode = opts.mode || 'activate'; // 'activate' | 'login'
+      const mode = opts.mode || "activate"; // "activate" | "login"
 
-      // --- LOGIN MODE (used from /portal → "I own the card") ---
-      if (mode === 'login') {
+      // ============================================================
+      // MODE: LOGIN (used from /portal → "I own the card")
+      // - user enters email
+      // - verify email is attached to an ACTIVE card
+      // - if yes: send magic link back to /portal
+      // - if no: close card modal + return to access denied overlay
+      // ============================================================
+      if (mode === "login") {
         renderCardPortal(`
           <h2 style="margin-bottom: 8px;">Log back in</h2>
           <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
@@ -1649,43 +1655,44 @@
           <p id="claimError" style="font-size: 12px; color: #f97373; margin-top: 8px; min-height: 16px;"></p>
         `);
 
-        const btn = document.getElementById('cardClaimButton');
-        const input = document.getElementById('claimEmail');
-        const errorEl = document.getElementById('claimError');
+        const btn = document.getElementById("cardClaimButton");
+        const input = document.getElementById("claimEmail");
+        const errorEl = document.getElementById("claimError");
 
-        btn?.addEventListener('click', async () => {
-          errorEl.textContent = '';
-          const email = (input?.value || '').trim();
+        btn?.addEventListener("click", async () => {
+          if (!errorEl || !input) return;
+
+          errorEl.textContent = "";
+          const email = (input.value || "").trim();
 
           if (!email) {
-            errorEl.textContent = 'Please enter an email address.';
-            input?.focus();
+            errorEl.textContent = "Please enter an email address.";
+            input.focus();
             return;
           }
 
           if (!window.supa) {
-            errorEl.textContent = 'Auth not ready. Please refresh and try again.';
+            errorEl.textContent = "Auth not ready. Please refresh and try again.";
             return;
           }
 
           // 1) Verify this email is attached to an ACTIVE card
           const { data: cards, error: cardErr } = await window.supa
-            .from('NFCCard')
-            .select('id')
-            .eq('claimed_by_email', email)
-            .eq('active', true)
+            .from("NFCCard")
+            .select("id")
+            .eq("claimed_by_email", email)
+            .eq("active", true)
             .limit(1);
 
           if (cardErr) {
-            console.error('[cards] Email gate card lookup error:', cardErr);
-            errorEl.textContent = 'Could not verify card ownership. Please try again.';
+            console.error("[cards] Email gate card lookup error:", cardErr);
+            errorEl.textContent = "Could not verify card ownership. Please try again.";
             return;
           }
 
           if (!cards || !cards.length) {
-            // Back to Access Denied choice UI
-            const overlay = document.getElementById('card-modal-overlay');
-            if (overlay) overlay.remove();
+            // Not attached to a card → back to Access Denied overlay
+            closeCardPortalOverlay();
             showPortalLocked();
             return;
           }
@@ -1693,9 +1700,7 @@
           // 2) Send magic link (redirect back to /portal)
           const { error: otpErr } = await window.supa.auth.signInWithOtp({
             email,
-            options: {
-              emailRedirectTo: `${location.origin}/portal`
-            }
+            options: { emailRedirectTo: `${location.origin}/portal` },
           });
 
           if (otpErr) {
@@ -1706,7 +1711,7 @@
           renderCardPortal(`
             <h2 style="margin-bottom: 8px;">Check your email</h2>
             <p style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">
-              We sent a login link to <strong>${email}</strong>.
+              We sent a login link to <strong>${escapeHtml(email)}</strong>.
             </p>
             <p style="font-size: 13px; opacity: 0.7;">
               Open it on this device to continue.
@@ -1714,15 +1719,132 @@
           `);
         });
 
+        return; // IMPORTANT: prevents falling into activate flow
+      }
+
+      // ============================================================
+      // MODE: ACTIVATE (existing ?code= flow)
+      // card is expected to be provided by initCardFlow()
+      // ============================================================
+      if (!card) {
+        renderCardPortal(`
+          <h2 style="margin-bottom: 8px;">Missing card</h2>
+          <p style="font-size: 14px; opacity: 0.8;">
+            No card was provided. Please scan your NFC card again.
+          </p>
+        `);
         return;
       }
+
+      // Store current card globally if you already rely on this elsewhere
+      window.__CURRENT_CARD__ = card;
+
+      // If the card is already claimed, your existing logic likely routes to either:
+      // - already claimed info screen
+      // - return-login screen (send magic link back to ?code=)
+      //
+      // This preserves that behaviour, but you can adjust the conditions to match your schema.
+      if (card.claimed_by_email && card.claimed_by_email.length) {
+        // If you want "return login" instead of "already claimed", use showReturnLoginUI(card)
+        // based on your own logic (e.g. always allow return-login).
+        showReturnLoginUI(card);
+        return;
+      }
+
+      // Otherwise, show your claim/activate UI (enter email → claim card).
+      // If you already had a specific activation screen before, paste that markup here.
+      // This is a safe default that matches your screenshot "Activate ... / Claim Card".
+      renderCardPortal(`
+        <h2 style="margin-bottom: 8px;">Activate Your Broken Spirit Card</h2>
+        <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
+          Enter your email to activate your account and claim your card.
+        </p>
+
+        <div class="form-group">
+          <input
+            id="claimEmailActivate"
+            type="email"
+            class="form-input"
+            placeholder="Enter email"
+            autocomplete="email"
+          />
+        </div>
+
+        <button type="button" class="form-button" id="cardActivateButton">
+          Claim Card
+        </button>
+
+        <p id="activateError" style="font-size: 12px; color: #f97373; margin-top: 8px; min-height: 16px;"></p>
+      `);
+
+      const actBtn = document.getElementById("cardActivateButton");
+      const actInput = document.getElementById("claimEmailActivate");
+      const actErr = document.getElementById("activateError");
+
+      actBtn?.addEventListener("click", async () => {
+        if (!actErr || !actInput) return;
+
+        actErr.textContent = "";
+        const email = (actInput.value || "").trim();
+
+        if (!email) {
+          actErr.textContent = "Please enter an email address.";
+          actInput.focus();
+          return;
+        }
+
+        if (!window.supa) {
+          actErr.textContent = "Auth not ready. Please refresh and try again.";
+          return;
+        }
+
+        // Claim the card against this email.
+        // NOTE: this assumes your existing backend allows updating the NFCCard row from client.
+        // If your prior code used an API endpoint instead, replace this block with that call.
+        const { error: claimErr } = await window.supa
+          .from("NFCCard")
+          .update({ claimed_by_email: email, active: true })
+          .eq("public_code", card.public_code);
+
+        if (claimErr) {
+          console.error("[cards] Claim error:", claimErr);
+          actErr.textContent = "Could not claim this card. Please try again.";
+          return;
+        }
+
+        // Send magic link back to /portal (or /portal?code=... if you prefer)
+        const { error: otpErr } = await window.supa.auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo: `${location.origin}/portal?code=${encodeURIComponent(card.public_code)}` },
+        });
+
+        if (otpErr) {
+          actErr.textContent = otpErr.message;
+          return;
+        }
+
+        renderCardPortal(`
+          <h2 style="margin-bottom: 8px;">Check your email</h2>
+          <p style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">
+            We sent a login link to <strong>${escapeHtml(email)}</strong>.
+          </p>
+          <p style="font-size: 13px; opacity: 0.7;">
+            Open it on this device to continue.
+          </p>
+        `);
+      });
+    }
+
+    // ============================================================
+    // Helpers OUTSIDE showClaimUI (global scope)
+    // ============================================================
 
     function showAlreadyClaimedUI(card) {
       renderCardPortal(`
         <h2 style="margin-bottom: 8px;">Card already claimed</h2>
         <p style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">
           This card is registered to<br/>
-          <strong>${card.claimed_by_email}</strong>.
+          <strong>${escapeHtml(card.claimed_by_email || "")}</strong>.
         </p>
         <p style="font-size: 13px; opacity: 0.7;">
           If you bought this second-hand or think this is a mistake,
@@ -1731,12 +1853,11 @@
       `);
     }
 
-
     function showReturnLoginUI(card) {
       renderCardPortal(`
         <h2 style="margin-bottom: 8px;">Log back in</h2>
         <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
-          This card belongs to <strong>${card.claimed_by_email}</strong>.<br/>
+          This card belongs to <strong>${escapeHtml(card.claimed_by_email || "")}</strong>.<br/>
           Enter that email to get a new magic link.
         </p>
 
@@ -1757,8 +1878,8 @@
         <p id="returnError" style="font-size: 12px; color: #f97373; margin-top: 8px; min-height: 16px;"></p>
       `);
 
-      const btn = document.getElementById('cardReturnButton');
-      if (btn) btn.addEventListener('click', returnLogin);
+      const btn = document.getElementById("cardReturnButton");
+      if (btn) btn.addEventListener("click", returnLogin);
     }
 
     async function returnLogin() {
@@ -1766,10 +1887,15 @@
       const errorEl = document.getElementById("returnError");
       if (!input || !errorEl) return;
 
-      const email = input.value.trim();
+      const email = (input.value || "").trim();
       if (!email) {
         errorEl.textContent = "Please enter your email.";
         input.focus();
+        return;
+      }
+
+      if (!window.supa) {
+        errorEl.textContent = "Auth not ready. Please refresh and try again.";
         return;
       }
 
@@ -1781,9 +1907,7 @@
 
       const { error } = await window.supa.auth.signInWithOtp({
         email,
-        options: {
-          emailRedirectTo: `${location.origin}/portal?code=${encodeURIComponent(code)}`
-        }
+        options: { emailRedirectTo: `${location.origin}/portal?code=${encodeURIComponent(code)}` },
       });
 
       if (error) {
@@ -1794,28 +1918,29 @@
       renderCardPortal(`
         <h2 style="margin-bottom: 8px;">Check your inbox</h2>
         <p style="font-size: 14px; opacity: 0.8;">
-          We’ve sent a login link to <strong>${email}</strong>.
+          We’ve sent a login link to <strong>${escapeHtml(email)}</strong>.
         </p>
       `);
     }
 
-
-    function showDownloadUI(card) {
-      renderCardPortal(`
-        <h2 style="margin-bottom: 8px;">Your Broken Spirit Download</h2>
-        <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
-          This card is unlocked on your account.
-        </p>
-
-        <button
-          type="button"
-          class="form-button"
-          onclick="window.location.href='/downloads/bs-pack.zip'"
-        >
-          Download Pack
-        </button>
-      `);
+    function closeCardPortalOverlay() {
+      const overlay =
+        document.getElementById("card-modal-overlay") ||
+        document.getElementById("cardModalOverlay") ||
+        document.getElementById("cardPortalOverlay");
+      if (overlay) overlay.remove();
     }
+
+    // minimal HTML escaping for injected strings
+    function escapeHtml(str) {
+      return String(str || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
 
   
       async function gatePortalAccess() {
@@ -1967,14 +2092,7 @@
     function switchTab(tab) {
       const tabs = document.querySelectorAll('.modal-tab');
       const loginForm = document.getElementById('loginForm');
-      loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const signupForm = document.getElementById('signupForm');
-        
-        tabs.forEach(t => t.classList.remove('active'));
-        if (tab === 'login') { tabs[0].classList.add('active'); loginForm.style.display = 'block'; signupForm.style.display = 'none'; }
-        else { tabs[1].classList.add('active'); loginForm.style.display = 'none'; signupForm.style.display = 'block'; }
-      }); // <-- fixed closing here
+ 
     }
 
     document.addEventListener('click', function(e) {
