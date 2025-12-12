@@ -1648,24 +1648,41 @@
         `;
 
         renderCardPortal(`
-          <div style="display:flex; align-items:center; justify-content:center; position:relative; margin-bottom:16px; padding-left:52px; padding-right:10px;">
+          <div style="position:relative; margin-bottom:18px; text-align:center;">
             <button
               type="button"
               id="cardGateBack"
               aria-label="Back"
-              style="${backBtnStyle}"
+              style="
+                position:absolute;
+                left:0;
+                top:50%;
+                transform:translateY(-50%);
+                width:40px;
+                height:40px;
+                border-radius:999px;
+                border:1px solid rgba(255,255,255,0.18);
+                background:rgba(255,255,255,0.06);
+                color:#fff;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                cursor:pointer;
+              "
             >
               ${chevronLeftSvg}
             </button>
 
-            <h2 style="margin:0; line-height:1.1;">Log back in</h2>
+            <h2 style="margin:0; line-height:1.2;">
+              Log back in
+            </h2>
           </div>
 
-          <p style="font-size: 14px; opacity: 0.82; margin: 0 0 18px; line-height:1.45;">
+          <p style="font-size:14px; opacity:0.82; margin:0 0 16px; line-height:1.45; text-align:center;">
             If you have activated your Broken Spirit card on mobile, then log in using the same email to get desktop access.
           </p>
 
-          <div class="form-group" style="margin-top: 2px;">
+          <div class="form-group">
             <input
               id="claimEmail"
               type="email"
@@ -1675,11 +1692,13 @@
             />
           </div>
 
-          <button type="button" class="form-button" id="cardClaimButton" style="margin-top:14px;">
+          <button type="button" class="form-button" id="cardClaimButton">
             Send login link
           </button>
 
-          <p id="claimError" style="font-size: 12px; color: #f97373; margin-top: 12px; min-height: 18px;"></p>
+          <p id="claimError"
+             style="font-size:12px; color:#f97373; margin-top:10px; min-height:18px;">
+          </p>
         `);
 
         // Back chevron → back to the two-option overlay
@@ -2037,7 +2056,7 @@
       overlay.innerHTML = `
         <div class="login-modal" style="text-align:center;">
           <h2 style="margin-bottom:8px;">To access this site you need
-      an official Broken Spirit NFC Card</h2>
+      a Broken Spirit NFC Card</h2>
           <p style="font-size:14px; opacity:0.8; margin-bottom:18px;">
             
           </p>
