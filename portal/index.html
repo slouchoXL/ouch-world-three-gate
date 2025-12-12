@@ -1224,8 +1224,10 @@
               Reclaiming our personal autonomy is paramount to defeating the algorithm, the systems
               of control, and the future that has been imagined for us, this much is known.
               And so, here is my offering, something that exists in the hands of the people, this
-              project is yours, it belongs to you free from any algorithm. It is yours to do with
-              as you please, sell it, pirate it, share it with a friend, the future is yours to shape.
+              project is yours, it belongs to you free from any algorithm, it is yours to do with
+              as you please.
+              
+              <p> You can download the project and listen to it locally either on mobile or desktop, the files are yours, sell them, pirate them, share them with a friend, their future is yours to shape.
             </p>
           </div>
         </section>
@@ -1532,38 +1534,38 @@
   </div>
 
 
-
-
-
-
-
-
-  
-
-  <!-- Login Modal -->
   <div class="modal-overlay" id="loginModal">
     <div class="login-modal">
       <button class="modal-close circular-btn" onclick="closeLoginModal()"></button>
+
       <div class="modal-tabs">
-        <button class="modal-tab active" onclick="switchTab('login')">Account</button>
+        <button class="modal-tab active" type="button">Account</button>
       </div>
-      
-      <form id="loginForm" onsubmit="return false;">
+
+      <!-- Logged-in view -->
+      <div id="accountLoggedIn" style="display:none; text-align:left;">
+        <p style="margin-bottom:10px; opacity:0.85;">
+          You’re signed in as<br>
+          <strong id="accountEmail" style="word-break:break-word;"></strong>
+        </p>
+
+        <button type="button" class="form-button" id="logoutBtn"
+          style="background: rgba(255,255,255,0.10); color:#fff; border: 1px solid rgba(255,255,255,0.18);">
+          Log out
+        </button>
+      </div>
+
+      <!-- Logged-out view -->
+      <form id="loginForm" onsubmit="return false;" style="display:none;">
         <div class="form-group">
-          <input type="email" id="loginEmail" class="form-input" placeholder="Email" required>
+          <input type="email" id="loginEmail" class="form-input" placeholder="Email" autocomplete="email" required>
         </div>
-        <button type="submit" id="loginSubmit" class="form-button"> Login</button>
+        <button type="submit" id="loginSubmit" class="form-button">Send login link</button>
+        <p id="loginError" style="font-size:12px; color:#f97373; margin-top:10px; min-height:18px;"></p>
       </form>
-      
-      
-      <div id="signupForm" style="display:none;">
-        <div class="form-group"><input type="text" class="form-input" placeholder="Username"></div>
-        <div class="form-group"><input type="email" class="form-input" placeholder="Email"></div>
-        <button class="form-button">Sign Up</button>
-      </div>
     </div>
   </div>
-</div>
+
 
 <script>
     
@@ -1586,6 +1588,23 @@
         </div>
       `;
     }
+    
+    async function syncAccountButton() {
+      const btn = document.querySelector('.login-button');
+      if (!btn || !window.supa) return;
+
+      const { data: { user } } = await window.supa.auth.getUser();
+
+      // Keep the same icon, but make it “smart” via title/aria-label
+      if (user) {
+        btn.setAttribute('aria-label', `Account (${user.email})`);
+        btn.title = user.email;
+      } else {
+        btn.setAttribute('aria-label', 'Login');
+        btn.title = 'Login';
+      }
+    }
+
 
    
    // ===== Card code + Supabase lookup =====
@@ -1960,7 +1979,7 @@
         </p>
         <p style="font-size: 13px; opacity: 0.7;">
           If you bought this second-hand or think this is a mistake,
-          email <strong>hello@brokenspirit.zone</strong>.
+          email <strong>slouchoxxl@gmail.com</strong>.
         </p>
       `);
     }
@@ -2205,11 +2224,53 @@
     function toggleMenu() { document.getElementById('menuTray').classList.toggle('open');
         
     }
-      function handleLogin() { document.getElementById('loginModal').classList.add('show');
+    async function handleLogin() {
+      const modal = document.getElementById('loginModal');
+      if (!modal || !window.supa) return;
+
+      const loggedInView = document.getElementById('accountLoggedIn');
+      const loginForm    = document.getElementById('loginForm');
+      const emailEl      = document.getElementById('accountEmail');
+
+      const { data: { user } } = await window.supa.auth.getUser();
+
+      if (user) {
+        if (emailEl) emailEl.textContent = user.email || '';
+        if (loggedInView) loggedInView.style.display = 'block';
+        if (loginForm) loginForm.style.display = 'none';
+      } else {
+        if (loggedInView) loggedInView.style.display = 'none';
+        if (loginForm) loginForm.style.display = 'block';
       }
+
+      modal.classList.add('show');
+    }
+
 
     function closeLoginModal() { document.getElementById('loginModal').classList.remove('show');
     }
+    
+    async function logoutAndRelock() {
+      try {
+        if (!window.supa) return;
+
+        await window.supa.auth.signOut();
+
+        // Close account modal if open
+        closeLoginModal();
+
+        // Hide portal UI + show the 2-option gate
+        document.body.classList.add('portal-hidden');
+        showPortalLocked();
+      } catch (e) {
+        console.error('[auth] signOut failed', e);
+      }
+      if (new URLSearchParams(location.search).get('code')) {
+        window.location.href = `${location.origin}/portal`;
+      }
+
+    }
+
 
     function switchTab(tab) {
       const tabs = document.querySelectorAll('.modal-tab');
@@ -2318,6 +2379,14 @@
 
           if (error) alert(error.message);
           else alert('Check your email for the login link!');
+          
+          const { data: { user } } = await window.supa.auth.getUser();
+          if (user) {
+            // Already logged in: just show account modal correctly
+            await syncAccountButton();
+            handleLogin();
+            return;
+          }
         });
     })();
     // click behavior
@@ -2634,6 +2703,22 @@
       // Keep portal hidden behind preGate until we decide what to show
       document.body.classList.add("portal-hidden");
 
+      document.getElementById('logoutBtn')?.addEventListener('click', logoutAndRelock);
+      
+      await syncAccountButton();
+
+      window.supa.auth.onAuthStateChange((_event, _session) => {
+        syncAccountButton();
+
+        // If a user becomes logged out while on /portal, immediately re-lock
+        // (this matches your “can’t access without login” rule).
+        window.supa.auth.getUser().then(({ data: { user } }) => {
+          if (!user) {
+            document.body.classList.add('portal-hidden');
+            showPortalLocked();
+          }
+        });
+      });
       // --------------------------------------------------------------------------
       // 1) CARD FLOW (?code=...) → NO CINEMATIC, CARD UI OWNS THE SCREEN
       // --------------------------------------------------------------------------
@@ -2803,6 +2888,10 @@
         // Safety: ensure preGate is removed
         hidePreGate();
       });
+      
+    
+
+
     });
 
 
