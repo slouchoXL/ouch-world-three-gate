@@ -1485,7 +1485,7 @@
         <div class="form-group">
           <input type="email" id="loginEmail" class="form-input" placeholder="Email" required>
         </div>
-        <button type="submit" id="loginSubmit" class="form-button">Create / Login</button>
+        <button type="submit" id="loginSubmit" class="form-button"> Login</button>
       </form>
       
       
@@ -1623,9 +1623,9 @@
     
     function showClaimUI(card) {
       renderCardPortal(`
-        <h2 style="margin-bottom: 8px;">Activate Your Broken Spirit Card</h2>
+        <h2 style="margin-bottom: 8px;">Broken Spirit desktop access</h2>
         <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
-          Enter your email to activate your account <br> and claim your card.
+          You must first activate your card on mobile <br> Once you have done this, enter your email below and follow the log-in instructions.
         </p>
 
         <div class="form-group">
@@ -1854,23 +1854,45 @@
       overlay.className = 'modal-overlay show';
 
       overlay.innerHTML = `
-        <div class="login-modal">
+        <div class="login-modal" style="text-align:center;">
           <h2 style="margin-bottom:8px;">Access denied</h2>
-          <p style="font-size:14px; opacity:0.8; margin-bottom:16px;">
-            A Broken Spirit card is required to access.
+          <p style="font-size:14px; opacity:0.8; margin-bottom:18px;">
+            To access this site you need an official Broken Spirit NFC card.
           </p>
-          <button
-            type="button"
-            class="form-button"
-            onclick="window.location.href='https://YOUR-SHOPIFY-URL-HERE'"
-          >
-            Buy the Broken Spirit Card
-          </button>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+            <button
+              type="button"
+              class="form-button"
+              style="background: rgba(255,255,255,0.10); color:#fff; border: 1px solid rgba(255,255,255,0.18);"
+              onclick="window.location.href='https://YOUR-SHOPIFY-URL-HERE'"
+            >
+              Buy the card
+            </button>
+
+            <button
+              type="button"
+              class="form-button"
+              onclick="openLoginFromPortalLock()"
+            >
+              I own the card
+            </button>
+          </div>
         </div>
       `;
 
       document.body.appendChild(overlay);
     }
+
+    function openLoginFromPortalLock() {
+      // Remove the lock overlay to avoid stacking two modals
+      const lock = document.getElementById('portalLockOverlay');
+      if (lock) lock.remove();
+
+      // Show your existing login modal
+      handleLogin();
+    }
+
 
 
 
@@ -2006,8 +2028,9 @@
           const isInIframe = window !== window.top;
           // Changed from /packs to /landing-page/
           return isInIframe
-            ? 'https://ouchworld.netlify.app/landing-page/'
-            : `${location.origin}/landing-page/`;
+            ? 'https://ouchworld.netlify.app/portal'
+            : `${location.origin}/portal`;
+
         }
 
         loginBtn.addEventListener('click', async (e) => {
