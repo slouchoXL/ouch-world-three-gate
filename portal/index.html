@@ -1083,10 +1083,12 @@
       #portalLockOverlay .portal-lock-bg {
         position: absolute;
         inset: 0;
-        background: url("/assets/spiral.png") center / contain no-repeat;
-        opacity: 0.45;              /* tweak */
-        filter: blur(0px);          /* optional */
-        pointer-events: none;       /* IMPORTANT: keep buttons clickable */
+        background-image: url("/assets/spiral.png");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;        /* KEY CHANGE */
+        opacity: 0.45;
+        pointer-events: none;
       }
 
       #portalLockOverlay .portal-lock-content {
