@@ -167,7 +167,7 @@
 
 
       .container {
-        width: 100vw;
+        width: 100%;
         min-height: 100vh;
         position: relative;
       }
@@ -1078,22 +1078,44 @@
         position: fixed;
         inset: 0;
         z-index: 99999;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        overflow: hidden;
       }
 
+      /* Spiral background */
       #portalLockOverlay .portal-lock-bg {
         position: absolute;
         inset: 0;
+
         background-image: url("/assets/spiral.png");
         background-repeat: no-repeat;
-        background-position: center;
-        background-size: cover;        /* KEY CHANGE */
+        background-position: center center; /* TRUE CENTER */
+        background-size: cover;
+
         opacity: 0.45;
         pointer-events: none;
       }
 
+      /* Modal content sits above spiral */
       #portalLockOverlay .portal-lock-content {
         position: relative;
-        z-index: 1;                 /* sits above the spiral */
+        z-index: 1;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 100%;
+        padding: 18px;
+      }
+
+      /* Modal sizing */
+      #portalLockOverlay .login-modal {
+        width: min(92vw, 560px);
       }
 
 
@@ -1696,12 +1718,12 @@
             </button>
 
             <h2 style="margin:0; line-height:1.2;">
-              Log back in
+              Desktop Access
             </h2>
           </div>
 
           <p style="font-size:14px; opacity:0.82; margin:0 0 16px; line-height:1.45; text-align:center;">
-            If you have already activated your Broken Spirit card on mobile, then log in using the same email to get desktop access.
+            You must first activate the card by scanning it with your mobile device and following the instructions. <br><br> When you have activated your Broken Spirit card, then log in using the same email to get desktop access.
           </p>
 
           <div class="form-group">
