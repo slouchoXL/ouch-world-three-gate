@@ -2373,6 +2373,7 @@
       }
       
       // Media Session: lock-screen metadata (title, artist, artwork)
+      // Media Session: lock-screen metadata (title, artist, artwork)
       function updateMediaSessionMetadata() {
         if (!('mediaSession' in navigator)) return;
 
@@ -2382,17 +2383,21 @@
         const titleSpan = btn.querySelector('.track-title');
         const title = titleSpan ? titleSpan.textContent.trim() : 'OUCH™';
 
+        // Use absolute URLs (more reliable on iOS lock screen)
+        const art = `${location.origin}/assets/metadata.png`;
+
         navigator.mediaSession.metadata = new MediaMetadata({
           title,
           artist: 'Sloucho',
           album: 'Broken Spirit',
           artwork: [
-            { src: '/assets/metadata.png',  sizes: '96x96',  type: 'image/png' },
-            { src: '/assets/metadata.png', sizes: '192x192', type: 'image/png' },
-            { src: '/assets/metadata.png', sizes: '512x512', type: 'image/png' }
+            { src: art, sizes: '96x96', type: 'image/png' },
+            { src: art, sizes: '192x192', type: 'image/png' },
+            { src: art, sizes: '512x512', type: 'image/png' }
           ]
         });
       }
+
 
 
       function updateNowPlayingTitle() {
@@ -2528,6 +2533,9 @@
         updateTrackStates(true);
         if (playPauseBtn) playPauseBtn.classList.add('playing');
 
+        // Refresh metadata at the moment playback actually starts (iOS-friendly)
+        updateMediaSessionMetadata();
+
         if ('mediaSession' in navigator) {
           navigator.mediaSession.playbackState = 'playing';
         }
@@ -2542,19 +2550,7 @@
         }
       });
 
-      audioEl.addEventListener("loadedmetadata", () => {
-        updateMediaSessionMetadata();
-      });
-
-      audioEl.addEventListener("play", () => {
-        // Re-apply metadata at the moment of user gesture
-        updateMediaSessionMetadata();
-
-        if ("mediaSession" in navigator) {
-          navigator.mediaSession.playbackState = "playing";
-        }
-      });
-
+      
 
       audioEl.addEventListener('ended', () => {
         // Move to the next track in the playlist, if there is one
