@@ -342,6 +342,65 @@
     .modal-tab.active { color: #fff; }
     .form-group { margin-bottom: 12px; }
 
+    
+    /* === Portal gate (Buy / Own) === */
+    .portal-gate-wrapper {
+      text-align: center;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    .portal-gate-heading {
+      font-size: 18px;
+      line-height: 1.5;
+      margin-bottom: 32px;
+    }
+
+    .portal-gate-heading span {
+      display: block;
+    }
+
+    .portal-gate-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .portal-gate-button {
+      background: #262626;
+      border-radius: 24px;
+      padding: 18px 32px;
+      min-width: 180px;
+      border: 1px solid rgba(255,255,255,0.15);
+      font-size: 16px;
+      font-weight: 400;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+    }
+
+    .portal-gate-button:hover {
+      background: #303030;
+      transform: translateY(-1px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.45);
+    }
+
+    .portal-gate-button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    @media (max-width: 640px) {
+      .portal-gate-actions {
+        flex-direction: column;
+      }
+      .portal-gate-button {
+        width: 100%;
+      }
+    }
+
     /* Match password-input styling */
     .form-input {
       width: 100%;
@@ -1846,108 +1905,59 @@
       // mark the body as locked so we can hide the portal UI
       document.body.classList.add('portal-locked');
 
-      const existing = document.getElementById('portalLockOverlay');
-      if (existing) existing.remove();
-
-      const overlay = document.createElement('div');
-      overlay.id = 'portalLockOverlay';
-      overlay.className = 'modal-overlay show';
+      let overlay = document.getElementById('portalLockOverlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'portalLockOverlay';
+        overlay.className = 'modal-overlay show';
+        document.body.appendChild(overlay);
+      } else {
+        overlay.className = 'modal-overlay show';
+      }
 
       overlay.innerHTML = `
-        <div class="login-modal">
-          <!-- SECTION 1: New users – need a card -->
-          <h2 style="margin-bottom:8px;">Access denied</h2>
-          <p style="font-size:14px; opacity:0.8; margin-bottom:16px;">
-            To enter the Broken Spirit portal you need an active Broken Spirit NFC card.
-          </p>
-          <button
-            type="button"
-            class="form-button"
-            style="margin-bottom:4px;"
-            onclick="window.location.href='https://YOUR-SHOPIFY-URL-HERE'"
-          >
-            Buy the Broken Spirit Card
-          </button>
-
-          <div class="section-divider"></div>
-
-          <!-- SECTION 2: Existing card owners – log in -->
-          <div class="section-label">Already activated your card?</div>
-          <p class="section-helper">
-            If you have already activated your Broken Spirit card, enter the same email
-            you used and we will send you a magic link to log in on this device.
+        <div class="portal-gate-wrapper">
+          <p class="portal-gate-heading">
+            <span>To access this site you need</span>
+            <span>an official Broken Spirit NFC Card</span>
           </p>
 
-          <input
-            id="lockedEmailInput"
-            type="email"
-            placeholder="Email address"
-            class="form-input"
-            style="margin-bottom:10px;"
-            autocomplete="email"
-          />
+          <div class="portal-gate-actions">
+            <button
+              type="button"
+              class="portal-gate-button"
+              id="gateBuyCard"
+            >
+              Buy the card
+            </button>
 
-          <button
-            type="button"
-            class="form-button"
-            id="lockedEmailSubmit"
-          >
-            Send magic link
-          </button>
-
-          <p id="lockedEmailStatus"
-             style="font-size:12px; opacity:0.8; margin-top:10px; min-height:16px;"></p>
+            <button
+              type="button"
+              class="portal-gate-button"
+              id="gateOwnCard"
+            >
+              I own the card
+            </button>
+          </div>
         </div>
       `;
 
-      document.body.appendChild(overlay);
+      // Buy path → straight to Shopify
+      const buyBtn = overlay.querySelector('#gateBuyCard');
+      if (buyBtn) {
+        buyBtn.addEventListener('click', () => {
+          window.location.href = 'https://YOUR-SHOPIFY-URL-HERE';
+        });
+      }
 
-      const emailInput = overlay.querySelector('#lockedEmailInput');
-      const submitBtn  = overlay.querySelector('#lockedEmailSubmit');
-      const statusEl   = overlay.querySelector('#lockedEmailStatus');
-
-      if (submitBtn && emailInput && statusEl) {
-        submitBtn.addEventListener('click', async () => {
-          const email = (emailInput.value || '').trim();
-          if (!email) {
-            statusEl.style.color = '#f97373';
-            statusEl.textContent = 'Please enter an email address.';
-            emailInput.focus();
-            return;
-          }
-
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Sending…';
-          statusEl.style.color = 'rgba(255,255,255,0.8)';
-          statusEl.textContent = '';
-
-          try {
-            if (!window.supa) {
-              throw new Error('Supabase not initialised');
-            }
-
-            const { error } = await window.supa.auth.signInWithOtp({
-              email
-              // You can optionally add:
-              // options: { emailRedirectTo: window.location.origin + '/portal' }
-            });
-
-            if (error) {
-              console.error('[portal] Magic link error:', error);
-              statusEl.style.color = '#f97373';
-              statusEl.textContent = 'Could not send magic link. Please try again.';
-            } else {
-              statusEl.style.color = 'rgba(255,255,255,0.8)';
-              statusEl.innerHTML = `We sent a login link to <strong>${email}</strong>. Open it on this device to access the portal.`;
-            }
-          } catch (err) {
-            console.error('[portal] Magic link exception:', err);
-            statusEl.style.color = '#f97373';
-            statusEl.textContent = 'Something went wrong. Please try again.';
-          } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Send magic link';
-          }
+      // Own path → open your existing login modal
+      const ownBtn = overlay.querySelector('#gateOwnCard');
+      if (ownBtn) {
+        ownBtn.addEventListener('click', () => {
+          overlay.classList.remove('show');
+          overlay.remove();                       // remove gate overlay
+          document.body.classList.remove('portal-locked'); // reveal shell
+          handleLogin();                          // uses your existing login modal
         });
       }
     }
