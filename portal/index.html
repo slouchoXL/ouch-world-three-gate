@@ -1843,6 +1843,7 @@
       }
 
     function showPortalLocked() {
+      // mark the body as locked so we can hide the portal UI
       document.body.classList.add('portal-locked');
 
       const existing = document.getElementById('portalLockOverlay');
@@ -1854,12 +1855,27 @@
 
       overlay.innerHTML = `
         <div class="login-modal">
+          <!-- SECTION 1: New users – need a card -->
           <h2 style="margin-bottom:8px;">Access denied</h2>
-
           <p style="font-size:14px; opacity:0.8; margin-bottom:16px;">
             To enter the Broken Spirit portal you need an active Broken Spirit NFC card.
-            <br><br>
-            If you already activated a card, enter your email below to log in.
+          </p>
+          <button
+            type="button"
+            class="form-button"
+            style="margin-bottom:4px;"
+            onclick="window.location.href='https://YOUR-SHOPIFY-URL-HERE'"
+          >
+            Buy the Broken Spirit Card
+          </button>
+
+          <div class="section-divider"></div>
+
+          <!-- SECTION 2: Existing card owners – log in -->
+          <div class="section-label">Already activated your card?</div>
+          <p class="section-helper">
+            If you have already activated your Broken Spirit card, enter the same email
+            you used and we will send you a magic link to log in on this device.
           </p>
 
           <input
@@ -1867,60 +1883,75 @@
             type="email"
             placeholder="Email address"
             class="form-input"
-            style="margin-bottom:12px;"
+            style="margin-bottom:10px;"
+            autocomplete="email"
           />
 
           <button
             type="button"
             class="form-button"
             id="lockedEmailSubmit"
-            style="margin-bottom:16px;"
           >
             Send magic link
           </button>
 
-          <button
-            type="button"
-            class="form-button"
-            onclick="window.location.href='https://YOUR-SHOPIFY-LINK'"
-          >
-            Buy the Broken Spirit Card
-          </button>
+          <p id="lockedEmailStatus"
+             style="font-size:12px; opacity:0.8; margin-top:10px; min-height:16px;"></p>
         </div>
       `;
 
       document.body.appendChild(overlay);
 
-      // Handle magic-link login flow right inside the modal
-      const submitBtn = document.getElementById('lockedEmailSubmit');
-      const emailInput = document.getElementById('lockedEmailInput');
+      const emailInput = overlay.querySelector('#lockedEmailInput');
+      const submitBtn  = overlay.querySelector('#lockedEmailSubmit');
+      const statusEl   = overlay.querySelector('#lockedEmailStatus');
 
-      submitBtn.addEventListener('click', async () => {
-        const email = (emailInput.value || '').trim();
-        if (!email) {
-          alert('Please enter your email address.');
-          return;
-        }
+      if (submitBtn && emailInput && statusEl) {
+        submitBtn.addEventListener('click', async () => {
+          const email = (emailInput.value || '').trim();
+          if (!email) {
+            statusEl.style.color = '#f97373';
+            statusEl.textContent = 'Please enter an email address.';
+            emailInput.focus();
+            return;
+          }
 
-        // Send Supabase magic link
-        const { error } = await window.supa.auth.signInWithOtp({ email });
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Sending…';
+          statusEl.style.color = 'rgba(255,255,255,0.8)';
+          statusEl.textContent = '';
 
-        if (error) {
-          console.error('[portal] Magic link error:', error);
-          alert('Failed to send magic link. Please try again.');
-          return;
-        }
+          try {
+            if (!window.supa) {
+              throw new Error('Supabase not initialised');
+            }
 
-        // Replace modal content with confirmation
-        overlay.querySelector('.login-modal').innerHTML = `
-          <h2>Check your email</h2>
-          <p style="font-size:14px; opacity:0.8;">
-            We sent a login link to <strong>${email}</strong>.<br>
-            Open it on this device to access the portal.
-          </p>
-        `;
-      });
+            const { error } = await window.supa.auth.signInWithOtp({
+              email
+              // You can optionally add:
+              // options: { emailRedirectTo: window.location.origin + '/portal' }
+            });
+
+            if (error) {
+              console.error('[portal] Magic link error:', error);
+              statusEl.style.color = '#f97373';
+              statusEl.textContent = 'Could not send magic link. Please try again.';
+            } else {
+              statusEl.style.color = 'rgba(255,255,255,0.8)';
+              statusEl.innerHTML = `We sent a login link to <strong>${email}</strong>. Open it on this device to access the portal.`;
+            }
+          } catch (err) {
+            console.error('[portal] Magic link exception:', err);
+            statusEl.style.color = '#f97373';
+            statusEl.textContent = 'Something went wrong. Please try again.';
+          } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Send magic link';
+          }
+        });
+      }
     }
+
 
 
 
