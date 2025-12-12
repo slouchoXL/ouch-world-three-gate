@@ -342,65 +342,6 @@
     .modal-tab.active { color: #fff; }
     .form-group { margin-bottom: 12px; }
 
-    
-    /* === Portal gate (Buy / Own) === */
-    .portal-gate-wrapper {
-      text-align: center;
-      max-width: 520px;
-      margin: 0 auto;
-      padding: 24px 16px;
-    }
-
-    .portal-gate-heading {
-      font-size: 18px;
-      line-height: 1.5;
-      margin-bottom: 32px;
-    }
-
-    .portal-gate-heading span {
-      display: block;
-    }
-
-    .portal-gate-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      justify-content: center;
-    }
-
-    .portal-gate-button {
-      background: #262626;
-      border-radius: 24px;
-      padding: 18px 32px;
-      min-width: 180px;
-      border: 1px solid rgba(255,255,255,0.15);
-      font-size: 16px;
-      font-weight: 400;
-      color: #fff;
-      cursor: pointer;
-      transition: background 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
-    }
-
-    .portal-gate-button:hover {
-      background: #303030;
-      transform: translateY(-1px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.45);
-    }
-
-    .portal-gate-button:active {
-      transform: translateY(0);
-      box-shadow: none;
-    }
-
-    @media (max-width: 640px) {
-      .portal-gate-actions {
-        flex-direction: column;
-      }
-      .portal-gate-button {
-        width: 100%;
-      }
-    }
-
     /* Match password-input styling */
     .form-input {
       width: 100%;
@@ -1905,64 +1846,31 @@
       // mark the body as locked so we can hide the portal UI
       document.body.classList.add('portal-locked');
 
-      let overlay = document.getElementById('portalLockOverlay');
-      if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'portalLockOverlay';
-        overlay.className = 'modal-overlay show';
-        document.body.appendChild(overlay);
-      } else {
-        overlay.className = 'modal-overlay show';
-      }
+      const existing = document.getElementById('portalLockOverlay');
+      if (existing) existing.remove();
+
+      const overlay = document.createElement('div');
+      overlay.id = 'portalLockOverlay';
+      overlay.className = 'modal-overlay show';
 
       overlay.innerHTML = `
-        <div class="portal-gate-wrapper">
-          <p class="portal-gate-heading">
-            <span>To access this site you need</span>
-            <span>an official Broken Spirit NFC Card</span>
+        <div class="login-modal">
+          <h2 style="margin-bottom:8px;">Access denied</h2>
+          <p style="font-size:14px; opacity:0.8; margin-bottom:16px;">
+            A Broken Spirit card is required to access.
           </p>
-
-          <div class="portal-gate-actions">
-            <button
-              type="button"
-              class="portal-gate-button"
-              id="gateBuyCard"
-            >
-              Buy the card
-            </button>
-
-            <button
-              type="button"
-              class="portal-gate-button"
-              id="gateOwnCard"
-            >
-              I own the card
-            </button>
-          </div>
+          <button
+            type="button"
+            class="form-button"
+            onclick="window.location.href='https://YOUR-SHOPIFY-URL-HERE'"
+          >
+            Buy the Broken Spirit Card
+          </button>
         </div>
       `;
 
-      // Buy path → straight to Shopify
-      const buyBtn = overlay.querySelector('#gateBuyCard');
-      if (buyBtn) {
-        buyBtn.addEventListener('click', () => {
-          window.location.href = 'https://YOUR-SHOPIFY-URL-HERE';
-        });
-      }
-
-      // Own path → open your existing login modal
-      const ownBtn = overlay.querySelector('#gateOwnCard');
-      if (ownBtn) {
-        ownBtn.addEventListener('click', () => {
-          overlay.classList.remove('show');
-          overlay.remove();                       // remove gate overlay
-          document.body.classList.remove('portal-locked'); // reveal shell
-          handleLogin();                          // uses your existing login modal
-        });
-      }
+      document.body.appendChild(overlay);
     }
-
-
 
 
 
