@@ -1543,17 +1543,27 @@
       </div>
 
       <!-- Logged-in view -->
-      <div id="accountLoggedIn" style="display:none; text-align:left;">
-        <p style="margin-bottom:10px; opacity:0.85;">
+      <div id="accountLoggedIn" style="display:none; text-align:center;">
+        <p style="margin-bottom:12px; opacity:0.85; line-height:1.4;">
           You’re signed in as<br>
           <strong id="accountEmail" style="word-break:break-word;"></strong>
         </p>
 
-        <button type="button" class="form-button" id="logoutBtn"
-          style="background: rgba(255,255,255,0.10); color:#fff; border: 1px solid rgba(255,255,255,0.18);">
+        <button
+          type="button"
+          class="form-button"
+          id="logoutBtn"
+          style="
+            background: rgba(255,255,255,0.10);
+            color:#fff;
+            border: 1px solid rgba(255,255,255,0.18);
+            margin-top: 4px;
+          "
+        >
           Log out
         </button>
       </div>
+
 
       <!-- Logged-out view -->
       <form id="loginForm" onsubmit="return false;" style="display:none;">
@@ -1765,7 +1775,7 @@
           </div>
 
           <p style="font-size:14px; opacity:0.82; margin:0 0 16px; line-height:1.45; text-align:center;">
-           First activate your Broken Spirit card by scanning it with your mobile device and following the instructions. <br><br> If you already activated your Broken Spirit card then login below using the same email.
+           First activate your account by scanning your Broken Spirit card with your mobile device and following the instructions. <br><br> If you already activated your Broken Spirit card then login below using the same email.
           </p>
 
           <div class="form-group">
