@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>OUCH™</title>
   <link rel="icon" href="favicon.ico?v=2">
+      <link rel="preload" as="image" href="/assets/spiral.png">
 
   <link rel="icon" type="image/png" href="assets/favicon.png?v=2">
 
@@ -269,7 +270,7 @@
     .menu-item, .menu-item * { position: relative; z-index: 1; }
     .menu-item .menu-pill { background: transparent !important; padding: 0 !important; border-radius: 0 !important; }
 
-    /* Hide portal UI when the Broken Spirit portal is locked */
+    /* Hide lock UI when the Broken Spirit portal is locked */
     body.portal-locked .top-nav,
     body.portal-locked .audio-player,
     body.portal-locked .item-action-bar,
@@ -1028,15 +1029,16 @@
         position: fixed;
         inset: 0;
         background: #000;
-        display: flex;
+        display: none;              /* <-- CHANGE THIS */
         align-items: center;
         justify-content: center;
-        z-index: 999999;   /* above everything */
+        z-index: 999999;
         opacity: 1;
-        pointer-events: auto;            /* allow tap/click */
-        transition: opacity 1.2s ease;   /* fade overlay out */
+        pointer-events: auto;
+        transition: opacity 1.2s ease;
         cursor: pointer;
       }
+
 
       .cinematic-intro.fade-out {
         opacity: 0;
@@ -1122,13 +1124,20 @@
         position: fixed;
         inset: 0;
         background: #000;
-        z-index: 99998; /* below your portal lock overlay (99999) */
+        z-index: 99990; /* below your portal lock overlay (99999) */
       }
       #preGate.hidden {
         display: none;
       }
 
+      #portalLockOverlay {
+        opacity: 0;
+        transition: opacity 220ms ease;
+      }
 
+      #portalLockOverlay.is-visible {
+        opacity: 1;
+      }
 
   </style>
 </head>
@@ -1737,7 +1746,7 @@
           </div>
 
           <p style="font-size:14px; opacity:0.82; margin:0 0 16px; line-height:1.45; text-align:center;">
-            You must first activate your Broken Spirit card by scanning it with your mobile device and following the instructions. <br><br> Already activated your Broken Spirit card? <br> then login below using the same email.
+            You must first activate your Broken Spirit card by scanning it with your mobile device and following the instructions. <br><br> Already activated your Broken Spirit card? <br> Then login below using the same email.
           </p>
 
           <div class="form-group">
@@ -2105,25 +2114,25 @@
 
 
     function showPortalLocked() {
-      // mark the body as locked so we can hide the portal UI
-      document.body.classList.add('portal-locked');
+      document.body.classList.add("portal-locked");
 
-      const existing = document.getElementById('portalLockOverlay');
+      const existing = document.getElementById("portalLockOverlay");
       if (existing) existing.remove();
 
-      const overlay = document.createElement('div');
-      overlay.id = 'portalLockOverlay';
-      overlay.className = 'modal-overlay show';
+      const overlay = document.createElement("div");
+      overlay.id = "portalLockOverlay";
+      overlay.className = "modal-overlay"; // remove "show" here; we will fade in
 
       overlay.innerHTML = `
         <div class="portal-lock-bg"></div>
 
         <div class="portal-lock-content">
           <div class="login-modal" style="text-align:center;">
-            <h2 style="margin-bottom:8px;">To access this site you need an official Broken Spirit NFC card.</h2>
-            
+            <h2 style="margin-bottom:8px;">
+              To access this site you need an official Broken Spirit NFC card.
+            </h2>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+            <div class="portal-lock-actions" style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
               <button
                 type="button"
                 class="form-button"
@@ -2145,8 +2154,10 @@
         </div>
       `;
 
-
       document.body.appendChild(overlay);
+
+      // Trigger fade-in after mount (prevents “pop”)
+      requestAnimationFrame(() => overlay.classList.add("is-visible"));
     }
 
     function openCardEmailGate() {
@@ -2740,14 +2751,11 @@
 
       // Intro waits until tapped
       if (intro) {
-        // Ensure intro is the first visible thing for eligible users
-        // (release preGate now so user sees/taps intro)
-        hidePreGate();
-
+        intro.style.display = "flex";  // explicitly show it only for eligible users
+        hidePreGate();                 // now the intro is the first visible thing
         intro.addEventListener("pointerdown", startIntroSequence);
         intro.addEventListener("click", startIntroSequence);
       } else {
-        // No intro present – fail safe: show portal path without cinematic
         hidePreGate();
         if (resolveIntroDone) resolveIntroDone();
       }
