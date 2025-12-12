@@ -1621,73 +1621,101 @@
 
 
     
-    function showClaimUI(card) {
-      renderCardPortal(`
-        <h2 style="margin-bottom: 8px;">Broken Spirit desktop access</h2>
-        <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
-          You must first activate your card on mobile <br> Once you have done this, enter your email below and follow the log-in instructions.
-        </p>
+    function showClaimUI(card, opts = {}) {
+      const mode = opts.mode || 'activate'; // 'activate' | 'login'
 
-        <div class="form-group">
-          <input
-            id="claimEmail"
-            type="email"
-            class="form-input"
-            placeholder="Enter email"
-            autocomplete="email"
-          />
-        </div>
+      // --- LOGIN MODE (used from /portal → "I own the card") ---
+      if (mode === 'login') {
+        renderCardPortal(`
+          <h2 style="margin-bottom: 8px;">Log back in</h2>
+          <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
+            Enter the email attached to your Broken Spirit NFC card.
+          </p>
 
-        <button type="button" class="form-button" id="cardClaimButton">
-          Claim Card
-        </button>
+          <div class="form-group">
+            <input
+              id="claimEmail"
+              type="email"
+              class="form-input"
+              placeholder="Enter email"
+              autocomplete="email"
+            />
+          </div>
 
-        <p id="claimError" style="font-size: 12px; color: #f97373; margin-top: 8px; min-height: 16px;"></p>
-      `);
+          <button type="button" class="form-button" id="cardClaimButton">
+            Send login link
+          </button>
 
-      const btn = document.getElementById('cardClaimButton');
-      if (btn) btn.addEventListener('click', submitClaimEmail);
-    }
+          <p id="claimError" style="font-size: 12px; color: #f97373; margin-top: 8px; min-height: 16px;"></p>
+        `);
 
-    async function submitClaimEmail() {
-      const input = document.getElementById("claimEmail");
-      const errorEl = document.getElementById("claimError");
-      if (!input || !errorEl) return;
+        const btn = document.getElementById('cardClaimButton');
+        const input = document.getElementById('claimEmail');
+        const errorEl = document.getElementById('claimError');
 
-      const email = input.value.trim();
-      if (!email) {
-        errorEl.textContent = "Please enter an email address.";
-        input.focus();
+        btn?.addEventListener('click', async () => {
+          errorEl.textContent = '';
+          const email = (input?.value || '').trim();
+
+          if (!email) {
+            errorEl.textContent = 'Please enter an email address.';
+            input?.focus();
+            return;
+          }
+
+          if (!window.supa) {
+            errorEl.textContent = 'Auth not ready. Please refresh and try again.';
+            return;
+          }
+
+          // 1) Verify this email is attached to an ACTIVE card
+          const { data: cards, error: cardErr } = await window.supa
+            .from('NFCCard')
+            .select('id')
+            .eq('claimed_by_email', email)
+            .eq('active', true)
+            .limit(1);
+
+          if (cardErr) {
+            console.error('[cards] Email gate card lookup error:', cardErr);
+            errorEl.textContent = 'Could not verify card ownership. Please try again.';
+            return;
+          }
+
+          if (!cards || !cards.length) {
+            // Back to Access Denied choice UI
+            const overlay = document.getElementById('card-modal-overlay');
+            if (overlay) overlay.remove();
+            showPortalLocked();
+            return;
+          }
+
+          // 2) Send magic link (redirect back to /portal)
+          const { error: otpErr } = await window.supa.auth.signInWithOtp({
+            email,
+            options: {
+              emailRedirectTo: `${location.origin}/portal`
+            }
+          });
+
+          if (otpErr) {
+            errorEl.textContent = otpErr.message;
+            return;
+          }
+
+          renderCardPortal(`
+            <h2 style="margin-bottom: 8px;">Check your email</h2>
+            <p style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">
+              We sent a login link to <strong>${email}</strong>.
+            </p>
+            <p style="font-size: 13px; opacity: 0.7;">
+              Open it on this device to continue.
+            </p>
+          `);
+        });
+
         return;
       }
-
-      const code = window.__CURRENT_CARD__?.public_code;
-      if (!code) {
-        errorEl.textContent = "Missing card code.";
-        return;
-      }
-
-      const { error } = await window.supa.auth.signInWithOtp({
-        email,
-        options: {
-          // bring them back to the same card URL
-          emailRedirectTo: `${location.origin}/portal?code=${encodeURIComponent(code)}`
-        }
-      });
-
-      if (error) {
-        errorEl.textContent = error.message;
-        return;
-      }
-
-      renderCardPortal(`
-        <h2 style="margin-bottom: 8px;">Check your email</h2>
-        <p style="font-size: 14px; opacity: 0.8;">
-          We’ve sent a magic link to <strong>${email}</strong>.<br/>
-          Click the link in your email to finish set-up.
-        </p>
-      `);
-    }
 
     function showAlreadyClaimedUI(card) {
       renderCardPortal(`
@@ -1857,7 +1885,7 @@
         <div class="login-modal" style="text-align:center;">
           <h2 style="margin-bottom:8px;">Access denied</h2>
           <p style="font-size:14px; opacity:0.8; margin-bottom:18px;">
-            To access this site you need an official Broken Spirit NFC card.
+            To access this site you need an official <br> Broken Spirit NFC card.
           </p>
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
@@ -1870,13 +1898,14 @@
               Buy the card
             </button>
 
-            <button
-              type="button"
-              class="form-button"
-              onclick="openLoginFromPortalLock()"
-            >
-              I own the card
-            </button>
+      <button
+        type="button"
+        class="form-button"
+        onclick="openCardEmailGate()"
+      >
+        I own the card
+      </button>
+
           </div>
         </div>
       `;
@@ -1884,14 +1913,15 @@
       document.body.appendChild(overlay);
     }
 
-    function openLoginFromPortalLock() {
-      // Remove the lock overlay to avoid stacking two modals
+    function openCardEmailGate() {
+      // close the access denied overlay so we don’t stack overlays
       const lock = document.getElementById('portalLockOverlay');
       if (lock) lock.remove();
 
-      // Show your existing login modal
-      handleLogin();
+      // reuse the card portal UI, but in "login" mode (no ?code required)
+      showClaimUI(null, { mode: 'login' });
     }
+
 
 
 
