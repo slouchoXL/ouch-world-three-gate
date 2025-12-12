@@ -50,7 +50,7 @@
           if (sessionError) {
             alert(`Session error: ${sessionError.message}`);
           } else {
-            console.log("[cards] Session restored from magic link");
+            console.log("[cards] Session restored from login link");
           }
         }
 
@@ -59,7 +59,7 @@
         cleanUrl.hash = "";
         window.location.replace(cleanUrl.toString());
       } catch (e) {
-        console.error("[supabase] Magic link processing failed:", e);
+        console.error("[supabase] login link processing failed:", e);
       }
     })();
   </script>
@@ -1117,11 +1117,25 @@
       #portalLockOverlay .login-modal {
         width: min(92vw, 560px);
       }
+      
+      #preGate {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        z-index: 99998; /* below your portal lock overlay (99999) */
+      }
+      #preGate.hidden {
+        display: none;
+      }
+
 
 
   </style>
 </head>
 <body class="portal-hidden">
+    
+    <div id="preGate" aria-hidden="true"></div>
+
     
     <div id="cinematicIntro" class="cinematic-intro">
       <div class="intro-text">
@@ -1723,7 +1737,7 @@
           </div>
 
           <p style="font-size:14px; opacity:0.82; margin:0 0 16px; line-height:1.45; text-align:center;">
-            You must first activate your Broken Spirit card by scanning it with your mobile device and following the instructions. <br><br> If  you have already activated your Broken Spirit card, then login below using the same email.
+            You must first activate your Broken Spirit card by scanning it with your mobile device and following the instructions. <br><br> Already activated your Broken Spirit card? <br> then login below using the same email.
           </p>
 
           <div class="form-group">
@@ -1947,7 +1961,7 @@
         <h2 style="margin-bottom: 8px;">Log back in</h2>
         <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
           This card belongs to <strong>${escapeHtml(card.claimed_by_email || "")}</strong>.<br/>
-          Enter that email to get a new magic link.
+          Enter that email to get a new login link.
         </p>
 
         <div class="form-group">
@@ -2083,6 +2097,12 @@
           showPortalLocked();
         }
       }
+    
+    function hidePreGate() {
+      const el = document.getElementById("preGate");
+      if (el) el.classList.add("hidden");
+    }
+
 
     function showPortalLocked() {
       // mark the body as locked so we can hide the portal UI
@@ -2286,7 +2306,7 @@
           loginBtn.disabled = false; loginBtn.textContent = old;
 
           if (error) alert(error.message);
-          else alert('Check your email for the magic link!');
+          else alert('Check your email for the login link!');
         });
     })();
     // click behavior
@@ -2584,23 +2604,27 @@
       //---------------------------------------------------------------------------
       // EARLY ROUTING: ARE WE IN CARD FLOW (?code=...) OR MAIN PORTAL?
       //---------------------------------------------------------------------------
-      const params  = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams(window.location.search);
       const hasCode = ((params.get("code") || "").trim().length > 0);
 
-      const intro     = document.getElementById("cinematicIntro");
+      const intro = document.getElementById("cinematicIntro");
       const introText = intro ? intro.querySelector(".intro-text") : null;
-      const introSfx  = document.getElementById("introSfx");
+      const introSfx = document.getElementById("introSfx");
+
+      // Keep portal hidden behind preGate until we decide what to show
+      document.body.classList.add("portal-hidden");
 
       // --------------------------------------------------------------------------
       // 1) CARD FLOW (?code=...) → NO CINEMATIC, CARD UI OWNS THE SCREEN
       // --------------------------------------------------------------------------
       if (hasCode) {
         // Make sure the intro overlay never blocks the card UI
-        if (intro) {
-          intro.style.display = "none";
-        }
+        if (intro) intro.style.display = "none";
 
-        // Run the card flow and let it take over (activate card, already-claimed, etc.)
+        // Start card flow, then release preGate immediately after card UI takes over.
+        // (initCardFlow mounts card UI synchronously at the start; await is for data)
+        hidePreGate();
+
         (async () => {
           const cardOk = await initCardFlow();
           // In almost all card paths, initCardFlow() returns false and owns the UI.
@@ -2613,14 +2637,12 @@
           }
         })();
 
-        // Nothing else to do here – no cinematic, no portal fade in.
-        return;
+        return; // Nothing else to do – no cinematic, no portal fade in.
       }
 
       // --------------------------------------------------------------------------
       // 2) MAIN PORTAL (NO ?code) → ONLY SHOW CINEMATIC FOR LOGGED-IN CARD OWNERS
       // --------------------------------------------------------------------------
-
       async function userHasActiveCard() {
         if (!window.supa) return false;
 
@@ -2654,31 +2676,29 @@
       // --------------------------------------------------------------------------
       if (!shouldShowIntro) {
         // Hide the intro overlay completely
-        if (intro) {
-          intro.style.display = "none";
-        }
+        if (intro) intro.style.display = "none";
 
-        // Run normal portal gate – this will either:
-        // - unlock portal for logged-in card owner (edge cases), OR
-        // - show the "Buy card" / locked modal for non-owners / anonymous users.
+        // Gate portal (may mount portalLockOverlay)
         await gatePortalAccess();
 
+        // If locked, the lock overlay owns the screen; keep portal hidden.
+        // If unlocked, reveal portal.
         if (!document.body.classList.contains("portal-locked")) {
           document.body.classList.remove("portal-hidden");
         }
 
-        // Ensure the site is visible (no cinematic fade in this path)
+        // Ensure the site is visible in this path
         document.body.classList.remove("site-hidden");
         document.body.classList.add("site-visible");
+
+        // Release preGate ONLY after lock overlay or portal has been decided/mounted
+        hidePreGate();
         return;
       }
 
       // --------------------------------------------------------------------------
       // 3) ELIGIBLE USER (LOGGED-IN + HAS ACTIVE CARD) → SHOW CINEMATIC
       // --------------------------------------------------------------------------
-
-      // From here down, we keep your "tap to enter" cinematic behavior.
-      // Site should stay hidden until intro + gate are complete.
       document.body.classList.add("site-hidden");
 
       let introStarted = false;
@@ -2703,7 +2723,7 @@
           introText.classList.add("intro-text-hide");
         }
 
-        // Hold on black for 5 seconds, then fade the overlay out
+        // Hold on black then fade overlay out
         setTimeout(() => {
           intro.classList.add("fade-out");
 
@@ -2715,15 +2735,20 @@
             },
             { once: true }
           );
-        }, 4000); // <<< 5 second hold on black after tap
+        }, 4000);
       }
 
-      // Intro waits indefinitely until tapped
+      // Intro waits until tapped
       if (intro) {
+        // Ensure intro is the first visible thing for eligible users
+        // (release preGate now so user sees/taps intro)
+        hidePreGate();
+
         intro.addEventListener("pointerdown", startIntroSequence);
         intro.addEventListener("click", startIntroSequence);
       } else {
-        // No intro present – fail safe
+        // No intro present – fail safe: show portal path without cinematic
+        hidePreGate();
         if (resolveIntroDone) resolveIntroDone();
       }
 
@@ -2749,12 +2774,17 @@
       Promise.all([introDone, portalReady]).then(([_, passedGate]) => {
         if (!passedGate) {
           // Portal locked – lock modal / login flow owns the screen
+          // Ensure preGate is not blocking (safety)
+          hidePreGate();
           return;
         }
 
         // Intro overlay is gone, portal shell is visible → fade in site
         document.body.classList.remove("site-hidden");
         document.body.classList.add("site-visible");
+
+        // Safety: ensure preGate is removed
+        hidePreGate();
       });
     });
 
