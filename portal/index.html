@@ -1619,8 +1619,8 @@
    
    // ===== Card code + Supabase lookup =====
    async function initCardFlow() {
-     const params = new URLSearchParams(window.location.search);
-     const code = (params.get('card') || '').trim();
+       const params = new URLSearchParams(window.location.search);
+       const code = (params.get('card') || params.get('code') || '').trim();
 
      // If there is no ?code, just run the normal portal UI
      if (!code) {
@@ -2090,7 +2090,8 @@
         try {
           // If we are in card flow (?code=...), don't gate — card UI is in charge.
           const params = new URLSearchParams(window.location.search);
-          const codeFromUrl = (params.get('card') || '').trim();
+          const code = (params.get('card') || params.get('code') || '').trim();
+
           if (codeFromUrl) {
             console.log('[portal] In card flow (?code=...), skipping portal gate');
             return;
