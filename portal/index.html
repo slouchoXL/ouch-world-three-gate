@@ -2709,17 +2709,11 @@
     document.addEventListener("DOMContentLoaded", async () => {
       const params = new URLSearchParams(window.location.search);
 
-      // canonical NFC / claim parameter
-      const hasCode = ((params.get("code") || "").trim().length > 0);
+      // Canonical NFC / claim parameter
+      const code = (params.get("code") || "").trim();
+      const hasCode = code.length > 0;
 
-      if (hasCode) {
-        initCardFlow();
-      } else {
-        initPortal();
-      }
- 
-
-
+      // Cinematic elements (only used on main portal path)
       const intro = document.getElementById("cinematicIntro");
       const introText = intro ? intro.querySelector(".intro-text") : null;
       const introSfx = document.getElementById("introSfx");
@@ -2727,38 +2721,40 @@
       // Keep portal hidden behind preGate until we decide what to show
       document.body.classList.add("portal-hidden");
 
-      document.getElementById('logoutBtn')?.addEventListener('click', logoutAndRelock);
-      
+      // Wire logout
+      document.getElementById("logoutBtn")?.addEventListener("click", logoutAndRelock);
+
+      // Initial account button state
       await syncAccountButton();
-    });
 
-      window.supa.auth.onAuthStateChange((_event, _session) => {
-        syncAccountButton();
+      // Keep account UI in sync with auth
+      if (window.supa?.auth?.onAuthStateChange) {
+        window.supa.auth.onAuthStateChange(() => {
+          syncAccountButton();
 
-        // If a user becomes logged out while on /portal, immediately re-lock
-        // (this matches your “can’t access without login” rule).
-        window.supa.auth.getUser().then(({ data: { user } }) => {
-          if (!user) {
-            document.body.classList.add('portal-hidden');
-            showPortalLocked();
-          }
+          // If user becomes logged out while on /portal, immediately re-lock
+          window.supa.auth.getUser().then(({ data: { user } }) => {
+            if (!user) {
+              document.body.classList.add("portal-hidden");
+              showPortalLocked();
+            }
+          });
         });
-      });
+      }
+
       // --------------------------------------------------------------------------
       // 1) CARD FLOW (?code=...) → NO CINEMATIC, CARD UI OWNS THE SCREEN
       // --------------------------------------------------------------------------
       if (hasCode) {
-        // Make sure the intro overlay never blocks the card UI
+        // Ensure the intro overlay never blocks the card UI
         if (intro) intro.style.display = "none";
 
-        // Start card flow, then release preGate immediately after card UI takes over.
-        // (initCardFlow mounts card UI synchronously at the start; await is for data)
+        // IMPORTANT: do NOT call initPortal() in this path.
         hidePreGate();
 
         (async () => {
           const cardOk = await initCardFlow();
-          // In almost all card paths, initCardFlow() returns false and owns the UI.
-          // If it ever returns true (fallback), you can optionally gate the portal:
+          // If initCardFlow ever falls back to letting the user into portal:
           if (cardOk) {
             await gatePortalAccess();
             if (!document.body.classList.contains("portal-locked")) {
@@ -2767,12 +2763,14 @@
           }
         })();
 
-        return; // Nothing else to do – no cinematic, no portal fade in.
+        return; // Nothing else to do – no cinematic, no portal gating sequence here.
       }
 
       // --------------------------------------------------------------------------
-      // 2) MAIN PORTAL (NO ?code) → ONLY SHOW CINEMATIC FOR LOGGED-IN CARD OWNERS
+      // 2) MAIN PORTAL (NO ?code) → INIT PORTAL + GATE (OPTIONAL CINEMATIC)
       // --------------------------------------------------------------------------
+      initPortal();
+
       async function userHasActiveCard() {
         if (!window.supa) return false;
 
@@ -2805,23 +2803,17 @@
       // 2a) NO ELIGIBLE USER → SKIP CINEMATIC, JUST GATE PORTAL
       // --------------------------------------------------------------------------
       if (!shouldShowIntro) {
-        // Hide the intro overlay completely
         if (intro) intro.style.display = "none";
 
-        // Gate portal (may mount portalLockOverlay)
         await gatePortalAccess();
 
-        // If locked, the lock overlay owns the screen; keep portal hidden.
-        // If unlocked, reveal portal.
         if (!document.body.classList.contains("portal-locked")) {
           document.body.classList.remove("portal-hidden");
         }
 
-        // Ensure the site is visible in this path
         document.body.classList.remove("site-hidden");
         document.body.classList.add("site-visible");
 
-        // Release preGate ONLY after lock overlay or portal has been decided/mounted
         hidePreGate();
         return;
       }
@@ -2849,9 +2841,7 @@
         }
 
         // Fade the text out, leaving pure black
-        if (introText) {
-          introText.classList.add("intro-text-hide");
-        }
+        if (introText) introText.classList.add("intro-text-hide");
 
         // Hold on black then fade overlay out
         setTimeout(() => {
@@ -2870,8 +2860,9 @@
 
       // Intro waits until tapped
       if (intro) {
-        intro.style.display = "flex";  // explicitly show it only for eligible users
-        hidePreGate();                 // now the intro is the first visible thing
+        intro.style.display = "flex"; // show only for eligible users
+        hidePreGate();                // intro is the first visible thing
+
         intro.addEventListener("pointerdown", startIntroSequence);
         intro.addEventListener("click", startIntroSequence);
       } else {
@@ -2886,11 +2877,7 @@
         await gatePortalAccess();
 
         const locked = document.body.classList.contains("portal-locked");
-
-        // Reveal portal shell only if user passed gate
-        if (!locked) {
-          document.body.classList.remove("portal-hidden");
-        }
+        if (!locked) document.body.classList.remove("portal-hidden");
 
         resolve(!locked);
       });
@@ -2900,24 +2887,17 @@
       // --------------------------------------------------------------------------
       Promise.all([introDone, portalReady]).then(([_, passedGate]) => {
         if (!passedGate) {
-          // Portal locked – lock modal / login flow owns the screen
-          // Ensure preGate is not blocking (safety)
           hidePreGate();
           return;
         }
 
-        // Intro overlay is gone, portal shell is visible → fade in site
         document.body.classList.remove("site-hidden");
         document.body.classList.add("site-visible");
 
-        // Safety: ensure preGate is removed
         hidePreGate();
       });
-      
-    
-
-
     });
+
 
 
 
