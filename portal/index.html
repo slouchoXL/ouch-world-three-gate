@@ -2776,7 +2776,11 @@
       // --------------------------------------------------------------------------
       // 2) MAIN PORTAL (NO ?code) → INIT PORTAL + GATE (OPTIONAL CINEMATIC)
       // --------------------------------------------------------------------------
-      initPortal();
+      if (typeof initPortal === "function") {
+        initPortal();
+      } else {
+        console.warn("[portal] initPortal() is not defined; continuing without explicit init.");
+      }
 
       async function userHasActiveCard() {
         if (!window.supa) return false;
