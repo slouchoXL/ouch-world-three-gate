@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OUCH™ — Shop</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+  <link rel="icon" href="/favicon.ico?v=2" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png?v=2" />
+
+  <!-- Supabase (kept only for Account modal) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    // Safe to expose in client
+    window.__SUPABASE_URL = 'https://srdwkfjterotzjwzoauj.supabase.co';
+    window.__SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ';
+  </script>
+  <script>
+    window.supa = window.supabase.createClient(
+      window.__SUPABASE_URL,
+      window.__SUPABASE_ANON_KEY
+    );
+  </script>
+
+  <!-- Process magic-link hash if present (kept from portal, simplified) -->
+  <script>
+    (async () => {
+      try {
+        const hash = window.location.hash || "";
+        if (!window.supa || !hash.includes("access_token")) return;
+
+        const params = new URLSearchParams(hash.slice(1));
+        const access_token = params.get("access_token");
+        const refresh_token = params.get("refresh_token");
+        const error = params.get("error");
+        const error_description = params.get("error_description");
+
+        if (error) {
+          alert(`Authentication error: ${error_description || error}`);
+          const cleanErrUrl = new URL(window.location.href);
+          cleanErrUrl.hash = "";
+          history.replaceState({}, "", cleanErrUrl.toString());
+          return;
+        }
+
+        if (access_token && refresh_token) {
+          const { error: sessionError } = await window.supa.auth.setSession({
+            access_token,
+            refresh_token,
+          });
+          if (sessionError) alert(`Session error: ${sessionError.message}`);
+        }
+
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.hash = "";
+        window.location.replace(cleanUrl.toString());
+      } catch (e) {
+        console.error("[supabase] login link processing failed:", e);
+      }
+    })();
+  </script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      font-family: 'PPMori', Arial, sans-serif;
+      background: #000;
+      color: #fff;
+      touch-action: pan-y;
+      -ms-touch-action: pan-y;
+    }
+
+    @font-face {
+      font-family: 'PPMori';
+      src: url('/assets/fonts/PPMori/PPMori-Regular.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    /* Hide scrollbar on WebKit browsers (Chrome, Safari) */
+    body::-webkit-scrollbar { display: none; }
+    /* Hide scrollbar on Firefox */
+    body { scrollbar-width: none; }
+
+    :root {
+      --edge-pad-desktop: 28px;
+      --edge-pad-mobile: 16px;
+    }
+
+    /* Top Navigation */
+    .top-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px var(--edge-pad-desktop);
+      z-index: 1000;
+    }
+    @media (max-width: 768px) {
+      .top-nav { padding: 20px var(--edge-pad-mobile); }
+    }
+
+    .menu-button,
+    .login-button {
+      width: 30px; height: 30px;
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .2s ease, background .2s ease;
+    }
+    .menu-button:hover, .login-button:hover { border-color: rgba(255, 255, 255, 0.45); }
+
+    .menu-dots { display: flex; gap: 4px; }
+    .dot { width: 3px; height: 3px; background: #fff; border-radius: 50%; }
+
+    .user-icon { width: 16px; height: 16px; color: #fff; }
+    .user-icon svg { width: 100%; height: 100%; fill: currentColor; }
+
+    /* Menu tray */
+    .menu-tray {
+      position: fixed;
+      top: 60px;
+      left: 20px;
+      width: 130px;
+      background: rgba(0, 0, 0, 1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      z-index: 200;
+      transform: translateY(-20px);
+      opacity: 0;
+      visibility: hidden;
+      transition: all .3s ease;
+      padding: 10px 0;
+    }
+    .menu-tray.open { transform: translateY(0); opacity: 1; visibility: visible; }
+
+    .menu-item {
+      position: relative;
+      display: block;
+      width: 100%;
+      padding: 6px 15px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 300;
+      cursor: pointer;
+      background: none;
+      border: 0;
+    }
+    .menu-item::before {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      left: 8px; right: 8px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.12);
+      opacity: 0;
+      transform: scaleY(0.96);
+      transition: opacity .15s ease, transform .2s ease;
+      pointer-events: none;
+    }
+    .menu-item:hover::before,
+    .menu-item:focus-visible::before { opacity: 1; transform: scaleY(1); }
+    .menu-item, .menu-item * { position: relative; z-index: 1; }
+    .menu-item .menu-pill { background: transparent !important; padding: 0 !important; border-radius: 0 !important; }
+
+    /* Shop layout */
+    .shop-shell {
+      width: 100%;
+      min-height: 100vh;
+      padding: 84px var(--edge-pad-desktop) 60px;
+    }
+    @media (max-width: 768px) {
+      .shop-shell { padding: 84px var(--edge-pad-mobile) 60px; }
+    }
+
+    .shop-header {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 18px;
+      max-width: 920px;
+    }
+    .shop-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    .shop-subtitle {
+      font-size: 13px;
+      opacity: 0.75;
+      line-height: 1.45;
+      max-width: 720px;
+    }
+
+    /* Shopify mount area */
+    #shopify-buy-button-root {
+      margin-top: 14px;
+      max-width: 1100px;
+    }
+
+    /* Modal (Account) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.96);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+    .modal-overlay.show { display: flex; }
+
+    .login-modal {
+      background: rgba(15,15,15,0.95);
+      border-radius: 16px;
+      padding: 24px 20px;
+      width: 90%;
+      max-width: 360px;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.7);
+      text-align: center;
+      color: #fff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "SF Pro Display", "Segoe UI", sans-serif;
+      position: relative;
+    }
+    .login-modal h2 { font-size: 18px; margin-bottom: 12px; }
+    .login-modal p { font-size: 13px; opacity: 0.75; margin-bottom: 16px; }
+
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(0,0,0,0.8);
+      cursor: pointer;
+      background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEgMUwxMSAxMSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTEgMUwxIDExIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 12px 12px;
+      transition: border-color .2s ease;
+    }
+    .modal-close:hover { border-color: rgba(255, 255, 255, 0.45); }
+
+    .form-group { margin-bottom: 12px; }
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-input:focus { border-color: #fff; }
+    .form-input::placeholder { color: rgba(255,255,255,0.5); }
+
+    .form-button {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: none;
+      background: #fff;
+      color: #000;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    input, textarea, select { font-size: 16px; }
+    button, a, .menu-button, .login-button { touch-action: manipulation; }
+  </style>
+</head>
+
+<body>
+
+  <!-- Top Navigation -->
+  <div class="top-nav">
+    <button class="menu-button" type="button" onclick="toggleMenu()" aria-label="Menu">
+      <div class="menu-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    </button>
+
+    <button class="login-button" type="button" onclick="handleLogin()" aria-label="Account">
+      <div class="user-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      </div>
+    </button>
+  </div>
+
+  <!-- Menu Tray -->
+  <div class="menu-tray" id="menuTray">
+    <a href="/portal/" class="menu-item"><span class="menu-pill">Broken Spirit</span></a>
+    <a href="/shop/" class="menu-item"><span class="menu-pill">Shop</span></a>
+  </div>
+
+  <!-- Shop Content -->
+  <main class="shop-shell">
+    <header class="shop-header">
+      <h1 class="shop-title">Shop</h1>
+      <p class="shop-subtitle">
+        Official products. Secure checkout handled by Shopify.
+      </p>
+    </header>
+
+    <div id="collection-component-1765657180475"></div>
+  </main>
+
+  <!-- Account Modal -->
+  <div class="modal-overlay" id="loginModal" role="dialog" aria-modal="true" aria-label="Account">
+    <div class="login-modal">
+      <button class="modal-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
+
+      <h2>Account</h2>
+
+      <!-- Logged-in view -->
+      <div id="accountLoggedIn" style="display:none; text-align:center;">
+        <p style="margin-bottom:12px; opacity:0.85; line-height:1.4;">
+          You’re signed in as<br />
+          <strong id="accountEmail" style="word-break:break-word;"></strong>
+        </p>
+
+        <button
+          type="button"
+          class="form-button"
+          id="logoutBtn"
+          style="background: rgba(255,255,255,0.10); color:#fff; border: 1px solid rgba(255,255,255,0.18); margin-top: 4px;"
+        >
+          Log out
+        </button>
+      </div>
+
+      <!-- Logged-out view -->
+      <form id="loginForm" onsubmit="return false;" style="display:none;">
+        <div class="form-group">
+          <input type="email" id="loginEmail" class="form-input" placeholder="Email" autocomplete="email" required />
+        </div>
+        <button type="submit" id="loginSubmit" class="form-button">Send login link</button>
+        <p id="loginError" style="font-size:12px; color:#f97373; margin-top:10px; min-height:18px;"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+  <div id='collection-component-1765657180475'></div>
+  <script type="text/javascript">
+  /*<![CDATA[*/
+  (function () {
+    var scriptURL = 'https://sdks.shopifycdn.com/buy-button/latest/buy-button-storefront.min.js';
+    if (window.ShopifyBuy) {
+      if (window.ShopifyBuy.UI) {
+        ShopifyBuyInit();
+      } else {
+        loadScript();
+      }
+    } else {
+      loadScript();
+    }
+    function loadScript() {
+      var script = document.createElement('script');
+      script.async = true;
+      script.src = scriptURL;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(script);
+      script.onload = ShopifyBuyInit;
+    }
+    function ShopifyBuyInit() {
+      var client = ShopifyBuy.buildClient({
+        domain: 'wbkdge-f5.myshopify.com',
+        storefrontAccessToken: 'e4cd532dcb3f0a784bd928f3d3e63c5e',
+      });
+      ShopifyBuy.UI.onReady(client).then(function (ui) {
+        ui.createComponent('collection', {
+          id: '664640717138',
+          node: document.getElementById('collection-component-1765657180475'),
+          moneyFormat: '%E2%82%AC%7B%7Bamount_with_comma_separator%7D%7D',
+          options: {
+    "product": {
+      "styles": {
+        "product": {
+          "@media (min-width: 601px)": {
+            "max-width": "calc(25% - 20px)",
+            "margin-left": "20px",
+            "margin-bottom": "50px",
+            "width": "calc(25% - 20px)"
+          },
+          "img": {
+            "height": "calc(100% - 15px)",
+            "position": "absolute",
+            "left": "0",
+            "right": "0",
+            "top": "0"
+          },
+          "imgWrapper": {
+            "padding-top": "calc(75% + 15px)",
+            "position": "relative",
+            "height": "0"
+          }
+        },
+        "title": {
+          "color": "#ffffff"
+        },
+        "button": {
+          "color": "#1e1e1e",
+          ":hover": {
+            "color": "#1e1e1e",
+            "background-color": "#e1e1e1"
+          },
+          "background-color": "#fafafa",
+          ":focus": {
+            "background-color": "#e1e1e1"
+          },
+          "border-radius": "40px",
+          "padding-left": "23px",
+          "padding-right": "23px"
+        },
+        "price": {
+          "color": "#f1f1f1"
+        },
+        "compareAt": {
+          "color": "#f1f1f1"
+        },
+        "unitPrice": {
+          "color": "#f1f1f1"
+        }
+      },
+      "text": {
+        "button": "Add to cart"
+      }
+    },
+    "productSet": {
+      "styles": {
+        "products": {
+          "@media (min-width: 601px)": {
+            "margin-left": "-20px"
+          }
+        }
+      }
+    },
+    "modalProduct": {
+      "contents": {
+        "img": false,
+        "imgWithCarousel": true,
+        "button": false,
+        "buttonWithQuantity": true
+      },
+      "styles": {
+        "product": {
+          "@media (min-width: 601px)": {
+            "max-width": "100%",
+            "margin-left": "0px",
+            "margin-bottom": "0px"
+          }
+        },
+        "button": {
+          "color": "#1e1e1e",
+          ":hover": {
+            "color": "#1e1e1e",
+            "background-color": "#e1e1e1"
+          },
+          "background-color": "#fafafa",
+          ":focus": {
+            "background-color": "#e1e1e1"
+          },
+          "border-radius": "40px",
+          "padding-left": "23px",
+          "padding-right": "23px"
+        },
+        "title": {
+          "font-family": "Helvetica Neue, sans-serif",
+          "font-weight": "bold",
+          "font-size": "26px",
+          "color": "#4c4c4c"
+        },
+        "price": {
+          "font-family": "Helvetica Neue, sans-serif",
+          "font-weight": "normal",
+          "font-size": "18px",
+          "color": "#4c4c4c"
+        },
+        "compareAt": {
+          "font-family": "Helvetica Neue, sans-serif",
+          "font-weight": "normal",
+          "font-size": "15.299999999999999px",
+          "color": "#4c4c4c"
+        },
+        "unitPrice": {
+          "font-family": "Helvetica Neue, sans-serif",
+          "font-weight": "normal",
+          "font-size": "15.299999999999999px",
+          "color": "#4c4c4c"
+        }
+      },
+      "text": {
+        "button": "Add to cart"
+      }
+    },
+    "option": {},
+    "cart": {
+      "styles": {
+        "button": {
+          "color": "#1e1e1e",
+          ":hover": {
+            "color": "#1e1e1e",
+            "background-color": "#e1e1e1"
+          },
+          "background-color": "#fafafa",
+          ":focus": {
+            "background-color": "#e1e1e1"
+          },
+          "border-radius": "40px"
+        }
+      },
+      "text": {
+        "total": "Subtotal",
+        "button": "Checkout"
+      }
+    },
+    "toggle": {
+      "styles": {
+        "toggle": {
+          "background-color": "#fafafa",
+          ":hover": {
+            "background-color": "#e1e1e1"
+          },
+          ":focus": {
+            "background-color": "#e1e1e1"
+          }
+        },
+        "count": {
+          "color": "#1e1e1e",
+          ":hover": {
+            "color": "#1e1e1e"
+          }
+        },
+        "iconPath": {
+          "fill": "#1e1e1e"
+        }
+      }
+    }
+  },
+        });
+      });
+    }
+  })();
+  /*]]>*/
+  </script>
+  ========================================================== -->
+  <!-- SHOPIFY_BUY_BUTTON_SNIPPET_GOES_HERE -->
+
+  <script>
+    // ===== UI bits =====
+    function toggleMenu() {
+      document.getElementById('menuTray')?.classList.toggle('open');
+    }
+
+    document.addEventListener('click', function(e) {
+      const tray = document.getElementById('menuTray');
+      const btn  = document.querySelector('.menu-button');
+      if (!tray || !btn) return;
+      if (!tray.contains(e.target) && !btn.contains(e.target)) tray.classList.remove('open');
+    });
+
+    function closeLoginModal() {
+      document.getElementById('loginModal')?.classList.remove('show');
+    }
+
+    document.getElementById('loginModal')?.addEventListener('click', function(e) {
+      if (e.target === this) closeLoginModal();
+    });
+
+    async function syncAccountButton() {
+      const btn = document.querySelector('.login-button');
+      if (!btn || !window.supa) return;
+      const { data: { user } } = await window.supa.auth.getUser();
+      if (user) {
+        btn.setAttribute('aria-label', `Account (${user.email})`);
+        btn.title = user.email;
+      } else {
+        btn.setAttribute('aria-label', 'Login');
+        btn.title = 'Login';
+      }
+    }
+
+    async function handleLogin() {
+      const modal = document.getElementById('loginModal');
+      if (!modal || !window.supa) return;
+
+      const loggedInView = document.getElementById('accountLoggedIn');
+      const loginForm    = document.getElementById('loginForm');
+      const emailEl      = document.getElementById('accountEmail');
+
+      const { data: { user } } = await window.supa.auth.getUser();
+
+      if (user) {
+        if (emailEl) emailEl.textContent = user.email || '';
+        if (loggedInView) loggedInView.style.display = 'block';
+        if (loginForm) loginForm.style.display = 'none';
+      } else {
+        if (loggedInView) loggedInView.style.display = 'none';
+        if (loginForm) loginForm.style.display = 'block';
+      }
+
+      modal.classList.add('show');
+    }
+
+    async function logout() {
+      try {
+        if (!window.supa) return;
+        await window.supa.auth.signOut();
+        closeLoginModal();
+        await syncAccountButton();
+      } catch (e) {
+        console.error('[auth] signOut failed', e);
+      }
+    }
+
+    document.getElementById('logoutBtn')?.addEventListener('click', logout);
+
+    // Login form handler (magic link back to /shop/)
+    (function () {
+      const emailInput = document.getElementById('loginEmail');
+      const loginBtn   = document.getElementById('loginSubmit');
+      const errorEl    = document.getElementById('loginError');
+
+      if (!emailInput || !loginBtn) return;
+
+      loginBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (errorEl) errorEl.textContent = "";
+
+        const email = (emailInput.value || '').trim();
+        if (!email) {
+          if (errorEl) errorEl.textContent = "Enter your email.";
+          return;
+        }
+        if (!window.supa?.auth) {
+          if (errorEl) errorEl.textContent = "Auth not initialized.";
+          return;
+        }
+
+        loginBtn.disabled = true;
+        const old = loginBtn.textContent;
+        loginBtn.textContent = 'Sending…';
+
+        const { error } = await window.supa.auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo: `${location.origin}/shop/` }
+        });
+
+        loginBtn.disabled = false;
+        loginBtn.textContent = old;
+
+        if (error) {
+          if (errorEl) errorEl.textContent = error.message;
+        } else {
+          if (errorEl) errorEl.style.color = "rgba(255,255,255,0.75)";
+          if (errorEl) errorEl.textContent = "Check your email for the login link.";
+        }
+      });
+    })();
+
+    // Keep account button state updated on load + auth changes
+    document.addEventListener("DOMContentLoaded", async () => {
+      await syncAccountButton();
+      if (window.supa?.auth?.onAuthStateChange) {
+        window.supa.auth.onAuthStateChange(() => syncAccountButton());
+      }
+    });
+
+    // ===== Mobile zoom suppression (kept, minimal) =====
+    (function () {
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function (e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) e.preventDefault();
+        lastTouchEnd = now;
+      }, { passive: false });
+    })();
+    document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+    document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
+    document.addEventListener('touchstart', function (e) {
+      if (e.touches && e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+  </script>
+</body>
+</html>
