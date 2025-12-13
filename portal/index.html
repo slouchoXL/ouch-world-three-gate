@@ -2728,11 +2728,17 @@
       await syncAccountButton();
 
       // Keep account UI in sync with auth
+      // Keep account UI in sync with auth
       if (window.supa?.auth?.onAuthStateChange) {
         window.supa.auth.onAuthStateChange(() => {
           syncAccountButton();
 
-          // If user becomes logged out while on /portal, immediately re-lock
+          // IMPORTANT: if we're in NFC card flow (?code=...), never show the portal lock overlay
+          const params = new URLSearchParams(window.location.search);
+          const codeFromUrl = (params.get("code") || "").trim();
+          if (codeFromUrl) return;
+
+          // If a user becomes logged out while on /portal, immediately re-lock
           window.supa.auth.getUser().then(({ data: { user } }) => {
             if (!user) {
               document.body.classList.add("portal-hidden");
@@ -2741,6 +2747,7 @@
           });
         });
       }
+
 
       // --------------------------------------------------------------------------
       // 1) CARD FLOW (?code=...) → NO CINEMATIC, CARD UI OWNS THE SCREEN
