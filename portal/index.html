@@ -1620,7 +1620,8 @@
    // ===== Card code + Supabase lookup =====
    async function initCardFlow() {
        const params = new URLSearchParams(window.location.search);
-       const code = (params.get('card') || params.get('code') || '').trim();
+       const code = (params.get('code') || '').trim();
+
 
      // If there is no ?code, just run the normal portal UI
      if (!code) {
@@ -2090,7 +2091,8 @@
         try {
           // If we are in card flow (?code=...), don't gate — card UI is in charge.
           const params = new URLSearchParams(window.location.search);
-          const code = (params.get('card') || params.get('code') || '').trim();
+          const codeFromUrl = (params.get('code') || '').trim();
+
 
           if (codeFromUrl) {
             console.log('[portal] In card flow (?code=...), skipping portal gate');
@@ -2702,12 +2704,19 @@
     })();
 
 
-    document.addEventListener("DOMContentLoaded", async () => {
-      //---------------------------------------------------------------------------
-      // EARLY ROUTING: ARE WE IN CARD FLOW (?code=...) OR MAIN PORTAL?
-      //---------------------------------------------------------------------------
+    document.addEventListener("DOMContentLoaded", () => {
       const params = new URLSearchParams(window.location.search);
-      const hasCode = ((params.get("card") || "").trim().length > 0);
+
+      // canonical NFC / claim parameter
+      const hasCode = ((params.get("code") || "").trim().length > 0);
+
+      if (hasCode) {
+        initCardFlow();
+      } else {
+        initPortal();
+      }
+    });
+
 
       const intro = document.getElementById("cinematicIntro");
       const introText = intro ? intro.querySelector(".intro-text") : null;
@@ -2735,7 +2744,7 @@
       // --------------------------------------------------------------------------
       // 1) CARD FLOW (?code=...) → NO CINEMATIC, CARD UI OWNS THE SCREEN
       // --------------------------------------------------------------------------
-      if (hasCard) {
+      if (hasCode) {
         // Make sure the intro overlay never blocks the card UI
         if (intro) intro.style.display = "none";
 
