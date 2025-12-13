@@ -1620,7 +1620,7 @@
    // ===== Card code + Supabase lookup =====
    async function initCardFlow() {
      const params = new URLSearchParams(window.location.search);
-     const code = (params.get('code') || '').trim();
+     const code = (params.get('card') || '').trim();
 
      // If there is no ?code, just run the normal portal UI
      if (!code) {
@@ -1953,7 +1953,8 @@
         const { error: otpErr } = await window.supa.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: `${location.origin}/portal?code=${encodeURIComponent(card.public_code)}`,
+              emailRedirectTo: `${location.origin}/portal?card=${encodeURIComponent(card.public_code)}`,
+
           },
         });
 
@@ -2048,7 +2049,8 @@
 
       const { error } = await window.supa.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: `${location.origin}/portal?code=${encodeURIComponent(code)}` },
+        options: { emailRedirectTo: `${location.origin}/portal?card=${encodeURIComponent(code)}` },
+
       });
 
       if (error) {
@@ -2088,7 +2090,7 @@
         try {
           // If we are in card flow (?code=...), don't gate — card UI is in charge.
           const params = new URLSearchParams(window.location.search);
-          const codeFromUrl = (params.get('code') || '').trim();
+          const codeFromUrl = (params.get('card') || '').trim();
           if (codeFromUrl) {
             console.log('[portal] In card flow (?code=...), skipping portal gate');
             return;
@@ -2275,7 +2277,7 @@
       } catch (e) {
         console.error('[auth] signOut failed', e);
       }
-      if (new URLSearchParams(location.search).get('code')) {
+      if (new URLSearchParams(location.search).get('card')) {
         window.location.href = `${location.origin}/portal`;
       }
 
@@ -2704,7 +2706,7 @@
       // EARLY ROUTING: ARE WE IN CARD FLOW (?code=...) OR MAIN PORTAL?
       //---------------------------------------------------------------------------
       const params = new URLSearchParams(window.location.search);
-      const hasCode = ((params.get("code") || "").trim().length > 0);
+      const hasCode = ((params.get("card") || "").trim().length > 0);
 
       const intro = document.getElementById("cinematicIntro");
       const introText = intro ? intro.querySelector(".intro-text") : null;
@@ -2732,7 +2734,7 @@
       // --------------------------------------------------------------------------
       // 1) CARD FLOW (?code=...) → NO CINEMATIC, CARD UI OWNS THE SCREEN
       // --------------------------------------------------------------------------
-      if (hasCode) {
+      if (hasCard) {
         // Make sure the intro overlay never blocks the card UI
         if (intro) intro.style.display = "none";
 
