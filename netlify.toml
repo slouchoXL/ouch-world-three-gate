@@ -23,6 +23,14 @@ for = "/packs/*"
   Cross-Origin-Opener-Policy = "unsafe-none"
   Cross-Origin-Embedder-Policy = "unsafe-none"
 
+# OVERRIDE: allow third-party scripts (Shopify Buy Button) on shop page
+[[headers]]
+for = "/shop/*"
+  [headers.values]
+  Cross-Origin-Opener-Policy = "unsafe-none"
+  Cross-Origin-Embedder-Policy = "unsafe-none"
+
+
 # (Optional) You can keep this long-cache header for widget assets
 [[headers]]
 for = "/assets/widget/*"
