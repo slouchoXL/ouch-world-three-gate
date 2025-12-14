@@ -1,29 +1,27 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>OUCH™ — Shop</title>
-
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 
   <link rel="icon" href="/favicon.ico?v=2" />
   <link rel="icon" type="image/png" href="/assets/favicon.png?v=2" />
 
-  <!-- Supabase (kept only for Account modal) -->
+  <!-- Model Viewer (for GLB tiles) -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+  <!-- Supabase (kept only for Account modal, matching your current shop page pattern) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
-    // Safe to expose in client
     window.__SUPABASE_URL = 'https://srdwkfjterotzjwzoauj.supabase.co';
     window.__SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ';
-  </script>
-  <script>
-    window.supa = window.supabase.createClient(
-      window.__SUPABASE_URL,
-      window.__SUPABASE_ANON_KEY
-    );
+    window.supa = window.supabase.createClient(window.__SUPABASE_URL, window.__SUPABASE_ANON_KEY);
   </script>
 
-  <!-- Process magic-link hash if present (kept from portal, simplified) -->
+  <!-- Process magic-link hash if present -->
   <script>
     (async () => {
       try {
@@ -45,10 +43,7 @@
         }
 
         if (access_token && refresh_token) {
-          const { error: sessionError } = await window.supa.auth.setSession({
-            access_token,
-            refresh_token,
-          });
+          const { error: sessionError } = await window.supa.auth.setSession({ access_token, refresh_token });
           if (sessionError) alert(`Session error: ${sessionError.message}`);
         }
 
@@ -83,14 +78,18 @@
       font-display: swap;
     }
 
-    /* Hide scrollbar on WebKit browsers (Chrome, Safari) */
     body::-webkit-scrollbar { display: none; }
-    /* Hide scrollbar on Firefox */
     body { scrollbar-width: none; }
 
     :root {
       --edge-pad-desktop: 28px;
       --edge-pad-mobile: 16px;
+
+      --tile-radius: 22px;
+      --tile-border: rgba(255,255,255,0.12);
+      --tile-bg: rgba(255,255,255,0.04);
+      --tile-bg-hover: rgba(255,255,255,0.06);
+      --tile-shadow: 0 18px 55px rgba(0,0,0,0.55);
     }
 
     /* Top Navigation */
@@ -189,8 +188,8 @@
     .shop-header {
       display: grid;
       gap: 10px;
-      margin-bottom: 18px;
-      max-width: 920px;
+      margin-bottom: 22px;
+      max-width: 980px;
     }
     .shop-title {
       font-size: 18px;
@@ -204,10 +203,87 @@
       max-width: 720px;
     }
 
-    /* Shopify mount area */
-    #shopify-buy-button-root {
-      margin-top: 14px;
+    /* GLB product grid */
+    .product-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
       max-width: 1100px;
+    }
+    @media (max-width: 900px) {
+      .product-grid { grid-template-columns: 1fr; }
+    }
+
+    .product-tile {
+      display: grid;
+      grid-template-rows: auto auto;
+      gap: 12px;
+      padding: 16px;
+      border-radius: var(--tile-radius);
+      border: 1px solid var(--tile-border);
+      background: var(--tile-bg);
+      box-shadow: var(--tile-shadow);
+      text-decoration: none;
+      color: #fff;
+      transition: background .2s ease, border-color .2s ease, transform .2s ease;
+      cursor: pointer;
+    }
+    .product-tile:hover {
+      background: var(--tile-bg-hover);
+      border-color: rgba(255,255,255,0.18);
+      transform: translateY(-1px);
+    }
+
+    .mv-wrap {
+      width: 100%;
+      border-radius: calc(var(--tile-radius) - 8px);
+      overflow: hidden;
+      background: rgba(0,0,0,0.45);
+      aspect-ratio: 5 / 4;
+      display: grid;
+      place-items: center;
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      outline: none;
+      --poster-color: transparent;
+      touch-action: pan-y; /* allow page scroll */
+    }
+
+    .product-meta {
+      display: grid;
+      gap: 6px;
+      padding: 0 2px;
+    }
+
+    .product-name {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      opacity: 0.96;
+    }
+
+    .product-price {
+      font-size: 13px;
+      opacity: 0.75;
+    }
+
+    .product-cta {
+      margin-top: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 38px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.10);
+      font-size: 13px;
+      font-weight: 500;
+      width: fit-content;
     }
 
     /* Modal (Account) */
@@ -249,10 +325,6 @@
       border: 1px solid rgba(255, 255, 255, 0.25);
       background: rgba(0,0,0,0.8);
       cursor: pointer;
-      background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEgMUwxMSAxMSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTEgMUwxIDExIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=');
-      background-repeat: no-repeat;
-      background-position: center;
-      background-size: 12px 12px;
       transition: border-color .2s ease;
     }
     .modal-close:hover { border-color: rgba(255, 255, 255, 0.45); }
@@ -312,12 +384,63 @@
   <!-- Shop Content -->
   <main class="shop-shell">
     <header class="shop-header">
-      <h1 class="shop-title"></h1>
+      <h1 class="shop-title">Shop</h1>
       <p class="shop-subtitle">
+        Curated releases. Click an item to view the full product page and checkout on Shopify.
       </p>
     </header>
 
-    <div id="collection-component-1765658608952"></div>
+    <section class="product-grid" id="productGrid">
+
+      <!-- PRODUCT 1: NFC CARD -->
+      <a class="product-tile"
+         data-product-url="CARD_PRODUCT_URL"
+         href="CARD_PRODUCT_URL"
+         aria-label="View Broken Spirit NFC Card">
+        <div class="mv-wrap">
+          <model-viewer
+            src="CARD_GLB_SRC"
+            camera-controls
+            disable-pan
+            disable-zoom
+            interaction-prompt="none"
+            shadow-intensity="0"
+            exposure="1"
+            alt="Broken Spirit NFC Card 3D model">
+          </model-viewer>
+        </div>
+        <div class="product-meta">
+          <div class="product-name">Broken Spirit NFC Card</div>
+          <div class="product-price">€30,00 EUR</div>
+          <div class="product-cta">View product</div>
+        </div>
+      </a>
+
+      <!-- PRODUCT 2: T-SHIRT -->
+      <a class="product-tile"
+         data-product-url="TSHIRT_PRODUCT_URL"
+         href="TSHIRT_PRODUCT_URL"
+         aria-label="View Broken Spirit T-Shirt">
+        <div class="mv-wrap">
+          <model-viewer
+            src="TSHIRT_GLB_SRC"
+            camera-controls
+            disable-pan
+            disable-zoom
+            interaction-prompt="none"
+            shadow-intensity="0"
+            exposure="1"
+            alt="Broken Spirit T-Shirt 3D model">
+          </model-viewer>
+        </div>
+        <div class="product-meta">
+          <div class="product-name">Broken Spirit T-Shirt</div>
+          <div class="product-price">€35,00 EUR</div>
+          <div class="product-cta">View product</div>
+        </div>
+      </a>
+
+    </section>
   </main>
 
   <!-- Account Modal -->
@@ -355,313 +478,66 @@
     </div>
   </div>
 
-  
-  <div id='collection-component-1765658608952'></div>
-  <script type="text/javascript">
-  /*<![CDATA[*/
-  (function () {
-    var scriptURL = 'https://sdks.shopifycdn.com/buy-button/latest/buy-button-storefront.min.js';
-    if (window.ShopifyBuy) {
-      if (window.ShopifyBuy.UI) {
-        ShopifyBuyInit();
-      } else {
-        loadScript();
-      }
-    } else {
-      loadScript();
-    }
-    function loadScript() {
-      var script = document.createElement('script');
-      script.async = true;
-      script.src = scriptURL;
-      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(script);
-      script.onload = ShopifyBuyInit;
-    }
-    function ShopifyBuyInit() {
-      var client = ShopifyBuy.buildClient({
-        domain: 'wbkdge-f5.myshopify.com',
-        storefrontAccessToken: 'e4cd532dcb3f0a784bd928f3d3e63c5e',
-      });
-      ShopifyBuy.UI.onReady(client).then(function (ui) {
-        ui.createComponent('collection', {
-          id: '664640717138',
-          node: document.getElementById('collection-component-1765658608952'),
-          moneyFormat: '%E2%82%AC%7B%7Bamount_with_comma_separator%7D%7D',
-          options: {
-    "product": {
-      "styles": {
-        "product": {
-          "@media (min-width: 601px)": {
-            "max-width": "calc(25% - 20px)",
-            "margin-left": "20px",
-            "margin-bottom": "50px",
-            "width": "calc(25% - 20px)"
-          },
-          "img": {
-            "height": "calc(100% - 15px)",
-            "position": "absolute",
-            "left": "0",
-            "right": "0",
-            "top": "0"
-          },
-          "imgWrapper": {
-            "padding-top": "calc(75% + 15px)",
-            "position": "relative",
-            "height": "0"
-          }
-        },
-        "title": {
-          "color": "#ffffff"
-        },
-        "button": {
-          "color": "#1e1e1e",
-          ":hover": {
-            "color": "#1e1e1e",
-            "background-color": "#e6e6e6"
-          },
-          "background-color": "#ffffff",
-          ":focus": {
-            "background-color": "#e6e6e6"
-          },
-          "border-radius": "40px",
-          "padding-left": "21px",
-          "padding-right": "21px"
-        },
-        "price": {
-          "color": "#ffffff"
-        },
-        "compareAt": {
-          "color": "#ffffff"
-        },
-        "unitPrice": {
-          "color": "#ffffff"
-        }
-      },
-      "buttonDestination": "modal",
-      "contents": {
-        "options": false
-      },
-      "text": {
-        "button": "View product"
-      }
-    },
-    "productSet": {
-      "styles": {
-        "products": {
-          "@media (min-width: 601px)": {
-            "margin-left": "-20px"
-          }
-        }
-      }
-    },
-    "modalProduct": {
-      "contents": {
-        "img": false,
-        "imgWithCarousel": true,
-        "button": false,
-        "buttonWithQuantity": true
-      },
-      "styles": {
-        "product": {
-          "@media (min-width: 601px)": {
-            "max-width": "100%",
-            "margin-left": "0px",
-            "margin-bottom": "0px"
-          }
-        },
-        "button": {
-          "color": "#1e1e1e",
-          ":hover": {
-            "color": "#1e1e1e",
-            "background-color": "#e6e6e6"
-          },
-          "background-color": "#ffffff",
-          ":focus": {
-            "background-color": "#e6e6e6"
-          },
-          "border-radius": "40px",
-          "padding-left": "21px",
-          "padding-right": "21px"
-        },
-        "title": {
-          "font-family": "Helvetica Neue, sans-serif",
-          "font-weight": "bold",
-          "font-size": "26px",
-          "color": "#ffffff"
-        },
-        "price": {
-          "font-family": "Helvetica Neue, sans-serif",
-          "font-weight": "normal",
-          "font-size": "17px",
-          "color": "#f2f2f2"
-        },
-        "compareAt": {
-          "font-family": "Helvetica Neue, sans-serif",
-          "font-weight": "normal",
-          "font-size": "14.45px",
-          "color": "#f2f2f2"
-        },
-        "unitPrice": {
-          "font-family": "Helvetica Neue, sans-serif",
-          "font-weight": "normal",
-          "font-size": "14.45px",
-          "color": "#f2f2f2"
-        },
-        "description": {
-          "color": "#ffffff"
-        }
-      },
-      "text": {
-        "button": "Add to cart"
-      }
-    },
-    "modal": {
-      "styles": {
-        "modal": {
-          "background-color": "#000000"
-        }
-      }
-    },
-    "option": {},
-    "cart": {
-      "styles": {
-        "button": {
-          "color": "#1e1e1e",
-          ":hover": {
-            "color": "#1e1e1e",
-            "background-color": "#e6e6e6"
-          },
-          "background-color": "#ffffff",
-          ":focus": {
-            "background-color": "#e6e6e6"
-          },
-          "border-radius": "40px"
-        },
-        "title": {
-          "color": "#ffffff"
-        },
-        "header": {
-          "color": "#ffffff"
-        },
-        "lineItems": {
-          "color": "#ffffff"
-        },
-        "subtotalText": {
-          "color": "#ffffff"
-        },
-        "subtotal": {
-          "color": "#ffffff"
-        },
-        "notice": {
-          "color": "#ffffff"
-        },
-        "currency": {
-          "color": "#ffffff"
-        },
-        "close": {
-          "color": "#ffffff",
-          ":hover": {
-            "color": "#ffffff"
-          }
-        },
-        "empty": {
-          "color": "#ffffff"
-        },
-        "noteDescription": {
-          "color": "#ffffff"
-        },
-        "discountText": {
-          "color": "#ffffff"
-        },
-        "discountIcon": {
-          "fill": "#ffffff"
-        },
-        "discountAmount": {
-          "color": "#ffffff"
-        },
-        "cart": {
-          "background-color": "#000000"
-        },
-        "footer": {
-          "background-color": "#000000"
-        }
-      },
-      "text": {
-        "total": "Subtotal",
-        "button": "Checkout"
-      }
-    },
-    "toggle": {
-      "styles": {
-        "toggle": {
-          "background-color": "#ffffff",
-          ":hover": {
-            "background-color": "#e6e6e6"
-          },
-          ":focus": {
-            "background-color": "#e6e6e6"
-          }
-        },
-        "count": {
-          "color": "#1e1e1e",
-          ":hover": {
-            "color": "#1e1e1e"
-          }
-        },
-        "iconPath": {
-          "fill": "#1e1e1e"
-        }
-      }
-    },
-    "lineItem": {
-      "styles": {
-        "variantTitle": {
-          "color": "#ffffff"
-        },
-        "title": {
-          "color": "#ffffff"
-        },
-        "price": {
-          "color": "#ffffff"
-        },
-        "fullPrice": {
-          "color": "#ffffff"
-        },
-        "discount": {
-          "color": "#ffffff"
-        },
-        "discountIcon": {
-          "fill": "#ffffff"
-        },
-        "quantity": {
-          "color": "#ffffff"
-        },
-        "quantityIncrement": {
-          "color": "#ffffff",
-          "border-color": "#ffffff"
-        },
-        "quantityDecrement": {
-          "color": "#ffffff",
-          "border-color": "#ffffff"
-        },
-        "quantityInput": {
-          "color": "#ffffff",
-          "border-color": "#ffffff"
-        }
-      }
-    }
-  },
-        });
-      });
-    }
-  })();
-
-
-
-  </script>
-
-
   <script>
+    // ============================================================
+    // EDIT THESE FOUR VALUES:
+    // ============================================================
+    const CARD_PRODUCT_URL = "https://shop.ouch.world/products/broken-spirit-nfc-card";
+    const TSHIRT_PRODUCT_URL = "https://shop.ouch.world/products/broken-spirit-t-shirt";
+
+    // Use your real GLB paths (match your portal’s working card.glb path)
+    const CARD_GLB_SRC = "/assets/models/card.glb";
+    const TSHIRT_GLB_SRC = "/assets/models/cover.glb";
+
+    // Apply values to DOM (keeps HTML readable)
+    (function applyProductConfig() {
+      const tiles = document.querySelectorAll(".product-tile");
+      tiles.forEach(tile => {
+        const isCard = (tile.getAttribute("aria-label") || "").toLowerCase().includes("nfc");
+        const url = isCard ? CARD_PRODUCT_URL : TSHIRT_PRODUCT_URL;
+        tile.href = url;
+        tile.dataset.productUrl = url;
+
+        const mv = tile.querySelector("model-viewer");
+        if (mv) mv.src = isCard ? CARD_GLB_SRC : TSHIRT_GLB_SRC;
+      });
+    })();
+
+    // ============================================================
+    // Click-to-navigate with drag guard:
+    // - If the user drags to rotate, do NOT navigate.
+    // - If it’s a simple click/tap, navigate.
+    // ============================================================
+    (function enableTileClickGuard() {
+      const DRAG_THRESHOLD_PX = 6;
+
+      document.querySelectorAll(".product-tile").forEach(tile => {
+        let downX = 0, downY = 0, moved = false;
+
+        tile.addEventListener("pointerdown", (e) => {
+          downX = e.clientX;
+          downY = e.clientY;
+          moved = false;
+        }, { passive: true });
+
+        tile.addEventListener("pointermove", (e) => {
+          const dx = Math.abs(e.clientX - downX);
+          const dy = Math.abs(e.clientY - downY);
+          if (dx > DRAG_THRESHOLD_PX || dy > DRAG_THRESHOLD_PX) moved = true;
+        }, { passive: true });
+
+        tile.addEventListener("click", (e) => {
+          if (moved) {
+            // user was rotating the model: suppress navigation
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          // normal click: allow navigation (default anchor behavior)
+        }, true);
+      });
+    })();
+
     // ===== UI bits =====
     function toggleMenu() {
       document.getElementById('menuTray')?.classList.toggle('open');
@@ -773,7 +649,6 @@
       });
     })();
 
-    // Keep account button state updated on load + auth changes
     document.addEventListener("DOMContentLoaded", async () => {
       await syncAccountButton();
       if (window.supa?.auth?.onAuthStateChange) {
