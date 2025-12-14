@@ -2173,7 +2173,7 @@
                 type="button"
                 class="form-button"
                 style="background: rgba(255,255,255,0.10); color:#fff; border: 1px solid rgba(255,255,255,0.18);"
-                onclick="window.location.href='https://YOUR-SHOPIFY-URL-HERE'"
+                onclick="window.location.href='https:///shop.ouch.world/products/broken-spirit-nfc-card'"
               >
                 Buy the card
               </button>
@@ -2803,7 +2803,18 @@
         }
       }
 
-      const shouldShowIntro = await userHasActiveCard();
+      // If user came from /shop, skip the cinematic to avoid repetition.
+      const ref = (document.referrer || "").toLowerCase();
+      const cameFromShop =
+        ref.includes("/shop") ||
+        ref.includes("shop.ouch.world");
+
+      // Normal eligibility rule (logged-in + has active card)
+      let shouldShowIntro = await userHasActiveCard();
+
+      // Override: never show cinematic when navigating from shop → portal
+      if (cameFromShop) shouldShowIntro = false;
+
 
       // --------------------------------------------------------------------------
       // 2a) NO ELIGIBLE USER → SKIP CINEMATIC, JUST GATE PORTAL

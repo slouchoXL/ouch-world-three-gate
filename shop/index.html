@@ -368,6 +368,25 @@
       transition: border-color .2s ease;
     }
     .modal-close:hover { border-color: rgba(255, 255, 255, 0.45); }
+    
+    .modal-close{
+      display: grid;
+      place-items: center;
+    }
+
+    .modal-close::before,
+    .modal-close::after{
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 2px;
+      background: rgba(255,255,255,0.85);
+      border-radius: 2px;
+    }
+
+    .modal-close::before{ transform: rotate(45deg); }
+    .modal-close::after{ transform: rotate(-45deg); }
+
 
     .form-group { margin-bottom: 12px; }
     .form-input {
@@ -417,7 +436,8 @@
 
   <!-- Menu Tray -->
   <div class="menu-tray" id="menuTray">
-    <a href="/portal/" class="menu-item"><span class="menu-pill">Broken Spirit</span></a>
+      <a href="/portal/?skipIntro=1" class="menu-item"><span class="menu-pill">Broken Spirit</span></a>
+
     <a href="/shop/" class="menu-item"><span class="menu-pill">Shop</span></a>
   </div>
 
