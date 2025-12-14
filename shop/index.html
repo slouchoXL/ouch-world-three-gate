@@ -267,19 +267,15 @@
       }
 
 
-    model-viewer {
-        model-viewer {
-          width: 100%;
-          height: 100%;
-          background: transparent;
-          outline: none;
-          --poster-color: transparent;
+      model-viewer {
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        outline: none;
+        --poster-color: transparent;
+        touch-action: none; /* keep orbit gestures inside viewer */
+      }
 
-          /* critical: gestures go to the 3D viewer */
-          touch-action: none;
-        }
-
-    }
       
       .product-meta, .product-cta {
         pointer-events: auto;
@@ -452,7 +448,8 @@
         <div class="product-meta">
           <div class="product-name">Broken Spirit NFC Card</div>
           <div class="product-price">€30,00 EUR</div>
-          <a class="product-cta" href="CARD_PRODUCT_URL">View product</a>
+          <div class="product-cta">View product</div>
+
         </div>
       </a>
 
@@ -483,7 +480,8 @@
         <div class="product-meta">
           <div class="product-name">Broken Spirit T-Shirt</div>
           <div class="product-price">€35,00 EUR</div>
-          <a class="product-cta" href="TSHIRT_PRODUCT_URL">View product</a>
+          <div class="product-cta">View product</div>
+
         </div>
       </a>
 
