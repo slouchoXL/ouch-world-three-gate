@@ -244,6 +244,13 @@
         color: #fff;
         transition: background .2s ease, border-color .2s ease, transform .2s ease;
         cursor: pointer;
+        -webkit-user-drag: none;
+        user-select: none;
+      }
+      
+
+      .product-tile * {
+        -webkit-user-drag: none;
       }
 
     .product-tile:hover {
@@ -433,7 +440,7 @@
                 disable-zoom
                 disable-tap
                 interaction-prompt="none"
-                camera-orbit="0deg 78deg 6m"
+                camera-orbit="0deg 78deg 5m"
                 min-camera-orbit="-12deg 70deg 2.7m"
                 max-camera-orbit="12deg 88deg 5m"
 
@@ -564,46 +571,52 @@
 
         let downX = 0, downY = 0, moved = false, pointerDown = false;
 
-        // Prevent the anchor from stealing pointer gestures intended for the model
         mv.addEventListener("pointerdown", (e) => {
           pointerDown = true;
           moved = false;
           downX = e.clientX;
           downY = e.clientY;
 
-          // Keep gestures inside model-viewer (stops random page scroll grabs)
+          // CRITICAL: stop browser link-drag/selection from hijacking the gesture
+          e.preventDefault();
           e.stopPropagation();
-        }, { passive: true });
+
+          try { mv.setPointerCapture(e.pointerId); } catch {}
+        }, { passive: false });
 
         mv.addEventListener("pointermove", (e) => {
           if (!pointerDown) return;
+
           const dx = Math.abs(e.clientX - downX);
           const dy = Math.abs(e.clientY - downY);
           if (dx > DRAG_THRESHOLD_PX || dy > DRAG_THRESHOLD_PX) moved = true;
 
+          e.preventDefault();
           e.stopPropagation();
-        }, { passive: true });
+        }, { passive: false });
 
         mv.addEventListener("pointerup", (e) => {
           pointerDown = false;
-          e.stopPropagation();
-        }, { passive: true });
-
-        // Tap on the model navigates (only if it wasn't a drag)
-        mv.addEventListener("click", (e) => {
           e.preventDefault();
           e.stopPropagation();
 
+          try { mv.releasePointerCapture(e.pointerId); } catch {}
+        }, { passive: false });
+
+        mv.addEventListener("pointercancel", (e) => {
+          pointerDown = false;
+          try { mv.releasePointerCapture(e.pointerId); } catch {}
+        }, { passive: false });
+
+        // Tap navigates only if user didn't drag
+        mv.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           if (!moved) window.location.href = url;
         }, true);
-
-        // Clicking anywhere else in the tile should still navigate normally
-        tile.addEventListener("click", (e) => {
-          // If user clicked the model-viewer, we already handled it.
-          // If user clicked meta/cta area, let anchor navigate.
-        });
       });
     })();
+
 
 
     // ===== UI bits =====
