@@ -259,7 +259,7 @@
         background: rgba(0,0,0,0.45);
 
         /* shorter window so the card is not massive */
-        aspect-ratio: 5 / 7;
+        aspect-ratio: 5 / 5.4;
 
         display: grid;
         place-items: center;
@@ -433,20 +433,18 @@
             <model-viewer
               src="CARD_GLB_SRC"
               camera-controls
-              disable-pan
-              disable-zoom
-              disable-tap
-              interaction-prompt="none"
-
-              camera-orbit="0deg 80deg auto"
-              min-camera-orbit="-15deg 70deg auto"
-              max-camera-orbit="15deg 90deg auto"
-              orbit-sensitivity="0.5"
-
-              field-of-view="20deg"
-              exposure="1.0"
-              shadow-intensity="0"
-              environment-image="neutral"
+                disable-pan
+                disable-zoom
+                disable-tap
+                interaction-prompt="none"
+                camera-orbit="0deg 78deg 2.2m"
+                min-camera-orbit="-12deg 70deg 1.8m"
+                max-camera-orbit="12deg 88deg 2.8m"
+                field-of-view="28deg"
+                orbit-sensitivity="0.5"
+                environment-image="neutral"
+                exposure="1.0"
+                shadow-intensity="0"
               alt="Broken Spirit NFC Card 3D model">
             </model-viewer>
 
@@ -454,7 +452,7 @@
         <div class="product-meta">
           <div class="product-name">Broken Spirit NFC Card</div>
           <div class="product-price">€30,00 EUR</div>
-          <div class="product-cta">View product</div>
+          <a class="product-cta" href="CARD_PRODUCT_URL">View product</a>
         </div>
       </a>
 
@@ -471,23 +469,21 @@
               disable-zoom
               disable-tap
               interaction-prompt="none"
-
-              camera-orbit="0deg 80deg auto"
-              min-camera-orbit="-15deg 70deg auto"
-              max-camera-orbit="15deg 90deg auto"
+              camera-orbit="0deg 78deg 2.2m"
+              min-camera-orbit="-12deg 70deg 1.8m"
+              max-camera-orbit="12deg 88deg 2.8m"
+              field-of-view="28deg"
               orbit-sensitivity="0.5"
-
-              field-of-view="20deg"
+              environment-image="neutral"
               exposure="1.0"
               shadow-intensity="0"
-              environment-image="neutral"
             alt="Broken Spirit T-Shirt 3D model">
           </model-viewer>
         </div>
         <div class="product-meta">
           <div class="product-name">Broken Spirit T-Shirt</div>
           <div class="product-price">€35,00 EUR</div>
-          <div class="product-cta">View product</div>
+          <a class="product-cta" href="TSHIRT_PRODUCT_URL">View product</a>
         </div>
       </a>
 
@@ -744,6 +740,21 @@
     document.addEventListener('touchstart', function (e) {
       if (e.touches && e.touches.length > 1) e.preventDefault();
     }, { passive: false });
+      
+      (function stabilizeOrbitPointerCapture() {
+        document.querySelectorAll("model-viewer").forEach((mv) => {
+          mv.addEventListener("pointerdown", (e) => {
+            try { mv.setPointerCapture(e.pointerId); } catch {}
+          });
+          mv.addEventListener("pointerup", (e) => {
+            try { mv.releasePointerCapture(e.pointerId); } catch {}
+          });
+          mv.addEventListener("pointercancel", (e) => {
+            try { mv.releasePointerCapture(e.pointerId); } catch {}
+          });
+        });
+      })();
+
   </script>
 </body>
 </html>
