@@ -438,7 +438,6 @@
               camera-controls
                 disable-pan
                 disable-zoom
-                disable-tap
                 interaction-prompt="none"
                 camera-orbit="0deg 78deg 5m"
                 min-camera-orbit="-12deg 70deg 2.7m"
@@ -472,7 +471,6 @@
             camera-controls
               disable-pan
               disable-zoom
-              disable-tap
               interaction-prompt="none"
               camera-orbit="0deg 78deg 2.2m"
               min-camera-orbit="-12deg 70deg 1.8m"
@@ -569,58 +567,37 @@
         const mv = tile.querySelector("model-viewer");
         if (!mv || !url) return;
 
-        let downX = 0, downY = 0, moved = false, pointerDown = false;
+        let downX = 0, downY = 0, moved = false;
 
+        // Track movement WITHOUT stopping propagation / capturing pointer
         mv.addEventListener("pointerdown", (e) => {
-          pointerDown = true;
           moved = false;
           downX = e.clientX;
           downY = e.clientY;
-
-          // DO NOT preventDefault here — it breaks model-viewer orbit
-          // Stop bubbling so the <a> wrapper doesn't start link-drag behaviors
-          e.stopPropagation();
-
-          try { mv.setPointerCapture(e.pointerId); } catch {}
         }, { passive: true });
 
         mv.addEventListener("pointermove", (e) => {
-          if (!pointerDown) return;
-
           const dx = Math.abs(e.clientX - downX);
           const dy = Math.abs(e.clientY - downY);
           if (dx > DRAG_THRESHOLD_PX || dy > DRAG_THRESHOLD_PX) moved = true;
-
-          // DO NOT preventDefault here — it breaks orbit
-          e.stopPropagation();
         }, { passive: true });
 
-        mv.addEventListener("pointerup", (e) => {
-          pointerDown = false;
-          e.stopPropagation();
-          try { mv.releasePointerCapture(e.pointerId); } catch {}
-        }, { passive: true });
-
-        mv.addEventListener("pointercancel", (e) => {
-          pointerDown = false;
-          try { mv.releasePointerCapture(e.pointerId); } catch {}
-        }, { passive: true });
-
-        // Only decide navigation on click:
+        // Decide navigation on click
         mv.addEventListener("click", (e) => {
-          // If user dragged, suppress navigation
           if (moved) {
+            // user dragged -> do NOT navigate
             e.preventDefault();
             e.stopPropagation();
             return;
           }
-          // If it was a tap/click, navigate
+          // simple click -> navigate
           e.preventDefault();
           e.stopPropagation();
           window.location.href = url;
         }, true);
       });
     })();
+
 
 
 
