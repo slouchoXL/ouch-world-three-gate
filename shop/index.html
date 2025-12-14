@@ -259,7 +259,7 @@
         background: rgba(0,0,0,0.45);
 
         /* shorter window so the card is not massive */
-        aspect-ratio: 5 / 3;
+        aspect-ratio: 5 / 4;
 
         display: grid;
         place-items: center;
@@ -280,10 +280,12 @@
        rotation-per-second="0"
        shadow-intensity="0"
        exposure="1"
-       camera-orbit="0deg 75deg 2.6m"
-       min-camera-orbit="auto auto 1.8m"
-       max-camera-orbit="auto auto 4.0m"
-       field-of-view="30deg"
+       camera-orbit="0deg 80deg auto"
+       min-camera-orbit="-15deg 70deg auto"
+       max-camera-orbit="15deg 90deg auto"
+       orbit-sensitivity="0.5"
+
+       field-of-view="20deg"
     }
       
       .product-meta, .product-cta {
