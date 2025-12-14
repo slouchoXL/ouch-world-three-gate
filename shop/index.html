@@ -207,7 +207,7 @@
         display: grid;
 
         /* Two tiles, but not huge */
-        grid-template-columns: repeat(2, minmax(240px, 420px));
+        grid-template-columns: repeat(2, minmax(220px, 360px));
 
         /* Center the whole grid */
         justify-content: center;
@@ -215,7 +215,7 @@
         gap: 18px;
 
         /* This is what makes them feel “too big” currently */
-        max-width: 920px;
+        max-width: 780px;
 
         margin: 0 auto;
       }
@@ -259,33 +259,26 @@
         background: rgba(0,0,0,0.45);
 
         /* shorter window so the card is not massive */
-        aspect-ratio: 5 / 4;
+        aspect-ratio: 5 / 7;
 
         display: grid;
         place-items: center;
+        touch-action: none;
       }
 
 
     model-viewer {
-      width: 100%;
-      height: 100%;
-      background: transparent;
-      outline: none;
-      --poster-color: transparent;
-      touch-action: pan-y; /* allow page scroll */
-      camera-controls
-       touch-action="none"
-       interaction-prompt="none"
-       interpolation-decay="120"
-       rotation-per-second="0"
-       shadow-intensity="0"
-       exposure="1"
-       camera-orbit="0deg 80deg auto"
-       min-camera-orbit="-15deg 70deg auto"
-       max-camera-orbit="15deg 90deg auto"
-       orbit-sensitivity="0.5"
+        model-viewer {
+          width: 100%;
+          height: 100%;
+          background: transparent;
+          outline: none;
+          --poster-color: transparent;
 
-       field-of-view="20deg"
+          /* critical: gestures go to the 3D viewer */
+          touch-action: none;
+        }
+
     }
       
       .product-meta, .product-cta {
@@ -437,16 +430,26 @@
          href="CARD_PRODUCT_URL"
          aria-label="View Broken Spirit NFC Card">
         <div class="mv-wrap">
-          <model-viewer
-            src="CARD_GLB_SRC"
-            camera-controls
-            disable-pan
-            disable-zoom
-            interaction-prompt="none"
-            shadow-intensity="0"
-            exposure="1"
-            alt="Broken Spirit NFC Card 3D model">
-          </model-viewer>
+            <model-viewer
+              src="CARD_GLB_SRC"
+              camera-controls
+              disable-pan
+              disable-zoom
+              disable-tap
+              interaction-prompt="none"
+
+              camera-orbit="0deg 80deg auto"
+              min-camera-orbit="-15deg 70deg auto"
+              max-camera-orbit="15deg 90deg auto"
+              orbit-sensitivity="0.5"
+
+              field-of-view="20deg"
+              exposure="1.0"
+              shadow-intensity="0"
+              environment-image="neutral"
+              alt="Broken Spirit NFC Card 3D model">
+            </model-viewer>
+
         </div>
         <div class="product-meta">
           <div class="product-name">Broken Spirit NFC Card</div>
@@ -464,11 +467,20 @@
           <model-viewer
             src="TSHIRT_GLB_SRC"
             camera-controls
-            disable-pan
-            disable-zoom
-            interaction-prompt="none"
-            shadow-intensity="0"
-            exposure="1"
+              disable-pan
+              disable-zoom
+              disable-tap
+              interaction-prompt="none"
+
+              camera-orbit="0deg 80deg auto"
+              min-camera-orbit="-15deg 70deg auto"
+              max-camera-orbit="15deg 90deg auto"
+              orbit-sensitivity="0.5"
+
+              field-of-view="20deg"
+              exposure="1.0"
+              shadow-intensity="0"
+              environment-image="neutral"
             alt="Broken Spirit T-Shirt 3D model">
           </model-viewer>
         </div>
