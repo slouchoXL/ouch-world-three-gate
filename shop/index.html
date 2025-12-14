@@ -203,46 +203,68 @@
       max-width: 720px;
     }
 
-    /* GLB product grid */
-    .product-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
-      max-width: 1100px;
-    }
-    @media (max-width: 900px) {
-      .product-grid { grid-template-columns: 1fr; }
-    }
+      .product-grid {
+        display: grid;
 
-    .product-tile {
-      display: grid;
-      grid-template-rows: auto auto;
-      gap: 12px;
-      padding: 16px;
-      border-radius: var(--tile-radius);
-      border: 1px solid var(--tile-border);
-      background: var(--tile-bg);
-      box-shadow: var(--tile-shadow);
-      text-decoration: none;
-      color: #fff;
-      transition: background .2s ease, border-color .2s ease, transform .2s ease;
-      cursor: pointer;
-    }
+        /* Two tiles, but not huge */
+        grid-template-columns: repeat(2, minmax(240px, 420px));
+
+        /* Center the whole grid */
+        justify-content: center;
+
+        gap: 18px;
+
+        /* This is what makes them feel “too big” currently */
+        max-width: 920px;
+
+        margin: 0 auto;
+      }
+
+      @media (max-width: 900px) {
+        .product-grid {
+          grid-template-columns: minmax(240px, 520px);
+        }
+      }
+
+
+      .product-tile {
+        display: grid;
+        grid-template-rows: auto auto;
+        gap: 10px;
+
+        /* smaller internal padding */
+        padding: 12px;
+
+        border-radius: var(--tile-radius);
+        border: 1px solid var(--tile-border);
+        background: var(--tile-bg);
+        box-shadow: var(--tile-shadow);
+
+        text-decoration: none;
+        color: #fff;
+        transition: background .2s ease, border-color .2s ease, transform .2s ease;
+        cursor: pointer;
+      }
+
     .product-tile:hover {
       background: var(--tile-bg-hover);
       border-color: rgba(255,255,255,0.18);
       transform: translateY(-1px);
     }
 
-    .mv-wrap {
-      width: 100%;
-      border-radius: calc(var(--tile-radius) - 8px);
-      overflow: hidden;
-      background: rgba(0,0,0,0.45);
-      aspect-ratio: 5 / 4;
-      display: grid;
-      place-items: center;
-    }
+      .mv-wrap {
+        width: 100%;
+        border-radius: calc(var(--tile-radius) - 8px);
+        overflow: hidden;
+        background: rgba(0,0,0,0.45);
+
+        /* shorter window so the card is not massive */
+        aspect-ratio: 5 / 3;
+
+        display: grid;
+        place-items: center;
+      }
+
 
     model-viewer {
       width: 100%;
@@ -251,7 +273,27 @@
       outline: none;
       --poster-color: transparent;
       touch-action: pan-y; /* allow page scroll */
+      camera-controls
+       touch-action="none"
+       interaction-prompt="none"
+       interpolation-decay="120"
+       rotation-per-second="0"
+       shadow-intensity="0"
+       exposure="1"
+       camera-orbit="0deg 75deg 2.6m"
+       min-camera-orbit="auto auto 1.8m"
+       max-camera-orbit="auto auto 4.0m"
+       field-of-view="30deg"
     }
+      
+      .product-meta, .product-cta {
+        pointer-events: auto;
+      }
+
+      .mv-wrap, .mv-wrap * {
+        pointer-events: auto;
+      }
+
 
     .product-meta {
       display: grid;
@@ -383,12 +425,7 @@
 
   <!-- Shop Content -->
   <main class="shop-shell">
-    <header class="shop-header">
-      <h1 class="shop-title">Shop</h1>
-      <p class="shop-subtitle">
-        Curated releases. Click an item to view the full product page and checkout on Shopify.
-      </p>
-    </header>
+  
 
     <section class="product-grid" id="productGrid">
 
@@ -487,7 +524,7 @@
 
     // Use your real GLB paths (match your portal’s working card.glb path)
     const CARD_GLB_SRC = "/assets/models/card.glb";
-    const TSHIRT_GLB_SRC = "/assets/models/cover.glb";
+    const TSHIRT_GLB_SRC = "/assets/models/box.glb";
 
     // Apply values to DOM (keeps HTML readable)
     (function applyProductConfig() {
@@ -508,35 +545,57 @@
     // - If the user drags to rotate, do NOT navigate.
     // - If it’s a simple click/tap, navigate.
     // ============================================================
-    (function enableTileClickGuard() {
+    (function enableModelTapNavigate() {
       const DRAG_THRESHOLD_PX = 6;
 
       document.querySelectorAll(".product-tile").forEach(tile => {
-        let downX = 0, downY = 0, moved = false;
+        const url = tile.dataset.productUrl || tile.href;
+        const mv = tile.querySelector("model-viewer");
+        if (!mv || !url) return;
 
-        tile.addEventListener("pointerdown", (e) => {
+        let downX = 0, downY = 0, moved = false, pointerDown = false;
+
+        // Prevent the anchor from stealing pointer gestures intended for the model
+        mv.addEventListener("pointerdown", (e) => {
+          pointerDown = true;
+          moved = false;
           downX = e.clientX;
           downY = e.clientY;
-          moved = false;
+
+          // Keep gestures inside model-viewer (stops random page scroll grabs)
+          e.stopPropagation();
         }, { passive: true });
 
-        tile.addEventListener("pointermove", (e) => {
+        mv.addEventListener("pointermove", (e) => {
+          if (!pointerDown) return;
           const dx = Math.abs(e.clientX - downX);
           const dy = Math.abs(e.clientY - downY);
           if (dx > DRAG_THRESHOLD_PX || dy > DRAG_THRESHOLD_PX) moved = true;
+
+          e.stopPropagation();
         }, { passive: true });
 
-        tile.addEventListener("click", (e) => {
-          if (moved) {
-            // user was rotating the model: suppress navigation
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-          }
-          // normal click: allow navigation (default anchor behavior)
+        mv.addEventListener("pointerup", (e) => {
+          pointerDown = false;
+          e.stopPropagation();
+        }, { passive: true });
+
+        // Tap on the model navigates (only if it wasn't a drag)
+        mv.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (!moved) window.location.href = url;
         }, true);
+
+        // Clicking anywhere else in the tile should still navigate normally
+        tile.addEventListener("click", (e) => {
+          // If user clicked the model-viewer, we already handled it.
+          // If user clicked meta/cta area, let anchor navigate.
+        });
       });
     })();
+
 
     // ===== UI bits =====
     function toggleMenu() {
