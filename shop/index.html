@@ -320,6 +320,20 @@
       transform: translateY(-1px);
     }
 
+      /* Remove all color changes on interaction (mobile-safe) */
+      .product-tile:hover,
+      .product-tile:active,
+      .product-tile:focus,
+      .product-tile:focus-visible {
+        background: var(--tile-bg);
+        outline: none;
+      }
+      
+      .product-tile {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+
       .mv-wrap {
         width: 100%;
         border-radius: calc(var(--tile-radius) - 8px);
