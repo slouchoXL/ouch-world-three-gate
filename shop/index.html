@@ -338,7 +338,7 @@
         width: 100%;
         border-radius: calc(var(--tile-radius) - 8px);
         overflow: hidden;
-        background: rgba(0,0,0,0.45);
+        background: var(--tile-bg);
 
         /* shorter window so the card is not massive */
         aspect-ratio: 5 / 5.4;
@@ -347,6 +347,11 @@
         place-items: center;
         touch-action: none;
       }
+      
+      .mv-wrap {
+        -webkit-mask-image: -webkit-radial-gradient(white, black);
+      }
+
 
 
       model-viewer {
