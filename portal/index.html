@@ -341,40 +341,36 @@
         flex-direction: column;
         justify-content: center;
       }
-      .login-modal > *{
+      .login-modal > :not(.icon-circle){
         width: 100%;
       }
-      /* Modal header layout */
+
+      /* Header row: icons sit at the top edge, not vertically centered */
+      
       .modal-header{
         position: relative;
-        min-height: 32px;        /* aligns with icon size */
-        margin-bottom: 20px;
+        min-height: 30px;      /* matches circle */
+        margin-bottom: 18px;
+        padding-top: 2px;      /* nudges icons visually higher */
         display: flex;
+        align-items: flex-start;
         justify-content: center;
       }
 
-      /* Chevron + X positioning */
       .modal-header .icon-circle{
         position: absolute;
-        top: 0;                 /* <-- THIS raises the chevron */
+        top: 0;
         transform: none;
       }
 
-      /* Left chevron */
-      .modal-header .modal-back{
-        left: 0;
-      }
+      .modal-header .modal-back{ left: 0; }
+      .modal-header .modal-close{ right: 0; }
 
-      /* Right X */
-      .modal-header .modal-close{
-        right: 0;
-      }
-
-      /* Title alignment */
       .modal-title{
-        line-height: 32px;       /* optically aligns with icons */
+        line-height: 30px;     /* optically centers the title with the 30px buttons */
         margin: 0;
       }
+
 
 
 

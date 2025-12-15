@@ -430,24 +430,31 @@
         right: 14px;
       }
       
+      /* Header row: icons sit at the top edge, not vertically centered */
       .modal-header{
         position: relative;
+        min-height: 30px;      /* matches circle */
+        margin-bottom: 18px;
+        padding-top: 2px;      /* nudges icons visually higher */
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
-        margin-bottom: 14px;
       }
-      .modal-title{
-        font-size: 18px;
-        margin: 0;
-      }
+
       .modal-header .icon-circle{
         position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
+        top: 0;
+        transform: none;
       }
+
       .modal-header .modal-back{ left: 0; }
       .modal-header .modal-close{ right: 0; }
+
+      .modal-title{
+        line-height: 30px;     /* optically centers the title with the 30px buttons */
+        margin: 0;
+      }
+
 
 
       /*  .modal-close {
