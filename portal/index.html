@@ -2216,6 +2216,12 @@
           }
 
           console.log('[portal] Portal access granted for', user.email);
+          
+          // Clear any previous lock state/overlay
+          document.body.classList.remove("portal-locked");
+          const lock = document.getElementById("portalLockOverlay");
+          if (lock) lock.remove();
+
           // Nothing else to do: user sees the normal portal.
         } catch (err) {
           console.error('[portal] gatePortalAccess failed:', err);
@@ -2237,7 +2243,8 @@
 
       const overlay = document.createElement("div");
       overlay.id = "portalLockOverlay";
-      overlay.className = "modal-overlay"; // remove "show" here; we will fade in
+      overlay.className = "modal-overlay show";
+
 
       overlay.innerHTML = `
         <div class="portal-lock-bg"></div>
