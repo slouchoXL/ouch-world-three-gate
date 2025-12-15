@@ -420,9 +420,16 @@
       flex-direction: column;
       justify-content: center;
     }
-    .login-modal > *{
-      width: 100%;
-    }
+      .login-modal > :not(.icon-circle){
+        width: 100%;
+      }
+      
+      .login-modal .icon-circle.icon-close{
+        position: absolute;
+        top: 14px;
+        right: 14px;
+      }
+      
       .modal-header{
         position: relative;
         display: flex;
@@ -443,7 +450,7 @@
       .modal-header .modal-close{ right: 0; }
 
 
-    .modal-close {
+      /*  .modal-close {
       position: absolute;
       top: 10px;
       right: 10px;
@@ -470,10 +477,10 @@
       height: 2px;
       background: rgba(255,255,255,0.85);
       border-radius: 2px;
-    }*/
+    }
 
     .modal-close::before{ transform: rotate(45deg); }
-    .modal-close::after{ transform: rotate(-45deg); }
+    .modal-close::after{ transform: rotate(-45deg); }*/
 
 
     .form-group { margin-bottom: 12px; }

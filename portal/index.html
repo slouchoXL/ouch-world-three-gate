@@ -344,24 +344,38 @@
       .login-modal > *{
         width: 100%;
       }
+      /* Modal header layout */
       .modal-header{
         position: relative;
+        min-height: 32px;        /* aligns with icon size */
+        margin-bottom: 20px;
         display: flex;
-        align-items: center;
         justify-content: center;
-        margin-bottom: 14px;
       }
-      .modal-title{
-        font-size: 18px;
-        margin: 0;
-      }
+
+      /* Chevron + X positioning */
       .modal-header .icon-circle{
         position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
+        top: 0;                 /* <-- THIS raises the chevron */
+        transform: none;
       }
-      .modal-header .modal-back{ left: 0; }
-      .modal-header .modal-close{ right: 0; }
+
+      /* Left chevron */
+      .modal-header .modal-back{
+        left: 0;
+      }
+
+      /* Right X */
+      .modal-header .modal-close{
+        right: 0;
+      }
+
+      /* Title alignment */
+      .modal-title{
+        line-height: 32px;       /* optically aligns with icons */
+        margin: 0;
+      }
+
 
 
       /* .modal-close { position: absolute; top: 8px; right: 15px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 24px; cursor: button; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all .2s ease; }*/
