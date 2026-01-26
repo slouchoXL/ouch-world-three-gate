@@ -588,11 +588,10 @@
   <!-- Menu Tray -->
   <div class="menu-tray" id="menuTray">
     <a href="/" class="menu-item"><span class="menu-pill">Home</span></a>
-    <a href="#" class="menu-item"><span class="menu-pill">Label</span></a>
-    <a href="#" class="menu-item"><span class="menu-pill">Merch</span></a>
-    <a href="/packs/" class="menu-item"><span class="menu-pill">Packs</span></a>
-    <a href="/inventory/" class="menu-item"><span class="menu-pill">Inventory</span></a>
-  </div>
+    <div class="menu-tray" id="menuTray">
+      <a href="/portal" class="menu-item"><span class="menu-pill">Broken Spirit</span></a>
+      <a href="/shop" class="menu-item"><span class="menu-pill">Shop</span></a>
+    </div>
 
   <!-- Character Selector -->
   <div class="character-controls" id="characterControls">
@@ -1501,42 +1500,7 @@
     document.getElementById('loginModal').addEventListener('click', function(e) { if (e.target === this) closeLoginModal(); });
 
     
-    // ===== Simple password gate =====
-    const SITE_PASSWORD = 'SLOUCHOLOVESYOU'; // <-- change this to whatever you want
 
-    function initPasswordGate() {
-      const overlay = document.getElementById('passwordOverlay');
-      const input = document.getElementById('sitePasswordInput');
-      const submit = document.getElementById('sitePasswordSubmit');
-      const error = document.getElementById('passwordError');
-
-      if (!overlay || !input || !submit) return;
-
-      // Show the overlay as soon as JS runs
-
-
-      function tryUnlock() {
-        const value = (input.value || '').trim();
-
-        if (value === SITE_PASSWORD) {
-          overlay.style.display = 'none';
-          input.value = '';
-          if (error) error.textContent = '';
-        } else {
-          if (error) error.textContent = 'Wrong password. Try again.';
-          input.value = '';
-          input.focus();
-        }
-      }
-
-      submit.addEventListener('click', tryUnlock);
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          tryUnlock();
-        }
-      });
-    }
 
     
     
