@@ -1791,15 +1791,9 @@
         <p style="font-size:14px; opacity:0.8; margin:0 0 12px; line-height:1.45; text-align:center;">
           We sent a login link to <strong>${escapeHtml(email)}</strong>.
         </p>
-        <p style="font-size:13px; opacity:0.7; margin:0; text-align:center;">
-          Open it on this device to continue.
-        </p>
+        
 
-        <div style="margin-top:18px; display:flex; justify-content:center;">
-          <button type="button" class="form-button" id="backToLoginBtn" style="width:min(280px,100%);">
-            Back
-          </button>
-        </div>
+       
       `;
 
       // Wire close/back
@@ -1836,10 +1830,13 @@
           if (!window.supa?.auth) return alert('Auth not initialized');
 
           loginBtn.disabled = true; const old = loginBtn.textContent; loginBtn.textContent = 'Sending…';
-          const { error } = await window.supa.auth.signInWithOtp({
-            email,
-            options: { emailRedirectTo: magicRedirect() }
-          });
+          const { error } = await supa.auth.signInWithOtp({
+              email,
+              options: {
+                emailRedirectTo: window.location.origin
+              }
+            });
+
           loginBtn.disabled = false; loginBtn.textContent = old;
 
           if (error) {
