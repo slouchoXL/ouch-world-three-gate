@@ -741,7 +741,8 @@
 
 
 
-  <div id="itemActionBar" class="item-action-bar">
+  <div id="itemActionBar" class="item-action-bar hidden">
+
     <div class="audio-player">
       <!-- Scrubber on top -->
       <div class="audio-scrubber">
@@ -1470,7 +1471,7 @@
     mouseNDC = new THREE.Vector2();
 
     // Events
-    //  renderer.domElement.addEventListener('click', onCanvasClick);
+    renderer.domElement.addEventListener('click', onCanvasClick);
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('mousemove', onMouseMove);
 
@@ -1767,7 +1768,7 @@
     }
 
     // ===== Audio player (play/pause + scrubber) =====
-    (function () {
+   /* (function () {
       const playBtn       = document.getElementById('playPauseButton');
       const audioEl       = document.getElementById('mysteryGiftAudio');
       const seekBar       = document.getElementById('audioSeek');
@@ -1854,7 +1855,7 @@
       if (currentTimeEl) currentTimeEl.textContent = '0:00';
       if (durationEl) durationEl.textContent = '0:00';
       updateButton();
-    })();
+    })(); */
 
 
 </script>
