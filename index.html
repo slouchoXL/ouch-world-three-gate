@@ -696,14 +696,7 @@
 <div class="container">
   <div id="scene-container"></div>
 
-  <!-- Loading Indicator -->
-  <div class="loading-indicator" id="loadingIndicator" style="display: none;">
-    <div>Entering OUCH™</div>
-    <div class="loading-progress">
-      <div class="loading-bar" id="loadingBar"></div>
-    </div>
-    <div id="loadingText">0/100</div>
-  </div>
+
 
   <!-- Top Navigation -->
   <div class="top-nav">
@@ -902,20 +895,7 @@
     }
   }
 
-  // Update loading progress
-  function updateLoadingProgress(loaded, total) {
-    const bar = document.getElementById('loadingBar');
-    const text = document.getElementById('loadingText');
-    if (bar) {
-      const percent = (loaded / total) * 100;
-      bar.style.width = percent + '%';
-    }
-    if (text) {
-        const percent = Math.round((loaded / total) * 100);
-        text.textContent = `${percent}/100`;
 
-    }
-  }
 
   // Enhanced preload function with progress tracking
   function preloadAllCharacters() {
