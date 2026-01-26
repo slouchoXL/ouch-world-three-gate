@@ -741,10 +741,11 @@
 
 
 
-  <div id="itemActionBar" class="item-action-bar hidden">
+  <div id="itemActionBar" class="item-action-bar">
 
-    <div class="audio-player">
-      <!-- Scrubber on top -->
+
+      <!--  <div class="audio-player">
+      <!-- Scrubber on top
       <div class="audio-scrubber">
         <span id="audioCurrentTime">0:00</span>
         <input
@@ -757,7 +758,7 @@
         <span id="audioDuration">0:00</span>
       </div>
 
-      <!-- Single play/pause button centered underneath -->
+      <!-- Single play/pause button centered underneath
       <div class="audio-controls">
           <button
             id="playPauseButton"
@@ -769,7 +770,25 @@
             <span class="icon icon-pause" aria-hidden="true">❚❚</span>
           </button>
 
-      </div>
+      </div> -->
+      
+      <button
+        id="enterCarouselBtn"
+        class="carousel-btn"
+        type="button"
+        aria-label="Choose Character"
+      >
+        <!-- Up chevron -->
+        <svg class="icon-up" viewBox="0 0 24 24">
+          <path d="M6 15l6-6 6 6" />
+        </svg>
+
+        <!-- Tick -->
+        <svg class="icon-tick" viewBox="0 0 24 24">
+          <path d="M5 13l4 4L19 7" />
+        </svg>
+      </button>
+
     </div>
   </div>
 
