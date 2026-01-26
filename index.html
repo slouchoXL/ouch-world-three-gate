@@ -196,6 +196,17 @@
         right: 14px;
         left: auto;
       }
+      
+      .login-modal {
+        position: relative;
+      }
+
+      .login-modal .icon-close {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+      }
+
 
 
 
@@ -600,40 +611,49 @@
         --circle-icon: 12px;            /* X icon size */
       }
 
-      /* One shared circular button primitive */
-      .icon-circle{
-        width: var(--circle);
-        height: var(--circle);
+      .icon-circle {
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
-        background: var(--circle-bg);
-        border: 1px solid var(--circle-border);
+        border: 1px solid rgba(255,255,255,0.25);
+        background: rgba(0,0,0,0.35);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         display: inline-flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        padding: 0;
-        transition: border-color .2s ease;
-        backdrop-filter: blur(10px);
+        position: relative;
       }
-      .icon-circle:hover{
-        border-color: var(--circle-border-hover);
+
+      .icon-circle:hover {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.5);
       }
+
 
       /* X icon (CSS-drawn) */
       .icon-close{
         position: relative;
       }
-      .icon-close::before,
-      .icon-close::after{
-        content:"";
-        position:absolute;
-        width: var(--circle-icon);
+      .icon-circle.icon-close::before,
+      .icon-circle.icon-close::after {
+        content: '';
+        position: absolute;
+        width: 14px;
         height: 2px;
-        background: rgba(255,255,255,0.85);
-        border-radius: 2px;
+        background: #fff;
+        border-radius: 1px;
       }
-      .icon-close::before{ transform: rotate(45deg); }
-      .icon-close::after{ transform: rotate(-45deg); }
+
+      .icon-circle.icon-close::before {
+        transform: rotate(45deg);
+      }
+
+      .icon-circle.icon-close::after {
+        transform: rotate(-45deg);
+      }
+
 
       /* Chevron-left icon (CSS-drawn) */
       .icon-chev-left{
