@@ -99,7 +99,7 @@
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       transition: border-color .2s ease, background .2s ease;
-      display:none !important;
+    
     }
       .login-button {
         width: 30px; height: 30px;
@@ -109,7 +109,7 @@
         cursor: pointer;
         display: flex; align-items: center; justify-content: center;
         transition: border-color .2s ease, background .2s ease;
-        display:none !important;
+       
       }
     .menu-button:hover, .login-button:hover { border-color: rgba(255, 255, 255, 0.45); }
     .menu-dots { display: flex; gap: 4px; }
@@ -133,10 +133,98 @@
     .menu-item .menu-pill { background: transparent !important; padding: 0 !important; border-radius: 0 !important; }
 
     /* Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.96);   /* match password-overlay */
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
     .modal-overlay.show { display: flex; }
-    .login-modal { background: rgba(0,0,0,0.9); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 15px; width: 90%; max-width: 400px; position: relative; color: #fff; }
-    .modal-close { position: absolute; top: 8px; right: 15px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 24px; cursor: button; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all .2s ease; }
+
+    /* Make login-modal share the same styling as password-modal */
+    .login-modal {
+      background: rgba(15,15,15,0.95);
+      border-radius: 16px;
+      padding: 24px 20px;
+      width: 90%;
+      max-width: 360px;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.7);
+      text-align: center;
+      color: #fff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "SF Pro Display", "Segoe UI", sans-serif;
+      position: relative;
+    }
+
+      /* Make portal/card headings & body text match password modal */
+      .login-modal h1,
+      .login-modal h2 {
+        font-size: 18px;
+        margin-bottom: 12px;
+      }
+
+      .login-modal p {
+        font-size: 13px;
+        opacity: 0.75;
+        margin-bottom: 16px;
+      }
+      
+      /* Unify modal vertical rhythm + perceived height */
+      .login-modal{
+        min-height: 260px;              /* makes the account modal feel consistent */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .login-modal > :not(.icon-circle){
+        width: 100%;
+      }
+      
+      /* Pin Account modal X to top-right (match /shop) */
+      #loginModal .login-modal .icon-circle.icon-close{
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        left: auto;
+      }
+
+
+
+      /* Header row: icons sit at the top edge, not vertically centered */
+      
+      .modal-header{
+        position: relative;
+        min-height: 30px;      /* matches circle */
+        margin-bottom: 18px;
+        padding-top: 2px;      /* nudges icons visually higher */
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+      }
+
+      .modal-header .icon-circle{
+        position: absolute;
+        top: 0;
+        transform: none;
+      }
+
+      .modal-header .modal-back{ left: 0; }
+      .modal-header .modal-close{ right: 0; }
+
+      .modal-title{
+        line-height: 30px;     /* optically centers the title with the 30px buttons */
+        margin: 0;
+      }
+
+
+
+
+      /* .modal-close { position: absolute; top: 8px; right: 15px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 24px; cursor: button; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all .2s ease; }*/
+    
     input, textarea, select { font-size: 16px; }
     button, a, .menu-button, .login-button, .chat-toggle, .send-button, .arrow-btn, .character-confirm { touch-action: manipulation; }
     .modal-close:hover { color: #fff; }
@@ -144,9 +232,38 @@
     .modal-tab { background: none; border: none; color: rgba(255,255,255,0.6); font-size: 16px; padding: 8px 0; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s ease; }
     .modal-tab.active { color: #fff; }
     .form-group { margin-bottom: 12px; }
-    .form-input { width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 12px 15px; color: #fff; font-size: 16px; outline: none; }
-    .form-input::placeholder { color: rgba(255,255,255,0.5); }
-    .form-button { width: 100%; background: rgba(255,255,255,0.92); color: #000; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+    /* Match password-input styling */
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: #fff;
+    }
+    .form-input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+
+    /* Match password-button styling */
+    .form-button {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: none;
+      background: #fff;
+      color: #000;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
 
     /* Character selector overlay */
     .character-controls {
@@ -463,6 +580,106 @@
           top: 10px;
           right: 10px;
       }
+      
+      :root {
+        --edge-pad-desktop: 28px;
+        --edge-pad-mobile: 16px;
+      }
+      
+      :root{
+        --circle: 30px;                 /* master circle size */
+        --circle-bg: rgba(0,0,0,0.8);
+        --circle-border: rgba(255,255,255,0.25);
+        --circle-border-hover: rgba(255,255,255,0.45);
+        --circle-icon: 12px;            /* X icon size */
+      }
+
+      /* One shared circular button primitive */
+      .icon-circle{
+        width: var(--circle);
+        height: var(--circle);
+        border-radius: 50%;
+        background: var(--circle-bg);
+        border: 1px solid var(--circle-border);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        transition: border-color .2s ease;
+        backdrop-filter: blur(10px);
+      }
+      .icon-circle:hover{
+        border-color: var(--circle-border-hover);
+      }
+
+      /* X icon (CSS-drawn) */
+      .icon-close{
+        position: relative;
+      }
+      .icon-close::before,
+      .icon-close::after{
+        content:"";
+        position:absolute;
+        width: var(--circle-icon);
+        height: 2px;
+        background: rgba(255,255,255,0.85);
+        border-radius: 2px;
+      }
+      .icon-close::before{ transform: rotate(45deg); }
+      .icon-close::after{ transform: rotate(-45deg); }
+
+      /* Chevron-left icon (CSS-drawn) */
+      .icon-chev-left{
+        position: relative;
+      }
+      .icon-chev-left::before{
+        content:"";
+        width: 8px;
+        height: 8px;
+        border-left: 2px solid rgba(255,255,255,0.9);
+        border-bottom: 2px solid rgba(255,255,255,0.9);
+        transform: rotate(45deg);
+        display:block;
+      }
+
+
+      /* Desktop defaults */
+      .top-nav,
+      .audio-bottom-bar {
+        padding-left: var(--edge-pad-desktop) !important;
+        padding-right: var(--edge-pad-desktop) !important;
+      }
+
+      /* Preserve existing vertical paddings */
+      .top-nav {
+        padding-top: 20px !important;
+        padding-bottom: 20px !important;
+      }
+
+      .audio-bottom-bar {
+        padding-top: 18px !important;
+        padding-bottom: 24px !important;
+      }
+
+      /* Mobile overrides */
+      @media (max-width: 768px) {
+        .top-nav,
+        .audio-bottom-bar {
+          padding-left: var(--edge-pad-mobile) !important;
+          padding-right: var(--edge-pad-mobile) !important;
+        }
+
+        .top-nav {
+          padding-top: 20px !important;
+          padding-bottom: 20px !important;
+        }
+
+        .audio-bottom-bar {
+          padding-top: 14px !important;
+          padding-bottom: 16px !important;
+        }
+      }
 
   </style>
 </head>
@@ -501,10 +718,10 @@
   <!-- Menu Tray -->
   <div class="menu-tray" id="menuTray">
     <a href="/" class="menu-item"><span class="menu-pill">Home</span></a>
-    <div class="menu-tray" id="menuTray">
-      <a href="/portal" class="menu-item"><span class="menu-pill">Broken Spirit</span></a>
-      <a href="/shop" class="menu-item"><span class="menu-pill">Shop</span></a>
-    </div>
+    <a href="/portal" class="menu-item"><span class="menu-pill">Broken Spirit</span></a>
+    <a href="/shop" class="menu-item"><span class="menu-pill">Shop</span></a>
+  </div>
+
 
   <!-- Character Selector -->
   <div class="character-controls" id="characterControls">
@@ -569,7 +786,8 @@
   <!-- Login Modal -->
   <div class="modal-overlay" id="loginModal">
     <div class="login-modal">
-      <button class="modal-close circular-btn" onclick="closeLoginModal()"></button>
+        <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
+
       <div class="modal-tabs">
         <button class="modal-tab active" onclick="switchTab('login')">Account</button>
       </div>
@@ -1382,27 +1600,61 @@
     const info = document.querySelector('.character-info'); if (info) { void getComputedStyle(info).width; }
   }
 
-    // ===== UI bits =====
     function toggleMenu() { document.getElementById('menuTray').classList.toggle('open');
         
     }
-      function handleLogin() { document.getElementById('loginModal').classList.add('show');
+    async function handleLogin() {
+      const modal = document.getElementById('loginModal');
+      if (!modal || !window.supa) return;
+
+      const loggedInView = document.getElementById('accountLoggedIn');
+      const loginForm    = document.getElementById('loginForm');
+      const emailEl      = document.getElementById('accountEmail');
+
+      const { data: { user } } = await window.supa.auth.getUser();
+
+      if (user) {
+        if (emailEl) emailEl.textContent = user.email || '';
+        if (loggedInView) loggedInView.style.display = 'block';
+        if (loginForm) loginForm.style.display = 'none';
+      } else {
+        if (loggedInView) loggedInView.style.display = 'none';
+        if (loginForm) loginForm.style.display = 'block';
       }
+
+      modal.classList.add('show');
+    }
+
 
     function closeLoginModal() { document.getElementById('loginModal').classList.remove('show');
     }
+    
+    async function logoutAndRelock() {
+      try {
+        if (!window.supa) return;
+
+        await window.supa.auth.signOut();
+
+        // Close account modal if open
+        closeLoginModal();
+
+        // Hide portal UI + show the 2-option gate
+        document.body.classList.add('portal-hidden');
+        showPortalLocked();
+      } catch (e) {
+        console.error('[auth] signOut failed', e);
+      }
+      if (new URLSearchParams(location.search).get('code')) {
+        window.location.href = `${location.origin}/portal`;
+      }
+
+    }
+
 
     function switchTab(tab) {
       const tabs = document.querySelectorAll('.modal-tab');
       const loginForm = document.getElementById('loginForm');
-      loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const signupForm = document.getElementById('signupForm');
-        
-        tabs.forEach(t => t.classList.remove('active'));
-        if (tab === 'login') { tabs[0].classList.add('active'); loginForm.style.display = 'block'; signupForm.style.display = 'none'; }
-        else { tabs[1].classList.add('active'); loginForm.style.display = 'none'; signupForm.style.display = 'block'; }
-      }); // <-- fixed closing here
+ 
     }
 
     document.addEventListener('click', function(e) {
