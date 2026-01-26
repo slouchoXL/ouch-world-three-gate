@@ -573,7 +573,7 @@
           top: 10px;
           right: 10px;
       }
-      }
+      
 
       .popup-close {
           position: absolute;
@@ -687,10 +687,6 @@
     
  
 
-      <div class="container">
-        <!-- your existing content starts here -->
-
-
 <div class="container">
   <div id="scene-container"></div>
 
@@ -783,31 +779,47 @@
 
   
 
-  <!-- Login Modal -->
   <div class="modal-overlay" id="loginModal">
     <div class="login-modal">
         <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
 
       <div class="modal-tabs">
-        <button class="modal-tab active" onclick="switchTab('login')">Account</button>
+        <button class="modal-tab active" type="button"><h2> Account</h2></button>
       </div>
-      
-      <form id="loginForm" onsubmit="return false;">
+
+      <!-- Logged-in view -->
+      <div id="accountLoggedIn" style="display:none; text-align:center;">
+        <p style="margin-bottom:12px; opacity:0.85; line-height:1.4;">
+          You’re signed in as<br>
+          <strong id="accountEmail" style="word-break:break-word;"></strong>
+        </p>
+
+        <button
+          type="button"
+          class="form-button"
+          id="logoutBtn"
+          style="
+            background: rgba(255,255,255,0.10);
+            color:#fff;
+            border: 1px solid rgba(255,255,255,0.18);
+            margin-top: 4px;
+          "
+        >
+          Log out
+        </button>
+      </div>
+
+
+      <!-- Logged-out view -->
+      <form id="loginForm" onsubmit="return false;" style="display:none;">
         <div class="form-group">
-          <input type="email" id="loginEmail" class="form-input" placeholder="Email" required>
+          <input type="email" id="loginEmail" class="form-input" placeholder="Email" autocomplete="email" required>
         </div>
-        <button type="submit" id="loginSubmit" class="form-button">Create / Login</button>
+        <button type="submit" id="loginSubmit" class="form-button">Send login link</button>
+        <p id="loginError" style="font-size:12px; color:#f97373; margin-top:10px; min-height:18px;"></p>
       </form>
-      
-      
-      <div id="signupForm" style="display:none;">
-        <div class="form-group"><input type="text" class="form-input" placeholder="Username"></div>
-        <div class="form-group"><input type="email" class="form-input" placeholder="Email"></div>
-        <button class="form-button">Sign Up</button>
-      </div>
     </div>
   </div>
-</div>
 
 <script>
   // ===== Globals =====
@@ -1629,25 +1641,13 @@
     function closeLoginModal() { document.getElementById('loginModal').classList.remove('show');
     }
     
-    async function logoutAndRelock() {
+    async function logout() {
       try {
-        if (!window.supa) return;
-
-        await window.supa.auth.signOut();
-
-        // Close account modal if open
+        await window.supa?.auth?.signOut();
         closeLoginModal();
-
-        // Hide portal UI + show the 2-option gate
-        document.body.classList.add('portal-hidden');
-        showPortalLocked();
       } catch (e) {
         console.error('[auth] signOut failed', e);
       }
-      if (new URLSearchParams(location.search).get('code')) {
-        window.location.href = `${location.origin}/portal`;
-      }
-
     }
 
 
