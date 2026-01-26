@@ -63,77 +63,7 @@
       -ms-touch-action: none;
     }
       
-      /* Simple password gate overlay */
-      .password-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.96);
-        display: flex;              /* 🔁 show immediately */
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-      }
-
-
-      .password-modal {
-        background: rgba(15,15,15,0.95);
-        border-radius: 16px;
-        padding: 24px 20px;
-        width: 90%;
-        max-width: 360px;
-        box-shadow: 0 20px 45px rgba(0,0,0,0.7);
-        text-align: center;
-        color: #fff;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-          "SF Pro Display", "Segoe UI", sans-serif;
-      }
-
-      .password-modal h1 {
-        font-size: 18px;
-        margin-bottom: 12px;
-      }
-
-      .password-modal p {
-        font-size: 13px;
-        opacity: 0.75;
-        margin-bottom: 16px;
-      }
-
-      .password-input {
-        width: 100%;
-        padding: 10px 12px;
-        border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.3);
-        background: rgba(0,0,0,0.7);
-        color: #fff;
-        font-size: 14px;
-        outline: none;
-        margin-bottom: 12px;
-      }
-
-      .password-input:focus {
-        border-color: #fff;
-      }
-
-      .password-button {
-        width: 100%;
-        padding: 10px 12px;
-        border-radius: 999px;
-        border: none;
-        background: #fff;
-        color: #000;
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-      }
-
-      .password-error {
-        margin-top: 8px;
-        font-size: 12px;
-        color: #f87171;
-        min-height: 16px;
-      }
-
+    
 
     .container { width: 100vw; height: 100vh; position: relative; }
     #scene-container { position: absolute; inset: 0; z-index: 1; }
@@ -538,24 +468,7 @@
 </head>
 <body>
     
-      <!-- Password gate -->
-      <div id="passwordOverlay" class="password-overlay">
-        <div class="password-modal">
-          <h1>Enter Password</h1>
-          <p>This page is password protected by OUCH™.</p>
-          <input
-            type="password"
-            id="sitePasswordInput"
-            class="password-input"
-            placeholder="Password"
-            autocomplete="off"
-          />
-          <button id="sitePasswordSubmit" class="password-button">
-            Enter
-          </button>
-          <div id="passwordError" class="password-error"></div>
-        </div>
-      </div>
+ 
 
       <div class="container">
         <!-- your existing content starts here -->
@@ -1500,13 +1413,13 @@
     document.getElementById('loginModal').addEventListener('click', function(e) { if (e.target === this) closeLoginModal(); });
 
     
-
+   
 
     
     
     // ===== Start =====
     window.addEventListener('load', async () => {
-        initPasswordGate();
+       
       if (typeof THREE === 'undefined') { console.error('Three.js not loaded'); return; }
       initLoaders();
       initThreeJS();
