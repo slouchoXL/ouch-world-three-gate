@@ -1583,21 +1583,29 @@
     return !!document.getElementById('characterControls')?.classList.contains('show');
   }
 
-  function checkHover() {
-    if (!window.character) return;
-    if (selectorOpen() && carousel.mode === 'carousel') {
-      if (lastHoverState) {
-        setCharacterHighlight(false);
-        lastHoverState = false;
+    function checkHover() {
+      const root = currentModel || window.character;
+      if (!root || !camera || !renderer) return;
+
+      // Only allow hover-pointer in view mode
+      if (carousel.mode !== 'view') {
+        renderer.domElement.style.cursor = 'default';
+        if (lastHoverState) { setCharacterHighlight(false); lastHoverState = false; }
+        return;
       }
-      return;
+
+      // Raycast only against the actual model hierarchy (exact mesh hit)
+      raycaster.setFromCamera(mouseNDC, camera);
+      const hits = raycaster.intersectObject(root, true);
+
+      const isOverCharacterMesh = hits.length > 0;
+
+      if (isOverCharacterMesh !== lastHoverState) {
+        setCharacterHighlight(isOverCharacterMesh);
+        lastHoverState = isOverCharacterMesh;
+      }
     }
 
-    raycaster.setFromCamera(mouseNDC, camera);
-    const intersects = raycaster.intersectObjects(window.character.children, true);
-    hoverActive = intersects.length > 0;
-    if (hoverActive !== lastHoverState) { setCharacterHighlight(hoverActive); lastHoverState = hoverActive; }
-  }
 
     function setCharacterHighlight(active) {
       if (!window.scene || !window.character || !renderer) return;
