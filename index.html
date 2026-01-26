@@ -67,7 +67,11 @@
 
     .container { width: 100vw; height: 100vh; position: relative; }
     #scene-container { position: absolute; inset: 0; z-index: 1; }
-    #scene-container canvas { display: block; cursor: pointer; }
+    #scene-container canvas {
+      display: block;
+      cursor: default;
+    }
+
 
     /* Loading indicator */
     .loading-indicator {
@@ -465,6 +469,7 @@
         display: inline-flex; align-items: center; justify-content: center;
         backdrop-filter: blur(10px);
         transition: border-color .2s ease;
+        cursor: pointer;
       }
       .carousel-btn:hover { border-color: rgba(255,255,255,0.45); }
 
@@ -1589,30 +1594,39 @@
     if (hoverActive !== lastHoverState) { setCharacterHighlight(hoverActive); lastHoverState = hoverActive; }
   }
 
-  function setCharacterHighlight(active) {
-    if (!window.scene || !window.character) return;
-    if (active) {
-      if (!hoverLight) {
-        hoverLight = new THREE.PointLight(0x88aaff, 0.35, 3, 2);
-        hoverLight.castShadow = false;
-        hoverLight.position.set(0, 1.2, 1.6);
-        window.character.add(hoverLight);
+    function setCharacterHighlight(active) {
+      if (!window.scene || !window.character || !renderer) return;
+
+      // 🔑 Cursor ownership lives HERE
+      renderer.domElement.style.cursor = active ? 'pointer' : 'default';
+
+      if (active) {
+        if (!hoverLight) {
+          hoverLight = new THREE.PointLight(0x88aaff, 0.35, 3, 2);
+          hoverLight.castShadow = false;
+          hoverLight.position.set(0, 1.2, 1.6);
+          window.character.add(hoverLight);
+        }
+      } else {
+        if (hoverLight) {
+          hoverLight.parent?.remove(hoverLight);
+          hoverLight = null;
+        }
+
+        window.character.traverse(obj => {
+          if (!obj.isMesh || !obj.material) return;
+          const restore = (m) => {
+            if (!m) return;
+            if ('emissive' in m) {
+              const orig = m.userData && m.userData._origEmissive;
+              if (orig) m.emissive.copy(orig);
+            }
+          };
+          if (Array.isArray(obj.material)) obj.material.forEach(restore);
+          else restore(obj.material);
+        });
       }
-    } else {
-      if (hoverLight) { hoverLight.parent?.remove(hoverLight); hoverLight = null; }
-      window.character.traverse(obj => {
-           if (!obj.isMesh || !obj.material) return;
-           const restore = (m) => {
-             if (!m) return;
-             if ('emissive' in m) {
-               const orig = m.userData && m.userData._origEmissive;
-               if (orig) m.emissive.copy(orig);
-             }
-           };
-           if (Array.isArray(obj.material)) obj.material.forEach(restore); else restore(obj.material);
-         });
     }
-  }
 
   function setFixedTitleWidth(ghostString) {
     const nameEl = document.getElementById('characterName');
