@@ -1732,13 +1732,11 @@
       animate();
       
       // Preload all characters after initial load
-      // Preload characters when the browser is idle (non-blocking)
-      (requestIdleCallback || function (cb) {
-        return setTimeout(cb, 1);
-      })(() => {
-        preloadAllCharacters();
-      });
-
+      setTimeout(() => {
+        preloadAllCharacters().then(() => {
+          console.log('🚀 All characters ready for instant switching!');
+        });
+      }, 1000); // Small delay to let initial character load first
       
       document.getElementById('prevArrow')?.addEventListener('click', window.previousCharacter);
       document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
