@@ -1744,6 +1744,53 @@
     document.addEventListener('touchmove', function (e) { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
     // Login form handler
 
+    function escapeHtml(str) {
+      return String(str || "").replace(/[&<>"']/g, (m) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[m]));
+    }
+
+    function showCheckEmailUI(email) {
+      const modal = document.getElementById('loginModal');
+      if (!modal) return;
+
+      // Reuse the same modal container you already have:
+      const card = modal.querySelector('.login-modal');
+      if (!card) return;
+
+      // Replace the modal contents with the “Check your email” screen
+      card.innerHTML = `
+        <button class="modal-close circular-btn" type="button" aria-label="Close"></button>
+
+        <h2 style="margin: 8px 0 10px; text-align:center;">Check your email</h2>
+        <p style="font-size:14px; opacity:0.8; margin:0 0 12px; line-height:1.45; text-align:center;">
+          We sent a login link to <strong>${escapeHtml(email)}</strong>.
+        </p>
+        <p style="font-size:13px; opacity:0.7; margin:0; text-align:center;">
+          Open it on this device to continue.
+        </p>
+
+        <div style="margin-top:18px; display:flex; justify-content:center;">
+          <button type="button" class="form-button" id="backToLoginBtn" style="width:min(280px,100%);">
+            Back
+          </button>
+        </div>
+      `;
+
+      // Wire close/back
+      card.querySelector('.modal-close')?.addEventListener('click', closeLoginModal);
+      card.querySelector('#backToLoginBtn')?.addEventListener('click', () => {
+        // simplest: reload the page to restore the original login modal markup
+        // (or re-render the original login modal HTML if you prefer)
+        window.location.reload();
+      });
+
+      modal.classList.add('show');
+    }
 
 
     (function () {
@@ -1752,6 +1799,7 @@
 
         if (!emailInput || !loginBtn) return; // modal not on this page
 
+        
         function magicRedirect() {
           const isInIframe = window !== window.top;
           // Changed from /packs to /landing-page/
@@ -1773,8 +1821,13 @@
           });
           loginBtn.disabled = false; loginBtn.textContent = old;
 
-          if (error) alert(error.message);
-          else alert('Check your email for the magic link!');
+          if (error) {
+            // keep your existing error handling, or set text in a <p id="loginError">
+            alert(error.message);
+          } else {
+            showCheckEmailUI(email);
+          }
+
         });
     })();
     // click behavior
