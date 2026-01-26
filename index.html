@@ -60,6 +60,7 @@
       background: #000;
       color: #fff;
       touch-action: none;
+      #scene-container { touch-action: none; }
       -ms-touch-action: none;
     }
       
@@ -1584,10 +1585,14 @@
 
   function checkHover() {
     if (!window.character) return;
-    if (selectorOpen()) {
-      if (lastHoverState) { setCharacterHighlight(false); lastHoverState = false; }
+    if (selectorOpen() && carousel.mode === 'carousel') {
+      if (lastHoverState) {
+        setCharacterHighlight(false);
+        lastHoverState = false;
+      }
       return;
     }
+
     raycaster.setFromCamera(mouseNDC, camera);
     const intersects = raycaster.intersectObjects(window.character.children, true);
     hoverActive = intersects.length > 0;
@@ -1788,7 +1793,7 @@
     });
 
     // in enterCarousel(): add the 'tick' class
-    const btn = document.getElementById('enterCarouselBtn');
+    /*    const btn = document.getElementById('enterCarouselBtn');
     if (btn) {
       btn.classList.add('tick');
       btn.setAttribute('aria-label', 'Confirm Character');
