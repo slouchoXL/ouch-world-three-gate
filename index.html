@@ -47,6 +47,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+  
+  <script>
+    // Runs before first paint (prevents the video "play" overlay flash)
+    (function () {
+      const ua = navigator.userAgent;
+      const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua);
+      if (isSafari) document.documentElement.classList.add('safari');
+    })();
+  </script>
+
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -251,13 +261,21 @@
       cursor: pointer;
     }
     .carousel-btn:hover { border-color: rgba(255,255,255,0.45); }
+    /* reuse your existing stroke/fill approach */
     .carousel-btn svg {
-      width: 18px; height: 18px;
-      stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      width: 18px;
+      height: 18px;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
-    .carousel-btn .icon-tick { display: none; }
-    .carousel-btn.tick .icon-up { display: none; }
-    .carousel-btn.tick .icon-tick { display: block; }
+
+    .carousel-btn .icon-muted { display: none; }
+    .carousel-btn.is-muted .icon-sound { display: none; }
+    .carousel-btn.is-muted .icon-muted { display: block; }
+
 
     :root {
       --edge-pad-desktop: 28px;
@@ -293,16 +311,25 @@
     /* Hide the old GLB canvas layer */
     #scene-container { display: none; }
     
-    #hero-bg {
+    #heroWebp{
       position: fixed;
       inset: 0;
-      background: url("/assets/hero.webp") center / cover no-repeat;
+      background: url("/assets/hero_30fps.webp") center / cover no-repeat;
       z-index: 0;
+      pointer-events: none;
+      opacity: 0;                 /* hidden by default */
     }
+
+    /* On Safari, show WebP and hide video BEFORE it can paint */
+    html.safari #heroWebp { opacity: 1; }
+    html.safari #heroVideo { display: none !important; }
+
 
   </style>
 </head>
 <body>
+
+    <div id="heroWebp" aria-hidden="true"></div>
 
   <video
     id="heroVideo"
@@ -318,7 +345,7 @@
     <source src="/assets/hero.mp4" type="video/mp4" />
   </video>
   
-  <div id="hero-bg"></div>
+
 
 
   <div class="container">
@@ -359,23 +386,35 @@
       id="mysteryGiftAudio"
       preload="auto"
       src="/assets/Sloucho_MysteryStream.mp3"
+      autoplay
+      loop
+      muted
+      playsinline
       style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
     ></audio>
 
+
     <div id="itemActionBar" class="item-action-bar">
-      <button
-        id="enterCarouselBtn"
-        class="carousel-btn"
-        type="button"
-        aria-label="Choose Character"
-      >
-        <svg class="icon-up" viewBox="0 0 24 24">
-          <path d="M6 15l6-6 6 6" />
-        </svg>
-        <svg class="icon-tick" viewBox="0 0 24 24">
-          <path d="M5 13l4 4L19 7" />
-        </svg>
-      </button>
+        <button
+          id="enterCarouselBtn"
+          class="carousel-btn"
+          type="button"
+          aria-label="Unmute audio"
+        >
+          <!-- Unmuted (speaker) -->
+          <svg class="icon-sound" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M11 5L6 9H3v6h3l5 4V5z" />
+            <path d="M15.5 8.5a5 5 0 010 7" />
+            <path d="M18 6a9 9 0 010 12" />
+          </svg>
+
+          <!-- Muted (speaker + slash) -->
+          <svg class="icon-muted" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M11 5L6 9H3v6h3l5 4V5z" />
+            <path d="M22 9l-6 6" />
+            <path d="M16 9l6 6" />
+          </svg>
+        </button>
     </div>
   </div>
 
@@ -1135,11 +1174,61 @@
     });
   })();
 
-  // click behavior
-  document.getElementById('enterCarouselBtn')?.addEventListener('click', () => {
-    if (carousel.mode === 'view') window.onCharacterClick?.();
-    else window.confirmCharacter?.();
-  });
+    /* ============================================================
+       HOME AUDIO — autoplay muted + mute/unmute button
+       Replaces old enterCarouselBtn click behavior
+       ============================================================ */
+    (function () {
+      const audioEl = document.getElementById("mysteryGiftAudio");
+      const btn = document.getElementById("enterCarouselBtn");
+      if (!audioEl || !btn) return;
+
+      // Start muted so autoplay is allowed
+      audioEl.muted = true;
+      audioEl.setAttribute("muted", "");
+      btn.classList.add("is-muted");
+      btn.setAttribute("aria-label", "Unmute audio");
+
+      let started = false;
+
+      async function tryPlayMuted() {
+        if (started || !audioEl.paused) { started = true; return; }
+        try {
+          await audioEl.play();
+          started = true;
+          removeUnlockers();
+        } catch (_) {
+          // blocked until user gesture
+        }
+      }
+
+      function unlock() { tryPlayMuted(); }
+
+      function addUnlockers() {
+        window.addEventListener("pointerdown", unlock, { capture: true, once: true });
+        window.addEventListener("mousedown",   unlock, { capture: true, once: true });
+        window.addEventListener("touchstart",  unlock, { capture: true, once: true });
+        window.addEventListener("keydown",     unlock, { capture: true, once: true });
+        window.addEventListener("wheel",       unlock, { capture: true, once: true });
+        window.addEventListener("scroll",      unlock, { capture: true, once: true });
+      }
+
+      function removeUnlockers() {
+        window.removeEventListener("pointerdown", unlock, { capture: true });
+        window.removeEventListener("mousedown",   unlock, { capture: true });
+        window.removeEventListener("touchstart",  unlock, { capture: true });
+        window.removeEventListener("keydown",     unlock, { capture: true });
+        window.removeEventListener("wheel",       unlock, { capture: true });
+        window.removeEventListener("scroll",      unlock, { capture: true });
+      }
+
+      // Try autoplay immediately
+      tryPlayMuted();
+      audioEl.addEventListener("canplay", tryPlayMuted);
+      window.addEventListener("load", tryPlayMuted, { once: true });
+      addU
+
+
 
   /* ============================================================
      HERO VIDEO AUTOPLAY (single controller)
