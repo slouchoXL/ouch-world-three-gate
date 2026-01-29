@@ -1980,84 +1980,76 @@
   
  
 
-   (function () {
-     const video = document.getElementById("heroVideo");
-     if (!video) return;
 
-     // Ensure attributes/properties are correct early
-     video.muted = true;
-     video.defaultMuted = true;
-     video.autoplay = true;
-     video.loop = true;
-     video.playsInline = true;
+ (function () {
+   const v = document.getElementById("heroVideo");
+   if (!v) return;
 
-     video.setAttribute("muted", "");
-     video.setAttribute("autoplay", "");
-     video.setAttribute("loop", "");
-     video.setAttribute("playsinline", "");
-     video.setAttribute("webkit-playsinline", "");
+   // Assert autoplay-friendly state
+   v.muted = true;
+   v.defaultMuted = true;
+   v.autoplay = true;
+   v.loop = true;
+   v.playsInline = true;
 
-     video.controls = false;
-     video.disablePictureInPicture = true;
+   v.setAttribute("muted", "");
+   v.setAttribute("playsinline", "");
+   v.setAttribute("webkit-playsinline", "");
+   v.controls = false;
+   v.disablePictureInPicture = true;
 
-     let attempted = false;
+   let started = false;
+   let armingUnlock = false;
 
-     function attemptPlay() {
-       // Avoid hammering play() if we already got it going
-       if (!video.paused) return;
+   async function attempt() {
+     // If it already started, do nothing (prevents play/pause loops)
+     if (started || !v.paused) return;
 
-       // If we have nothing buffered yet, wait for canplay
-       if (video.readyState < 2) return;
+     // Safari is happier once it has data
+     if (v.readyState < 2) return;
 
-       attempted = true;
-       const p = video.play();
-       if (p && typeof p.catch === "function") {
-         p.catch((err) => {
-           // Autoplay can still be blocked on some desktop setups
-           // We'll unlock on first user gesture.
-           const unlock = () => {
-             video.play().catch(() => {});
-             window.removeEventListener("pointerdown", unlock);
-             window.removeEventListener("keydown", unlock);
-           };
-           window.addEventListener("pointerdown", unlock, { once: true });
-           window.addEventListener("keydown", unlock, { once: true });
-
-           // Optional debug:
-           // console.warn("[heroVideo] play() blocked:", err);
-         });
-       }
+     try {
+       await v.play();
+       started = true;
+       disarmUnlock();
+     } catch (err) {
+       // Autoplay blocked by policy/settings -> wait for a real user gesture
+       armUnlock();
      }
+   }
 
-     function prime() {
-       // Kick the network without resetting playback state repeatedly
-       // (load() is OK ONCE if you need it, but never in a retry loop)
-       if (video.preload !== "auto") video.preload = "auto";
-       attemptPlay();
-     }
+   function unlock() {
+     v.muted = true;
+     v.play().then(() => { started = true; }).catch(() => {});
+   }
 
-     if (document.readyState === "loading") {
-       document.addEventListener("DOMContentLoaded", prime, { once: true });
-     } else {
-       prime();
-     }
+   function armUnlock() {
+     if (armingUnlock) return;
+     armingUnlock = true;
+     window.addEventListener("pointerdown", unlock, { once: true, capture: true });
+     window.addEventListener("keydown", unlock, { once: true, capture: true });
+   }
 
-     // When enough data is available, try again
-     video.addEventListener("canplay", attemptPlay);
+   function disarmUnlock() {
+     if (!armingUnlock) return;
+     armingUnlock = false;
+     window.removeEventListener("pointerdown", unlock, { capture: true });
+     window.removeEventListener("keydown", unlock, { capture: true });
+   }
 
-     // If the tab was backgrounded, browsers may pause; resume on return
-     document.addEventListener("visibilitychange", () => {
-       if (!document.hidden) attemptPlay();
-     });
+   // Trigger at sensible times (but never "load()")
+   v.addEventListener("loadeddata", attempt);
+   v.addEventListener("canplay", attempt);
+   window.addEventListener("load", attempt, { once: true });
+   document.addEventListener("visibilitychange", () => {
+     if (!document.hidden) attempt();
+   });
 
-     // If readyState becomes usable after metadata/data load, try
-     video.addEventListener("loadeddata", attemptPlay);
+   // First attempt
+   attempt();
+ })();
 
-     // Safety: if canplay never fires for some reason but readyState changes later
-     setTimeout(() => {
-       if (!attempted) attemptPlay();
-     }, 1500);
-   })();
+
     
 
     (function () {
