@@ -707,11 +707,35 @@
         }
       }
 
+      #heroVideo {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      /* Hide the old GLB canvas layer */
+      #scene-container {
+        display: none;
+      }
+
   </style>
 </head>
 <body>
     
- 
+    <video
+      id="heroVideo"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="auto"
+    >
+      <source src="/assets/hero.mp4" type="video/mp4" />
+    </video>
 
 <div class="container">
   <div id="scene-container"></div>
@@ -1715,11 +1739,21 @@
     
     document.getElementById('logoutBtn')?.addEventListener('click', logout);
 
+    window.addEventListener('load', async () => {
+      const video = document.getElementById('heroVideo');
+      if (video) {
+        try {
+          await video.play();
+        } catch (e) {
+          // autoplay may be blocked on first load — ignore
+        }
+      }
+    });
 
     
     
     // ===== Start =====
-    window.addEventListener('load', async () => {
+   /* window.addEventListener('load', async () => {
        
       if (typeof THREE === 'undefined') { console.error('Three.js not loaded'); return; }
       initLoaders();
@@ -1746,7 +1780,7 @@
       if (carousel.mode !== 'carousel') return;
       if (e.key === 'ArrowLeft') window.previousCharacter();
       if (e.key === 'ArrowRight') window.nextCharacter();
-    });
+    });*/
 
     // ===== Mobile zoom suppression =====
     (function () {
