@@ -1176,7 +1176,6 @@
 
     /* ============================================================
        HOME AUDIO — autoplay muted + mute/unmute button
-       Replaces old enterCarouselBtn click behavior
        ============================================================ */
     (function () {
       const audioEl = document.getElementById("mysteryGiftAudio");
@@ -1226,7 +1225,22 @@
       tryPlayMuted();
       audioEl.addEventListener("canplay", tryPlayMuted);
       window.addEventListener("load", tryPlayMuted, { once: true });
-      addU
+      addUnlockers();
+
+      // Button = mute / unmute toggle
+      btn.addEventListener("click", async () => {
+        const willMute = !audioEl.muted;
+
+        audioEl.muted = willMute;
+        btn.classList.toggle("is-muted", willMute);
+        btn.setAttribute("aria-label", willMute ? "Unmute audio" : "Mute audio");
+
+        // If user unmuted, ensure playback is running
+        if (!willMute) {
+          try { await audioEl.play(); } catch (_) {}
+        }
+      });
+    })();
 
 
 
