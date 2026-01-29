@@ -292,6 +292,14 @@
 
     /* Hide the old GLB canvas layer */
     #scene-container { display: none; }
+    
+    #hero-bg {
+      position: fixed;
+      inset: 0;
+      background: url("/assets/hero.webp") center / cover no-repeat;
+      z-index: 0;
+    }
+
   </style>
 </head>
 <body>
@@ -309,6 +317,9 @@
   >
     <source src="/assets/hero.mp4" type="video/mp4" />
   </video>
+  
+  <div id="hero-bg"></div>
+
 
   <div class="container">
     <div id="scene-container"></div>
