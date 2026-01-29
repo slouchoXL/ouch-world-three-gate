@@ -1754,66 +1754,13 @@
     
     document.getElementById('logoutBtn')?.addEventListener('click', logout);
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const video = document.getElementById("heroVideo");
-      if (!video) return;
-
-      // Assert autoplay prerequisites immediately
-      video.muted = true;
-      video.defaultMuted = true;
-      video.autoplay = true;
-
-      video.setAttribute("muted", "");
-      video.setAttribute("playsinline", "");
-      video.setAttribute("webkit-playsinline", "");
-
-      const tryPlay = () => {
-        const p = video.play();
-        if (p && typeof p.catch === "function") {
-          p.catch(err => {
-            console.warn("[heroVideo] autoplay blocked:", err);
-          });
-        }
-      };
-
-      // Try immediately and again when media is ready
-      tryPlay();
-      video.addEventListener("canplay", tryPlay, { once: true });
-    });
+   
 
 
 
     
     
-    // ===== Start =====
-   /* window.addEventListener('load', async () => {
-       
-      if (typeof THREE === 'undefined') { console.error('Three.js not loaded'); return; }
-      initLoaders();
-      initThreeJS();
-      THREE.Cache.enabled = true;
-
-      
-      // Start preloading in background while showing first character
-      createCharacter();
-      animate();
-      
-      // Preload all characters after initial load
-      setTimeout(() => {
-        preloadAllCharacters().then(() => {
-          console.log('🚀 All characters ready for instant switching!');
-        });
-      }, 1000); // Small delay to let initial character load first
-      
-      document.getElementById('prevArrow')?.addEventListener('click', window.previousCharacter);
-      document.getElementById('nextArrow')?.addEventListener('click', window.nextCharacter);
-    });
-
-    window.addEventListener('keydown', (e) => {
-      if (carousel.mode !== 'carousel') return;
-      if (e.key === 'ArrowLeft') window.previousCharacter();
-      if (e.key === 'ArrowRight') window.nextCharacter();
-    });*/
+ 
 
     // ===== Mobile zoom suppression =====
     (function () {
@@ -2024,6 +1971,60 @@
       updateButton();
     })(); */
 
+    <script>
+      (function () {
+        const video = document.getElementById("heroVideo");
+        if (!video) return;
+
+        // Hard requirements for autoplay across desktop/mobile
+        video.muted = true;
+        video.defaultMuted = true;
+        video.autoplay = true;
+        video.loop = true;
+        video.playsInline = true;
+
+        // Attribute forms help Safari/WebKit in particular
+        video.setAttribute("muted", "");
+        video.setAttribute("autoplay", "");
+        video.setAttribute("loop", "");
+        video.setAttribute("playsinline", "");
+        video.setAttribute("webkit-playsinline", "");
+
+        // Ensure no native UI
+        video.controls = false;
+        video.disablePictureInPicture = true;
+
+        const tryPlay = () => {
+          // Some browsers need a "load()" poke after dynamic attribute changes
+          // (safe even if it’s already loaded)
+          try { video.load(); } catch (e) {}
+
+          const p = video.play();
+          if (p && typeof p.catch === "function") {
+            p.catch((err) => {
+              console.warn("[heroVideo] autoplay blocked:", err);
+
+              // Fallback: start on first user interaction (desktop-friendly)
+              const unlock = () => {
+                video.play().catch(() => {});
+                window.removeEventListener("pointerdown", unlock);
+                window.removeEventListener("keydown", unlock);
+              };
+              window.addEventListener("pointerdown", unlock, { once: true });
+              window.addEventListener("keydown", unlock, { once: true });
+            });
+          }
+        };
+
+        // Try when DOM is ready, and again when the media is actually playable
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", tryPlay, { once: true });
+        } else {
+          tryPlay();
+        }
+        video.addEventListener("canplay", tryPlay, { once: true });
+      })();
+    </script>
 
 </script>
 
