@@ -1136,66 +1136,72 @@
      - Only one autoplay controller exists now
      - NEVER calls video.load()
      ============================================================ */
-  (function () {
-    const v = document.getElementById("heroVideo");
-    if (!v) return;
+  
+    (function () {
+      const v = document.getElementById("heroVideo");
+      if (!v) return;
 
-    // assert autoplay-friendly state
-    v.muted = true;
-    v.defaultMuted = true;
-    v.autoplay = true;
-    v.loop = true;
-    v.playsInline = true;
-
-    v.setAttribute("muted", "");
-    v.setAttribute("playsinline", "");
-    v.setAttribute("webkit-playsinline", "");
-
-    v.controls = false;
-    v.disablePictureInPicture = true;
-
-    let started = false;
-    let armingUnlock = false;
-
-    async function attempt() {
-      if (started || !v.paused) return;
-      if (v.readyState < 2) return;
-
-      try {
-        await v.play();
-        started = true;
-        disarmUnlock();
-      } catch (_) {
-        armUnlock();
-      }
-    }
-
-    function unlock() {
+      // Required flags
       v.muted = true;
-      v.play().then(() => { started = true; }).catch(() => {});
-    }
+      v.defaultMuted = true;
+      v.playsInline = true;
+      v.setAttribute("muted", "");
+      v.setAttribute("playsinline", "");
+      v.setAttribute("webkit-playsinline", "");
+      v.disablePictureInPicture = true;
+      v.controls = false;
 
-    function armUnlock() {
-      if (armingUnlock) return;
-      armingUnlock = true;
-      window.addEventListener("pointerdown", unlock, { once: true, capture: true });
-      window.addEventListener("keydown", unlock, { once: true, capture: true });
-    }
+      let started = false;
 
-    function disarmUnlock() {
-      if (!armingUnlock) return;
-      armingUnlock = false;
-      window.removeEventListener("pointerdown", unlock, { capture: true });
-      window.removeEventListener("keydown", unlock, { capture: true });
-    }
+      async function tryPlay() {
+        if (started || !v.paused) { started = true; return; }
+        try {
+          // Don't require readyState; Safari sometimes succeeds earlier
+          await v.play();
+          started = true;
+          removeUnlockers();
+        } catch (_) {
+          // blocked -> wait for gesture
+        }
+      }
 
-    v.addEventListener("loadeddata", attempt);
-    v.addEventListener("canplay", attempt);
-    window.addEventListener("load", attempt, { once: true });
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) attempt(); });
+      function unlock() { tryPlay(); }
 
-    attempt();
-  })();
+      function addUnlockers() {
+        // Use MANY events — Safari can be picky about what counts as "gesture"
+        window.addEventListener("pointerdown", unlock, { capture: true, once: true });
+        window.addEventListener("mousedown",   unlock, { capture: true, once: true });
+        window.addEventListener("touchstart",  unlock, { capture: true, once: true });
+        window.addEventListener("keydown",     unlock, { capture: true, once: true });
+        window.addEventListener("wheel",       unlock, { capture: true, once: true });
+        window.addEventListener("scroll",      unlock, { capture: true, once: true });
+      }
+
+      function removeUnlockers() {
+        window.removeEventListener("pointerdown", unlock, { capture: true });
+        window.removeEventListener("mousedown",   unlock, { capture: true });
+        window.removeEventListener("touchstart",  unlock, { capture: true });
+        window.removeEventListener("keydown",     unlock, { capture: true });
+        window.removeEventListener("wheel",       unlock, { capture: true });
+        window.removeEventListener("scroll",      unlock, { capture: true });
+      }
+
+      // Try immediately (works when Safari allows autoplay)
+      tryPlay();
+
+      // Try again when resources become available
+      v.addEventListener("loadeddata", tryPlay);
+      v.addEventListener("canplay", tryPlay);
+      window.addEventListener("load", tryPlay, { once: true });
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) tryPlay();
+      });
+
+      // Arm the gesture unlock fallback
+      addUnlockers();
+    })();
+ 
+
 </script>
 
 </body>
