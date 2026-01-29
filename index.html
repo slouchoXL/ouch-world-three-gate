@@ -746,10 +746,13 @@
       loop
       playsinline
       preload="auto"
+      disablepictureinpicture
+      controlslist="nodownload noplaybackrate noremoteplayback"
       aria-hidden="true"
     >
       <source src="/assets/hero.mp4" type="video/mp4" />
     </video>
+
 
 
 <div class="container">
@@ -1976,37 +1979,86 @@
 
   
  
-  (function () {
-    const video = document.getElementById('heroVideo');
-    if (!video) return;
 
-    // Hard assert required autoplay flags (desktop Safari + Chrome edge cases)
-    video.muted = true;
-    video.setAttribute('muted', '');
-    video.setAttribute('playsinline', '');
-    video.setAttribute('webkit-playsinline', '');
+   (function () {
+     const video = document.getElementById("heroVideo");
+     if (!video) return;
 
-    const tryPlay = () => {
-      const p = video.play();
-      if (p && typeof p.catch === 'function') {
-        p.catch(() => {
-          // Autoplay blocked — silently ignore
-          // (background video fallback is acceptable)
-        });
-      }
-    };
+     // Ensure attributes/properties are correct early
+     video.muted = true;
+     video.defaultMuted = true;
+     video.autoplay = true;
+     video.loop = true;
+     video.playsInline = true;
 
-    // Attempt immediately
-    tryPlay();
+     video.setAttribute("muted", "");
+     video.setAttribute("autoplay", "");
+     video.setAttribute("loop", "");
+     video.setAttribute("playsinline", "");
+     video.setAttribute("webkit-playsinline", "");
 
-    // Retry once DOM + layout are fully settled (desktop race condition fix)
-    window.addEventListener('load', tryPlay, { once: true });
+     video.controls = false;
+     video.disablePictureInPicture = true;
 
-    // Safari sometimes needs a tick after visibility
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) tryPlay();
-    });
-  })();
+     let attempted = false;
+
+     function attemptPlay() {
+       // Avoid hammering play() if we already got it going
+       if (!video.paused) return;
+
+       // If we have nothing buffered yet, wait for canplay
+       if (video.readyState < 2) return;
+
+       attempted = true;
+       const p = video.play();
+       if (p && typeof p.catch === "function") {
+         p.catch((err) => {
+           // Autoplay can still be blocked on some desktop setups
+           // We'll unlock on first user gesture.
+           const unlock = () => {
+             video.play().catch(() => {});
+             window.removeEventListener("pointerdown", unlock);
+             window.removeEventListener("keydown", unlock);
+           };
+           window.addEventListener("pointerdown", unlock, { once: true });
+           window.addEventListener("keydown", unlock, { once: true });
+
+           // Optional debug:
+           // console.warn("[heroVideo] play() blocked:", err);
+         });
+       }
+     }
+
+     function prime() {
+       // Kick the network without resetting playback state repeatedly
+       // (load() is OK ONCE if you need it, but never in a retry loop)
+       if (video.preload !== "auto") video.preload = "auto";
+       attemptPlay();
+     }
+
+     if (document.readyState === "loading") {
+       document.addEventListener("DOMContentLoaded", prime, { once: true });
+     } else {
+       prime();
+     }
+
+     // When enough data is available, try again
+     video.addEventListener("canplay", attemptPlay);
+
+     // If the tab was backgrounded, browsers may pause; resume on return
+     document.addEventListener("visibilitychange", () => {
+       if (!document.hidden) attemptPlay();
+     });
+
+     // If readyState becomes usable after metadata/data load, try
+     video.addEventListener("loadeddata", attemptPlay);
+
+     // Safety: if canplay never fires for some reason but readyState changes later
+     setTimeout(() => {
+       if (!attempted) attemptPlay();
+     }, 1500);
+   })();
+
 
 
    
