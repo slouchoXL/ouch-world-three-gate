@@ -2058,6 +2058,33 @@
        if (!attempted) attemptPlay();
      }, 1500);
    })();
+    
+
+    (function () {
+      const v = document.getElementById('heroVideo');
+      if (!v) return;
+
+      v.muted = true;
+      v.defaultMuted = true;
+
+      const log = (msg, extra) => console.log('[heroVideo]', msg, extra || '');
+
+      ['loadstart','loadedmetadata','loadeddata','canplay','canplaythrough','play','playing','pause','stalled','error']
+        .forEach(ev => v.addEventListener(ev, () => log(ev, { readyState: v.readyState, paused: v.paused })));
+
+      const p = v.play();
+      if (p && p.catch) {
+        p.catch(err => {
+          log('play() rejected', {
+            name: err?.name,
+            message: err?.message,
+            code: err?.code
+          });
+        });
+      }
+    })();
+
+
 
 
 
