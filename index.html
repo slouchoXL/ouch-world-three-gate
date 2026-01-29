@@ -713,9 +713,22 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
+
+        /* Critical */
         z-index: 0;
         pointer-events: none;
+
+        /* Prevent mobile browser UI */
+        background: black;
       }
+
+      #heroVideo::-webkit-media-controls,
+      #heroVideo::-webkit-media-controls-panel,
+      #heroVideo::-webkit-media-controls-play-button {
+        display: none !important;
+        -webkit-appearance: none;
+      }
+
 
       /* Hide the old GLB canvas layer */
       #scene-container {
@@ -733,9 +746,11 @@
       loop
       playsinline
       preload="auto"
+      aria-hidden="true"
     >
       <source src="/assets/hero.mp4" type="video/mp4" />
     </video>
+
 
 <div class="container">
   <div id="scene-container"></div>
@@ -1739,16 +1754,33 @@
     
     document.getElementById('logoutBtn')?.addEventListener('click', logout);
 
-    window.addEventListener('load', async () => {
-      const video = document.getElementById('heroVideo');
-      if (video) {
-        try {
-          await video.play();
-        } catch (e) {
-          // autoplay may be blocked on first load — ignore
+    window.addEventListener("load", () => {
+      const video = document.getElementById("heroVideo");
+      if (!video) return;
+
+      video.muted = true; // re-assert (important)
+      video.setAttribute("muted", ""); // Safari quirk
+      video.setAttribute("playsinline", "");
+
+      const tryPlay = () => {
+        const p = video.play();
+        if (p !== undefined) {
+          p.catch(() => {
+            // If autoplay is still blocked, retry on first interaction
+            const unlock = () => {
+              video.play();
+              document.removeEventListener("click", unlock);
+              document.removeEventListener("touchstart", unlock);
+            };
+            document.addEventListener("click", unlock, { once: true });
+            document.addEventListener("touchstart", unlock, { once: true });
+          });
         }
-      }
+      };
+
+      tryPlay();
     });
+
 
     
     
