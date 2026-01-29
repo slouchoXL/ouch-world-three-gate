@@ -900,6 +900,7 @@
   </div>
   
   
+  
 
 <script>
   // ===== Globals =====
@@ -1974,58 +1975,40 @@
     })(); */
 
   
+ 
   (function () {
-        const video = document.getElementById("heroVideo");
-        if (!video) return;
+    const video = document.getElementById('heroVideo');
+    if (!video) return;
 
-        // Hard requirements for autoplay across desktop/mobile
-        video.muted = true;
-        video.defaultMuted = true;
-        video.autoplay = true;
-        video.loop = true;
-        video.playsInline = true;
+    // Hard assert required autoplay flags (desktop Safari + Chrome edge cases)
+    video.muted = true;
+    video.setAttribute('muted', '');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
 
-        // Attribute forms help Safari/WebKit in particular
-        video.setAttribute("muted", "");
-        video.setAttribute("autoplay", "");
-        video.setAttribute("loop", "");
-        video.setAttribute("playsinline", "");
-        video.setAttribute("webkit-playsinline", "");
+    const tryPlay = () => {
+      const p = video.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => {
+          // Autoplay blocked — silently ignore
+          // (background video fallback is acceptable)
+        });
+      }
+    };
 
-        // Ensure no native UI
-        video.controls = false;
-        video.disablePictureInPicture = true;
+    // Attempt immediately
+    tryPlay();
 
-        const tryPlay = () => {
-          // Some browsers need a "load()" poke after dynamic attribute changes
-          // (safe even if it’s already loaded)
-          try { video.load(); } catch (e) {}
+    // Retry once DOM + layout are fully settled (desktop race condition fix)
+    window.addEventListener('load', tryPlay, { once: true });
 
-          const p = video.play();
-          if (p && typeof p.catch === "function") {
-            p.catch((err) => {
-              console.warn("[heroVideo] autoplay blocked:", err);
+    // Safari sometimes needs a tick after visibility
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) tryPlay();
+    });
+  })();
 
-              // Fallback: start on first user interaction (desktop-friendly)
-              const unlock = () => {
-                video.play().catch(() => {});
-                window.removeEventListener("pointerdown", unlock);
-                window.removeEventListener("keydown", unlock);
-              };
-              window.addEventListener("pointerdown", unlock, { once: true });
-              window.addEventListener("keydown", unlock, { once: true });
-            });
-          }
-        };
 
-        // Try when DOM is ready, and again when the media is actually playable
-        if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", tryPlay, { once: true });
-        } else {
-          tryPlay();
-        }
-        video.addEventListener("canplay", tryPlay, { once: true });
-      })();
    
 
 </script>
