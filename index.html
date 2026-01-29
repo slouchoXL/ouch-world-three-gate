@@ -4,9 +4,7 @@
   <meta charset="UTF-8">
   <title>OUCH™</title>
   <link rel="icon" href="favicon.ico?v=2">
-
   <link rel="icon" type="image/png" href="assets/favicon.png?v=2">
-
 
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
@@ -52,7 +50,7 @@
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    
+
     html, body {
       height: 100%;
       overflow: hidden;
@@ -60,19 +58,15 @@
       background: #000;
       color: #fff;
       touch-action: none;
-      #scene-container { touch-action: none; }
       -ms-touch-action: none;
     }
-      
-    
+
+    /* IMPORTANT: this selector was incorrectly nested inside html,body in your version */
+    #scene-container { touch-action: none; }
 
     .container { width: 100vw; height: 100vh; position: relative; }
     #scene-container { position: absolute; inset: 0; z-index: 1; }
-    #scene-container canvas {
-      display: block;
-      cursor: default;
-    }
-
+    #scene-container canvas { display: block; cursor: default; }
 
     /* Loading indicator */
     .loading-indicator {
@@ -104,18 +98,16 @@
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       transition: border-color .2s ease, background .2s ease;
-    
     }
-      .login-button {
-        width: 30px; height: 30px;
-        background: #000;
-        border: 1px solid rgba(255, 255, 255, 0.25);
-        border-radius: 50%;
-        cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
-        transition: border-color .2s ease, background .2s ease;
-       
-      }
+    .login-button {
+      width: 30px; height: 30px;
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color .2s ease, background .2s ease;
+    }
     .menu-button:hover, .login-button:hover { border-color: rgba(255, 255, 255, 0.45); }
     .menu-dots { display: flex; gap: 4px; }
     .dot { width: 3px; height: 3px; background: #fff; border-radius: 50%; }
@@ -141,7 +133,7 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.96);   /* match password-overlay */
+      background: rgba(0,0,0,0.96);
       z-index: 9999;
       display: none;
       align-items: center;
@@ -150,7 +142,6 @@
     }
     .modal-overlay.show { display: flex; }
 
-    /* Make login-modal share the same styling as password-modal */
     .login-modal {
       background: rgba(15,15,15,0.95);
       border-radius: 16px;
@@ -163,93 +154,30 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
         "SF Pro Display", "Segoe UI", sans-serif;
       position: relative;
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
-      /* Make portal/card headings & body text match password modal */
-      .login-modal h1,
-      .login-modal h2 {
-        font-size: 18px;
-        margin-bottom: 12px;
-      }
+    .login-modal h1, .login-modal h2 { font-size: 18px; margin-bottom: 12px; }
+    .login-modal p { font-size: 13px; opacity: 0.75; margin-bottom: 16px; }
 
-      .login-modal p {
-        font-size: 13px;
-        opacity: 0.75;
-        margin-bottom: 16px;
-      }
-      
-      /* Unify modal vertical rhythm + perceived height */
-      .login-modal{
-        min-height: 260px;              /* makes the account modal feel consistent */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
-      .login-modal > :not(.icon-circle){
-        width: 100%;
-      }
-      
-      /* Pin Account modal X to top-right (match /shop) */
-      #loginModal .login-modal .icon-circle.icon-close{
-        position: absolute;
-        top: 14px;
-        right: 14px;
-        left: auto;
-      }
-      
-      .login-modal {
-        position: relative;
-      }
+    #loginModal .login-modal .icon-circle.icon-close{
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      left: auto;
+    }
 
-      .login-modal .icon-close {
-        position: absolute;
-        top: 14px;
-        right: 14px;
-      }
-
-
-
-
-      /* Header row: icons sit at the top edge, not vertically centered */
-      
-      .modal-header{
-        position: relative;
-        min-height: 30px;      /* matches circle */
-        margin-bottom: 18px;
-        padding-top: 2px;      /* nudges icons visually higher */
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
-      }
-
-      .modal-header .icon-circle{
-        position: absolute;
-        top: 0;
-        transform: none;
-      }
-
-      .modal-header .modal-back{ left: 0; }
-      .modal-header .modal-close{ right: 0; }
-
-      .modal-title{
-        line-height: 30px;     /* optically centers the title with the 30px buttons */
-        margin: 0;
-      }
-
-
-
-
-      /* .modal-close { position: absolute; top: 8px; right: 15px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 24px; cursor: button; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all .2s ease; }*/
-    
     input, textarea, select { font-size: 16px; }
     button, a, .menu-button, .login-button, .chat-toggle, .send-button, .arrow-btn, .character-confirm { touch-action: manipulation; }
-    .modal-close:hover { color: #fff; }
+
     .modal-tabs { display: flex; gap: 20px; margin-bottom: 20px; justify-content: center; }
     .modal-tab { background: none; border: none; color: rgba(255,255,255,0.6); font-size: 16px; padding: 8px 0; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s ease; }
     .modal-tab.active { color: #fff; }
     .form-group { margin-bottom: 12px; }
 
-    /* Match password-input styling */
     .form-input {
       width: 100%;
       padding: 10px 12px;
@@ -260,14 +188,9 @@
       font-size: 14px;
       outline: none;
     }
-    .form-input:focus {
-      border-color: #fff;
-    }
-    .form-input::placeholder {
-      color: rgba(255,255,255,0.5);
-    }
+    .form-input:focus { border-color: #fff; }
+    .form-input::placeholder { color: rgba(255,255,255,0.5); }
 
-    /* Match password-button styling */
     .form-button {
       width: 100%;
       padding: 10px 12px;
@@ -280,12 +203,11 @@
       cursor: pointer;
     }
 
-
     /* Character selector overlay */
     .character-controls {
       position: fixed;
       left: 50%;
-      top: 12vh;        /* moved ABOVE the GLB */
+      top: 12vh;
       bottom: auto;
       transform: translateX(-50%);
       z-index: 250;
@@ -293,576 +215,162 @@
       pointer-events: none;
       transition: opacity .2s ease;
     }
-
     .character-controls.show { opacity: 1; pointer-events: auto; }
     .character-info { display: grid; grid-template-rows: auto auto; gap: 8px; justify-items: center; min-width: 260px; }
     .character-header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
     .character-name { text-align: center; font: 600 14px/1 system-ui, Arial, sans-serif; background: none; padding: .35rem .6rem; border-radius: .5rem; min-width: var(--title-width, 200px); }
     .arrow-btn { background: none; border: none; color: #fff; width: 28px; height: 28px; text-align: center; font-size: 18px; line-height: 26px; cursor: pointer; }
     .character-actions { display: flex; justify-content: center; }
-    /*.character-confirm { background: rgba(255,255,255,.92); color: #000; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer; font-weight: 600; pointer-events: auto;
-        z-index: 9999; touch-action: manipulation; }*/
-      
-      .item-action-bar {
-        position: fixed;
-        bottom: max(60px, env(safe-area-inset-bottom) + 24px); /* higher off bottom */
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        z-index: 1500;
-      }
 
-
-
-      @supports not (bottom: env(safe-area-inset-bottom)) {
-        .item-action-bar { bottom: 35px; }
-      }
-      .item-action-bar.hidden {
-          display: none;
-      }
-      
-      .audio-player {
-        pointer-events: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        max-width: 320px;        /* narrower than full screen */
-        width: min(80vw, 320px); /* responsive on small devices */
-      }
-
-
-      .audio-scrubber {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        width: 100%;
-        font-size: 12px;
-      }
-
-      #audioSeek {
-        flex: 1;
-        -webkit-appearance: none;
-        appearance: none;
-        height: 14px;
-        padding: 0;
-        background: transparent;
-        outline: none;
-      }
-
-      /* TRACK (Safari/Chrome) */
-      #audioSeek::-webkit-slider-runnable-track {
-        height: 4px;
-        background: rgba(255,255,255,0.2);
-        border-radius: 999px;
-        /* remove vertical margins – let it sit in the middle */
-        margin: 0;
-      }
-
-      /* THUMB (Safari/Chrome) */
-      #audioSeek::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: #fff;
-        border: none;
-
-        /* THIS is what centers the thumb on the track */
-        margin-top: -5px;           /* -(thumb - track) / 2 */
-        position: static;           /* top: doesn’t do anything anyway */
-      }
-
-
-      /* Firefox track */
-      #audioSeek::-moz-range-track {
-        height: 4px;
-        background: rgba(255,255,255,0.2);
-        border-radius: 999px;
-      }
-
-      /* Firefox thumb */
-      #audioSeek::-moz-range-thumb {
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: #fff;
-        border: none;
-      }
-
-
-      .audio-controls {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-top: 12px;   /* increased spacing */
-      }
-
-
-
-      
-      /* Circular play/pause button */
-      .icon-pill {
-        width: 30px;
-        height: 30px;
-        padding: 0;
-        font-size: 0;                 /* hide any text */
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      /* inner spans for icons */
-      .icon-pill .icon {
-        display: none;                /* hidden by default */
-        font-size: 14px;              /* base icon size */
-        line-height: 0;               /* kill baseline offset */
-      }
-
-      /* default: show play icon only */
-      .icon-pill .icon-play {
-        display: block;
-        transform: translateX(1px); /* NEW: nudge horizontally + vertically */
-        font-size: 14px;
-        line-height: 0;
-      }
-
-
-      /* when playing, swap to pause icon */
-      .audio-pill.playing .icon-play {
-        display: none;
-      }
-      .audio-pill.playing .icon-pause {
-        display: block;
-        transform: translateX(.5px);
-        font-size: 12px;              /* slightly smaller so it feels balanced */
-      }
-
-
-  
-
-      
-      .circular-btn {
-          width: 30px;
-          height: 30px;
-          background-color: rgba(0, 0, 0, 0.8); /* Change from background: to background-color: */
-          border: 1px solid rgba(255, 255, 255, 0.25);
-          border-radius: 50%;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: border-color .2s ease; /* Remove background from transition */
-          backdrop-filter: blur(10px);
-          touch-action: manipulation;
-          color: #ffffff;
-          font-size: 0;
-          text-indent: -9999px;
-          /* Add the SVG background-image: */
-          background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEgMUwxMSAxMSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTEgMUwxIDExIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=');
-          background-repeat: no-repeat;
-          background-position: center;
-          background-size: 12px 12px;
-      }
-
-      .circular-btn:hover {
-          border-color: rgba(255, 255, 255, 0.45);
-      }
-
-      .carousel-btn {
-        appearance: none; -webkit-appearance: none;
-        bottom: 30px;
-        width: 30px; height: 30px;
-        background-color: rgba(0,0,0,0.8);
-        border: 1px solid rgba(255,255,255,0.25);
-        border-radius: 50%;
-        display: inline-flex; align-items: center; justify-content: center;
-        backdrop-filter: blur(10px);
-        transition: border-color .2s ease;
-        cursor: pointer;
-      }
-      .carousel-btn:hover { border-color: rgba(255,255,255,0.45); }
-
-      /* Icon sizing + stroke */
-      .carousel-btn svg {
-        width: 18px; height: 18px;
-        stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
-      }
-
-      /* Default: show up arrow, hide tick */
-      .carousel-btn .icon-tick { display: none; }
-
-      /* When in carousel mode, your JS adds .tick → swap visibility */
-      .carousel-btn.tick .icon-up { display: none; }
-      .carousel-btn.tick .icon-tick { display: block; }
-      
-    
-
-      /* If you're using plain CSS (likely), just reuse the properties manually: */
-      .download-pill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-
-        padding: 8px 32px;              /* longer pill */
-        border-radius: 9999px;          /* fully rounded like menu/user buttons */
-        border: 1px solid rgba(255,255,255,0.9);
-        background: rgba(0,0,0,0.2);    /* same blurred glass look */
-        backdrop-filter: blur(10px);
-
-        font-size: 14px;
-        color: white;
-        text-decoration: none;
-        cursor: pointer;
-
-        transition: background 0.2s ease, color 0.2s ease;
-      }
-
-      .download-pill:hover {
-        background: white;
-        color: black;
-      }
-
-      /* base pill styles if you still have them */
-      .audio-pill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 9999px;
-        border: 1px solid rgba(255,255,255,0.8);
-        background: rgba(0,0,0,0.5);
-        color: #fff;
-        cursor: pointer;
-        transition: background .2s ease, border-color .2s ease;
-      }
-
-      .audio-pill:hover {
-        background: white;
-        color: black;
-        border-color: rgba(255,255,255,1);
-      }
-
-      .audio-pill.playing {
-        background: white;
-        color: black;
-      }
-
-
-      @media (max-width: 600px) {
-        .carousel-btn { width: 30px; height: 30px; }
-        .carousel-btn svg { width: 20px; height: 20px; } /* if you’re using inline SVGs */
-      }
-
-      @media (max-width: 600px) {
-        .item-action-bar {
-            position: fixed;
-            bottom: max(50px, env(safe-area-inset-bottom) + 18px);
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 8px;
-            z-index: 1500;
-        }
-      }
-
-
-
-      
-      @media (max-width: 600px) {
-        .character-controls {
-          position: fixed;
-          left: 50%;
-          top: 16vh;        /* a bit lower on small screens, still above GLB */
-          bottom: auto;
-          transform: translateX(-50%);
-          z-index: 250;
-          opacity: 0;
-          pointer-events: none;
-          transition: opacity .2s ease;
-        }
-      }
-
-      .character-controls.show { opacity: 1; pointer-events: auto; }
-      .modal-close {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-      }
-      
-
-      .popup-close {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-      }
-      
-      :root {
-        --edge-pad-desktop: 28px;
-        --edge-pad-mobile: 16px;
-      }
-      
-      :root{
-        --circle: 30px;                 /* master circle size */
-        --circle-bg: rgba(0,0,0,0.8);
-        --circle-border: rgba(255,255,255,0.25);
-        --circle-border-hover: rgba(255,255,255,0.45);
-        --circle-icon: 12px;            /* X icon size */
-      }
-
-      .icon-circle {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        border: 1px solid rgba(255,255,255,0.25);
-        background: rgba(0,0,0,0.35);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        position: relative;
-      }
-
-      .icon-circle:hover {
-        background: rgba(255,255,255,0.08);
-        border-color: rgba(255,255,255,0.5);
-      }
-
-
-      /* X icon (CSS-drawn) */
-      .icon-close{
-        position: relative;
-      }
-      .icon-circle.icon-close::before,
-      .icon-circle.icon-close::after {
-        content: '';
-        position: absolute;
-        width: 14px;
-        height: 2px;
-        background: #fff;
-        border-radius: 1px;
-      }
-
-      .icon-circle.icon-close::before {
-        transform: rotate(45deg);
-      }
-
-      .icon-circle.icon-close::after {
-        transform: rotate(-45deg);
-      }
-
-
-      /* Chevron-left icon (CSS-drawn) */
-      .icon-chev-left{
-        position: relative;
-      }
-      .icon-chev-left::before{
-        content:"";
-        width: 8px;
-        height: 8px;
-        border-left: 2px solid rgba(255,255,255,0.9);
-        border-bottom: 2px solid rgba(255,255,255,0.9);
-        transform: rotate(45deg);
-        display:block;
-      }
-
-
-      /* Desktop defaults */
-      .top-nav,
-      .audio-bottom-bar {
-        padding-left: var(--edge-pad-desktop) !important;
-        padding-right: var(--edge-pad-desktop) !important;
-      }
-
-      /* Preserve existing vertical paddings */
-      .top-nav {
-        padding-top: 20px !important;
-        padding-bottom: 20px !important;
-      }
-
-      .audio-bottom-bar {
-        padding-top: 18px !important;
-        padding-bottom: 24px !important;
-      }
-
-      /* Mobile overrides */
-      @media (max-width: 768px) {
-        .top-nav,
-        .audio-bottom-bar {
-          padding-left: var(--edge-pad-mobile) !important;
-          padding-right: var(--edge-pad-mobile) !important;
-        }
-
-        .top-nav {
-          padding-top: 20px !important;
-          padding-bottom: 20px !important;
-        }
-
-        .audio-bottom-bar {
-          padding-top: 14px !important;
-          padding-bottom: 16px !important;
-        }
-      }
-
-      #heroVideo {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-
-        /* Critical */
-        z-index: 0;
-        pointer-events: none;
-
-        /* Prevent mobile browser UI */
-        background: black;
-      }
-
-      #heroVideo::-webkit-media-controls,
-      #heroVideo::-webkit-media-controls-panel,
-      #heroVideo::-webkit-media-controls-play-button {
-        display: none !important;
-        -webkit-appearance: none;
-      }
-
-
-      /* Hide the old GLB canvas layer */
-      #scene-container {
-        display: none;
-      }
-
+    .item-action-bar {
+      position: fixed;
+      bottom: max(60px, env(safe-area-inset-bottom) + 24px);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 1500;
+    }
+
+    @supports not (bottom: env(safe-area-inset-bottom)) {
+      .item-action-bar { bottom: 35px; }
+    }
+    .item-action-bar.hidden { display: none; }
+
+    .carousel-btn {
+      appearance: none; -webkit-appearance: none;
+      bottom: 30px;
+      width: 30px; height: 30px;
+      background-color: rgba(0,0,0,0.8);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(10px);
+      transition: border-color .2s ease;
+      cursor: pointer;
+    }
+    .carousel-btn:hover { border-color: rgba(255,255,255,0.45); }
+    .carousel-btn svg {
+      width: 18px; height: 18px;
+      stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .carousel-btn .icon-tick { display: none; }
+    .carousel-btn.tick .icon-up { display: none; }
+    .carousel-btn.tick .icon-tick { display: block; }
+
+    :root {
+      --edge-pad-desktop: 28px;
+      --edge-pad-mobile: 16px;
+    }
+
+    .top-nav { padding-left: var(--edge-pad-desktop) !important; padding-right: var(--edge-pad-desktop) !important; }
+    .top-nav { padding-top: 20px !important; padding-bottom: 20px !important; }
+
+    @media (max-width: 768px) {
+      .top-nav { padding-left: var(--edge-pad-mobile) !important; padding-right: var(--edge-pad-mobile) !important; }
+      .top-nav { padding-top: 20px !important; padding-bottom: 20px !important; }
+    }
+
+    #heroVideo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      pointer-events: none;
+      background: black;
+    }
+
+    #heroVideo::-webkit-media-controls,
+    #heroVideo::-webkit-media-controls-panel,
+    #heroVideo::-webkit-media-controls-play-button {
+      display: none !important;
+      -webkit-appearance: none;
+    }
+
+    /* Hide the old GLB canvas layer */
+    #scene-container { display: none; }
   </style>
 </head>
 <body>
-    
-    <video
-      id="heroVideo"
-      autoplay
-      muted
-      loop
-      playsinline
-      preload="auto"
-      disablepictureinpicture
-      controlslist="nodownload noplaybackrate noremoteplayback"
-      aria-hidden="true"
-    >
-      <source src="/assets/hero.mp4" type="video/mp4" />
-    </video>
 
-
-
-<div class="container">
-  <div id="scene-container"></div>
-
-
-
-  <!-- Top Navigation -->
-  <div class="top-nav">
-    <button class="menu-button" onclick="toggleMenu()">
-      <div class="menu-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-    </button>
-    <button class="login-button" onclick="handleLogin()">
-      <div class="user-icon">
-        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-      </div>
-    </button>
-  </div>
-
-  <!-- Menu Tray -->
-  <div class="menu-tray" id="menuTray">
-    <a href="/" class="menu-item"><span class="menu-pill">Home</span></a>
-    <a href="/portal" class="menu-item"><span class="menu-pill">Broken Spirit</span></a>
-    <a href="/shop" class="menu-item"><span class="menu-pill">Shop</span></a>
-  </div>
-
-
-  <!-- Character Selector -->
-  <div class="character-controls" id="characterControls">
-    <div class="character-info">
-      <div class="character-header">
-        <button class="arrow-btn" id="prevArrow" title="Previous">‹</button>
-        <div class="character-name" id="characterName">Default Character</div>
-        <button class="arrow-btn" id="nextArrow" title="Next">›</button>
-      </div>
-    
-    </div>
-  </div>
-  
-  <!-- Hidden audio element for streaming Mystery Gift -->
-  <audio
-    id="mysteryGiftAudio"
+  <video
+    id="heroVideo"
+    autoplay
+    muted
+    loop
+    playsinline
     preload="auto"
-    src="/assets/Sloucho_MysteryStream.mp3"
-    style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
-  ></audio>
+    disablepictureinpicture
+    controlslist="nodownload noplaybackrate noremoteplayback"
+    aria-hidden="true"
+  >
+    <source src="/assets/hero.mp4" type="video/mp4" />
+  </video>
 
+  <div class="container">
+    <div id="scene-container"></div>
 
+    <!-- Top Navigation -->
+    <div class="top-nav">
+      <button class="menu-button" onclick="toggleMenu()">
+        <div class="menu-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      </button>
+      <button class="login-button" onclick="handleLogin()">
+        <div class="user-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        </div>
+      </button>
+    </div>
 
-  <div id="itemActionBar" class="item-action-bar">
+    <!-- Menu Tray -->
+    <div class="menu-tray" id="menuTray">
+      <a href="/" class="menu-item"><span class="menu-pill">Home</span></a>
+      <a href="/portal" class="menu-item"><span class="menu-pill">Broken Spirit</span></a>
+      <a href="/shop" class="menu-item"><span class="menu-pill">Shop</span></a>
+    </div>
 
-
-      <!--  <div class="audio-player">
-      <!-- Scrubber on top
-      <div class="audio-scrubber">
-        <span id="audioCurrentTime">0:00</span>
-        <input
-          id="audioSeek"
-          type="range"
-          min="0"
-          value="0"
-          step="0.1"
-        />
-        <span id="audioDuration">0:00</span>
+    <!-- Character Selector -->
+    <div class="character-controls" id="characterControls">
+      <div class="character-info">
+        <div class="character-header">
+          <button class="arrow-btn" id="prevArrow" title="Previous">‹</button>
+          <div class="character-name" id="characterName">Default Character</div>
+          <button class="arrow-btn" id="nextArrow" title="Next">›</button>
+        </div>
       </div>
+    </div>
 
-      <!-- Single play/pause button centered underneath
-      <div class="audio-controls">
-          <button
-            id="playPauseButton"
-            class="audio-pill icon-pill"
-            type="button"
-            aria-label="Play audio"
-          >
-            <span class="icon icon-play" aria-hidden="true">▶</span>
-            <span class="icon icon-pause" aria-hidden="true">❚❚</span>
-          </button>
+    <!-- Hidden audio element for streaming Mystery Gift -->
+    <audio
+      id="mysteryGiftAudio"
+      preload="auto"
+      src="/assets/Sloucho_MysteryStream.mp3"
+      style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
+    ></audio>
 
-      </div> -->
-      
+    <div id="itemActionBar" class="item-action-bar">
       <button
         id="enterCarouselBtn"
         class="carousel-btn"
         type="button"
         aria-label="Choose Character"
       >
-        <!-- Up chevron -->
         <svg class="icon-up" viewBox="0 0 24 24">
           <path d="M6 15l6-6 6 6" />
         </svg>
-
-        <!-- Tick -->
         <svg class="icon-tick" viewBox="0 0 24 24">
           <path d="M5 13l4 4L19 7" />
         </svg>
       </button>
-
     </div>
   </div>
 
-
-
-
-
-
-  
-
   <div class="modal-overlay" id="loginModal">
     <div class="login-modal">
-        <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
+      <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
 
       <div class="modal-tabs">
         <button class="modal-tab active" type="button"><h2> Account</h2></button>
@@ -890,7 +398,6 @@
         </button>
       </div>
 
-
       <!-- Logged-out view -->
       <form id="loginForm" onsubmit="return false;" style="display:none;">
         <div class="form-group">
@@ -901,9 +408,6 @@
       </form>
     </div>
   </div>
-  
-  
-  
 
 <script>
   // ===== Globals =====
@@ -939,8 +443,6 @@
   ];
 
   // ===== PRELOADING SYSTEM =====
-  
-  // Show loading indicator
   function showLoading() {
     const indicator = document.getElementById('loadingIndicator');
     if (indicator) {
@@ -949,20 +451,16 @@
     }
   }
 
-  // Hide loading indicator
   function hideLoading() {
     const indicator = document.getElementById('loadingIndicator');
     if (indicator) {
       indicator.style.opacity = '0';
-      setTimeout(() => {
-        indicator.style.display = 'none';
-      }, 300);
+      setTimeout(() => { indicator.style.display = 'none'; }, 300);
     }
   }
 
+  // NOTE: updateLoadingProgress() isn't included in your snippet, leaving as-is.
 
-
-  // Enhanced preload function with progress tracking
   function preloadAllCharacters() {
     if (carousel.preloadComplete) {
       console.log('✅ Characters already preloaded');
@@ -990,7 +488,6 @@
       carousel.preloadComplete = true;
       hideLoading();
       console.log('🎉 All characters preloaded! Cache state:', carousel.cache.length);
-      // Debug: log what's in the cache
       carousel.cache.forEach((entry, i) => {
         if (entry) {
           const hasAnims = entry.gltfData && entry.gltfData.animations && entry.gltfData.animations.length > 0;
@@ -1003,30 +500,19 @@
     });
   }
 
-  // Load a single character into cache
   function loadCharacterToCache(index) {
     const config = window.characterConfigs[index];
-    if (!config || carousel.cache[index]) {
-      return Promise.resolve(); // Already loaded
-    }
+    if (!config || carousel.cache[index]) return Promise.resolve();
 
     return new Promise((resolve, reject) => {
       gltfLoader.load(
         config.url,
         (gltf) => {
-          // Store the entire GLTF data for proper reuse
-          carousel.cache[index] = {
-            gltfData: gltf, // Store complete GLTF data
-            config: config,
-            targetHeight: config.targetHeight ?? 1.4
-          };
-
+          carousel.cache[index] = { gltfData: gltf, config: config, targetHeight: config.targetHeight ?? 1.4 };
           console.log(`Cached GLTF data for ${config.name}`);
           resolve();
         },
-        (progress) => {
-          // Optional: individual file progress
-        },
+        undefined,
         (error) => {
           console.error(`Failed to load ${config.url}:`, error);
           reject(error);
@@ -1035,37 +521,21 @@
     });
   }
 
-  // Get character from cache (instant)
   function getCharacterFromCache(index) {
-    if (carousel.cache[index]) {
-      return carousel.cache[index];
-    }
-    return null;
+    return carousel.cache[index] || null;
   }
 
-  // ===== ENHANCED CHARACTER CREATION =====
-  
   window.createCharacter = function() {
-    if (!window.scene) {
-      console.error('Scene not ready');
-      return;
-    }
+    if (!window.scene) { console.error('Scene not ready'); return; }
 
-    // Clean up current model properly
     if (currentMixer) {
-      try {
-        currentMixer.stopAllAction();
-        currentMixer.uncacheRoot(currentModel);
-      } catch(e) { console.log('Mixer cleanup:', e); }
+      try { currentMixer.stopAllAction(); currentMixer.uncacheRoot(currentModel); } catch(e) {}
       currentMixer = null;
     }
-    
+
     if (currentModel) {
       scene.remove(currentModel);
-      // Don't dispose if it's from cache - we want to keep the cache intact
-      if (!isFromCache(currentModel)) {
-        disposeObject(currentModel);
-      }
+      if (!isFromCache(currentModel)) disposeObject(currentModel);
       currentModel = null;
     }
 
@@ -1075,8 +545,6 @@
     }
 
     const index = window.currentCharacterIndex ?? 0;
-    
-    // Try to get from cache first
     const cached = getCharacterFromCache(index);
     if (cached) {
       console.log(`📦 Loading ${cached.config.name} from cache...`);
@@ -1084,55 +552,40 @@
       return;
     }
 
-    
-    // Fallback to direct loading
     console.log(`⏳ Loading ${window.characterConfigs[index]?.name} directly...`);
     loadCharacterDirectly();
   };
 
-  // Helper to check if model is from cache
   function isFromCache(model) {
     return model && model.userData && model.userData.fromCache === true;
   }
 
-  // Load character from cache with proper animation setup
   function loadFromCache(index, cached) {
     const { gltfData, config, targetHeight } = cached;
-    
-    // Use the original scene directly - don't clone!
+
     const root = gltfData.scene || gltfData.scenes?.[0];
-    if (!root) {
-      console.error('No scene in cached GLTF data');
-      return;
-    }
+    if (!root) { console.error('No scene in cached GLTF data'); return; }
 
-    // Remove from any previous parent first
-    if (root.parent) {
-      root.parent.remove(root);
-    }
+    if (root.parent) root.parent.remove(root);
 
-    // Only process if not already processed
     if (!root.userData.processed) {
-      // Center and scale
       centerAndScaleToHeight(root, targetHeight);
       if (config.scaleMul) root.scale.multiplyScalar(config.scaleMul);
 
-      // Apply Y offset
       root.userData = root.userData || {};
       if (config.y != null && !root.userData.yApplied) {
         root.position.y += config.y;
         root.userData.yApplied = true;
       }
       root.userData.baseY = root.position.y;
-      
-      // Setup mesh properties
+
       root.traverse(obj => {
         if (obj.isMesh) {
           obj.castShadow = true;
           obj.receiveShadow = true;
           obj.raycast = THREE.Mesh.prototype.raycast;
           obj.frustumCulled = false;
-          
+
           const storeMaterial = (material) => {
             if (!material) return;
             material.userData = material.userData || {};
@@ -1140,12 +593,9 @@
               material.userData._origEmissive = material.emissive.clone();
             }
           };
-          
-          if (Array.isArray(obj.material)) {
-            obj.material.forEach(storeMaterial);
-          } else {
-            storeMaterial(obj.material);
-          }
+
+          if (Array.isArray(obj.material)) obj.material.forEach(storeMaterial);
+          else storeMaterial(obj.material);
         }
       });
 
@@ -1155,19 +605,16 @@
 
     root.userData.fromCache = true;
     root.visible = true;
-    
-    // Create fresh animation mixer using original GLTF animations
+
     let freshMixer = null;
     if (gltfData.animations && gltfData.animations.length) {
       freshMixer = new THREE.AnimationMixer(root);
-      
       const clips = gltfData.animations;
       const baseClip = THREE.AnimationClip.findByName(clips, 'Idle') ||
                        THREE.AnimationClip.findByName(clips, 'idle') ||
                        clips[0];
-      
+
       if (baseClip) {
-        // Apply trimming settings
         const trimStart = Math.max(0, config.trimStart ?? 1.5);
         const trimEnd = Math.max(0, config.trimEnd ?? 2.0);
         const minDur = 0.05;
@@ -1176,15 +623,13 @@
         const fps = 30;
         const startFrame = Math.max(0, Math.floor(startSec * fps));
         const endFrame = Math.max(startFrame + 1, Math.ceil(endSec * fps));
-        
-        // Create trimmed clip with unique name
+
         const trimmedClip = THREE.AnimationUtils.subclip(
           baseClip,
           `${baseClip.name}_${index}_${Date.now()}`,
           startFrame, endFrame, fps
         );
-        
-        // Create and start the action
+
         const action = freshMixer.clipAction(trimmedClip);
         action.setLoop(THREE.LoopPingPong, Infinity);
         action.reset();
@@ -1192,25 +637,18 @@
         action.play();
         action.time = 1/60;
         freshMixer.update(0);
-        
-        console.log(`Animation created for ${config.name}: running=${action.isRunning()}, weight=${action.getEffectiveWeight()}`);
       }
     }
-    
-    // Add to scene and update references
+
     scene.add(root);
     currentModel = root;
     currentMixer = freshMixer;
     window.character = root;
-    
-    // Update camera framing
+
     frameCameraOnTargetHeight(camera, targetHeight, 1.4, 0.2);
     window.updateCharacterInfo();
-    
-    console.log(`${config.name} loaded from cache with preserved skeleton`);
   }
 
-  // Original character loading method (fallback)
   function loadCharacterDirectly() {
     const list = window.characterConfigs || [];
     const idx = (window.currentCharacterIndex ?? 0) % (list.length || 1);
@@ -1227,11 +665,9 @@
 
         const targetHeight = cfg.targetHeight ?? 1.8;
 
-        // Center/scale first
         centerAndScaleToHeight(root, targetHeight);
         if (cfg.scaleMul) root.scale.multiplyScalar(cfg.scaleMul);
 
-        // Apply per-character Y offset ONCE and cache the stable baseY
         root.userData = root.userData || {};
         if (cfg.y != null && !root.userData.yApplied) {
           root.position.y += cfg.y;
@@ -1239,7 +675,6 @@
         }
         root.userData.baseY = root.position.y;
 
-        // Make meshes raycast-friendly + cache original emissive
         root.traverse((o) => {
           if (!o.isMesh) return;
 
@@ -1255,23 +690,18 @@
               m.userData._origEmissive = m.emissive.clone();
             }
           };
-          if (Array.isArray(o.material)) {
-            o.material.forEach(store);
-          } else {
-            store(o.material);
-          }
+          if (Array.isArray(o.material)) o.material.forEach(store);
+          else store(o.material);
         });
 
         root.updateMatrixWorld(true);
 
-        // Animations
         if (gltf.animations && gltf.animations.length) {
           currentMixer = new THREE.AnimationMixer(root);
           const clips = gltf.animations;
-          const baseClip =
-            THREE.AnimationClip.findByName(clips, 'Idle') ||
-            THREE.AnimationClip.findByName(clips, 'idle') ||
-            clips[0];
+          const baseClip = THREE.AnimationClip.findByName(clips, 'Idle') ||
+                           THREE.AnimationClip.findByName(clips, 'idle') ||
+                           clips[0];
 
           const trimStart = Math.max(0, cfg.trimStart ?? 1.5);
           const trimEnd   = Math.max(0, cfg.trimEnd   ?? 2.0);
@@ -1281,6 +711,7 @@
           const fps = 30;
           const startFrame = Math.max(0, Math.floor(startSec * fps));
           const endFrame   = Math.max(startFrame + 1, Math.ceil(endSec * fps));
+
           const sub = THREE.AnimationUtils.subclip(
             baseClip,
             (baseClip.name || 'clip') + '_trim',
@@ -1288,17 +719,13 @@
           );
 
           const action = currentMixer.clipAction(sub);
-          action.setLoop(THREE.LoopPingPong, Infinity)
-                .reset()
-                .setEffectiveWeight(1)
-                .play();
+          action.setLoop(THREE.LoopPingPong, Infinity).reset().setEffectiveWeight(1).play();
           action.time = 1/60;
           currentMixer.update(0);
         } else {
           currentMixer = null;
         }
 
-        root.name = 'CHARACTER';
         scene.add(root);
         currentModel = root;
         window.character = root;
@@ -1332,46 +759,29 @@
     camera.updateProjectionMatrix();
   }
 
-    function tickAnimations() {
-      const dt = Math.min(clock.getDelta(), 0.033);
-      
-      // Update the current character's mixer
-      if (currentMixer) {
-        try {
-          currentMixer.update(dt);
-        } catch(e) {
-          console.warn('Animation update error:', e);
-        }
-      }
+  function tickAnimations() {
+    const dt = Math.min(clock.getDelta(), 0.033);
+    if (currentMixer) {
+      try { currentMixer.update(dt); } catch(e) {}
     }
+  }
 
   // ===== Character UI =====
   window.updateCharacterInfo = function() {
     const config = window.characterConfigs[window.currentCharacterIndex];
     const nameEl = document.getElementById('characterName');
-    const confirmBtn = document.querySelector('.character-confirm');
     if (!config || !nameEl) return;
     nameEl.textContent = config.name;
-    if (confirmBtn) {
-      const locked = config.status === 'Locked';
-      confirmBtn.disabled = locked;
-      confirmBtn.style.opacity = locked ? '0.5' : '1';
-      confirmBtn.textContent = locked ? 'Locked' : 'Select';
-    }
   };
 
   window.previousCharacter = function() {
-    console.log('🔄 Switching to previous character');
     window.currentCharacterIndex = (window.currentCharacterIndex - 1 + window.characterConfigs.length) % window.characterConfigs.length;
-    console.log(`Now showing index: ${window.currentCharacterIndex} (${window.characterConfigs[window.currentCharacterIndex]?.name})`);
     window.createCharacter?.();
     window.updateCharacterInfo();
   };
 
   window.nextCharacter = function() {
-    console.log('🔄 Switching to next character');
     window.currentCharacterIndex = (window.currentCharacterIndex + 1) % window.characterConfigs.length;
-    console.log(`Now showing index: ${window.currentCharacterIndex} (${window.characterConfigs[window.currentCharacterIndex]?.name})`);
     window.createCharacter?.();
     window.updateCharacterInfo();
   };
@@ -1396,95 +806,67 @@
     if (carousel.mode === 'view') enterCarousel();
   };
 
-    function enterCarousel() {
-      const c = document.getElementById('characterControls');
-      if (c) c.classList.add('show');
+  function enterCarousel() {
+    const c = document.getElementById('characterControls');
+    if (c) c.classList.add('show');
 
-      const L = scene.userData?.lights, LV = scene.userData?.lightLevels;
-      if (L && LV) {
-        L.hemi.intensity = LV.hemi * 0.25;
-        L.key.intensity  = LV.key  * 0.35;
-        L.fill.intensity = LV.fill * 0.25;
-        L.rim.intensity  = LV.rim  * 0.25;
-      }
-
-      // swap button: up -> tick
-      const btn = document.getElementById('enterCarouselBtn');
-      if (btn) {
-        btn.classList.add('tick');
-        btn.setAttribute('aria-label', 'Confirm Character');
-      }
-
-      carousel.mode = 'carousel';
-      attachSimpleSwipeInput();
+    const btn = document.getElementById('enterCarouselBtn');
+    if (btn) {
+      btn.classList.add('tick');
+      btn.setAttribute('aria-label', 'Confirm Character');
     }
 
-    function exitCarousel(commitSelection) {
-      detachSimpleSwipeInput();
+    carousel.mode = 'carousel';
+    attachSimpleSwipeInput();
+  }
 
-      const L = scene.userData?.lights, LV = scene.userData?.lightLevels;
-      if (L && LV) {
-        L.hemi.intensity = LV.hemi;
-        L.key.intensity  = LV.key;
-        L.fill.intensity = LV.fill;
-        L.rim.intensity  = LV.rim;
-      }
+  function exitCarousel() {
+    detachSimpleSwipeInput();
 
-      // swap button: tick -> up (remove .tick)
-      const btn = document.getElementById('enterCarouselBtn');
-      if (btn) {
-        btn.classList.remove('tick');
-        btn.setAttribute('aria-label', 'Choose Character');
-      }
-
-      carousel.mode = 'view';
-      window.hideCharacterControls();
+    const btn = document.getElementById('enterCarouselBtn');
+    if (btn) {
+      btn.classList.remove('tick');
+      btn.setAttribute('aria-label', 'Choose Character');
     }
 
-
+    carousel.mode = 'view';
+    window.hideCharacterControls();
+  }
 
   let simpleSwipe = { active: false, startX: 0, threshold: 50 };
 
   function attachSimpleSwipeInput() {
-    if (simpleSwipe.active) return;
-    
+    if (simpleSwipe.active || !renderer) return;
     const dom = renderer.domElement;
     simpleSwipe.active = true;
-    
-    function onStart(e) {
-      simpleSwipe.startX = e.touches ? e.touches[0].clientX : e.clientX;
-    }
-    
+
+    function onStart(e) { simpleSwipe.startX = e.touches ? e.touches[0].clientX : e.clientX; }
     function onEnd(e) {
       const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
       const deltaX = endX - simpleSwipe.startX;
-      
       if (Math.abs(deltaX) > simpleSwipe.threshold) {
-        if (deltaX > 0) {
-          window.previousCharacter();
-        } else {
-          window.nextCharacter();
-        }
+        if (deltaX > 0) window.previousCharacter();
+        else window.nextCharacter();
       }
     }
-    
+
     dom.addEventListener('touchstart', onStart);
     dom.addEventListener('touchend', onEnd);
     dom.addEventListener('mousedown', onStart);
     dom.addEventListener('mouseup', onEnd);
-    
+
     simpleSwipe.handlers = { onStart, onEnd, dom };
   }
 
   function detachSimpleSwipeInput() {
     if (!simpleSwipe.active || !simpleSwipe.handlers) return;
-    
     const { onStart, onEnd, dom } = simpleSwipe.handlers;
+
     dom.removeEventListener('touchstart', onStart);
     dom.removeEventListener('touchend', onEnd);
     dom.removeEventListener('mousedown', onStart);
     dom.removeEventListener('mouseup', onEnd);
-    
+
     simpleSwipe.active = false;
     simpleSwipe.handlers = null;
   }
@@ -1495,9 +877,13 @@
         node.geometry?.dispose?.();
         const mat = node.material;
         if (Array.isArray(mat)) {
-          mat.forEach(m => { m.map?.dispose?.(); m.normalMap?.dispose?.(); m.roughnessMap?.dispose?.(); m.metalnessMap?.dispose?.(); m.emissiveMap?.dispose?.(); m.dispose?.(); });
+          mat.forEach(m => {
+            m.map?.dispose?.(); m.normalMap?.dispose?.(); m.roughnessMap?.dispose?.();
+            m.metalnessMap?.dispose?.(); m.emissiveMap?.dispose?.(); m.dispose?.();
+          });
         } else if (mat) {
-          mat.map?.dispose?.(); mat.normalMap?.dispose?.(); mat.roughnessMap?.dispose?.(); mat.metalnessMap?.dispose?.(); mat.emissiveMap?.dispose?.(); mat.dispose?.();
+          mat.map?.dispose?.(); mat.normalMap?.dispose?.(); mat.roughnessMap?.dispose?.();
+          mat.metalnessMap?.dispose?.(); mat.emissiveMap?.dispose?.(); mat.dispose?.();
         }
       }
     });
@@ -1512,36 +898,17 @@
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 0, 5);
     window.camera = camera;
-    camera.layers.enable(1);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
 
     const container = document.getElementById('scene-container');
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // Lights
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a2a, 0.7); scene.add(hemi);
-    const key = new THREE.DirectionalLight(0xffffff, 1); key.position.set(5, 8, 6); key.castShadow = true; key.shadow.mapSize.set(2048,2048); key.shadow.camera.near=0.1; key.shadow.camera.far=50; scene.add(key);
-    const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(-4, 5, 6); scene.add(fill);
-    const rim  = new THREE.DirectionalLight(0x88aaff, 0.5); rim.position.set(-5, 2, -6); scene.add(rim);
-    
-    scene.userData.lights = { hemi, key, fill, rim };
-    scene.userData.lightLevels = {
-      hemi: hemi.intensity, key: key.intensity, fill: fill.intensity, rim: rim.intensity
-    };
-
-    // Raycasting
     raycaster = new THREE.Raycaster();
     mouseNDC = new THREE.Vector2();
 
-    // Events
     renderer.domElement.addEventListener('click', onCanvasClick);
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('mousemove', onMouseMove);
@@ -1554,9 +921,9 @@
     tickAnimations();
     renderer.render(scene, camera);
   }
-  
+
   let clickPreventUntil = 0;
-  
+
   function onCanvasClick(e) {
     if (performance.now() < clickPreventUntil) return;
 
@@ -1584,32 +951,6 @@
       window.onCharacterClick();
       return;
     }
-
-    // Fallback: screen-space AABB check
-    const box = new THREE.Box3().setFromObject(root);
-    if (!box.isEmpty()) {
-      const corners = [
-        new THREE.Vector3(box.min.x, box.min.y, box.min.z),
-        new THREE.Vector3(box.min.x, box.max.y, box.min.z),
-        new THREE.Vector3(box.max.x, box.min.y, box.min.z),
-        new THREE.Vector3(box.max.x, box.max.y, box.min.z),
-        new THREE.Vector3(box.min.x, box.min.y, box.max.z),
-        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
-        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
-        new THREE.Vector3(box.max.x, box.max.y, box.max.z),
-      ];
-      let minX =  Infinity, minY =  Infinity, maxX = -Infinity, maxY = -Infinity;
-      for (const v of corners) {
-        v.project(camera);
-        const sx = (v.x * 0.5 + 0.5) * rect.width  + rect.left;
-        const sy = (-v.y * 0.5 + 0.5) * rect.height + rect.top;
-        minX = Math.min(minX, sx); maxX = Math.max(maxX, sx);
-        minY = Math.min(minY, sy); maxY = Math.max(maxY, sy);
-      }
-      if (e.clientX >= minX && e.clientX <= maxX && e.clientY >= minY && e.clientY <= maxY) {
-        window.onCharacterClick();
-      }
-    }
   }
 
   function onWindowResize() {
@@ -1625,67 +966,30 @@
     checkHover();
   }
 
-  function selectorOpen() {
-    return !!document.getElementById('characterControls')?.classList.contains('show');
+  function checkHover() {
+    const root = currentModel || window.character;
+    if (!root || !camera || !renderer) return;
+
+    if (carousel.mode !== 'view') {
+      renderer.domElement.style.cursor = 'default';
+      if (lastHoverState) { setCharacterHighlight(false); lastHoverState = false; }
+      return;
+    }
+
+    raycaster.setFromCamera(mouseNDC, camera);
+    const hits = raycaster.intersectObject(root, true);
+    const isOverCharacterMesh = hits.length > 0;
+
+    if (isOverCharacterMesh !== lastHoverState) {
+      setCharacterHighlight(isOverCharacterMesh);
+      lastHoverState = isOverCharacterMesh;
+    }
   }
 
-    function checkHover() {
-      const root = currentModel || window.character;
-      if (!root || !camera || !renderer) return;
-
-      // Only allow hover-pointer in view mode
-      if (carousel.mode !== 'view') {
-        renderer.domElement.style.cursor = 'default';
-        if (lastHoverState) { setCharacterHighlight(false); lastHoverState = false; }
-        return;
-      }
-
-      // Raycast only against the actual model hierarchy (exact mesh hit)
-      raycaster.setFromCamera(mouseNDC, camera);
-      const hits = raycaster.intersectObject(root, true);
-
-      const isOverCharacterMesh = hits.length > 0;
-
-      if (isOverCharacterMesh !== lastHoverState) {
-        setCharacterHighlight(isOverCharacterMesh);
-        lastHoverState = isOverCharacterMesh;
-      }
-    }
-
-
-    function setCharacterHighlight(active) {
-      if (!window.scene || !window.character || !renderer) return;
-
-      // 🔑 Cursor ownership lives HERE
-      renderer.domElement.style.cursor = active ? 'pointer' : 'default';
-
-      if (active) {
-        if (!hoverLight) {
-          hoverLight = new THREE.PointLight(0x88aaff, 0.35, 3, 2);
-          hoverLight.castShadow = false;
-          hoverLight.position.set(0, 1.2, 1.6);
-          window.character.add(hoverLight);
-        }
-      } else {
-        if (hoverLight) {
-          hoverLight.parent?.remove(hoverLight);
-          hoverLight = null;
-        }
-
-        window.character.traverse(obj => {
-          if (!obj.isMesh || !obj.material) return;
-          const restore = (m) => {
-            if (!m) return;
-            if ('emissive' in m) {
-              const orig = m.userData && m.userData._origEmissive;
-              if (orig) m.emissive.copy(orig);
-            }
-          };
-          if (Array.isArray(obj.material)) obj.material.forEach(restore);
-          else restore(obj.material);
-        });
-      }
-    }
+  function setCharacterHighlight(active) {
+    if (!window.scene || !window.character || !renderer) return;
+    renderer.domElement.style.cursor = active ? 'pointer' : 'default';
+  }
 
   function setFixedTitleWidth(ghostString) {
     const nameEl = document.getElementById('characterName');
@@ -1702,386 +1006,196 @@
     const width = Math.ceil(measurer.getBoundingClientRect().width);
     document.body.removeChild(measurer);
     document.documentElement.style.setProperty('--title-width', width + 'px');
-    const info = document.querySelector('.character-info'); if (info) { void getComputedStyle(info).width; }
   }
 
-    function toggleMenu() { document.getElementById('menuTray').classList.toggle('open');
-        
-    }
-    async function handleLogin() {
-      const modal = document.getElementById('loginModal');
-      if (!modal || !window.supa) return;
+  function toggleMenu() {
+    document.getElementById('menuTray').classList.toggle('open');
+  }
 
-      const loggedInView = document.getElementById('accountLoggedIn');
-      const loginForm    = document.getElementById('loginForm');
-      const emailEl      = document.getElementById('accountEmail');
+  async function handleLogin() {
+    const modal = document.getElementById('loginModal');
+    if (!modal || !window.supa) return;
 
-      const { data: { user } } = await window.supa.auth.getUser();
+    const loggedInView = document.getElementById('accountLoggedIn');
+    const loginForm    = document.getElementById('loginForm');
+    const emailEl      = document.getElementById('accountEmail');
 
-      if (user) {
-        if (emailEl) emailEl.textContent = user.email || '';
-        if (loggedInView) loggedInView.style.display = 'block';
-        if (loginForm) loginForm.style.display = 'none';
-      } else {
-        if (loggedInView) loggedInView.style.display = 'none';
-        if (loginForm) loginForm.style.display = 'block';
-      }
+    const { data: { user } } = await window.supa.auth.getUser();
 
-      modal.classList.add('show');
+    if (user) {
+      if (emailEl) emailEl.textContent = user.email || '';
+      if (loggedInView) loggedInView.style.display = 'block';
+      if (loginForm) loginForm.style.display = 'none';
+    } else {
+      if (loggedInView) loggedInView.style.display = 'none';
+      if (loginForm) loginForm.style.display = 'block';
     }
 
+    modal.classList.add('show');
+  }
 
-    function closeLoginModal() { document.getElementById('loginModal').classList.remove('show');
+  function closeLoginModal() {
+    document.getElementById('loginModal').classList.remove('show');
+  }
+
+  async function logout() {
+    try {
+      await window.supa?.auth?.signOut();
+      closeLoginModal();
+    } catch (e) {
+      console.error('[auth] signOut failed', e);
     }
-    
-    async function logout() {
+  }
+
+  document.addEventListener('click', function(e) {
+    const tray = document.getElementById('menuTray');
+    const btn = document.querySelector('.menu-button');
+    if (tray && !tray.contains(e.target) && !btn.contains(e.target)) tray.classList.remove('open');
+  });
+
+  document.getElementById('loginModal').addEventListener('click', function(e) {
+    if (e.target === this) closeLoginModal();
+  });
+
+  document.getElementById('logoutBtn')?.addEventListener('click', logout);
+
+  // ===== Mobile zoom suppression =====
+  (function () {
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (e) {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) e.preventDefault();
+      lastTouchEnd = now;
+    }, { passive: false });
+  })();
+  document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
+  document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+  document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
+  document.addEventListener('touchstart', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove', function (e) { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
+
+  function escapeHtml(str) {
+    return String(str || "").replace(/[&<>"']/g, (m) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[m]));
+  }
+
+  function showCheckEmailUI(email) {
+    const modal = document.getElementById('loginModal');
+    if (!modal) return;
+    const card = modal.querySelector('.login-modal');
+    if (!card) return;
+
+    card.innerHTML = `
+      <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
+      <h2 style="margin: 8px 0 10px; text-align:center;">Check your email</h2>
+      <p style="font-size:14px; opacity:0.8; margin:0 0 12px; line-height:1.45; text-align:center;">
+        We sent a login link to <strong>${escapeHtml(email)}</strong>.
+      </p>
+    `;
+
+    modal.classList.add('show');
+  }
+
+  (function () {
+    const emailInput = document.getElementById('loginEmail');
+    const loginBtn   = document.getElementById('loginSubmit');
+    if (!emailInput || !loginBtn) return;
+
+    loginBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const email = (emailInput.value || '').trim();
+      if (!email) return alert('Enter your email');
+      if (!window.supa?.auth) return alert('Auth not initialized');
+
+      loginBtn.disabled = true; const old = loginBtn.textContent; loginBtn.textContent = 'Sending…';
+      const { error } = await supa.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: window.location.origin }
+      });
+      loginBtn.disabled = false; loginBtn.textContent = old;
+
+      if (error) alert(error.message);
+      else showCheckEmailUI(email);
+    });
+  })();
+
+  // click behavior
+  document.getElementById('enterCarouselBtn')?.addEventListener('click', () => {
+    if (carousel.mode === 'view') window.onCharacterClick?.();
+    else window.confirmCharacter?.();
+  });
+
+  /* ============================================================
+     HERO VIDEO AUTOPLAY (single controller)
+     - Removed the diagnostic logger (it was calling v.play() again)
+     - Only one autoplay controller exists now
+     - NEVER calls video.load()
+     ============================================================ */
+  (function () {
+    const v = document.getElementById("heroVideo");
+    if (!v) return;
+
+    // assert autoplay-friendly state
+    v.muted = true;
+    v.defaultMuted = true;
+    v.autoplay = true;
+    v.loop = true;
+    v.playsInline = true;
+
+    v.setAttribute("muted", "");
+    v.setAttribute("playsinline", "");
+    v.setAttribute("webkit-playsinline", "");
+
+    v.controls = false;
+    v.disablePictureInPicture = true;
+
+    let started = false;
+    let armingUnlock = false;
+
+    async function attempt() {
+      if (started || !v.paused) return;
+      if (v.readyState < 2) return;
+
       try {
-        await window.supa?.auth?.signOut();
-        closeLoginModal();
-      } catch (e) {
-        console.error('[auth] signOut failed', e);
+        await v.play();
+        started = true;
+        disarmUnlock();
+      } catch (_) {
+        armUnlock();
       }
     }
 
-
-    function switchTab(tab) {
-      const tabs = document.querySelectorAll('.modal-tab');
-      const loginForm = document.getElementById('loginForm');
- 
-    }
-
-    document.addEventListener('click', function(e) {
-      const tray = document.getElementById('menuTray');
-      const btn = document.querySelector('.menu-button');
-      if (tray && !tray.contains(e.target) && !btn.contains(e.target)) tray.classList.remove('open');
-    });
-    document.getElementById('loginModal').addEventListener('click', function(e) { if (e.target === this) closeLoginModal(); });
-
-    
-    document.getElementById('logoutBtn')?.addEventListener('click', logout);
-
-   
-
-
-
-    
-    
- 
-
-    // ===== Mobile zoom suppression =====
-    (function () {
-      let lastTouchEnd = 0;
-      document.addEventListener('touchend', function (e) {
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) e.preventDefault();
-        lastTouchEnd = now;
-      }, { passive: false });
-    })();
-    document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
-    document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
-    document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
-    document.addEventListener('touchstart', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
-    document.addEventListener('touchmove', function (e) { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
-    // Login form handler
-
-    function escapeHtml(str) {
-      return String(str || "").replace(/[&<>"']/g, (m) => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-      }[m]));
-    }
-
-    function showCheckEmailUI(email) {
-      const modal = document.getElementById('loginModal');
-      if (!modal) return;
-
-      // Reuse the same modal container you already have:
-      const card = modal.querySelector('.login-modal');
-      if (!card) return;
-
-      // Replace the modal contents with the “Check your email” screen
-      card.innerHTML = `
-       
-
-
-        <h2 style="margin: 8px 0 10px; text-align:center;">Check your email</h2>
-        <p style="font-size:14px; opacity:0.8; margin:0 0 12px; line-height:1.45; text-align:center;">
-          We sent a login link to <strong>${escapeHtml(email)}</strong>.
-        </p>
-        
-
-       
-      `;
-
-      // Wire close/back
-      card.querySelector('.modal-close')?.addEventListener('click', closeLoginModal);
-      card.querySelector('#backToLoginBtn')?.addEventListener('click', () => {
-        // simplest: reload the page to restore the original login modal markup
-        // (or re-render the original login modal HTML if you prefer)
-        window.location.reload();
-      });
-
-      modal.classList.add('show');
-    }
-
-
-    (function () {
-        const emailInput = document.getElementById('loginEmail');   // your modal email input
-        const loginBtn   = document.getElementById('loginSubmit');  // your modal button
-
-        if (!emailInput || !loginBtn) return; // modal not on this page
-
-        
-        function magicRedirect() {
-          const isInIframe = window !== window.top;
-          // Changed from /packs to /landing-page/
-          return isInIframe
-            ? 'https://ouchworld.netlify.app/landing-page/'
-            : `${location.origin}/landing-page/`;
-        }
-
-        loginBtn.addEventListener('click', async (e) => {
-          e.preventDefault();
-          const email = (emailInput.value || '').trim();
-          if (!email) return alert('Enter your email');
-          if (!window.supa?.auth) return alert('Auth not initialized');
-
-          loginBtn.disabled = true; const old = loginBtn.textContent; loginBtn.textContent = 'Sending…';
-          const { error } = await supa.auth.signInWithOtp({
-              email,
-              options: {
-                emailRedirectTo: window.location.origin
-              }
-            });
-
-          loginBtn.disabled = false; loginBtn.textContent = old;
-
-          if (error) {
-            // keep your existing error handling, or set text in a <p id="loginError">
-            alert(error.message);
-          } else {
-            showCheckEmailUI(email);
-          }
-
-        });
-    })();
-    // click behavior
-    document.getElementById('enterCarouselBtn')?.addEventListener('click', () => {
-      if (carousel.mode === 'view') window.onCharacterClick?.();   // enter carousel
-      else window.confirmCharacter?.();                             // confirm & exit
-    });
-
-    // in enterCarousel(): add the 'tick' class
-    /*    const btn = document.getElementById('enterCarouselBtn');
-    if (btn) {
-      btn.classList.add('tick');
-      btn.setAttribute('aria-label', 'Confirm Character');
-    }
-
-    // in exitCarousel(): remove 'tick'
-    if (btn) {
-      btn.classList.remove('tick');
-      btn.setAttribute('aria-label', 'Choose Character');
-    }
-
-    // ===== Audio player (play/pause + scrubber) =====
-   /* (function () {
-      const playBtn       = document.getElementById('playPauseButton');
-      const audioEl       = document.getElementById('mysteryGiftAudio');
-      const seekBar       = document.getElementById('audioSeek');
-      const currentTimeEl = document.getElementById('audioCurrentTime');
-      const durationEl    = document.getElementById('audioDuration');
-
-      if (!playBtn || !audioEl) return;
-
-      // If you haven't already, consider: preload="auto" on the <audio> tag
-      // <audio id="mysteryGiftAudio" preload="auto" src="/audio/Sloucho_MysteryStream.mp3" ...>
-
-      function formatTime(seconds) {
-        if (!isFinite(seconds)) return '0:00';
-        const m = Math.floor(seconds / 60);
-        const s = Math.floor(seconds % 60);
-        return `${m}:${s.toString().padStart(2, '0')}`;
-      }
-
-      function updateButton() {
-        const isPlaying = !(audioEl.paused || audioEl.ended);
-        playBtn.classList.toggle('playing', isPlaying);
-        playBtn.setAttribute('aria-label', isPlaying ? 'Pause audio' : 'Play audio');
-      }
-
-      playBtn.addEventListener('click', async () => {
-        try {
-          if (audioEl.paused || audioEl.ended) {
-            await audioEl.play();
-          } else {
-            audioEl.pause();
-          }
-        } catch (err) {
-          console.error('Audio play failed:', err);
-        }
-      });
-
-      // Scrubber setup
-      let isSeeking = false;
-
-      audioEl.addEventListener('loadedmetadata', () => {
-        if (seekBar) {
-          seekBar.max = audioEl.duration.toString();
-        }
-        if (durationEl) {
-          durationEl.textContent = formatTime(audioEl.duration);
-        }
-      });
-
-      audioEl.addEventListener('timeupdate', () => {
-        if (seekBar && !isSeeking) {
-          seekBar.value = audioEl.currentTime.toString();
-        }
-        if (currentTimeEl) {
-          currentTimeEl.textContent = formatTime(audioEl.currentTime);
-        }
-      });
-
-      if (seekBar) {
-        // While dragging: update label only
-        seekBar.addEventListener('input', () => {
-          isSeeking = true;
-          if (currentTimeEl) {
-            currentTimeEl.textContent = formatTime(Number(seekBar.value));
-          }
-        });
-
-        // On release: actually seek
-        seekBar.addEventListener('change', () => {
-          audioEl.currentTime = Number(seekBar.value);
-          isSeeking = false;
-        });
-      }
-
-      audioEl.addEventListener('play', updateButton);
-      audioEl.addEventListener('pause', updateButton);
-      audioEl.addEventListener('ended', () => {
-        audioEl.currentTime = 0;
-        if (seekBar) seekBar.value = '0';
-        if (currentTimeEl) currentTimeEl.textContent = '0:00';
-        updateButton();
-      });
-
-      // Initial state
-      if (currentTimeEl) currentTimeEl.textContent = '0:00';
-      if (durationEl) durationEl.textContent = '0:00';
-      updateButton();
-    })(); */
-
-  
- 
-
-
- (function () {
-   const v = document.getElementById("heroVideo");
-   if (!v) return;
-
-   // Assert autoplay-friendly state
-   v.muted = true;
-   v.defaultMuted = true;
-   v.autoplay = true;
-   v.loop = true;
-   v.playsInline = true;
-
-   v.setAttribute("muted", "");
-   v.setAttribute("playsinline", "");
-   v.setAttribute("webkit-playsinline", "");
-   v.controls = false;
-   v.disablePictureInPicture = true;
-
-   let started = false;
-   let armingUnlock = false;
-
-   async function attempt() {
-     // If it already started, do nothing (prevents play/pause loops)
-     if (started || !v.paused) return;
-
-     // Safari is happier once it has data
-     if (v.readyState < 2) return;
-
-     try {
-       await v.play();
-       started = true;
-       disarmUnlock();
-     } catch (err) {
-       // Autoplay blocked by policy/settings -> wait for a real user gesture
-       armUnlock();
-     }
-   }
-
-   function unlock() {
-     v.muted = true;
-     v.play().then(() => { started = true; }).catch(() => {});
-   }
-
-   function armUnlock() {
-     if (armingUnlock) return;
-     armingUnlock = true;
-     window.addEventListener("pointerdown", unlock, { once: true, capture: true });
-     window.addEventListener("keydown", unlock, { once: true, capture: true });
-   }
-
-   function disarmUnlock() {
-     if (!armingUnlock) return;
-     armingUnlock = false;
-     window.removeEventListener("pointerdown", unlock, { capture: true });
-     window.removeEventListener("keydown", unlock, { capture: true });
-   }
-
-   // Trigger at sensible times (but never "load()")
-   v.addEventListener("loadeddata", attempt);
-   v.addEventListener("canplay", attempt);
-   window.addEventListener("load", attempt, { once: true });
-   document.addEventListener("visibilitychange", () => {
-     if (!document.hidden) attempt();
-   });
-
-   // First attempt
-   attempt();
- })();
-
-
-    
-
-    (function () {
-      const v = document.getElementById('heroVideo');
-      if (!v) return;
-
+    function unlock() {
       v.muted = true;
-      v.defaultMuted = true;
+      v.play().then(() => { started = true; }).catch(() => {});
+    }
 
-      const log = (msg, extra) => console.log('[heroVideo]', msg, extra || '');
+    function armUnlock() {
+      if (armingUnlock) return;
+      armingUnlock = true;
+      window.addEventListener("pointerdown", unlock, { once: true, capture: true });
+      window.addEventListener("keydown", unlock, { once: true, capture: true });
+    }
 
-      ['loadstart','loadedmetadata','loadeddata','canplay','canplaythrough','play','playing','pause','stalled','error']
-        .forEach(ev => v.addEventListener(ev, () => log(ev, { readyState: v.readyState, paused: v.paused })));
+    function disarmUnlock() {
+      if (!armingUnlock) return;
+      armingUnlock = false;
+      window.removeEventListener("pointerdown", unlock, { capture: true });
+      window.removeEventListener("keydown", unlock, { capture: true });
+    }
 
-      const p = v.play();
-      if (p && p.catch) {
-        p.catch(err => {
-          log('play() rejected', {
-            name: err?.name,
-            message: err?.message,
-            code: err?.code
-          });
-        });
-      }
-    })();
+    v.addEventListener("loadeddata", attempt);
+    v.addEventListener("canplay", attempt);
+    window.addEventListener("load", attempt, { once: true });
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) attempt(); });
 
-
-
-
-
-   
-
+    attempt();
+  })();
 </script>
 
 </body>
