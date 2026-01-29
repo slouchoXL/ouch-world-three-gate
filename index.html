@@ -1754,32 +1754,37 @@
     
     document.getElementById('logoutBtn')?.addEventListener('click', logout);
 
-    window.addEventListener("load", () => {
-      const video = document.getElementById("heroVideo");
-      if (!video) return;
+    window.addEventListener("load", (() => {
+        const video = document.getElementById("heroVideo");
+        if (!video) return;
 
-      video.muted = true; // re-assert (important)
-      video.setAttribute("muted", ""); // Safari quirk
-      video.setAttribute("playsinline", "");
+        // Assert autoplay prerequisites *immediately*
+        video.muted = true;
+        video.defaultMuted = true;
+        video.autoplay = true;
 
-      const tryPlay = () => {
-        const p = video.play();
-        if (p !== undefined) {
-          p.catch(() => {
-            // If autoplay is still blocked, retry on first interaction
-            const unlock = () => {
-              video.play();
-              document.removeEventListener("click", unlock);
-              document.removeEventListener("touchstart", unlock);
-            };
-            document.addEventListener("click", unlock, { once: true });
-            document.addEventListener("touchstart", unlock, { once: true });
-          });
+        video.setAttribute("muted", "");
+        video.setAttribute("playsinline", "");
+        video.setAttribute("webkit-playsinline", ""); // iOS Safari quirk
+
+        const tryPlay = () => {
+          const p = video.play();
+          if (p && typeof p.catch === "function") {
+            p.catch((err) => {
+              // If this logs, the browser is blocking autoplay (Low Power Mode, Data Saver, policy, etc.)
+              console.warn("[heroVideo] autoplay blocked:", err);
+            });
+          }
+        };
+
+        // Try as early as possible, then again when the video is actually ready
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", tryPlay, { once: true });
+        } else {
+          tryPlay();
         }
-      };
-
-      tryPlay();
-    });
+        video.addEventListener("canplay", tryPlay, { once: true });
+      })();
 
 
     
