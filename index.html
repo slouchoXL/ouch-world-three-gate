@@ -638,8 +638,10 @@
     })();
 
     // ===== Media Session (Lock Screen) =====
-    function updateMediaSessionMetadata(track) {
+    function updateMediaSessionMetadata(rawTrack) {
       if (!("mediaSession" in navigator)) return;
+
+      const track = normalizeTrack(rawTrack); // <-- force normalize here
 
       const title =
         track?.title ||
@@ -664,6 +666,7 @@
         ]
       });
     }
+
 
 
     // ===== HOME AUDIO — LIVE STATION =====
@@ -793,9 +796,9 @@
       function normalizeTrack(raw) {
         const full = (raw?.title || "").trim();
 
-        // Split on FIRST " - " only
-        const idx = full.indexOf(" - ");
-        if (idx === -1) {
+        // split on first dash separator: " - " / " – " / " — "
+        const m = full.match(/\s[-–—]\s/);
+        if (!m) {
           return {
             ...raw,
             artist: raw?.artist || "Sloucho",
@@ -803,15 +806,19 @@
           };
         }
 
-        const artist = full.slice(0, idx).trim();
-        const title = full.slice(idx + 3).trim();
+        const idx = m.index;           // position of separator
+        const sepLen = m[0].length;    // length of matched separator
+
+        const parsedArtist = full.slice(0, idx).trim();
+        const parsedTitle = full.slice(idx + sepLen).trim();
 
         return {
           ...raw,
-          artist: raw?.artist || artist || "Sloucho",
-          title: title || "OUCH™",
+          artist: raw?.artist || parsedArtist || "Sloucho",
+          title: parsedTitle || "OUCH™",
         };
       }
+
 
       
       function dayKeyForSeed(startMs) {
