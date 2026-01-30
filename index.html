@@ -347,7 +347,7 @@
         disablepictureinpicture
         controlslist="nodownload noplaybackrate noremoteplayback"
       >
-        <source src="/assets/TypingHero_bg.mp4" type="video/mp4" />
+        <source src="/assets/HeroNew_bg.mp4" type="video/mp4" />
       </video>
     </div>
 
@@ -1264,13 +1264,17 @@
     const v = document.getElementById("heroVideo");
     if (!layer || !v) return;
 
-    // enforce autoplay-friendly state
+    // enforce autoplay-friendly state (must be true BEFORE play())
     v.muted = true;
     v.defaultMuted = true;
+    v.autoplay = true;
     v.playsInline = true;
+
     v.setAttribute("muted", "");
+    v.setAttribute("autoplay", "");
     v.setAttribute("playsinline", "");
     v.setAttribute("webkit-playsinline", "");
+
     v.disablePictureInPicture = true;
     v.controls = false;
 
@@ -1285,37 +1289,59 @@
 
     async function tryPlay() {
       if (started) return;
+
+      // IMPORTANT: don't call play() too early on Safari desktop
+      // Wait until we have at least current data.
+      if (v.readyState < 2) return;
+
       try {
         const p = v.play();
         if (p && p.then) await p;
-        // Some Safari cases fire 'playing' a tick later; class will be applied then.
-        // But if play resolved, we can safely mark now too.
-        markPlaying();
+
+        // Only mark as playing if it actually started
+        if (!v.paused) markPlaying();
       } catch (e) {
         addUnlockers();
       }
     }
 
-    const unlockEvents = ["pointerdown","mousedown","touchstart","keydown","click"];
-
+    const unlockEvents = [
+      "pointerdown",
+      "mousedown",
+      "touchstart",
+      "keydown",
+      "wheel",
+      "scroll"
+    ];
 
     function addUnlockers() {
-      unlockEvents.forEach(ev => window.addEventListener(ev, tryPlay, { capture: true, once: true }));
-    }
-    function removeUnlockers() {
-      unlockEvents.forEach(ev => window.removeEventListener(ev, tryPlay, { capture: true }));
+      unlockEvents.forEach(ev =>
+        window.addEventListener(ev, tryPlay, { capture: true, once: true })
+      );
     }
 
+    function removeUnlockers() {
+      unlockEvents.forEach(ev =>
+        window.removeEventListener(ev, tryPlay, { capture: true })
+      );
+    }
+
+    // If Safari delays actual playback, this is the authoritative signal
     v.addEventListener("playing", markPlaying, { once: true });
 
-    // attempt autoplay early + on return to tab
+    // 🔑 RETRY when the video becomes playable (this is what you're missing)
+    v.addEventListener("loadeddata", tryPlay);
+    v.addEventListener("canplay", tryPlay);
+    v.addEventListener("canplaythrough", tryPlay);
+
+    // attempt autoplay
     tryPlay();
     window.addEventListener("load", tryPlay, { once: true });
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) tryPlay();
     });
   })();
-  
+
 
  
 
