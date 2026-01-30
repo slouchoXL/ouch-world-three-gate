@@ -321,7 +321,7 @@
         bottom: 40px;
         z-index: 110;
 
-        width: clamp(220px, 62vw, 280px);
+        width: clamp(180px, 62vw, 280px);
         padding: 8px 14px;
 
         background: rgba(0,0,0,0.75);
@@ -1286,15 +1286,28 @@
     });
   })();
 
-    /* ============================================================
-       HOME AUDIO — autoplay muted + mute/unmute button
-       ============================================================ */
-    /* ============================================================
-       HOME AUDIO — LIVE STATION (06:00 Dublin start)
-       - Deterministic shuffle: plays all tracks once, then reshuffles
-       - Visitors hear the same track + offset at the same time
-       - Keeps your existing speaker button mute/unmute behavior
-       ============================================================ */
+    function updateMediaSessionMetadata(track) {
+      if (!('mediaSession' in navigator)) return;
+
+      const title = track?.title || document.getElementById("nowPlayingTitle")?.textContent?.trim() || "OUCH™";
+
+      // Absolute URLs are best for iOS lock screen reliability
+      const art = `${location.origin}/assets/metadata.png`;
+
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title,
+        artist: "Sloucho",
+        album: "Broken Spirit",
+        artwork: [
+          { src: art, sizes: "96x96", type: "image/png" },
+          { src: art, sizes: "192x192", type: "image/png" },
+          { src: art, sizes: "512x512", type: "image/png" }
+        ]
+      });
+    }
+
+
+
     (function () {
       const audioEl = document.getElementById("mysteryGiftAudio");
       const btn = document.getElementById("enterCarouselBtn");
@@ -1312,7 +1325,7 @@
         "/assets/music/Sloucho_PowerPlant.mp3" },
         { title: "Sloucho - Rhinestones (ft. Lil Skag & Ahmed, with Love)", dur: 178, src: "/assets/music/Sloucho_Rhinestones.mp3" },
         { title: "Sloucho - Rocks (ft. Zack Oke + Vatican Jail)", dur: 171, src: "/assets/music/Sloucho_Rocks.mp3" },
-        { title: "Sloucho - Slow Feet 3", dur: 246, src: 
+        { title: "Sloucho - Slow Feet", dur: 246, src:
         "/assets/music/Sloucho_SlowFeet.mp3" },
         { title: "Sloucho - Super Maramu 2000", dur: 264, src: "/assets/music/Sloucho_SuperMaramu2000.mp3" },
         { title: "Sloucho - techno party", dur: 177, src: 
@@ -1511,6 +1524,7 @@
         audioEl.load();
 
         updateNowPlaying(track.title);
+        updateMediaSessionMetadata(track);
 
         await new Promise((resolve) => {
           const onMeta = () => { audioEl.removeEventListener("loadedmetadata", onMeta); resolve(); };
@@ -1564,6 +1578,21 @@
       }
 
       audioEl.addEventListener("ended", playNext);
+      audioEl.addEventListener("play", () => {
+        if ("mediaSession" in navigator) {
+          navigator.mediaSession.playbackState = "playing";
+        }
+
+        // iOS-friendly: refresh metadata right when playback starts
+        updateMediaSessionMetadata(station?.order?.[station?.trackIndex]);
+      });
+
+      audioEl.addEventListener("pause", () => {
+        if ("mediaSession" in navigator) {
+          navigator.mediaSession.playbackState = "paused";
+        }
+      });
+
 
       // ---- keep your existing autoplay-muted unlock logic ----
       audioEl.muted = true;
