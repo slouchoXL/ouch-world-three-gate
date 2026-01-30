@@ -311,18 +311,38 @@
     /* Hide the old GLB canvas layer */
     #scene-container { display: none; }
     
-    #heroWebp{
+    #heroLayer{
       position: fixed;
       inset: 0;
-      background: url("/assets/hero.webp") center / cover no-repeat;
       z-index: 0;
       pointer-events: none;
-      opacity: 0;                 /* hidden by default */
+      background: url("/assets/hero_poster.jpg") center / cover no-repeat;
+      background-color: #000;
     }
 
-    /* On Safari, show WebP and hide video BEFORE it can paint */
-    html.safari #heroWebp { opacity: 1; }
-    html.safari #heroVideo { display: none !important; }
+    #heroVideo{
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+
+      /* hidden until actually playing (prevents play icon flash) */
+      opacity: 0;
+      transition: opacity 220ms ease;
+    }
+
+    #heroLayer.is-playing #heroVideo{
+      opacity: 1;
+    }
+
+    /* Hide native controls overlays */
+    #heroVideo::-webkit-media-controls,
+    #heroVideo::-webkit-media-controls-panel{
+      display: none !important;
+      -webkit-appearance: none;
+    }
+
 
 
   </style>
@@ -331,19 +351,21 @@
 
     <div id="heroWebp" aria-hidden="true"></div>
 
-  <video
-    id="heroVideo"
-    autoplay
-    muted
-    loop
-    playsinline
-    preload="auto"
-    disablepictureinpicture
-    controlslist="nodownload noplaybackrate noremoteplayback"
-    aria-hidden="true"
-  >
-    <source src="/assets/hero.mp4" type="video/mp4" />
-  </video>
+    <div id="heroLayer" aria-hidden="true">
+      <video
+        id="heroVideo"
+        muted
+        playsinline
+        webkit-playsinline
+        loop
+        preload="auto"
+        disablepictureinpicture
+        controlslist="nodownload noplaybackrate noremoteplayback"
+      >
+        <source src="/assets/TypingHero_bg.mp4" type="video/mp4" />
+      </video>
+    </div>
+
   
 
 
@@ -1251,69 +1273,64 @@
      - NEVER calls video.load()
      ============================================================ */
   
-    (function () {
-      const v = document.getElementById("heroVideo");
-      if (!v) return;
 
-      // Required flags
-      v.muted = true;
-      v.defaultMuted = true;
-      v.playsInline = true;
-      v.setAttribute("muted", "");
-      v.setAttribute("playsinline", "");
-      v.setAttribute("webkit-playsinline", "");
-      v.disablePictureInPicture = true;
-      v.controls = false;
+  (function () {
+    const layer = document.getElementById("heroLayer");
+    const v = document.getElementById("heroVideo");
+    if (!layer || !v) return;
 
-      let started = false;
+    // enforce autoplay-friendly state
+    v.muted = true;
+    v.defaultMuted = true;
+    v.playsInline = true;
+    v.setAttribute("muted", "");
+    v.setAttribute("playsinline", "");
+    v.setAttribute("webkit-playsinline", "");
+    v.disablePictureInPicture = true;
+    v.controls = false;
 
-      async function tryPlay() {
-        if (started || !v.paused) { started = true; return; }
-        try {
-          // Don't require readyState; Safari sometimes succeeds earlier
-          await v.play();
-          started = true;
-          removeUnlockers();
-        } catch (_) {
-          // blocked -> wait for gesture
-        }
+    let started = false;
+
+    function markPlaying() {
+      if (started) return;
+      started = true;
+      layer.classList.add("is-playing");
+      removeUnlockers();
+    }
+
+    async function tryPlay() {
+      if (started) return;
+      try {
+        const p = v.play();
+        if (p && p.then) await p;
+        // Some Safari cases fire 'playing' a tick later; class will be applied then.
+        // But if play resolved, we can safely mark now too.
+        markPlaying();
+      } catch (e) {
+        addUnlockers();
       }
+    }
 
-      function unlock() { tryPlay(); }
+    const unlockEvents = ["pointerdown","mousedown","touchstart","keydown","wheel","scroll","mousemove"];
 
-      function addUnlockers() {
-        // Use MANY events — Safari can be picky about what counts as "gesture"
-        window.addEventListener("pointerdown", unlock, { capture: true, once: true });
-        window.addEventListener("mousedown",   unlock, { capture: true, once: true });
-        window.addEventListener("touchstart",  unlock, { capture: true, once: true });
-        window.addEventListener("keydown",     unlock, { capture: true, once: true });
-        window.addEventListener("wheel",       unlock, { capture: true, once: true });
-        window.addEventListener("scroll",      unlock, { capture: true, once: true });
-      }
+    function addUnlockers() {
+      unlockEvents.forEach(ev => window.addEventListener(ev, tryPlay, { capture: true, once: true }));
+    }
+    function removeUnlockers() {
+      unlockEvents.forEach(ev => window.removeEventListener(ev, tryPlay, { capture: true }));
+    }
 
-      function removeUnlockers() {
-        window.removeEventListener("pointerdown", unlock, { capture: true });
-        window.removeEventListener("mousedown",   unlock, { capture: true });
-        window.removeEventListener("touchstart",  unlock, { capture: true });
-        window.removeEventListener("keydown",     unlock, { capture: true });
-        window.removeEventListener("wheel",       unlock, { capture: true });
-        window.removeEventListener("scroll",      unlock, { capture: true });
-      }
+    v.addEventListener("playing", markPlaying, { once: true });
 
-      // Try immediately (works when Safari allows autoplay)
-      tryPlay();
+    // attempt autoplay early + on return to tab
+    tryPlay();
+    window.addEventListener("load", tryPlay, { once: true });
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) tryPlay();
+    });
+  })();
+  
 
-      // Try again when resources become available
-      v.addEventListener("loadeddata", tryPlay);
-      v.addEventListener("canplay", tryPlay);
-      window.addEventListener("load", tryPlay, { once: true });
-      document.addEventListener("visibilitychange", () => {
-        if (!document.hidden) tryPlay();
-      });
-
-      // Arm the gesture unlock fallback
-      addUnlockers();
-    })();
  
 
 </script>
