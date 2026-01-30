@@ -321,7 +321,7 @@
         bottom: 40px;
         z-index: 110;
 
-        width: min(360px, calc(100vw - 40px));
+        width: clamp(220px, 62vw, 280px);
         padding: 8px 14px;
 
         background: rgba(0,0,0,0.75);
@@ -348,15 +348,21 @@
         opacity: 0.9;
       }
 
-      /* Marquee window (clips scrolling text) */
       .now-playing .np-marquee{
-        flex: 1 1 auto;           /* ✅ takes remaining width */
-        overflow: hidden;         /* ✅ clip */
+        flex: 1 1 auto;
+        overflow: hidden;
         white-space: nowrap;
         position: relative;
-        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%);
-          mask-image: linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%);
+        -webkit-mask-image: none;
+        mask-image: none;
       }
+
+      /* only fade edges when actually scrolling */
+      .now-playing.is-scrolling .np-marquee{
+        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
+        mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
+      }
+
 
       /* Scrolling text */
       .now-playing .np-text{
@@ -1451,14 +1457,13 @@
 
       
       function startNowPlayingMarquee() {
+        const nowPlaying = document.getElementById("nowPlaying");
         const marquee = document.querySelector("#nowPlaying .np-marquee");
         const text = document.getElementById("nowPlayingTitle");
-        if (!marquee || !text) return;
+        if (!marquee || !text || !nowPlaying) return;
 
-        // ✅ kill any previous loop immediately
         clearMarqueeTimers();
 
-        // reset visual state
         text.style.transition = "none";
         text.style.transform = "translateX(0)";
 
@@ -1466,12 +1471,18 @@
           const marqueeW = marquee.clientWidth;
           const textW = text.scrollWidth;
 
-          // ✅ If it fits, do nothing (and importantly: no timers running)
-          if (textW <= marqueeW) return;
+          // ✅ if it fits: no scrolling, and NO fade mask
+          if (textW <= marqueeW) {
+            nowPlaying.classList.remove("is-scrolling");
+            return;
+          }
+
+          // ✅ if it overflows: enable fade mask + scrolling
+          nowPlaying.classList.add("is-scrolling");
 
           const gap = 24;
           const distance = textW - marqueeW + gap;
-          const speed = 45; // px/sec
+          const speed = 45;
           const duration = distance / speed;
 
           const loop = () => {
@@ -1489,6 +1500,7 @@
           loop();
         });
       }
+
 
 
 
