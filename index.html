@@ -272,12 +272,12 @@
     .icon-circle.is-muted .icon-sound { display: none; }
     .icon-circle.is-muted .icon-muted { display: block; }
 
-    /* Now Playing pill (stacked, portal-like) */
     .now-playing{
       position: relative;
       z-index: 110;
       color: #fff;
-      width: clamp(180px, 62vw, 280px);
+
+      width: clamp(220px, 72vw, 420px);
       padding: 10px 14px;
 
       background: rgba(0,0,0,0.75);
@@ -287,40 +287,31 @@
 
       opacity: 0.88;
       pointer-events: none;
-    }
 
-    .now-playing .np-stack{
       display: flex;
-      flex-direction: column;
-      gap: 3px;
-      min-width: 0;
+      align-items: center;
+      gap: 10px;
+
+      min-width: 0; /* important for marquee */
     }
 
-    .now-playing .np-title{
-      font-size: 12px;
-      font-weight: 600;
-      line-height: 1.1;
-      min-width: 0;
+    .now-playing .np-label{
+      font-weight: 700;
+      white-space: nowrap;
+      flex: 0 0 auto;
     }
 
     .now-playing .np-marquee{
+      flex: 1 1 auto;
+      min-width: 0;
       overflow: hidden;
       white-space: nowrap;
+
       -webkit-mask-image: none;
       mask-image: none;
     }
 
-    .now-playing .np-artist{
-      font-size: 12px;
-      opacity: 0.65;
-      line-height: 1.1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      min-width: 0;
-    }
-
-    /* Only fade left edge when scrolling */
+    /* only fade left edge when scrolling */
     .now-playing.is-scrolling .np-marquee{
       -webkit-mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
       mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
@@ -331,6 +322,19 @@
       white-space: nowrap;
       will-change: transform;
     }
+
+      .sr-only{
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0,0,0,0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+      }
+
 
     /* Hero layer */
     #heroLayer{
@@ -410,7 +414,21 @@
 
     <!-- Speaker + Now Playing -->
     <div id="itemActionBar" class="item-action-bar">
-      <button id="audioMuteBtn" class="icon-circle" type="button" aria-label="Unmute audio">
+      <!-- Pill first -->
+      <div id="nowPlaying" class="now-playing" aria-live="polite">
+        <span class="np-label">Now Playing:</span>
+
+        <span class="np-marquee">
+          <span class="np-text" id="nowPlayingRun">Loading…</span>
+        </span>
+
+        <!-- hidden pieces for lock-screen metadata (not visible) -->
+        <span class="sr-only" id="nowPlayingArtist">Sloucho</span>
+        <span class="sr-only" id="nowPlayingTitle">Loading…</span>
+      </div>
+
+      <!-- Speaker below -->
+      <button id="audioMuteBtn" class="icon-circle is-muted" type="button" aria-label="Unmute audio">
         <!-- Unmuted (speaker) -->
         <svg class="icon-sound" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M11 5L6 9H3v6h3l5 4V5z" />
@@ -425,15 +443,6 @@
           <path d="M16 9l6 6" />
         </svg>
       </button>
-
-      <div id="nowPlaying" class="now-playing" aria-live="polite">
-        <div class="np-stack">
-          <div class="np-title np-marquee">
-            <span class="np-text" id="nowPlayingTitle">Loading…</span>
-          </div>
-          <div class="np-artist" id="nowPlayingArtist">Sloucho</div>
-        </div>
-      </div>
     </div>
 
     <!-- Account Modal -->
@@ -597,7 +606,7 @@
 
     // ===== Media Session (Lock Screen) =====
     function updateMediaSessionMetadata(track) {
-      if (!('mediaSession' in navigator)) return;
+      if (!("mediaSession" in navigator)) return;
 
       const title =
         track?.title ||
@@ -622,6 +631,7 @@
         ]
       });
     }
+
 
     // ===== HOME AUDIO — LIVE STATION =====
     (function () {
@@ -747,6 +757,30 @@
         return startMs;
       }
 
+      function normalizeTrack(raw) {
+        const full = (raw?.title || "").trim();
+
+        // Split on FIRST " - " only
+        const idx = full.indexOf(" - ");
+        if (idx === -1) {
+          return {
+            ...raw,
+            artist: raw?.artist || "Sloucho",
+            title: full || "OUCH™",
+          };
+        }
+
+        const artist = full.slice(0, idx).trim();
+        const title = full.slice(idx + 3).trim();
+
+        return {
+          ...raw,
+          artist: raw?.artist || artist || "Sloucho",
+          title: title || "OUCH™",
+        };
+      }
+
+      
       function dayKeyForSeed(startMs) {
         const p = getTZParts(new Date(startMs), TZ);
         return `${p.year}-${String(p.month).padStart(2,"0")}-${String(p.day).padStart(2,"0")}`;
@@ -760,18 +794,30 @@
         marqueeTimers = [];
       }
 
-      function updateNowPlaying(title, artist) {
-        const titleEl = document.getElementById("nowPlayingTitle");
+      function updateNowPlaying(track) {
+        const runEl = document.getElementById("nowPlayingRun");
         const artistEl = document.getElementById("nowPlayingArtist");
-        if (titleEl) titleEl.textContent = title || "OUCH™";
-        if (artistEl) artistEl.textContent = artist || "Sloucho";
+        const titleEl = document.getElementById("nowPlayingTitle");
+
+        const artist = track?.artist || "Sloucho";
+        const title = track?.title || "OUCH™";
+
+        // Visible run: "Artist - Song"
+        if (runEl) runEl.textContent = `${artist} - ${title}`;
+
+        // Hidden pieces for MediaSession
+        if (artistEl) artistEl.textContent = artist;
+        if (titleEl) titleEl.textContent = title;
+
         startNowPlayingMarquee();
       }
+
 
       function startNowPlayingMarquee() {
         const nowPlaying = document.getElementById("nowPlaying");
         const marquee = document.querySelector("#nowPlaying .np-marquee");
-        const text = document.getElementById("nowPlayingTitle");
+        const text = document.getElementById("nowPlayingRun");
+
         if (!marquee || !text || !nowPlaying) return;
 
         clearMarqueeTimers();
@@ -818,9 +864,11 @@
         audioEl.load();
 
         // If you later add track.artist to playlist items, this will "just work"
-        updateNowPlaying(track.title, track.artist);
+        const t = normalizeTrack(track);
 
-        updateMediaSessionMetadata(track);
+        updateNowPlaying(t);
+        updateMediaSessionMetadata(t);
+
 
         await new Promise((resolve) => {
           const onMeta = () => { audioEl.removeEventListener("loadedmetadata", onMeta); resolve(); };
