@@ -636,6 +636,33 @@
         else showCheckEmailUI(email);
       });
     })();
+      
+      
+      function normalizeTrack(raw) {
+        const full = (raw?.title || "").trim();
+
+        // split on first dash separator: " - " / " – " / " — "
+        const m = full.match(/\s[-–—]\s/);
+        if (!m) {
+          return {
+            ...raw,
+            artist: raw?.artist || "Sloucho",
+            title: full || "OUCH™",
+          };
+        }
+
+        const idx = m.index;           // position of separator
+        const sepLen = m[0].length;    // length of matched separator
+
+        const parsedArtist = full.slice(0, idx).trim();
+        const parsedTitle = full.slice(idx + sepLen).trim();
+
+        return {
+          ...raw,
+          artist: raw?.artist || parsedArtist || "Sloucho",
+          title: parsedTitle || "OUCH™",
+        };
+      }
 
     // ===== Media Session (Lock Screen) =====
     function updateMediaSessionMetadata(rawTrack) {
@@ -793,31 +820,7 @@
         return startMs;
       }
 
-      function normalizeTrack(raw) {
-        const full = (raw?.title || "").trim();
 
-        // split on first dash separator: " - " / " – " / " — "
-        const m = full.match(/\s[-–—]\s/);
-        if (!m) {
-          return {
-            ...raw,
-            artist: raw?.artist || "Sloucho",
-            title: full || "OUCH™",
-          };
-        }
-
-        const idx = m.index;           // position of separator
-        const sepLen = m[0].length;    // length of matched separator
-
-        const parsedArtist = full.slice(0, idx).trim();
-        const parsedTitle = full.slice(idx + sepLen).trim();
-
-        return {
-          ...raw,
-          artist: raw?.artist || parsedArtist || "Sloucho",
-          title: parsedTitle || "OUCH™",
-        };
-      }
 
 
       
@@ -1052,7 +1055,8 @@
         btn.setAttribute("aria-label", willMute ? "Unmute audio" : "Mute audio");
 
         if (!willMute) {
-          updateMediaSessionMetadata(station?.order?.[station?.trackIndex]);
+            updateMediaSessionMetadata(normalizeTrack(station?.order?.[station?.trackIndex]));
+
           try { await audioEl.play(); } catch (_) {}
         }
       });
