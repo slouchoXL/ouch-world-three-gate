@@ -286,7 +286,7 @@
         position: fixed;
         left: 50%;
         transform: translateX(-50%);
-        bottom: 70px; /* sits above the speaker button (which is ~30px) */
+        bottom: 40px; /* sits above the speaker button (which is ~30px) */
         z-index: 110;
         font-size: 12px;
         line-height: 1.2;
@@ -302,6 +302,45 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        overflow: hidden;
+      }
+
+      .now-playing-track {
+        display: inline-block;
+        max-width: 60vw;         /* controls pill text width */
+        overflow: hidden;
+        vertical-align: bottom;
+        white-space: nowrap;
+        margin-left: 4px;
+      }
+
+      .now-playing-track > span {
+        display: inline-block;
+        white-space: nowrap;
+      }
+
+      /* Animate ONLY when text is longer than container */
+      .now-playing-track > span {
+        animation: none;
+      }
+
+      .now-playing-track > span:where(:not(:hover)) {
+        animation: scroll-title 12s linear infinite;
+        animation-delay: 1.5s;
+      }
+
+      /* Pause animation on hover (desktop) */
+      @media (hover: hover) {
+        .now-playing:hover .now-playing-track > span {
+          animation-play-state: paused;
+        }
+      }
+
+      @keyframes scroll-title {
+        0%   { transform: translateX(0); }
+        10%  { transform: translateX(0); }
+        90%  { transform: translateX(calc(-100% + 100%)); }
+        100% { transform: translateX(0); }
       }
 
 
@@ -446,8 +485,11 @@
         </button>
         
         <div id="nowPlaying" class="now-playing" aria-live="polite">
-           Now Playing — <span id="nowPlayingTitle">Loading…</span>
-         </div>
+            Now Playing:
+            <span class="now-playing-track">
+              <span id="nowPlayingTitle">Loading…</span>
+            </span>
+
 
   </div>
 
