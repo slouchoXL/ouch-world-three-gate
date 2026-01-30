@@ -281,6 +281,29 @@
       --edge-pad-desktop: 28px;
       --edge-pad-mobile: 16px;
     }
+      
+      .now-playing{
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 70px; /* sits above the speaker button (which is ~30px) */
+        z-index: 110;
+        font-size: 12px;
+        line-height: 1.2;
+        letter-spacing: 0.2px;
+        opacity: 0.85;
+        padding: 8px 12px;
+        background: rgba(0,0,0,0.75);
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 999px;
+        backdrop-filter: blur(10px);
+        pointer-events: none;
+        max-width: calc(100vw - 40px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
 
     .top-nav { padding-left: var(--edge-pad-desktop) !important; padding-right: var(--edge-pad-desktop) !important; }
     .top-nav { padding-top: 20px !important; padding-bottom: 20px !important; }
@@ -310,6 +333,7 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      pointer-events: none;
 
       /* hidden until actually playing (prevents play icon flash) */
       opacity: 0;
@@ -390,13 +414,12 @@
     <audio
       id="mysteryGiftAudio"
       preload="auto"
-      src="/assets/Sloucho_MysteryStream.mp3"
       autoplay
-      loop
       muted
       playsinline
       style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
     ></audio>
+
 
 
     <div id="itemActionBar" class="item-action-bar">
@@ -420,7 +443,11 @@
             <path d="M16 9l6 6" />
           </svg>
         </button>
-    </div>
+        
+        <div id="nowPlaying" class="now-playing" aria-live="polite">
+           Now Playing — <span id="nowPlayingTitle">Loading…</span>
+         </div>
+
   </div>
 
   <div class="modal-overlay" id="loginModal">
@@ -1182,12 +1209,227 @@
     /* ============================================================
        HOME AUDIO — autoplay muted + mute/unmute button
        ============================================================ */
+    /* ============================================================
+       HOME AUDIO — LIVE STATION (06:00 Dublin start)
+       - Deterministic shuffle: plays all tracks once, then reshuffles
+       - Visitors hear the same track + offset at the same time
+       - Keeps your existing speaker button mute/unmute behavior
+       ============================================================ */
     (function () {
       const audioEl = document.getElementById("mysteryGiftAudio");
       const btn = document.getElementById("enterCarouselBtn");
+      const nowPlayingTitleEl = document.getElementById("nowPlayingTitle");
       if (!audioEl || !btn) return;
 
-      // Start muted so autoplay is allowed
+      // ---- 1) PLAYLIST (title + src + dur seconds) ----
+      // IMPORTANT: set src paths to your real hosted audio paths.
+      const PLAYLIST = [
+        { title: "Sloucho & Rory Sweeney - Goodbye", dur: 262, src: "/assets/music/Sloucho_RorySweeney_Goodbye.mp3" },
+        { title: "Sloucho & Rory Sweeney - Watching Us", dur: 266, src: "/assets/music/Sloucho_RorySweeney_WatchingUs.mp3" },
+        { title: "Sloucho & Spooklet - Casse-Toi", dur: 200, src: "/assets/music/Sloucho_Spooklet_CasseToi.mp3" },
+        { title: "Ultra Marinu 4000 - Sky Path", dur: 209, src: "/assets/music/UltraMarinu4000_SkyPath.mp3" },
+        { title: "Sloucho - Power Plant", dur: 272, src:
+        "/assets/music/Sloucho_PowerPlant.mp3" },
+        { title: "Sloucho - Rhinestones (ft. Lil Skag & Ahmed, with Love)", dur: 178, src: "/assets/music/Sloucho_Rhinestones.mp3" },
+        { title: "Sloucho - Rocks (ft. Zack Oke + Vatican Jail)", dur: 171, src: "/assets/music/Sloucho_Rocks.mp3" },
+        { title: "Sloucho - Slow Feet 3", dur: 246, src: 
+        "/assets/music/Sloucho_SlowFeet.mp3" },
+        { title: "Sloucho - Super Maramu 2000", dur: 264, src: "/assets/music/Sloucho_SuperMaramu2000.mp3" },
+        { title: "Sloucho - techno party", dur: 177, src: 
+        "/assets/music/Sloucho_TechnoParty.mp3" },
+        { title: "Sloucho - the end", dur: 219, src: 
+        "/assets/music/Sloucho_TheEnd.mp3" },
+        { title: "Sloucho - The Power of the Plant", dur: 44, src: "/assets/music/Sloucho_ThePowerOfThePlant.mp3" },
+        { title: "Sloucho - TMD my DMS", dur: 200, src: 
+        "/assets/music/Sloucho_TMDmyDMS.mp3" },
+        { title: "Sloucho - Two Thousands (ft. Emby + Curtisy)", dur: 194, src: "/assets/music/Sloucho_TwoThousands.mp3" },
+        { title: "Sloucho - when inches became miles", dur: 251, src: "/assets/music/Sloucho_WhenInchesBecameMiles.mp3" },
+        { title: "Sloucho & Brawni - Silver Veil", dur: 208, src: "/assets/music/Sloucho_Brawni_SilverVeil.mp3" },
+        { title: "gimme it", dur: 212, src: 
+        "/assets/music/Sloucho_GimmeIt.mp3" },
+        { title: "Sloucho & Rhoshi - Mutant", dur: 240, src: "/assets/music/Sloucho_Rhoshi_Mutant.mp3" },
+        { title: "Sloucho & Rory Sweeney - 150K (Rhoshi's Monster Mix)", dur: 77, src: "/assets/music/Sloucho_RorySweeney_150K_MonsterMix.mp3" },
+        { title: "Sloucho & Rory Sweeney - 150K", dur: 220, src: "/assets/music/Sloucho_RorySweeney_150K.mp3" },
+        { title: "Sloucho & Rory Sweeney - Come Around", dur: 244, src: "/assets/music/Sloucho_RorySweeney_ComeAround.mp3" },
+        { title: "Isabella Lovestory - Telenovela (Sloucho Edit)", dur: 153, src: "/assets/music/IsabellaLovestory_Telenovela_SlouchoEdit.mp3" },
+        { title: "Llainwire - Trust Fund (Sloucho Edit)", dur: 239, src: "/assets/music/Llainwire_TrustFund_SlouchoEdit.mp3" },
+        { title: "Skillibeng - Coke (Sloucho Edit)", dur: 207, src: "/assets/music/Skillibeng_Coke_SlouchoEdit.mp3" },
+        { title: "Sloucho - always remember", dur: 173, src: "/assets/music/Sloucho_AlwaysRemember.mp3" },
+        { title: "Sloucho - Brand New (ft. Zack Oke + Emby)", dur: 219, src: "/assets/music/Sloucho_BrandNew.mp3" },
+        { title: "Sloucho - Bronze Age (Bing's Malfunction Mix)", dur: 63, src: "/assets/music/Sloucho_BronzeAge_BingsMix.mp3" },
+        { title: "Sloucho - Bronze Age", dur: 191, src: 
+        "/assets/music/Sloucho_BronzeAge.mp3" },
+        { title: "Sloucho - Hold It Down", dur: 389, src: 
+        "/assets/music/Sloucho_HoldItDown.mp3" },
+        { title: "Sloucho - i found u", dur: 200, src: 
+        "/assets/music/Sloucho_IFoundU.mp3" },
+        { title: "Sloucho - just u", dur: 201, src: 
+        "/assets/music/Sloucho_JustU.mp3" },
+        { title: "Sloucho - Lights On (ft. Yamagōchi)", dur: 203, src: "/assets/music/Sloucho_LightsOn.mp3" },
+        { title: "Sloucho - Make it Work", dur: 209, src: 
+        "/assets/music/Sloucho_MakeItWork.mp3" },
+        { title: "Sloucho - Memory Walk", dur: 344, src: 
+        "/assets/music/Sloucho_MemoryWalk.mp3" },
+        { title: "Sloucho - Mind Traveller", dur: 90, src: "/assets/music/Sloucho_MindTraveller.mp3" },
+        { title: "Sloucho - Over & Out", dur: 298, src: "/assets/music/Sloucho_OverAndOut.mp3" },
+        { title: "Sloucho - Power Plant (Sloucho's Memory Mix)", dur: 62, src: "/assets/music/Sloucho_PowerPlant_MemoryMix.mp3" },
+      ];
+
+      const TZ = "Europe/Dublin";
+      const START_HOUR = 6; // 06:00 station start in Dublin time
+
+      const totalDur = PLAYLIST.reduce((s, t) => s + (t.dur || 0), 0);
+      if (!totalDur) return;
+
+      // ---- deterministic PRNG + shuffle ----
+      function xmur3(str) {
+        let h = 1779033703 ^ str.length;
+        for (let i = 0; i < str.length; i++) {
+          h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+          h = (h << 13) | (h >>> 19);
+        }
+        return function () {
+          h = Math.imul(h ^ (h >>> 16), 2246822507);
+          h = Math.imul(h ^ (h >>> 13), 3266489909);
+          return (h ^= h >>> 16) >>> 0;
+        };
+      }
+      function mulberry32(seed) {
+        return function () {
+          let t = (seed += 0x6D2B79F5);
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      function seededShuffle(arr, seedStr) {
+        const seedFn = xmur3(seedStr);
+        const rand = mulberry32(seedFn());
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(rand() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+
+      // ---- timezone helpers (Dublin 06:00 start) ----
+      function getTZParts(date, timeZone) {
+        const dtf = new Intl.DateTimeFormat("en-GB", {
+          timeZone,
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit",
+          hour12: false
+        });
+        const parts = dtf.formatToParts(date);
+        const get = (t) => parts.find(p => p.type === t)?.value;
+        return {
+          year: +get("year"),
+          month: +get("month"),
+          day: +get("day"),
+          hour: +get("hour"),
+          minute: +get("minute"),
+          second: +get("second"),
+        };
+      }
+
+      function tzLocalToUTCms({year, month, day, hour, minute, second}, timeZone) {
+        const guess = Date.UTC(year, month - 1, day, hour, minute, second);
+        const parts = getTZParts(new Date(guess), timeZone);
+        const rendered = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+        const desired = Date.UTC(year, month - 1, day, hour, minute, second);
+        const delta = desired - rendered;
+        return guess + delta;
+      }
+
+      function mostRecent6amUTCms(now = new Date()) {
+        const p = getTZParts(now, TZ);
+        const today6 = { year: p.year, month: p.month, day: p.day, hour: START_HOUR, minute: 0, second: 0 };
+        let startMs = tzLocalToUTCms(today6, TZ);
+        if (now.getTime() < startMs) {
+          const yesterday = new Date(startMs - 3600 * 1000);
+          const yp = getTZParts(yesterday, TZ);
+          const y6 = { year: yp.year, month: yp.month, day: yp.day, hour: START_HOUR, minute: 0, second: 0 };
+          startMs = tzLocalToUTCms(y6, TZ);
+        }
+        return startMs;
+      }
+
+      function dayKeyForSeed(startMs) {
+        const p = getTZParts(new Date(startMs), TZ);
+        return `${p.year}-${String(p.month).padStart(2,"0")}-${String(p.day).padStart(2,"0")}`;
+      }
+
+      // ---- station state ----
+      let station = { cycleIndex: 0, order: [], trackIndex: 0 };
+
+      function updateNowPlaying(title) {
+        if (!nowPlayingTitleEl) return;
+        nowPlayingTitleEl.textContent = title || "—";
+      }
+
+      async function loadAndSeek(track, offsetSec) {
+        if (!track?.src) return;
+
+        audioEl.src = track.src;
+        audioEl.load();
+
+        updateNowPlaying(track.title);
+
+        await new Promise((resolve) => {
+          const onMeta = () => { audioEl.removeEventListener("loadedmetadata", onMeta); resolve(); };
+          audioEl.addEventListener("loadedmetadata", onMeta);
+        });
+
+        const dur = audioEl.duration || track.dur || 0;
+        const safe = dur ? Math.min(Math.max(0, offsetSec), Math.max(0, dur - 0.25)) : Math.max(0, offsetSec);
+        try { audioEl.currentTime = safe; } catch (_) {}
+      }
+
+      function computeLivePosition() {
+        const now = Date.now();
+        const startMs = mostRecent6amUTCms(new Date(now));
+        const dayKey = dayKeyForSeed(startMs);
+
+        const elapsedSec = Math.floor((now - startMs) / 1000);
+        const cycleIndex = Math.floor(elapsedSec / totalDur);
+        let cycleOffset = elapsedSec % totalDur;
+        if (cycleOffset < 0) cycleOffset += totalDur;
+
+        const order = seededShuffle(PLAYLIST, `${dayKey}|cycle:${cycleIndex}`);
+
+        let i = 0;
+        while (i < order.length && cycleOffset >= order[i].dur) {
+          cycleOffset -= order[i].dur;
+          i++;
+        }
+        if (i >= order.length) i = 0;
+
+        return { cycleIndex, order, trackIndex: i, offset: cycleOffset };
+      }
+
+      async function syncToLive() {
+        const pos = computeLivePosition();
+        station = { cycleIndex: pos.cycleIndex, order: pos.order, trackIndex: pos.trackIndex };
+        await loadAndSeek(station.order[station.trackIndex], pos.offset);
+      }
+
+      async function playNext() {
+        station.trackIndex++;
+        if (station.trackIndex >= station.order.length) {
+          station.cycleIndex++;
+          const startMs = mostRecent6amUTCms(new Date());
+          const dayKey = dayKeyForSeed(startMs);
+          station.order = seededShuffle(PLAYLIST, `${dayKey}|cycle:${station.cycleIndex}`);
+          station.trackIndex = 0;
+        }
+        await loadAndSeek(station.order[station.trackIndex], 0);
+        try { await audioEl.play(); } catch (_) {}
+      }
+
+      audioEl.addEventListener("ended", playNext);
+
+      // ---- keep your existing autoplay-muted unlock logic ----
       audioEl.muted = true;
       audioEl.setAttribute("muted", "");
       btn.classList.add("is-muted");
@@ -1226,13 +1468,21 @@
         window.removeEventListener("scroll",      unlock, { capture: true });
       }
 
-      // Try autoplay immediately
-      tryPlayMuted();
-      audioEl.addEventListener("canplay", tryPlayMuted);
-      window.addEventListener("load", tryPlayMuted, { once: true });
-      addUnlockers();
+      // 1) Sync station (sets src + seeks)
+      // 2) Then attempt autoplay (muted)
+      syncToLive().then(() => {
+        tryPlayMuted();
+        audioEl.addEventListener("canplay", tryPlayMuted);
+        window.addEventListener("load", tryPlayMuted, { once: true });
+        addUnlockers();
+      });
 
-      // Button = mute / unmute toggle
+      // Resync when user returns (keeps “live” tight)
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) syncToLive();
+      });
+
+      // Button = mute / unmute toggle (your existing behavior)
       btn.addEventListener("click", async () => {
         const willMute = !audioEl.muted;
 
