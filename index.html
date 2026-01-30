@@ -333,23 +333,21 @@
 </head>
 <body>
 
-    <div id="heroWebp" aria-hidden="true"></div>
 
     <div id="heroLayer" aria-hidden="true">
-      <video
-        id="heroVideo"
-        autoplay
-        muted
-        playsinline
-        webkit-playsinline
-        loop
-        preload="auto"
-        disablepictureinpicture
-        controlslist="nodownload noplaybackrate noremoteplayback"
-      >
-        <source src="/assets/HeroNew_bg.mp4" type="video/mp4" />
-      </video>
-    </div>
+        <video
+          id="heroVideo"
+          autoplay
+          muted
+          playsinline
+          loop
+          preload="auto"
+          webkit-playsinline
+          disablepictureinpicture
+        >
+          <source src="/assets/HeroNew_bg.mp4" type="video/mp4" />
+        </video>
+
 
   
 
@@ -1259,75 +1257,82 @@
      ============================================================ */
   
 
-  (function () {
-    const layer = document.getElementById("heroLayer");
-    const v = document.getElementById("heroVideo");
-    if (!layer || !v) return;
 
-    // autoplay-friendly state
+  (() => {
+    const v = document.getElementById("heroVideo");
+    const layer = document.getElementById("heroLayer");
+    if (!v) return;
+
+    // Ensure correct state immediately
     v.muted = true;
     v.defaultMuted = true;
-    v.autoplay = true;
-    v.playsInline = true;
 
-    v.setAttribute("muted", "");
-    v.setAttribute("autoplay", "");
-    v.setAttribute("playsinline", "");
-    v.setAttribute("webkit-playsinline", "");
-
-    v.disablePictureInPicture = true;
-    v.controls = false;
-
-    let started = false;
-
-    function markPlaying() {
-      if (started) return;
-      started = true;
-      layer.classList.add("is-playing"); // fades video in over poster
-      removeUnlockers();
+    // If you fade video in only after it truly starts:
+    function showVideo() {
+      layer?.classList.add("is-playing");
     }
 
-    async function tryPlay() {
-      if (started) return;
+    let unlocked = false;
 
+    async function attemptPlay(tag) {
       try {
-        const p = v.play(); // call play() even if readyState is low
+        const p = v.play();
         if (p && p.then) await p;
-        if (!v.paused) markPlaying();
+
+        // Extra safety: only "confirm" after time has advanced
+        if (!v.paused) {
+          showVideo();
+          unlocked = true;
+          removeUnlockers();
+          return true;
+        }
+        return false;
       } catch (e) {
-        // keep unlockers; we’ll try again on next gesture / canplay
+        // Only treat NotAllowedError as "needs gesture"
+        if (e?.name !== "NotAllowedError") {
+          console.warn("[hero] play failed:", e);
+        }
+        return false;
       }
     }
 
-    const unlockEvents = ["pointerdown", "mousedown", "touchstart", "keydown"];
+    const unlockEvents = ["pointerdown", "mousedown", "touchstart", "keydown", "wheel"];
+    const onGesture = async (ev) => {
+      if (unlocked) return;
+      const ok = await attemptPlay(`gesture:${ev.type}`);
+      if (ok) {
+        // done
+      }
+    };
 
     function addUnlockers() {
       unlockEvents.forEach(ev =>
-        window.addEventListener(ev, tryPlay, { capture: true }) // no once:true
+        window.addEventListener(ev, onGesture, { capture: true })
       );
     }
-
     function removeUnlockers() {
       unlockEvents.forEach(ev =>
-        window.removeEventListener(ev, tryPlay, { capture: true })
+        window.removeEventListener(ev, onGesture, { capture: true })
       );
     }
-
-    // authoritative signal
-    v.addEventListener("playing", markPlaying, { once: true });
-
-    // keep retrying as the video becomes playable
-    v.addEventListener("loadeddata", tryPlay);
-    v.addEventListener("canplay", tryPlay);
-    v.addEventListener("canplaythrough", tryPlay);
 
     addUnlockers();
 
-    // initial attempt
-    tryPlay();
-    window.addEventListener("load", tryPlay, { once: true });
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) tryPlay(); });
+    // Try autoplay once on load
+    window.addEventListener("load", async () => {
+      const ok = await attemptPlay("window.load");
+      if (!ok) {
+        // stay armed; next user gesture will start it
+      }
+    }, { once: true });
+
+    // Also retry when tab becomes visible again
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && !unlocked) attemptPlay("visibility");
+    });
   })();
+ 
+
 
     //debug code //
     
