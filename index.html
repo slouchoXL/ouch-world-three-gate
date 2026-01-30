@@ -173,7 +173,7 @@
     .menu-item, .menu-item * { position: relative; z-index: 1; }
     .menu-item .menu-pill { background: transparent !important; padding: 0 !important; border-radius: 0 !important; }
 
-    /* Modal */
+    /* Modal (Account) */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -198,21 +198,51 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
         "SF Pro Display", "Segoe UI", sans-serif;
       position: relative;
-      min-height: 260px;
+    }
+    .login-modal h2 { font-size: 18px; margin-bottom: 12px; }
+    .login-modal p { font-size: 13px; opacity: 0.75; margin-bottom: 16px; }
+    
+    /* Unify modal vertical rhythm + perceived height */
+    .login-modal{
+      min-height: 260px;              /* makes the account modal feel consistent */
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
+      .login-modal > :not(.icon-circle){
+        width: 100%;
+      }
+      
+      .login-modal .icon-circle.icon-close{
+        position: absolute;
+        top: 14px;
+        right: 14px;
+      }
+      
+      /* Header row: icons sit at the top edge, not vertically centered */
+      .modal-header{
+        position: relative;
+        min-height: 30px;      /* matches circle */
+        margin-bottom: 18px;
+        padding-top: 2px;      /* nudges icons visually higher */
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+      }
 
-    #loginModal .login-modal .icon-circle.icon-close{
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      left: auto;
-    }
+      .modal-header .icon-circle{
+        position: absolute;
+        top: 0;
+        transform: none;
+      }
 
-    input, textarea, select { font-size: 16px; }
-    button, a, .menu-button, .login-button, .icon-circle { touch-action: manipulation; }
+      .modal-header .modal-back{ left: 0; }
+      .modal-header .modal-close{ right: 0; }
+
+      .modal-title{
+        line-height: 30px;     /* optically centers the title with the 30px buttons */
+        margin: 0;
+      }
 
     .form-group { margin-bottom: 12px; }
 
@@ -277,7 +307,7 @@
       z-index: 110;
       color: #fff;
 
-      width: clamp(220px, 72vw, 420px);
+      width: min(320px, calc(100vw - 40px));
       padding: 10px 14px;
 
       background: rgba(0,0,0,0.75);
@@ -311,11 +341,12 @@
       mask-image: none;
     }
 
-    /* only fade left edge when scrolling */
-    .now-playing.is-scrolling .np-marquee{
-      -webkit-mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
-      mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
-    }
+      /* Only fade when the text is actually moving */
+      .now-playing.is-scrolling-active .np-marquee{
+        -webkit-mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
+        mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
+      }
+
 
     .now-playing .np-text{
       display: inline-block;
@@ -830,22 +861,30 @@
 
           if (textW <= marqueeW) {
             nowPlaying.classList.remove("is-scrolling");
+            nowPlaying.classList.remove("is-scrolling-active"); // ✅ ensure no fade
             text.style.paddingRight = "0px";
             return;
           }
 
-          nowPlaying.classList.add("is-scrolling");
-          text.style.paddingRight = "24px";
 
+          nowPlaying.classList.add("is-scrolling");
+          nowPlaying.classList.remove("is-scrolling-active"); // ✅ no fade during initial pause
+
+          text.style.paddingRight = "24px";
           const distance = text.scrollWidth - marqueeW;
           const speed = 45;
           const duration = distance / speed;
 
           const loop = () => {
+            // reset to start position, no fade yet
+            nowPlaying.classList.remove("is-scrolling-active");
             text.style.transition = "none";
             text.style.transform = "translateX(0)";
 
             marqueeTimers.push(setTimeout(() => {
+              // ✅ fade only once movement starts
+              nowPlaying.classList.add("is-scrolling-active");
+
               text.style.transition = `transform ${duration}s linear`;
               text.style.transform = `translateX(-${distance}px)`;
             }, 900));
@@ -854,6 +893,7 @@
           };
 
           loop();
+
         });
       }
 
