@@ -318,47 +318,51 @@
         position: fixed;
         left: 50%;
         transform: translateX(-50%);
-        bottom: 40px; /* sits above the speaker button (which is ~30px) */
+        bottom: 40px;
         z-index: 110;
-        font-size: 12px;
-        line-height: 1.2;
-        letter-spacing: 0.2px;
-        opacity: 0.85;
-        padding: 8px 12px;
+
+        width: min(560px, calc(100vw - 40px));   /* ✅ unified pill width */
+        padding: 8px 14px;
+
         background: rgba(0,0,0,0.75);
         border: 1px solid rgba(255,255,255,0.14);
         border-radius: 999px;
         backdrop-filter: blur(10px);
+
+        font-size: 12px;
+        line-height: 1.2;
+        letter-spacing: 0.2px;
+        opacity: 0.88;
+
         pointer-events: none;
-        max-width: calc(100vw - 40px);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        overflow: hidden;
+
+        display: flex;            /* ✅ keeps label + marquee aligned */
+        align-items: center;
+        gap: 10px;
       }
 
-      .now-playing-track {
+      /* Label (static) */
+      .now-playing .np-label{
+        flex: 0 0 auto;
+        white-space: nowrap;
+        opacity: 0.9;
+      }
+
+      /* Marquee window (clips scrolling text) */
+      .now-playing .np-marquee{
+        flex: 1 1 auto;           /* ✅ takes remaining width */
+        overflow: hidden;         /* ✅ clip */
+        white-space: nowrap;
+        position: relative;
+        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%);
+          mask-image: linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%);
+      }
+
+      /* Scrolling text */
+      .now-playing .np-text{
         display: inline-block;
-        max-width: 60vw;         /* controls pill text width */
-        overflow: hidden;
-        vertical-align: bottom;
         white-space: nowrap;
-        margin-left: 4px;
-      }
-
-      .now-playing-track > span {
-        display: inline-block;
-        white-space: nowrap;
-      }
-
-      /* Animate ONLY when text is longer than container */
-      .now-playing-track > span {
-        animation: none;
-      }
-
-      .now-playing-track > span:where(:not(:hover)) {
-        animation: scroll-title 12s linear infinite;
-        animation-delay: 1.5s;
+        will-change: transform;
       }
 
       /* Pause animation on hover (desktop) */
@@ -517,12 +521,12 @@
         </button>
         
         <div id="nowPlaying" class="now-playing" aria-live="polite">
-            Now Playing:
-            <span class="now-playing-track">
-              <span id="nowPlayingTitle">Loading…</span>
-            </span>
-
+          <span class="np-label">Now Playing:</span>
+          <span class="np-marquee">
+            <span class="np-text" id="nowPlayingTitle">Loading…</span>
+          </span>
         </div>
+
   </div>
 
     <!-- Account Modal -->
@@ -1436,7 +1440,55 @@
       function updateNowPlaying(title) {
         if (!nowPlayingTitleEl) return;
         nowPlayingTitleEl.textContent = title || "—";
+        startNowPlayingMarquee();   // ✅ recalculates scrolling per track
       }
+
+      
+      function startNowPlayingMarquee() {
+        const marquee = document.querySelector("#nowPlaying .np-marquee");
+        const text = document.getElementById("nowPlayingTitle");
+        if (!marquee || !text) return;
+
+        // reset previous animation
+        text.style.transition = "none";
+        text.style.transform = "translateX(0)";
+        text.dataset.animating = "0";
+
+        // Measure after layout
+        requestAnimationFrame(() => {
+          const marqueeW = marquee.clientWidth;
+          const textW = text.scrollWidth;
+
+          // If it fits, do nothing
+          if (textW <= marqueeW) return;
+
+          // Scroll distance: text width + small gap
+          const gap = 24;
+          const distance = textW - marqueeW + gap;
+
+          // Speed: px/sec (tweak to taste)
+          const speed = 45;
+          const duration = distance / speed;
+
+          // Animate: wait a beat, then glide left, snap back, repeat
+          const loop = () => {
+            // pause at start
+            text.style.transition = "none";
+            text.style.transform = "translateX(0)";
+
+            setTimeout(() => {
+              text.style.transition = `transform ${duration}s linear`;
+              text.style.transform = `translateX(-${distance}px)`;
+            }, 900);
+
+            // after scroll completes + small pause, loop
+            setTimeout(loop, 900 + duration * 1000 + 900);
+          };
+
+          loop();
+        });
+      }
+
 
       async function loadAndSeek(track, offsetSec) {
         if (!track?.src) return;
