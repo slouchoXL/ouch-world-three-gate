@@ -78,22 +78,52 @@
     #scene-container { position: absolute; inset: 0; z-index: 1; }
     #scene-container canvas { display: block; cursor: default; }
 
-    /* Loading indicator */
-    .loading-indicator {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      z-index: 500; color: #fff; text-align: center; font-size: 14px;
-      background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px;
-      backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
-      transition: opacity 0.3s ease;
+    :root{
+      --circle: 30px;                 /* master circle size */
+      --circle-bg: rgba(0,0,0,0.8);
+      --circle-border: rgba(255,255,255,0.25);
+      --circle-border-hover: rgba(255,255,255,0.45);
+      --circle-icon: 12px;            /* X icon size */
     }
-    .loading-progress {
-      width: 200px; height: 4px; background: rgba(255,255,255,0.2);
-      border-radius: 2px; margin: 10px 0; overflow: hidden;
+
+    /* One shared circular button primitive */
+    .icon-circle{
+      width: var(--circle);
+      height: var(--circle);
+      border-radius: 50%;
+      background: var(--circle-bg);
+      border: 1px solid var(--circle-border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      transition: border-color .2s ease;
+      backdrop-filter: blur(10px);
     }
-    .loading-bar {
-      height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A);
-      width: 0%; transition: width 0.3s ease; border-radius: 2px;
+    .icon-circle:hover{
+      border-color: var(--circle-border-hover);
     }
+
+    /* X icon (CSS-drawn) */
+    .icon-close{
+      position: relative;
+    }
+      .icon-close::before,
+      .icon-close::after{
+        content:"";
+        position:absolute;
+        top: 50%;
+        left: 50%;
+        width: var(--circle-icon);
+        height: 2px;
+        background: rgba(255,255,255,0.85);
+        border-radius: 2px;
+        transform-origin: center;
+      }
+      .icon-close::before{ transform: translate(-50%,-50%) rotate(45deg); }
+      .icon-close::after { transform: translate(-50%,-50%) rotate(-45deg); }
+
 
     /* Top navigation */
     .top-nav {
@@ -173,12 +203,14 @@
     .login-modal h1, .login-modal h2 { font-size: 18px; margin-bottom: 12px; }
     .login-modal p { font-size: 13px; opacity: 0.75; margin-bottom: 16px; }
 
-    #loginModal .login-modal .icon-circle.icon-close{
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      left: auto;
-    }
+ 
+ #loginModal .login-modal .icon-circle.icon-close{
+   position: absolute;
+   top: 14px;
+   right: 14px;
+   left: auto;
+ }
+
 
     input, textarea, select { font-size: 16px; }
     button, a, .menu-button, .login-button, .chat-toggle, .send-button, .arrow-btn, .character-confirm { touch-action: manipulation; }
@@ -339,9 +371,9 @@
       @keyframes scroll-title {
         0%   { transform: translateX(0); }
         10%  { transform: translateX(0); }
-        90%  { transform: translateX(calc(-100% + 100%)); }
-        100% { transform: translateX(0); }
+        100% { transform: translateX(-60%); } /* tweak to taste */
       }
+
 
 
     .top-nav { padding-left: var(--edge-pad-desktop) !important; padding-right: var(--edge-pad-desktop) !important; }
@@ -493,46 +525,41 @@
         </div>
   </div>
 
-  <div class="modal-overlay" id="loginModal">
-    <div class="login-modal">
-      <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
+    <!-- Account Modal -->
+    <div class="modal-overlay" id="loginModal" role="dialog" aria-modal="true" aria-label="Account">
+      <div class="login-modal">
+          <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
 
-      <div class="modal-tabs">
-        <button class="modal-tab active" type="button"><h2> Account</h2></button>
-      </div>
 
-      <!-- Logged-in view -->
-      <div id="accountLoggedIn" style="display:none; text-align:center;">
-        <p style="margin-bottom:12px; opacity:0.85; line-height:1.4;">
-          You’re signed in as<br>
-          <strong id="accountEmail" style="word-break:break-word;"></strong>
-        </p>
+        <h2>Account</h2>
 
-        <button
-          type="button"
-          class="form-button"
-          id="logoutBtn"
-          style="
-            background: rgba(255,255,255,0.10);
-            color:#fff;
-            border: 1px solid rgba(255,255,255,0.18);
-            margin-top: 4px;
-          "
-        >
-          Log out
-        </button>
-      </div>
+        <!-- Logged-in view -->
+        <div id="accountLoggedIn" style="display:none; text-align:center;">
+          <p style="margin-bottom:12px; opacity:0.85; line-height:1.4;">
+            You’re signed in as<br />
+            <strong id="accountEmail" style="word-break:break-word;"></strong>
+          </p>
 
-      <!-- Logged-out view -->
-      <form id="loginForm" onsubmit="return false;" style="display:none;">
-        <div class="form-group">
-          <input type="email" id="loginEmail" class="form-input" placeholder="Email" autocomplete="email" required>
+          <button
+            type="button"
+            class="form-button"
+            id="logoutBtn"
+            style="background: rgba(255,255,255,0.10); color:#fff; border: 1px solid rgba(255,255,255,0.18); margin-top: 4px;"
+          >
+            Log out
+          </button>
         </div>
-        <button type="submit" id="loginSubmit" class="form-button">Send login link</button>
-        <p id="loginError" style="font-size:12px; color:#f97373; margin-top:10px; min-height:18px;"></p>
-      </form>
+
+        <!-- Logged-out view -->
+        <form id="loginForm" onsubmit="return false;" style="display:none;">
+          <div class="form-group">
+            <input type="email" id="loginEmail" class="form-input" placeholder="Email" autocomplete="email" required />
+          </div>
+          <button type="submit" id="loginSubmit" class="form-button">Send login link</button>
+          <p id="loginError" style="font-size:12px; color:#f97373; margin-top:10px; min-height:18px;"></p>
+        </form>
+      </div>
     </div>
-  </div>
 
 <script>
   // ===== Globals =====
@@ -1288,7 +1315,7 @@
         { title: "Sloucho - Two Thousands (ft. Emby + Curtisy)", dur: 194, src: "/assets/music/Sloucho_TwoThousands.mp3" },
         { title: "Sloucho - when inches became miles", dur: 251, src: "/assets/music/Sloucho_WhenInchesBecameMiles.mp3" },
         { title: "Sloucho & Brawni - Silver Veil", dur: 208, src: "/assets/music/Sloucho_Brawni_SilverVeil.mp3" },
-        { title: "gimme it", dur: 212, src: 
+        { title: "Sloucho & Curtisy - gimme it", dur: 212, src:
         "/assets/music/Sloucho_GimmeIt.mp3" },
         { title: "Sloucho & Rhoshi - Mutant", dur: 240, src: "/assets/music/Sloucho_Rhoshi_Mutant.mp3" },
         { title: "Sloucho & Rory Sweeney - 150K (Rhoshi's Monster Mix)", dur: 77, src: "/assets/music/Sloucho_RorySweeney_150K_MonsterMix.mp3" },
