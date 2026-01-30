@@ -79,10 +79,6 @@
       --edge-pad-desktop: 28px;
       --edge-pad-mobile: 16px;
     }
-      
-      :root {
-        --np-width: 260px; /* adjust to taste */
-      }
 
     /* Shared circular button primitive */
     .icon-circle{
@@ -306,32 +302,51 @@
     .icon-circle.is-muted .icon-sound { display: none; }
     .icon-circle.is-muted .icon-muted { display: block; }
 
-    .now-playing{
-      position: relative;
-      z-index: 110;
-      color: #fff;
-
-      width: var(--np-width);
-        max-width: calc(100vw - 40px); /* safety on very small screens */
-      }
-      padding: 10px 14px;
-
-      background: rgba(0,0,0,0.75);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 999px;
-      backdrop-filter: blur(10px);
-
-      opacity: 0.88;
-      pointer-events: none;
-
-      display: flex;
-      align-items: center;
-      gap: 10px;
-
-      min-width: 0; /* important for marquee */
-      font-size: 14px;        /* match menu tray */
-        line-height: 1.2;
+    :root{
+      --np-width: 260px; /* adjust */
     }
+
+      .now-playing{
+        position: relative;
+        z-index: 110;
+        color: #fff;
+
+        width: var(--np-width);
+        max-width: calc(100vw - 40px); /* safety on very small screens */
+
+        padding: 10px 14px;
+
+        background: rgba(0,0,0,0.75);
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 999px;
+        backdrop-filter: blur(10px);
+
+        opacity: 0.88;
+        pointer-events: none;
+
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        min-width: 0;
+        font-size: 14px;
+        line-height: 1.2;
+      }
+
+
+    .np-marquee{
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .np-text{
+      display: inline-block;
+      white-space: nowrap;
+      will-change: transform;
+    }
+
 
     .now-playing .np-label{
      
@@ -686,7 +701,7 @@
         document.getElementById("nowPlayingArtist")?.textContent?.trim() ||
         "Sloucho";
 
-      const art = `${location.origin}/assets/slouchometa.png`;
+      const art = `${location.origin}/assets/metadata.png`;
 
       navigator.mediaSession.metadata = new MediaMetadata({
         title,
