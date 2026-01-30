@@ -701,7 +701,7 @@
         document.getElementById("nowPlayingArtist")?.textContent?.trim() ||
         "Sloucho";
 
-      const art = `${location.origin}/assets/metadata.png`;
+      const art = `${location.origin}/assets/slouchometa.png`;
 
       navigator.mediaSession.metadata = new MediaMetadata({
         title,
@@ -911,7 +911,9 @@
           const loop = () => {
             // reset to start position, no fade yet
             nowPlaying.classList.remove("is-scrolling-active");
-            text.style.transition = "none";
+
+            // subtle eased snap back
+            text.style.transition = "transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1)";
             text.style.transform = "translateX(0)";
 
             marqueeTimers.push(setTimeout(() => {
