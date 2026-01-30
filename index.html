@@ -290,23 +290,7 @@
       .top-nav { padding-top: 20px !important; padding-bottom: 20px !important; }
     }
 
-    #heroVideo {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 0;
-      pointer-events: none;
-      background: black;
-    }
-
-    #heroVideo::-webkit-media-controls,
-    #heroVideo::-webkit-media-controls-panel,
-    #heroVideo::-webkit-media-controls-play-button {
-      display: none !important;
-      -webkit-appearance: none;
-    }
+  
 
     /* Hide the old GLB canvas layer */
     #scene-container { display: none; }
@@ -354,6 +338,7 @@
     <div id="heroLayer" aria-hidden="true">
       <video
         id="heroVideo"
+        autoplay
         muted
         playsinline
         webkit-playsinline
@@ -1311,7 +1296,8 @@
       }
     }
 
-    const unlockEvents = ["pointerdown","mousedown","touchstart","keydown","wheel","scroll","mousemove"];
+    const unlockEvents = ["pointerdown","mousedown","touchstart","keydown","click"];
+
 
     function addUnlockers() {
       unlockEvents.forEach(ev => window.addEventListener(ev, tryPlay, { capture: true, once: true }));
