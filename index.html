@@ -79,6 +79,10 @@
       --edge-pad-desktop: 28px;
       --edge-pad-mobile: 16px;
     }
+      
+      :root {
+        --np-width: 260px; /* adjust to taste */
+      }
 
     /* Shared circular button primitive */
     .icon-circle{
@@ -307,7 +311,9 @@
       z-index: 110;
       color: #fff;
 
-      width: min(320px, calc(100vw - 40px));
+      width: var(--np-width);
+        max-width: calc(100vw - 40px); /* safety on very small screens */
+      }
       padding: 10px 14px;
 
       background: rgba(0,0,0,0.75);
@@ -680,7 +686,7 @@
         document.getElementById("nowPlayingArtist")?.textContent?.trim() ||
         "Sloucho";
 
-      const art = `${location.origin}/assets/metadata.png`;
+      const art = `${location.origin}/assets/slouchometa.png`;
 
       navigator.mediaSession.metadata = new MediaMetadata({
         title,
@@ -882,7 +888,7 @@
           nowPlaying.classList.add("is-scrolling");
           nowPlaying.classList.remove("is-scrolling-active"); // ✅ no fade during initial pause
 
-          text.style.paddingRight = "24px";
+          text.style.paddingRight = "0px";
           const distance = text.scrollWidth - marqueeW;
           const speed = 45;
           const duration = distance / speed;
