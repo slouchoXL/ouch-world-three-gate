@@ -314,6 +314,7 @@
       --edge-pad-mobile: 16px;
     }
       
+      /* Pill container */
       .now-playing{
         position: fixed;
         left: 50%;
@@ -322,54 +323,64 @@
         z-index: 110;
 
         width: clamp(180px, 62vw, 280px);
-        padding: 8px 14px;
+        padding: 10px 14px;
 
         background: rgba(0,0,0,0.75);
         border: 1px solid rgba(255,255,255,0.14);
         border-radius: 999px;
         backdrop-filter: blur(10px);
 
-        font-size: 12px;
-        line-height: 1.2;
-        letter-spacing: 0.2px;
-        opacity: 0.88;
-
         pointer-events: none;
-
-        display: flex;            /* ✅ keeps label + marquee aligned */
-        align-items: center;
-        gap: 10px;
+        opacity: 0.88;
       }
 
-      /* Label (static) */
-      .now-playing .np-label{
-        flex: 0 0 auto;
-        white-space: nowrap;
-        opacity: 0.9;
+      /* Stack */
+      .now-playing .np-stack{
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0; /* critical: enables clipping/scroll inside */
+      }
+
+      /* Title line (marquee container) */
+      .now-playing .np-title{
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.1;
+        min-width: 0;
       }
 
       .now-playing .np-marquee{
-        flex: 1 1 auto;
         overflow: hidden;
         white-space: nowrap;
-        position: relative;
         -webkit-mask-image: none;
         mask-image: none;
       }
 
-      /* only fade edges when actually scrolling */
-      .now-playing.is-scrolling .np-marquee{
-        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
-        mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
+      /* Artist line */
+      .now-playing .np-artist{
+        font-size: 12px;
+        opacity: 0.65;
+        line-height: 1.1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
       }
 
+      /* Only fade left edge when scrolling */
+      .now-playing.is-scrolling .np-marquee{
+        -webkit-mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
+        mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
+      }
 
-      /* Scrolling text */
+      /* The moving span */
       .now-playing .np-text{
         display: inline-block;
         white-space: nowrap;
         will-change: transform;
       }
+
 
       /* Pause animation on hover (desktop) */
       @media (hover: hover) {
@@ -527,11 +538,12 @@
         </button>
         
         <div id="nowPlaying" class="now-playing" aria-live="polite">
-          <span class="np-label">Now Playing:</span>
-          <span class="np-marquee">
-            <span class="np-text" id="nowPlayingTitle">Loading…</span>
-          </span>
+          <div class="np-stack">
+            <div class="np-title np-marquee"><span class="np-text" id="nowPlayingTitle"></span></div>
+            <div class="np-artist" id="nowPlayingArtist"></div>
+          </div>
         </div>
+
 
   </div>
 
@@ -1296,8 +1308,8 @@
 
       navigator.mediaSession.metadata = new MediaMetadata({
         title,
-        artist: "Sloucho",
-        album: "Broken Spirit",
+        artist: track?.artist || "Sloucho",
+        album: "Discography",
         artwork: [
           { src: art, sizes: "96x96", type: "image/png" },
           { src: art, sizes: "192x192", type: "image/png" },
@@ -1462,11 +1474,15 @@
         marqueeTimers = [];
       }
 
-      function updateNowPlaying(title) {
-        if (!nowPlayingTitleEl) return;
-        nowPlayingTitleEl.textContent = title || "—";
-        startNowPlayingMarquee();   // ✅ recalculates scrolling per track
+      function updateNowPlaying(title, artist) {
+        const titleEl = document.getElementById("nowPlayingTitle");
+        const artistEl = document.getElementById("nowPlayingArtist");
+        if (titleEl) titleEl.textContent = title || "OUCH™";
+        if (artistEl) artistEl.textContent = artist || "Sloucho";
+
+        startNowPlayingMarquee();
       }
+
 
       
       function startNowPlayingMarquee() {
@@ -1484,18 +1500,21 @@
           const marqueeW = marquee.clientWidth;
           const textW = text.scrollWidth;
 
-          // ✅ if it fits: no scrolling, and NO fade mask
+          // Fits: no scrolling, no fade, no padding
           if (textW <= marqueeW) {
             nowPlaying.classList.remove("is-scrolling");
+            text.style.paddingRight = "0px";
             return;
           }
 
-          // ✅ if it overflows: enable fade mask + scrolling
+          // Overflows: enable fade + scroll
           nowPlaying.classList.add("is-scrolling");
 
-          const gap = 24;
-          const distance = textW - marqueeW + gap;
-          const speed = 45;
+          // Add breathing room via padding (NOT overscrolling)
+          text.style.paddingRight = "24px";
+
+          const distance = text.scrollWidth - marqueeW; // includes paddingRight now
+          const speed = 45; // px/sec
           const duration = distance / speed;
 
           const loop = () => {
@@ -1517,13 +1536,15 @@
 
 
 
+
       async function loadAndSeek(track, offsetSec) {
         if (!track?.src) return;
 
         audioEl.src = track.src;
         audioEl.load();
 
-        updateNowPlaying(track.title);
+        updateNowPlaying(track.title, track.artist);
+
         updateMediaSessionMetadata(track);
 
         await new Promise((resolve) => {
@@ -1578,6 +1599,7 @@
       }
 
       audioEl.addEventListener("ended", playNext);
+      
       audioEl.addEventListener("play", () => {
         if ("mediaSession" in navigator) {
           navigator.mediaSession.playbackState = "playing";
@@ -1586,6 +1608,25 @@
         // iOS-friendly: refresh metadata right when playback starts
         updateMediaSessionMetadata(station?.order?.[station?.trackIndex]);
       });
+      
+      audioEl.addEventListener("playing", () => {
+        // iOS often only commits lock-screen metadata once audio is actually playing
+        updateMediaSessionMetadata(station?.order?.[station?.trackIndex]);
+
+        // Optional: helps iOS display duration/progress more reliably
+        if ("mediaSession" in navigator && typeof navigator.mediaSession.setPositionState === "function") {
+          const t = station?.order?.[station?.trackIndex];
+          const dur = audioEl.duration || t?.dur || 0;
+          if (dur) {
+            navigator.mediaSession.setPositionState({
+              duration: dur,
+              playbackRate: audioEl.playbackRate || 1,
+              position: audioEl.currentTime || 0,
+            });
+          }
+        }
+      });
+
 
       audioEl.addEventListener("pause", () => {
         if ("mediaSession" in navigator) {
@@ -1655,12 +1696,13 @@
         btn.classList.toggle("is-muted", willMute);
         btn.setAttribute("aria-label", willMute ? "Unmute audio" : "Mute audio");
 
-        // If user unmuted, ensure playback is running
         if (!willMute) {
+          // user gesture moment: best time to commit lock-screen metadata on iOS
+          updateMediaSessionMetadata(station?.order?.[station?.trackIndex]);
           try { await audioEl.play(); } catch (_) {}
         }
       });
-    })();
+
 
 
 
