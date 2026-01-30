@@ -1258,12 +1258,13 @@
      - NEVER calls video.load()
      ============================================================ */
   
+
   (function () {
     const layer = document.getElementById("heroLayer");
     const v = document.getElementById("heroVideo");
     if (!layer || !v) return;
 
-    // enforce autoplay-friendly state (must be true BEFORE play())
+    // autoplay-friendly state
     v.muted = true;
     v.defaultMuted = true;
     v.autoplay = true;
@@ -1282,40 +1283,27 @@
     function markPlaying() {
       if (started) return;
       started = true;
-      layer.classList.add("is-playing");
+      layer.classList.add("is-playing"); // fades video in over poster
       removeUnlockers();
     }
 
     async function tryPlay() {
       if (started) return;
 
-      // IMPORTANT: don't call play() too early on Safari desktop
-      // Wait until we have at least current data.
-      if (v.readyState < 2) return;
-
       try {
-        const p = v.play();
+        const p = v.play(); // call play() even if readyState is low
         if (p && p.then) await p;
-
-        // Only mark as playing if it actually started
         if (!v.paused) markPlaying();
       } catch (e) {
-        addUnlockers();
+        // keep unlockers; we’ll try again on next gesture / canplay
       }
     }
 
-    const unlockEvents = [
-      "pointerdown",
-      "mousedown",
-      "touchstart",
-      "keydown",
-      "wheel",
-      "scroll"
-    ];
+    const unlockEvents = ["pointerdown", "mousedown", "touchstart", "keydown"];
 
     function addUnlockers() {
       unlockEvents.forEach(ev =>
-        window.addEventListener(ev, tryPlay, { capture: true, once: true })
+        window.addEventListener(ev, tryPlay, { capture: true }) // no once:true
       );
     }
 
@@ -1325,22 +1313,21 @@
       );
     }
 
-    // If Safari delays actual playback, this is the authoritative signal
+    // authoritative signal
     v.addEventListener("playing", markPlaying, { once: true });
 
-    // 🔑 RETRY when the video becomes playable (this is what you're missing)
+    // keep retrying as the video becomes playable
     v.addEventListener("loadeddata", tryPlay);
     v.addEventListener("canplay", tryPlay);
     v.addEventListener("canplaythrough", tryPlay);
 
-    // attempt autoplay
+    addUnlockers();
+
+    // initial attempt
     tryPlay();
     window.addEventListener("load", tryPlay, { once: true });
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) tryPlay();
-    });
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) tryPlay(); });
   })();
-
 
 
  
