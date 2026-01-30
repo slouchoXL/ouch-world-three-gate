@@ -967,11 +967,11 @@
 
       audioEl.addEventListener("play", () => {
         if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
-        updateMediaSessionMetadata(station?.order?.[station?.trackIndex]);
+        updateMediaSessionMetadata(normalizeTrack(station?.order?.[station?.trackIndex]));
       });
 
       audioEl.addEventListener("playing", () => {
-        updateMediaSessionMetadata(station?.order?.[station?.trackIndex]);
+        updateMediaSessionMetadata(normalizeTrack(station?.order?.[station?.trackIndex]));
         if ("mediaSession" in navigator && typeof navigator.mediaSession.setPositionState === "function") {
           const t = station?.order?.[station?.trackIndex];
           const dur = audioEl.duration || t?.dur || 0;
