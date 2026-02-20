@@ -2753,6 +2753,11 @@
 
 
     document.addEventListener("DOMContentLoaded", async () => {
+      // Wait for Supabase client to be initialized (CDN loads with defer)
+      await new Promise(resolve => {
+        if (window.supa) { resolve(); return; }
+        document.addEventListener('supaReady', resolve, { once: true });
+      });
       const params = new URLSearchParams(window.location.search);
 
       // Canonical NFC / claim parameter
@@ -2972,63 +2977,68 @@
 
 
 
-  <!-- Deferred Supabase init: runs after HTML is parsed, non-blocking -->
-  <!-- defer guarantees this runs before DOMContentLoaded, so window.supa is ready for all listeners -->
+  <!-- Supabase init: waits for the deferred CDN script to finish loading before running -->
   <script>
-    // This script itself runs synchronously after the page loads.
-    // We initialize supa here so it's available when DOMContentLoaded fires.
-    function __initSupa() {
-      if (!window.supabase) {
-        console.error('[supabase] SDK not loaded');
-        return;
-      }
-      window.supa = window.supabase.createClient(
-        window.__SUPABASE_URL,
-        window.__SUPABASE_ANON_KEY
-      );
+    (function () {
+      var supaScript = document.querySelector('script[src*="supabase-js"]');
 
-      // Process magic-link hash tokens
-      (async () => {
-        try {
-          const hash = window.location.hash || "";
-          if (!hash.includes("access_token")) return;
-
-          const params = new URLSearchParams(hash.slice(1));
-          const access_token = params.get("access_token");
-          const refresh_token = params.get("refresh_token");
-          const error = params.get("error");
-          const error_description = params.get("error_description");
-
-          if (error) {
-            alert(`Authentication error: ${error_description || error}`);
-            const cleanErrUrl = new URL(window.location.href);
-            cleanErrUrl.hash = "";
-            history.replaceState({}, "", cleanErrUrl.toString());
-            return;
-          }
-
-          if (access_token && refresh_token) {
-            const { error: sessionError } = await window.supa.auth.setSession({
-              access_token,
-              refresh_token,
-            });
-            if (sessionError) {
-              alert(`Session error: ${sessionError.message}`);
-            } else {
-              console.log("[cards] Session restored from login link");
-            }
-          }
-
-          const cleanUrl = new URL(window.location.href);
-          cleanUrl.hash = "";
-          window.location.replace(cleanUrl.toString());
-        } catch (e) {
-          console.error("[supabase] login link processing failed:", e);
+      function initSupa() {
+        if (!window.supabase) {
+          console.error('[supabase] SDK not loaded');
+          return;
         }
-      })();
-    }
-    // defer scripts run before DOMContentLoaded — call init immediately
-    __initSupa();
+        window.supa = window.supabase.createClient(
+          window.__SUPABASE_URL,
+          window.__SUPABASE_ANON_KEY
+        );
+        // Signal that supa is ready for any listeners waiting on it
+        document.dispatchEvent(new Event('supaReady'));
+
+        // Process magic-link hash tokens
+        var hash = window.location.hash || "";
+        if (!hash.includes("access_token")) return;
+
+        (async function () {
+          try {
+            var params = new URLSearchParams(hash.slice(1));
+            var access_token = params.get("access_token");
+            var refresh_token = params.get("refresh_token");
+            var error = params.get("error");
+            var error_description = params.get("error_description");
+
+            if (error) {
+              alert("Authentication error: " + (error_description || error));
+              var cleanErrUrl = new URL(window.location.href);
+              cleanErrUrl.hash = "";
+              history.replaceState({}, "", cleanErrUrl.toString());
+              return;
+            }
+
+            if (access_token && refresh_token) {
+              var result = await window.supa.auth.setSession({ access_token: access_token, refresh_token: refresh_token });
+              if (result.error) {
+                alert("Session error: " + result.error.message);
+              } else {
+                console.log("[cards] Session restored from login link");
+              }
+            }
+
+            var cleanUrl = new URL(window.location.href);
+            cleanUrl.hash = "";
+            window.location.replace(cleanUrl.toString());
+          } catch (e) {
+            console.error("[supabase] login link processing failed:", e);
+          }
+        })();
+      }
+
+      if (supaScript) {
+        supaScript.addEventListener('load', initSupa);
+      } else {
+        // fallback: try on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', initSupa);
+      }
+    })();
   </script>
 
   <!-- model-viewer: large library, load last so it never blocks rendering -->
