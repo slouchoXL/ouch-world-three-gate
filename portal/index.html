@@ -11,63 +11,15 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
-    // Safe to expose in client
+    // Safe to expose in client — stored early so deferred init script can read them
     window.__SUPABASE_URL = 'https://srdwkfjterotzjwzoauj.supabase.co';
     window.__SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ';
-  </script>
-  <script>
-    window.supa = window.supabase.createClient(
-      window.__SUPABASE_URL,
-      window.__SUPABASE_ANON_KEY
-    );
-  </script>
-  <script>
-    (async () => {
-      try {
-        const hash = window.location.hash || "";
-        if (!window.supa || !hash.includes("access_token")) return;
-
-        const params = new URLSearchParams(hash.slice(1));
-        const access_token = params.get("access_token");
-        const refresh_token = params.get("refresh_token");
-        const error = params.get("error");
-        const error_description = params.get("error_description");
-
-        if (error) {
-          alert(`Authentication error: ${error_description || error}`);
-          const cleanErrUrl = new URL(window.location.href);
-          cleanErrUrl.hash = "";
-          history.replaceState({}, "", cleanErrUrl.toString());
-          return;
-        }
-
-        if (access_token && refresh_token) {
-          const { error: sessionError } = await window.supa.auth.setSession({
-            access_token,
-            refresh_token,
-          });
-          if (sessionError) {
-            alert(`Session error: ${sessionError.message}`);
-          } else {
-            console.log("[cards] Session restored from login link");
-          }
-        }
-
-        // Strip the hash but keep the existing path + query (so ?code=... stays)
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.hash = "";
-        window.location.replace(cleanUrl.toString());
-      } catch (e) {
-        console.error("[supabase] login link processing failed:", e);
-      }
-    })();
   </script>
 
 
  
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
 
   <style>
@@ -1261,7 +1213,7 @@
         Welcome to Broken Spirit
         <span class="intro-sub">Tap to enter</span>
       </div>
-      <audio id="introSfx" src="/assets/woosh.mp3" preload="auto"></audio>
+      <audio id="introSfx" src="/assets/woosh.mp3" preload="none"></audio>
     </div>
 
 
@@ -1406,7 +1358,7 @@
   <!-- Hidden audio element for streaming Mystery Gift -->
   <audio
     id="mysteryGiftAudio"
-    preload="auto"
+    preload="none"
     style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
   ></audio>
 
@@ -2762,11 +2714,17 @@
         toggleTracksBtn.addEventListener('click', () => {
           const collapsed = playerEl?.classList.contains('collapsed');
           setCollapsed(!collapsed);
+          // Lazily load track durations the first time the playlist is opened
+          if (collapsed) populateTrackDurations();
         });
       }
 
       // Load durations from actual audio files into the list
+      // Lazy: only fires once, the first time the playlist panel is opened
+      let durationsLoaded = false;
       function populateTrackDurations() {
+        if (durationsLoaded) return;
+        durationsLoaded = true;
         trackButtons.forEach(btn => {
           const src = btn.getAttribute('data-src');
           const timeEl = btn.querySelector('.audio-col-time');
@@ -2790,7 +2748,7 @@
 
       loadTrack(0, false);
       setCollapsed(true);
-      populateTrackDurations();
+      // populateTrackDurations() is now called lazily on first playlist open (see toggleTracksBtn below)
     })();
 
 
@@ -2812,8 +2770,11 @@
       // Wire logout
       document.getElementById("logoutBtn")?.addEventListener("click", logoutAndRelock);
 
-      // Initial account button state
-      await syncAccountButton();
+      // Run account button sync and intro eligibility check in parallel
+      const [, shouldShowIntroFromCheck] = await Promise.all([
+        syncAccountButton(),
+        userHasActiveCard()
+      ]);
 
       // Keep account UI in sync with auth
       // Keep account UI in sync with auth
@@ -2897,8 +2858,8 @@
         ref.includes("/shop") ||
         ref.includes("shop.ouch.world");
 
-      // Normal eligibility rule (logged-in + has active card)
-      let shouldShowIntro = await userHasActiveCard();
+      // Use the result already fetched in parallel above — no second network call
+      let shouldShowIntro = shouldShowIntroFromCheck;
 
       // Override: never show cinematic when navigating from shop → portal
       if (cameFromShop) shouldShowIntro = false;
@@ -3011,8 +2972,67 @@
 
 
 
+  <!-- Deferred Supabase init: runs after HTML is parsed, non-blocking -->
+  <!-- defer guarantees this runs before DOMContentLoaded, so window.supa is ready for all listeners -->
+  <script>
+    // This script itself runs synchronously after the page loads.
+    // We initialize supa here so it's available when DOMContentLoaded fires.
+    function __initSupa() {
+      if (!window.supabase) {
+        console.error('[supabase] SDK not loaded');
+        return;
+      }
+      window.supa = window.supabase.createClient(
+        window.__SUPABASE_URL,
+        window.__SUPABASE_ANON_KEY
+      );
 
-</script>
+      // Process magic-link hash tokens
+      (async () => {
+        try {
+          const hash = window.location.hash || "";
+          if (!hash.includes("access_token")) return;
+
+          const params = new URLSearchParams(hash.slice(1));
+          const access_token = params.get("access_token");
+          const refresh_token = params.get("refresh_token");
+          const error = params.get("error");
+          const error_description = params.get("error_description");
+
+          if (error) {
+            alert(`Authentication error: ${error_description || error}`);
+            const cleanErrUrl = new URL(window.location.href);
+            cleanErrUrl.hash = "";
+            history.replaceState({}, "", cleanErrUrl.toString());
+            return;
+          }
+
+          if (access_token && refresh_token) {
+            const { error: sessionError } = await window.supa.auth.setSession({
+              access_token,
+              refresh_token,
+            });
+            if (sessionError) {
+              alert(`Session error: ${sessionError.message}`);
+            } else {
+              console.log("[cards] Session restored from login link");
+            }
+          }
+
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.hash = "";
+          window.location.replace(cleanUrl.toString());
+        } catch (e) {
+          console.error("[supabase] login link processing failed:", e);
+        }
+      })();
+    }
+    // defer scripts run before DOMContentLoaded — call init immediately
+    __initSupa();
+  </script>
+
+  <!-- model-viewer: large library, load last so it never blocks rendering -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
 </body>
 </html>
