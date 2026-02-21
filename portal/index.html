@@ -950,6 +950,26 @@
         margin-bottom: 14px;
       }
 
+      .bs-download-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        padding: 10px 18px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: #000;
+        color: #fff;
+        font-family: 'PPMori', -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+        font-size: 13px;
+        font-weight: 400;
+        cursor: pointer;
+        text-decoration: none;
+        transition: border-color 0.2s ease;
+      }
+      .bs-download-btn:hover { border-color: rgba(255, 255, 255, 0.45); }
+      .bs-download-btn svg { width: 13px; height: 13px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
       /* Prevent blue highlight on hero text */
       .bs-hero,
       .bs-hero * {
@@ -1291,6 +1311,11 @@
               
               <p> You can download the project and listen to it locally either on mobile or desktop, the files are yours, sell them, pirate them, share them with a friend, their future is yours to shape.
             </p>
+
+            <a href="/assets/sloucho-broken-spirit.zip" download class="bs-download-btn">
+              <svg viewBox="0 0 24 24"><path d="M12 5v10M7 15l5 5 5-5"/><path d="M5 19h14"/></svg>
+              Download
+            </a>
           </div>
         </section>
 
