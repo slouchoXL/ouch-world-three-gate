@@ -397,30 +397,21 @@
     ></audio>
 
     <!-- Play/Pause + Now Playing -->
+    <!-- Play/Pause Only -->
     <div id="itemActionBar" class="item-action-bar">
-      <div id="nowPlaying" class="now-playing" aria-live="polite">
-        <span class="np-label">Now Playing:</span>
-
-        <span class="np-marquee">
-          <span class="np-text" id="nowPlayingRun">Loading…</span>
-        </span>
-
-        <!-- hidden pieces for lock-screen metadata -->
-        <span class="sr-only" id="nowPlayingArtist">Sloucho</span>
-        <span class="sr-only" id="nowPlayingTitle">Loading…</span>
-      </div>
-
       <button id="audioPlayBtn" class="icon-circle" type="button" aria-label="Play">
-        <!-- Play (triangle) -->
+        
+        <!-- Play icon -->
         <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M9 7l10 5-10 5V7z" />
         </svg>
 
-        <!-- Pause (two bars) -->
+        <!-- Pause icon -->
         <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M8 6v12" />
           <path d="M16 6v12" />
         </svg>
+
       </button>
     </div>
 
@@ -583,108 +574,54 @@
       });
     })();
 
-    // ===== Single-track player =====
+    // ===== Single-track player (keeps pill, no marquee, no "Now Playing:" label text) =====
     (function () {
       const audioEl = document.getElementById("singleTrackAudio");
       const btn = document.getElementById("audioPlayBtn");
+      const pill = document.getElementById("nowPlaying");
+
       if (!audioEl || !btn) return;
 
       // EDIT THESE:
       const TRACK = {
         artist: "Sloucho",
         title: "Love is Fear",
-        src: "/assets/Sloucho - Love is Fear.mp3"
+        src: "/assets/Sloucho - Love is Fear.mp3",
+        artwork: "/assets/slouchometa.png" // optional (recommended)
       };
 
-      // Initialize source + UI
+      // Initialize source
       audioEl.src = TRACK.src;
+      audioEl.preload = "auto";
       audioEl.load();
 
-      function updateNowPlayingText() {
+      // Pill: static text only (no marquee/scrolling)
+      function setPillText() {
+        // Remove "Now Playing:" label text and spacing
+        const labelEl = pill?.querySelector(".np-label");
+        if (labelEl) {
+          labelEl.textContent = "";
+          labelEl.style.display = "none";
+        }
+
         const runEl = document.getElementById("nowPlayingRun");
         const artistEl = document.getElementById("nowPlayingArtist");
         const titleEl = document.getElementById("nowPlayingTitle");
 
-        if (runEl) runEl.textContent = `${TRACK.artist} - ${TRACK.title}`;
+        if (runEl) {
+          runEl.textContent = `${TRACK.artist} - ${TRACK.title}`;
+          // Safety: clear any leftover transform from old marquee code
+          runEl.style.transition = "none";
+          runEl.style.transform = "translateX(0)";
+          runEl.style.paddingRight = "0px";
+        }
+
+        // Keep hidden metadata elements in sync if you still have them
         if (artistEl) artistEl.textContent = TRACK.artist;
         if (titleEl) titleEl.textContent = TRACK.title;
 
-        startNowPlayingMarquee();
-      }
-
-      function updateMediaSession() {
-        if (!("mediaSession" in navigator)) return;
-
-        const art = `${location.origin}/assets/slouchometa.png`;
-
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: TRACK.title,
-          artist: TRACK.artist,
-          album: "Single",
-          artwork: [
-            { src: art, sizes: "96x96", type: "image/png" },
-            { src: art, sizes: "192x192", type: "image/png" },
-            { src: art, sizes: "512x512", type: "image/png" }
-          ]
-        });
-
-        // Optional: lock-screen play/pause hooks
-        navigator.mediaSession.setActionHandler?.("play", async () => {
-          try { await audioEl.play(); } catch (_) {}
-        });
-        navigator.mediaSession.setActionHandler?.("pause", () => audioEl.pause());
-      }
-
-      let marqueeTimers = [];
-      function clearMarqueeTimers(){
-        marqueeTimers.forEach(t => clearTimeout(t));
-        marqueeTimers = [];
-      }
-
-      function startNowPlayingMarquee() {
-        const nowPlaying = document.getElementById("nowPlaying");
-        const marquee = document.querySelector("#nowPlaying .np-marquee");
-        const text = document.getElementById("nowPlayingRun");
-
-        if (!marquee || !text || !nowPlaying) return;
-
-        clearMarqueeTimers();
-        text.style.transition = "none";
-        text.style.transform = "translateX(0)";
-
-        requestAnimationFrame(() => {
-          const marqueeW = marquee.clientWidth;
-          const textW = text.scrollWidth;
-
-          if (textW <= marqueeW) {
-            nowPlaying.classList.remove("is-scrolling-active");
-            text.style.paddingRight = "0px";
-            return;
-          }
-
-          nowPlaying.classList.remove("is-scrolling-active");
-          text.style.paddingRight = "0px";
-
-          const distance = text.scrollWidth - marqueeW;
-          const speed = 45;
-          const duration = distance / speed;
-
-          const loop = () => {
-            nowPlaying.classList.remove("is-scrolling-active");
-            text.style.transition = "transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1)";
-            text.style.transform = "translateX(0)";
-
-            marqueeTimers.push(setTimeout(() => {
-              nowPlaying.classList.add("is-scrolling-active");
-              text.style.transition = `transform ${duration}s linear`;
-              text.style.transform = `translateX(-${distance}px)`;
-            }, 900));
-
-            marqueeTimers.push(setTimeout(loop, 900 + duration * 1000 + 900));
-          };
-
-          loop();
-        });
+        // Safety: ensure no marquee class remains
+        pill?.classList.remove("is-scrolling-active");
       }
 
       function setButtonState(isPlaying) {
@@ -692,13 +629,34 @@
         btn.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
       }
 
+      function updateMediaSession() {
+        if (!("mediaSession" in navigator)) return;
+
+        const artAbs = TRACK.artwork ? `${location.origin}${TRACK.artwork}` : null;
+
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: TRACK.title,
+          artist: TRACK.artist,
+          album: "Single",
+          artwork: artAbs
+            ? [
+                { src: artAbs, sizes: "96x96", type: "image/png" },
+                { src: artAbs, sizes: "192x192", type: "image/png" },
+                { src: artAbs, sizes: "512x512", type: "image/png" }
+              ]
+            : []
+        });
+
+        navigator.mediaSession.setActionHandler?.("play", async () => {
+          try { await audioEl.play(); } catch (_) {}
+        });
+        navigator.mediaSession.setActionHandler?.("pause", () => audioEl.pause());
+      }
+
       btn.addEventListener("click", async () => {
         if (audioEl.paused) {
-          try {
-            await audioEl.play();
-          } catch (e) {
-            console.warn("[audio] play failed:", e);
-          }
+          try { await audioEl.play(); }
+          catch (e) { console.warn("[audio] play failed:", e); }
         } else {
           audioEl.pause();
         }
@@ -716,11 +674,12 @@
       });
 
       audioEl.addEventListener("ended", () => {
-        // Single-track behavior: return to "paused" state at end.
         setButtonState(false);
+        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "none";
       });
 
-      updateNowPlayingText();
+      // Initial paint
+      setPillText();
       updateMediaSession();
       setButtonState(false);
     })();
