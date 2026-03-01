@@ -290,20 +290,28 @@
       max-width: 85vw;
     }
 
-    /* Hero layer */
-    #heroLayer {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
+      /* Hero layer */
+      #heroLayer {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
 
-      background-image: url("/assets/splash1.png"); /* CHANGE THIS */
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
+        background-image: url("/assets/splash1.png");
+        background-position: center;
+        background-repeat: no-repeat;
 
-      background-color: #000;
-    }
+        /* Desktop */
+        background-size: cover;
+        background-color: #000;
+      }
+
+      /* Mobile + small windows */
+      @media (max-width: 900px) {
+        #heroLayer {
+          background-size: contain;
+        }
+      }
     #heroVideo{
       position: absolute;
       inset: 0;
