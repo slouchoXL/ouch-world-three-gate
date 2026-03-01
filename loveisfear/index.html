@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>OUCH™</title>
+  <title>Love is Fear</title>
   <link rel="icon" href="favicon.ico?v=2" />
   <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
@@ -291,12 +291,17 @@
     }
 
     /* Hero layer */
-    #heroLayer{
+    #heroLayer {
       position: fixed;
       inset: 0;
       z-index: 0;
       pointer-events: none;
-      background: url("/assets/hero_poster.jpg") center / cover no-repeat;
+
+      background-image: url("/assets/splash1.png"); /* CHANGE THIS */
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+
       background-color: #000;
     }
     #heroVideo{
@@ -321,20 +326,7 @@
 </head>
 
 <body>
-  <div id="heroLayer" aria-hidden="true">
-    <video
-      id="heroVideo"
-      autoplay
-      muted
-      playsinline
-      loop
-      preload="auto"
-      webkit-playsinline
-      disablepictureinpicture
-    >
-      <source src="/assets/HeroNew_bg.mp4" type="video/mp4" />
-    </video>
-  </div>
+    <div id="heroLayer" aria-hidden="true"></div>
 
   <div class="container">
     <!-- Top Navigation -->
@@ -553,7 +545,7 @@
         artist: "Sloucho",
         title: "Love is Fear",
         src: "/assets/Sloucho - Love is Fear.mp3",
-        artwork: "/assets/slouchometa.png" // used for lock-screen metadata (optional)
+        artwork: "/assets/slouchometa1.png" // used for lock-screen metadata (optional)
       };
 
       // Initialize
@@ -625,66 +617,7 @@
       updateMediaSession();
     })();
 
-    // ===== HERO VIDEO AUTOPLAY (single controller) =====
-    (() => {
-      const v = document.getElementById("heroVideo");
-      const layer = document.getElementById("heroLayer");
-      if (!v) return;
-
-      v.muted = true;
-      v.defaultMuted = true;
-
-      function showVideo() {
-        layer?.classList.add("is-playing");
-      }
-
-      let unlocked = false;
-
-      async function attemptPlay(tag) {
-        try {
-          const p = v.play();
-          if (p && p.then) await p;
-
-          if (!v.paused) {
-            showVideo();
-            unlocked = true;
-            removeUnlockers();
-            return true;
-          }
-          return false;
-        } catch (e) {
-          if (e?.name !== "NotAllowedError") console.warn("[hero] play failed:", e);
-          return false;
-        }
-      }
-
-      const unlockEvents = ["pointerdown", "mousedown", "touchstart", "keydown", "wheel"];
-      const onGesture = async (ev) => {
-        if (unlocked) return;
-        await attemptPlay(`gesture:${ev.type}`);
-      };
-
-      function addUnlockers() {
-        unlockEvents.forEach(ev =>
-          window.addEventListener(ev, onGesture, { capture: true })
-        );
-      }
-      function removeUnlockers() {
-        unlockEvents.forEach(ev =>
-          window.removeEventListener(ev, onGesture, { capture: true })
-        );
-      }
-
-      addUnlockers();
-
-      window.addEventListener("load", async () => {
-        await attemptPlay("window.load");
-      }, { once: true });
-
-      document.addEventListener("visibilitychange", () => {
-        if (!document.hidden && !unlocked) attemptPlay("visibility");
-      });
-    })();
+   
   </script>
 </body>
 </html>
