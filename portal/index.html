@@ -954,6 +954,10 @@
         text-align: center;
         margin-top: 32px;
         margin-bottom: 70px;
+        display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
       }
       .bs-download-btn {
         display: inline-flex;
@@ -1315,11 +1319,22 @@
             </p>
 
             <div class="bs-download-wrap">
-              <a href="/assets/sloucho-broken-spirit.zip" download class="bs-download-btn">
-                Download
+              <!-- Local asset download (same as now) -->
+              <a href="/assets/sloucho-broken-spirit.zip"
+                 download
+                 class="bs-download-btn">
+                Download EP
+              </a>
+
+              <!-- Public URL download -->
+              <a href="https://pub-c8aa24ff7c554f949ea424cb6843d696.r2.dev/Broken%20Spirit.zip"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="bs-download-btn"
+                 style="margin-top:12px;">
+                Download Game
               </a>
             </div>
-          </div>
         </section>
 
 
