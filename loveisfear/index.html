@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Love is Fear</title>
+  <link rel="icon" href="favicon.ico?v=2" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    // Safe to expose in client
+    window.__SUPABASE_URL = 'https://srdwkfjterotzjwzoauj.supabase.co';
+    window.__SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ';
+  </script>
+  <script>
+    window.supa = window.supabase.createClient(
+      window.__SUPABASE_URL,
+      window.__SUPABASE_ANON_KEY
+    );
+  </script>
+
+  <!-- Magic link processing -->
+  <script>
+    (async function () {
+      try {
+        if (window.supa && location.hash && location.hash.includes('access_token')) {
+          const params = new URLSearchParams(location.hash.slice(1));
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+          const error = params.get('error');
+          const error_description = params.get('error_description');
+          if (error) {
+            alert(`Authentication error: ${error_description || error}`);
+            history.replaceState({}, '', location.pathname + location.search);
+            return;
+          }
+          if (access_token && refresh_token) {
+            const { error } = await window.supa.auth.setSession({ access_token, refresh_token });
+            if (error) alert(`Session error: ${error.message}`); else window.location.reload();
+          }
+          history.replaceState({}, '', location.pathname + location.search);
+        }
+      } catch (e) { console.error('[supabase] Magic link processing failed:', e); }
+    })();
+  </script>
+
+  <!-- Safari class (prevents video overlay flash) -->
+  <script>
+    (function () {
+      const ua = navigator.userAgent;
+      const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua);
+      if (isSafari) document.documentElement.classList.add('safari');
+    })();
+  </script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #fff;
+      touch-action: none;
+      -ms-touch-action: none;
+    }
+
+    .container { width: 100vw; height: 100vh; position: relative; }
+
+    :root{
+      --circle: 30px;
+      --circle-bg: rgba(0,0,0,0.8);
+      --circle-border: rgba(255,255,255,0.25);
+      --circle-border-hover: rgba(255,255,255,0.45);
+      --circle-icon: 12px;
+      --edge-pad-desktop: 28px;
+      --edge-pad-mobile: 16px;
+      --np-width: 260px;
+    }
+
+    /* Shared circular button primitive */
+    .icon-circle{
+      width: var(--circle);
+      height: var(--circle);
+      border-radius: 50%;
+      background: var(--circle-bg);
+      border: 1px solid var(--circle-border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      transition: border-color .2s ease;
+      backdrop-filter: blur(10px);
+      pointer-events: auto; /* allow clicking */
+    }
+    .icon-circle:hover{ border-color: var(--circle-border-hover); }
+
+    /* X icon (CSS-drawn) */
+    .icon-close{ position: relative; }
+    .icon-close::before,
+    .icon-close::after{
+      content:"";
+      position:absolute;
+      top: 50%;
+      left: 50%;
+      width: var(--circle-icon);
+      height: 2px;
+      background: rgba(255,255,255,0.85);
+      border-radius: 2px;
+      transform-origin: center;
+    }
+    .icon-close::before{ transform: translate(-50%,-50%) rotate(45deg); }
+    .icon-close::after { transform: translate(-50%,-50%) rotate(-45deg); }
+
+    /* Top navigation */
+    .top-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px;
+      padding-left: var(--edge-pad-desktop) !important;
+      padding-right: var(--edge-pad-desktop) !important;
+    }
+    @media (max-width: 768px) {
+      .top-nav {
+        padding-left: var(--edge-pad-mobile) !important;
+        padding-right: var(--edge-pad-mobile) !important;
+      }
+    }
+
+    .menu-button, .login-button {
+      width: 30px; height: 30px;
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color .2s ease, background .2s ease;
+    }
+    .menu-button:hover, .login-button:hover { border-color: rgba(255, 255, 255, 0.45); }
+    .menu-dots { display: flex; gap: 4px; }
+    .dot { width: 3px; height: 3px; background: #fff; border-radius: 50%; }
+    .user-icon { width: 16px; height: 16px; color: #fff; }
+    .user-icon svg { width: 100%; height: 100%; fill: currentColor; }
+
+    /* Menu tray */
+    .menu-tray {
+      position: fixed; top: 60px; left: 20px; width: 130px;
+      background: rgba(0, 0, 0, 1); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; z-index: 200;
+      transform: translateY(-20px); opacity: 0; visibility: hidden;
+      transition: all .3s ease; padding: 10px 0;
+    }
+    .menu-tray.open { transform: translateY(0); opacity: 1; visibility: visible; }
+    .menu-item {
+      position: relative; display: block; width: 100%;
+      padding: 6px 15px; color: #fff; text-decoration: none;
+      font-size: 14px; font-weight: 300; cursor: pointer;
+      background: none; border: 0;
+    }
+    .menu-item::before {
+      content: ""; position: absolute; inset: 1px;
+      left: 8px; right: 8px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.12);
+      opacity: 0; transform: scaleY(0.96);
+      transition: opacity .15s ease, transform .2s ease;
+      pointer-events: none;
+    }
+    .menu-item:hover::before, .menu-item:focus-visible::before { opacity: 1; transform: scaleY(1); }
+    .menu-item, .menu-item * { position: relative; z-index: 1; }
+    .menu-item .menu-pill { background: transparent !important; padding: 0 !important; border-radius: 0 !important; }
+
+    /* Modal (Account) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.96);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+    .modal-overlay.show { display: flex; }
+
+    .login-modal {
+      background: rgba(15,15,15,0.95);
+      border-radius: 16px;
+      padding: 24px 20px;
+      width: 90%;
+      max-width: 360px;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.7);
+      text-align: center;
+      color: #fff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "SF Pro Display", "Segoe UI", sans-serif;
+      position: relative;
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .login-modal h2 { font-size: 18px; margin-bottom: 12px; }
+    .login-modal p { font-size: 13px; opacity: 0.75; margin-bottom: 16px; }
+
+    .login-modal .icon-circle.icon-close{
+      position: absolute;
+      top: 14px;
+      right: 14px;
+    }
+
+    .form-group { margin-bottom: 12px; }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-input:focus { border-color: #fff; }
+    .form-input::placeholder { color: rgba(255,255,255,0.5); }
+
+    .form-button {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: none;
+      background: #fff;
+      color: #000;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    /* Action bar (play/pause + now playing) */
+    .item-action-bar {
+      position: fixed;
+      bottom: max(60px, env(safe-area-inset-bottom) + 24px);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 1500;
+      gap: 10px;
+      pointer-events: none;
+    }
+    @supports not (bottom: env(safe-area-inset-bottom)) {
+      .item-action-bar { bottom: 35px; }
+    }
+
+    .icon-circle svg {
+      width: 18px;
+      height: 18px;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 1.25;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    /* We’ll show/hide play/pause icons by class */
+    .icon-circle .icon-pause { display: none; }
+    .icon-circle.is-playing .icon-play { display: none; }
+    .icon-circle.is-playing .icon-pause { display: block; }
+
+    .now-playing{
+      position: relative;
+      z-index: 110;
+      color: #fff;
+      width: var(--np-width);
+      max-width: calc(100vw - 40px);
+      padding: 10px 14px;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      opacity: 0.88;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .np-marquee{
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .np-text{
+      display: inline-block;
+      white-space: nowrap;
+      will-change: transform;
+    }
+    .now-playing .np-label{ white-space: nowrap; flex: 0 0 auto; }
+
+    .now-playing.is-scrolling-active .np-marquee{
+      -webkit-mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
+      mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
+    }
+
+    .sr-only{
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0,0,0,0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    /* Hero layer */
+    #heroLayer{
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background: url("/assets/hero_poster.jpg") center / cover no-repeat;
+      background-color: #000;
+    }
+    #heroVideo{
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 220ms ease;
+    }
+    #heroLayer.is-playing #heroVideo{ opacity: 1; }
+
+    /* Hide native controls overlays */
+    #heroVideo::-webkit-media-controls,
+    #heroVideo::-webkit-media-controls-panel{
+      display: none !important;
+      -webkit-appearance: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="heroLayer" aria-hidden="true">
+    <video
+      id="heroVideo"
+      autoplay
+      muted
+      playsinline
+      loop
+      preload="auto"
+      webkit-playsinline
+      disablepictureinpicture
+    >
+      <source src="/assets/HeroNew_bg.mp4" type="video/mp4" />
+    </video>
+  </div>
+
+  <div class="container">
+    <!-- Top Navigation -->
+    <div class="top-nav">
+      <button class="menu-button" onclick="toggleMenu()">
+        <div class="menu-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      </button>
+      <button class="login-button" onclick="handleLogin()">
+        <div class="user-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        </div>
+      </button>
+    </div>
+
+    <!-- Menu Tray -->
+    <div class="menu-tray" id="menuTray">
+      <a href="/" class="menu-item"><span class="menu-pill">Home</span></a>
+      <a href="/portal" class="menu-item"><span class="menu-pill">Broken Spirit</span></a>
+      <a href="/shop" class="menu-item"><span class="menu-pill">Shop</span></a>
+    </div>
+
+    <!-- Audio element (hidden) -->
+    <audio
+      id="singleTrackAudio"
+      preload="auto"
+      playsinline
+      style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
+    ></audio>
+
+    <!-- Play/Pause + Now Playing -->
+    <div id="itemActionBar" class="item-action-bar">
+      <div id="nowPlaying" class="now-playing" aria-live="polite">
+        <span class="np-label">Now Playing:</span>
+
+        <span class="np-marquee">
+          <span class="np-text" id="nowPlayingRun">Loading…</span>
+        </span>
+
+        <!-- hidden pieces for lock-screen metadata -->
+        <span class="sr-only" id="nowPlayingArtist">Sloucho</span>
+        <span class="sr-only" id="nowPlayingTitle">Loading…</span>
+      </div>
+
+      <button id="audioPlayBtn" class="icon-circle" type="button" aria-label="Play">
+        <!-- Play (triangle) -->
+        <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 7l10 5-10 5V7z" />
+        </svg>
+
+        <!-- Pause (two bars) -->
+        <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 6v12" />
+          <path d="M16 6v12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Account Modal -->
+    <div class="modal-overlay" id="loginModal" role="dialog" aria-modal="true" aria-label="Account">
+      <div class="login-modal">
+        <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
+
+        <h2>Account</h2>
+
+        <!-- Logged-in view -->
+        <div id="accountLoggedIn" style="display:none; text-align:center;">
+          <p style="margin-bottom:12px; opacity:0.85; line-height:1.4;">
+            You’re signed in as<br />
+            <strong id="accountEmail" style="word-break:break-word;"></strong>
+          </p>
+
+          <button
+            type="button"
+            class="form-button"
+            id="logoutBtn"
+            style="background: rgba(255,255,255,0.10); color:#fff; border: 1px solid rgba(255,255,255,0.18); margin-top: 4px;"
+          >
+            Log out
+          </button>
+        </div>
+
+        <!-- Logged-out view -->
+        <form id="loginForm" onsubmit="return false;" style="display:none;">
+          <div class="form-group">
+            <input type="email" id="loginEmail" class="form-input" placeholder="Email" autocomplete="email" required />
+          </div>
+          <button type="submit" id="loginSubmit" class="form-button">Send login link</button>
+          <p id="loginError" style="font-size:12px; color:#f97373; margin-top:10px; min-height:18px;"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Menu / Modal =====
+    function toggleMenu() {
+      document.getElementById('menuTray')?.classList.toggle('open');
+    }
+
+    async function handleLogin() {
+      const modal = document.getElementById('loginModal');
+      if (!modal || !window.supa) return;
+
+      const loggedInView = document.getElementById('accountLoggedIn');
+      const loginForm    = document.getElementById('loginForm');
+      const emailEl      = document.getElementById('accountEmail');
+
+      const { data: { user } } = await window.supa.auth.getUser();
+
+      if (user) {
+        if (emailEl) emailEl.textContent = user.email || '';
+        if (loggedInView) loggedInView.style.display = 'block';
+        if (loginForm) loginForm.style.display = 'none';
+      } else {
+        if (loggedInView) loggedInView.style.display = 'none';
+        if (loginForm) loginForm.style.display = 'block';
+      }
+
+      modal.classList.add('show');
+    }
+
+    function closeLoginModal() {
+      document.getElementById('loginModal')?.classList.remove('show');
+    }
+
+    async function logout() {
+      try {
+        await window.supa?.auth?.signOut();
+        closeLoginModal();
+      } catch (e) {
+        console.error('[auth] signOut failed', e);
+      }
+    }
+
+    document.addEventListener('click', function(e) {
+      const tray = document.getElementById('menuTray');
+      const btn = document.querySelector('.menu-button');
+      if (tray && btn && !tray.contains(e.target) && !btn.contains(e.target)) tray.classList.remove('open');
+    });
+
+    document.getElementById('loginModal')?.addEventListener('click', function(e) {
+      if (e.target === this) closeLoginModal();
+    });
+
+    document.getElementById('logoutBtn')?.addEventListener('click', logout);
+
+    // ===== Mobile zoom suppression (kept as-is) =====
+    (function () {
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function (e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) e.preventDefault();
+        lastTouchEnd = now;
+      }, { passive: false });
+    })();
+    document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+    document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
+    document.addEventListener('touchstart', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+    document.addEventListener('touchmove', function (e) { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
+
+    function escapeHtml(str) {
+      return String(str || "").replace(/[&<>"']/g, (m) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[m]));
+    }
+
+    function showCheckEmailUI(email) {
+      const modal = document.getElementById('loginModal');
+      if (!modal) return;
+      const card = modal.querySelector('.login-modal');
+      if (!card) return;
+
+      card.innerHTML = `
+        <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
+        <h2 style="margin: 8px 0 10px; text-align:center;">Check your email</h2>
+        <p style="font-size:14px; opacity:0.8; margin:0 0 12px; line-height:1.45; text-align:center;">
+          We sent a login link to <strong>${escapeHtml(email)}</strong>.
+        </p>
+      `;
+
+      modal.classList.add('show');
+    }
+
+    (function () {
+      const emailInput = document.getElementById('loginEmail');
+      const loginBtn   = document.getElementById('loginSubmit');
+      if (!emailInput || !loginBtn) return;
+
+      loginBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const email = (emailInput.value || '').trim();
+        if (!email) return alert('Enter your email');
+        if (!window.supa?.auth) return alert('Auth not initialized');
+
+        loginBtn.disabled = true;
+        const old = loginBtn.textContent;
+        loginBtn.textContent = 'Sending…';
+
+        const { error } = await supa.auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo: window.location.origin }
+        });
+
+        loginBtn.disabled = false;
+        loginBtn.textContent = old;
+
+        if (error) alert(error.message);
+        else showCheckEmailUI(email);
+      });
+    })();
+
+    // ===== Single-track player =====
+    (function () {
+      const audioEl = document.getElementById("singleTrackAudio");
+      const btn = document.getElementById("audioPlayBtn");
+      if (!audioEl || !btn) return;
+
+      // EDIT THESE:
+      const TRACK = {
+        artist: "Sloucho",
+        title: "Love is Fear",
+        src: "/assets/Sloucho - Love is Fear.mp3"
+      };
+
+      // Initialize source + UI
+      audioEl.src = TRACK.src;
+      audioEl.load();
+
+      function updateNowPlayingText() {
+        const runEl = document.getElementById("nowPlayingRun");
+        const artistEl = document.getElementById("nowPlayingArtist");
+        const titleEl = document.getElementById("nowPlayingTitle");
+
+        if (runEl) runEl.textContent = `${TRACK.artist} - ${TRACK.title}`;
+        if (artistEl) artistEl.textContent = TRACK.artist;
+        if (titleEl) titleEl.textContent = TRACK.title;
+
+        startNowPlayingMarquee();
+      }
+
+      function updateMediaSession() {
+        if (!("mediaSession" in navigator)) return;
+
+        const art = `${location.origin}/assets/slouchometa.png`;
+
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: TRACK.title,
+          artist: TRACK.artist,
+          album: "Single",
+          artwork: [
+            { src: art, sizes: "96x96", type: "image/png" },
+            { src: art, sizes: "192x192", type: "image/png" },
+            { src: art, sizes: "512x512", type: "image/png" }
+          ]
+        });
+
+        // Optional: lock-screen play/pause hooks
+        navigator.mediaSession.setActionHandler?.("play", async () => {
+          try { await audioEl.play(); } catch (_) {}
+        });
+        navigator.mediaSession.setActionHandler?.("pause", () => audioEl.pause());
+      }
+
+      let marqueeTimers = [];
+      function clearMarqueeTimers(){
+        marqueeTimers.forEach(t => clearTimeout(t));
+        marqueeTimers = [];
+      }
+
+      function startNowPlayingMarquee() {
+        const nowPlaying = document.getElementById("nowPlaying");
+        const marquee = document.querySelector("#nowPlaying .np-marquee");
+        const text = document.getElementById("nowPlayingRun");
+
+        if (!marquee || !text || !nowPlaying) return;
+
+        clearMarqueeTimers();
+        text.style.transition = "none";
+        text.style.transform = "translateX(0)";
+
+        requestAnimationFrame(() => {
+          const marqueeW = marquee.clientWidth;
+          const textW = text.scrollWidth;
+
+          if (textW <= marqueeW) {
+            nowPlaying.classList.remove("is-scrolling-active");
+            text.style.paddingRight = "0px";
+            return;
+          }
+
+          nowPlaying.classList.remove("is-scrolling-active");
+          text.style.paddingRight = "0px";
+
+          const distance = text.scrollWidth - marqueeW;
+          const speed = 45;
+          const duration = distance / speed;
+
+          const loop = () => {
+            nowPlaying.classList.remove("is-scrolling-active");
+            text.style.transition = "transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1)";
+            text.style.transform = "translateX(0)";
+
+            marqueeTimers.push(setTimeout(() => {
+              nowPlaying.classList.add("is-scrolling-active");
+              text.style.transition = `transform ${duration}s linear`;
+              text.style.transform = `translateX(-${distance}px)`;
+            }, 900));
+
+            marqueeTimers.push(setTimeout(loop, 900 + duration * 1000 + 900));
+          };
+
+          loop();
+        });
+      }
+
+      function setButtonState(isPlaying) {
+        btn.classList.toggle("is-playing", isPlaying);
+        btn.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
+      }
+
+      btn.addEventListener("click", async () => {
+        if (audioEl.paused) {
+          try {
+            await audioEl.play();
+          } catch (e) {
+            console.warn("[audio] play failed:", e);
+          }
+        } else {
+          audioEl.pause();
+        }
+      });
+
+      audioEl.addEventListener("play", () => {
+        setButtonState(true);
+        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
+        updateMediaSession();
+      });
+
+      audioEl.addEventListener("pause", () => {
+        setButtonState(false);
+        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
+      });
+
+      audioEl.addEventListener("ended", () => {
+        // Single-track behavior: return to "paused" state at end.
+        setButtonState(false);
+      });
+
+      updateNowPlayingText();
+      updateMediaSession();
+      setButtonState(false);
+    })();
+
+    // ===== HERO VIDEO AUTOPLAY (kept as-is) =====
+    (() => {
+      const v = document.getElementById("heroVideo");
+      const layer = document.getElementById("heroLayer");
+      if (!v) return;
+
+      v.muted = true;
+      v.defaultMuted = true;
+
+      function showVideo() {
+        layer?.classList.add("is-playing");
+      }
+
+      let unlocked = false;
+
+      async function attemptPlay(tag) {
+        try {
+          const p = v.play();
+          if (p && p.then) await p;
+
+          if (!v.paused) {
+            showVideo();
+            unlocked = true;
+            removeUnlockers();
+            return true;
+          }
+          return false;
+        } catch (e) {
+          if (e?.name !== "NotAllowedError") console.warn("[hero] play failed:", e);
+          return false;
+        }
+      }
+
+      const unlockEvents = ["pointerdown", "mousedown", "touchstart", "keydown", "wheel"];
+      const onGesture = async (ev) => {
+        if (unlocked) return;
+        await attemptPlay(`gesture:${ev.type}`);
+      };
+
+      function addUnlockers() {
+        unlockEvents.forEach(ev =>
+          window.addEventListener(ev, onGesture, { capture: true })
+        );
+      }
+      function removeUnlockers() {
+        unlockEvents.forEach(ev =>
+          window.removeEventListener(ev, onGesture, { capture: true })
+        );
+      }
+
+      addUnlockers();
+
+      window.addEventListener("load", async () => {
+        await attemptPlay("window.load");
+      }, { once: true });
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && !unlocked) attemptPlay("visibility");
+      });
+    })();
+  </script>
+</body>
+</html>
