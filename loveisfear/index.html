@@ -396,22 +396,32 @@
       style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
     ></audio>
 
-    <!-- Play/Pause + Now Playing -->
-    <!-- Play/Pause Only -->
+    <!-- Play/Pause + Pill (static text, no marquee animation) -->
     <div id="itemActionBar" class="item-action-bar">
+      <div id="nowPlaying" class="now-playing" aria-live="polite">
+        <!-- This span stays for structure, but we'll hide it via JS/CSS -->
+        <span class="np-label">Now Playing:</span>
+
+        <!-- Keep your marquee wrapper if you want, but we will NOT animate it -->
+        <span class="np-marquee">
+          <span class="np-text" id="nowPlayingRun">Loading…</span>
+        </span>
+
+        <!-- Optional hidden metadata nodes (safe to keep) -->
+        <span class="sr-only" id="nowPlayingArtist">Sloucho</span>
+        <span class="sr-only" id="nowPlayingTitle">Loading…</span>
+      </div>
+
       <button id="audioPlayBtn" class="icon-circle" type="button" aria-label="Play">
-        
-        <!-- Play icon -->
+        <!-- Play -->
         <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M9 7l10 5-10 5V7z" />
         </svg>
-
-        <!-- Pause icon -->
+        <!-- Pause -->
         <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M8 6v12" />
           <path d="M16 6v12" />
         </svg>
-
       </button>
     </div>
 
@@ -504,7 +514,7 @@
 
     document.getElementById('logoutBtn')?.addEventListener('click', logout);
 
-    // ===== Mobile zoom suppression (kept as-is) =====
+    // ===== Mobile zoom suppression =====
     (function () {
       let lastTouchEnd = 0;
       document.addEventListener('touchend', function (e) {
@@ -574,35 +584,30 @@
       });
     })();
 
-    // ===== Single-track player (keeps pill, no marquee, no "Now Playing:" label text) =====
+    // ===== Single-track player (KEEP pill, NO marquee, remove "Now Playing:" text) =====
     (function () {
       const audioEl = document.getElementById("singleTrackAudio");
       const btn = document.getElementById("audioPlayBtn");
       const pill = document.getElementById("nowPlaying");
 
-      if (!audioEl || !btn) return;
+      if (!audioEl || !btn || !pill) return;
 
       // EDIT THESE:
       const TRACK = {
         artist: "Sloucho",
         title: "Love is Fear",
         src: "/assets/Sloucho - Love is Fear.mp3",
-        artwork: "/assets/slouchometa.png" // optional (recommended)
+        artwork: "/assets/slouchometa.png"
       };
 
-      // Initialize source
       audioEl.src = TRACK.src;
       audioEl.preload = "auto";
       audioEl.load();
 
-      // Pill: static text only (no marquee/scrolling)
-      function setPillText() {
-        // Remove "Now Playing:" label text and spacing
-        const labelEl = pill?.querySelector(".np-label");
-        if (labelEl) {
-          labelEl.textContent = "";
-          labelEl.style.display = "none";
-        }
+      function setPillTextStatic() {
+        // Remove/hide the label completely
+        const labelEl = pill.querySelector(".np-label");
+        if (labelEl) labelEl.style.display = "none";
 
         const runEl = document.getElementById("nowPlayingRun");
         const artistEl = document.getElementById("nowPlayingArtist");
@@ -610,18 +615,18 @@
 
         if (runEl) {
           runEl.textContent = `${TRACK.artist} - ${TRACK.title}`;
-          // Safety: clear any leftover transform from old marquee code
+
+          // Hard-disable any leftover animation styles
           runEl.style.transition = "none";
           runEl.style.transform = "translateX(0)";
           runEl.style.paddingRight = "0px";
         }
 
-        // Keep hidden metadata elements in sync if you still have them
+        // Ensure no marquee masking class is applied
+        pill.classList.remove("is-scrolling-active");
+
         if (artistEl) artistEl.textContent = TRACK.artist;
         if (titleEl) titleEl.textContent = TRACK.title;
-
-        // Safety: ensure no marquee class remains
-        pill?.classList.remove("is-scrolling-active");
       }
 
       function setButtonState(isPlaying) {
@@ -678,13 +683,13 @@
         if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "none";
       });
 
-      // Initial paint
-      setPillText();
+      // Init
+      setPillTextStatic();
       updateMediaSession();
       setButtonState(false);
     })();
 
-    // ===== HERO VIDEO AUTOPLAY (kept as-is) =====
+    // ===== HERO VIDEO AUTOPLAY =====
     (() => {
       const v = document.getElementById("heroVideo");
       const layer = document.getElementById("heroLayer");
