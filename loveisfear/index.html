@@ -250,7 +250,7 @@
       align-items: center;
       z-index: 1500;
       gap: 10px;
-      pointer-events: none; /* container is inert; buttons re-enable */
+      pointer-events: auto; /* container is inert; buttons re-enable */
     }
     @supports not (bottom: env(safe-area-inset-bottom)) {
       .item-action-bar { bottom: 35px; }
@@ -552,7 +552,7 @@
       const TRACK = {
         artist: "Sloucho",
         title: "Love is Fear",
-        src: "/assets/music/Sloucho_LoveIsFear.mp3",
+        src: "/assets/Sloucho - Love is Fear.mp3",
         artwork: "/assets/slouchometa.png" // used for lock-screen metadata (optional)
       };
 
@@ -591,10 +591,19 @@
       }
 
       btn.addEventListener("click", async () => {
-        if (audioEl.paused) {
-          try { await audioEl.play(); } catch (e) { console.warn("[audio] play failed:", e); }
-        } else {
-          audioEl.pause();
+        console.log("[audio] click received. paused =", audioEl.paused, "src =", audioEl.currentSrc);
+
+        try {
+          if (audioEl.paused) {
+            await audioEl.play();
+            console.log("[audio] play() ok");
+          } else {
+            audioEl.pause();
+            console.log("[audio] paused");
+          }
+        } catch (e) {
+          console.warn("[audio] play/pause error:", e?.name, e?.message, e);
+          alert(`Audio error: ${e?.name || "Unknown"}\n${e?.message || ""}`);
         }
       });
 
