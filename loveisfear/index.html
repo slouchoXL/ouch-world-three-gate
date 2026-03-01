@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Love is Fear</title>
+  <title>OUCH™</title>
   <link rel="icon" href="favicon.ico?v=2" />
   <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
@@ -78,7 +78,6 @@
       --circle-icon: 12px;
       --edge-pad-desktop: 28px;
       --edge-pad-mobile: 16px;
-      --np-width: 260px;
     }
 
     /* Shared circular button primitive */
@@ -240,7 +239,7 @@
       cursor: pointer;
     }
 
-    /* Action bar (play/pause + now playing) */
+    /* Action bar (single song: title pill + play/pause) */
     .item-action-bar {
       position: fixed;
       bottom: max(60px, env(safe-area-inset-bottom) + 24px);
@@ -251,75 +250,44 @@
       align-items: center;
       z-index: 1500;
       gap: 10px;
-      pointer-events: none;
+      pointer-events: none; /* container is inert; buttons re-enable */
     }
     @supports not (bottom: env(safe-area-inset-bottom)) {
       .item-action-bar { bottom: 35px; }
     }
 
+    /* Play/Pause icon styling */
     .icon-circle svg {
       width: 18px;
       height: 18px;
-      stroke: #fff;
-      fill: none;
-      stroke-width: 1.25;
-      stroke-linecap: round;
-      stroke-linejoin: round;
     }
-    /* We’ll show/hide play/pause icons by class */
-    .icon-circle .icon-pause { display: none; }
+    .icon-circle .icon-play { display: block; fill: rgba(255,255,255,0.92); }
+    .icon-circle .icon-pause { display: none; stroke: rgba(255,255,255,0.92); fill: none; stroke-width: 1.25; stroke-linecap: round; stroke-linejoin: round; }
     .icon-circle.is-playing .icon-play { display: none; }
     .icon-circle.is-playing .icon-pause { display: block; }
 
-    .now-playing{
-      position: relative;
-      z-index: 110;
+    /* Song title pill (smaller, text centered) */
+    .song-pill {
       color: #fff;
-      width: var(--np-width);
-      max-width: calc(100vw - 40px);
-      padding: 10px 14px;
+      padding: 8px 18px;
       background: rgba(0,0,0,0.75);
       border: 1px solid rgba(255,255,255,0.14);
       border-radius: 999px;
       backdrop-filter: blur(10px);
       opacity: 0.88;
       pointer-events: none;
-      display: flex;
+
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
-      min-width: 0;
+      justify-content: center;
+
       font-size: 14px;
       line-height: 1.2;
-    }
 
-    .np-marquee{
-      flex: 1 1 auto;
-      min-width: 0;
-      overflow: hidden;
       white-space: nowrap;
-    }
-    .np-text{
-      display: inline-block;
-      white-space: nowrap;
-      will-change: transform;
-    }
-    .now-playing .np-label{ white-space: nowrap; flex: 0 0 auto; }
+      text-align: center;
 
-    .now-playing.is-scrolling-active .np-marquee{
-      -webkit-mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
-      mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
-    }
-
-    .sr-only{
-      position: absolute !important;
-      width: 1px !important;
-      height: 1px !important;
-      padding: 0 !important;
-      margin: -1px !important;
-      overflow: hidden !important;
-      clip: rect(0,0,0,0) !important;
-      white-space: nowrap !important;
-      border: 0 !important;
+      max-width: 85vw;
     }
 
     /* Hero layer */
@@ -390,37 +358,26 @@
 
     <!-- Audio element (hidden) -->
     <audio
-      id="singleTrackAudio"
+      id="mysteryGiftAudio"
       preload="auto"
       playsinline
       style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
     ></audio>
 
-    <!-- Play/Pause + Pill (static text, no marquee animation) -->
+    <!-- Single song UI -->
     <div id="itemActionBar" class="item-action-bar">
-      <div id="nowPlaying" class="now-playing" aria-live="polite">
-        <!-- This span stays for structure, but we'll hide it via JS/CSS -->
-        <span class="np-label">Now Playing:</span>
-
-        <!-- Keep your marquee wrapper if you want, but we will NOT animate it -->
-        <span class="np-marquee">
-          <span class="np-text" id="nowPlayingRun">Loading…</span>
-        </span>
-
-        <!-- Optional hidden metadata nodes (safe to keep) -->
-        <span class="sr-only" id="nowPlayingArtist">Sloucho</span>
-        <span class="sr-only" id="nowPlayingTitle">Loading…</span>
-      </div>
+      <div id="songTitlePill" class="song-pill">Sloucho - Love is Fear</div>
 
       <button id="audioPlayBtn" class="icon-circle" type="button" aria-label="Play">
-        <!-- Play -->
+        <!-- Play (filled triangle) -->
         <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M9 7l10 5-10 5V7z" />
+          <path d="M9 7l10 5-10 5V7z"></path>
         </svg>
-        <!-- Pause -->
+
+        <!-- Pause (two bars) -->
         <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M8 6v12" />
-          <path d="M16 6v12" />
+          <path d="M8 6v12"></path>
+          <path d="M16 6v12"></path>
         </svg>
       </button>
     </div>
@@ -514,7 +471,7 @@
 
     document.getElementById('logoutBtn')?.addEventListener('click', logout);
 
-    // ===== Mobile zoom suppression =====
+    // ===== Mobile zoom suppression (kept as-is) =====
     (function () {
       let lastTouchEnd = 0;
       document.addEventListener('touchend', function (e) {
@@ -584,50 +541,27 @@
       });
     })();
 
-    // ===== Single-track player (KEEP pill, NO marquee, remove "Now Playing:" text) =====
+    // ===== HOME AUDIO — SINGLE SONG (PLAY/PAUSE) =====
     (function () {
-      const audioEl = document.getElementById("singleTrackAudio");
+      const audioEl = document.getElementById("mysteryGiftAudio");
       const btn = document.getElementById("audioPlayBtn");
-      const pill = document.getElementById("nowPlaying");
-
-      if (!audioEl || !btn || !pill) return;
+      const pill = document.getElementById("songTitlePill");
+      if (!audioEl || !btn) return;
 
       // EDIT THESE:
       const TRACK = {
         artist: "Sloucho",
         title: "Love is Fear",
-        src: "/assets/Sloucho - Love is Fear.mp3",
-        artwork: "/assets/slouchometa.png"
+        src: "/assets/music/Sloucho_LoveIsFear.mp3",
+        artwork: "/assets/slouchometa.png" // used for lock-screen metadata (optional)
       };
 
+      // Initialize
       audioEl.src = TRACK.src;
       audioEl.preload = "auto";
       audioEl.load();
 
-      function setPillTextStatic() {
-        // Remove/hide the label completely
-        const labelEl = pill.querySelector(".np-label");
-        if (labelEl) labelEl.style.display = "none";
-
-        const runEl = document.getElementById("nowPlayingRun");
-        const artistEl = document.getElementById("nowPlayingArtist");
-        const titleEl = document.getElementById("nowPlayingTitle");
-
-        if (runEl) {
-          runEl.textContent = `${TRACK.artist} - ${TRACK.title}`;
-
-          // Hard-disable any leftover animation styles
-          runEl.style.transition = "none";
-          runEl.style.transform = "translateX(0)";
-          runEl.style.paddingRight = "0px";
-        }
-
-        // Ensure no marquee masking class is applied
-        pill.classList.remove("is-scrolling-active");
-
-        if (artistEl) artistEl.textContent = TRACK.artist;
-        if (titleEl) titleEl.textContent = TRACK.title;
-      }
+      if (pill) pill.textContent = `${TRACK.artist} - ${TRACK.title}`;
 
       function setButtonState(isPlaying) {
         btn.classList.toggle("is-playing", isPlaying);
@@ -637,19 +571,17 @@
       function updateMediaSession() {
         if (!("mediaSession" in navigator)) return;
 
-        const artAbs = TRACK.artwork ? `${location.origin}${TRACK.artwork}` : null;
+        const artAbs = new URL(TRACK.artwork, location.origin).toString();
 
         navigator.mediaSession.metadata = new MediaMetadata({
           title: TRACK.title,
           artist: TRACK.artist,
           album: "Single",
-          artwork: artAbs
-            ? [
-                { src: artAbs, sizes: "96x96", type: "image/png" },
-                { src: artAbs, sizes: "192x192", type: "image/png" },
-                { src: artAbs, sizes: "512x512", type: "image/png" }
-              ]
-            : []
+          artwork: [
+            { src: artAbs, sizes: "96x96", type: "image/png" },
+            { src: artAbs, sizes: "192x192", type: "image/png" },
+            { src: artAbs, sizes: "512x512", type: "image/png" }
+          ]
         });
 
         navigator.mediaSession.setActionHandler?.("play", async () => {
@@ -660,8 +592,7 @@
 
       btn.addEventListener("click", async () => {
         if (audioEl.paused) {
-          try { await audioEl.play(); }
-          catch (e) { console.warn("[audio] play failed:", e); }
+          try { await audioEl.play(); } catch (e) { console.warn("[audio] play failed:", e); }
         } else {
           audioEl.pause();
         }
@@ -670,7 +601,6 @@
       audioEl.addEventListener("play", () => {
         setButtonState(true);
         if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
-        updateMediaSession();
       });
 
       audioEl.addEventListener("pause", () => {
@@ -680,16 +610,13 @@
 
       audioEl.addEventListener("ended", () => {
         setButtonState(false);
-        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "none";
       });
 
-      // Init
-      setPillTextStatic();
-      updateMediaSession();
       setButtonState(false);
+      updateMediaSession();
     })();
 
-    // ===== HERO VIDEO AUTOPLAY =====
+    // ===== HERO VIDEO AUTOPLAY (single controller) =====
     (() => {
       const v = document.getElementById("heroVideo");
       const layer = document.getElementById("heroLayer");
