@@ -264,30 +264,31 @@
       align-items: center;
       justify-content: center;
 
-      padding: 10px 28px;
-      border-radius: 9999px;
+      padding: 8px 22px;
+      border-radius: 999px;
 
-      border: 1px solid rgba(255,255,255,0.9);
-      background: rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.55);
+      border: none;
+
+      color: #fff;
+      font-size: 14px;
+      line-height: 1.2;
+      text-decoration: none;
+
       backdrop-filter: blur(10px);
 
-      font-size: 14px;
-      color: #fff;
-      text-decoration: none;
-      cursor: pointer;
+      opacity: 0.9;
+      transition: background 0.2s ease, opacity 0.2s ease;
 
-      transition: background 0.2s ease, color 0.2s ease;
       max-width: 85vw;
       white-space: nowrap;
-      opacity: 0.92;
     }
 
-    .download-pill:hover,
-    .download-pill:focus-visible {
-      background: #fff;
-      color: #000;
-      outline: none;
-    }
+      .download-pill:hover,
+      .download-pill:focus-visible {
+        background: rgba(0,0,0,0.7);
+        outline: none;
+      }
 
     /* Hero layer */
     #heroLayer {
@@ -508,7 +509,7 @@
 
     // ===== Download pill config (edit these) =====
     (function () {
-      const DOWNLOAD_URL = "/assets/sloucho-broken-spirit.zip";     // <-- change if needed
+      const DOWNLOAD_URL = "/assets/sloucho-broken-spirit-ep.zip";     // <-- change if needed
       const DOWNLOAD_FILENAME = "Broken_Spirit_EP.zip";            // <-- change if needed
 
       const btn = document.getElementById("downloadBtn");
