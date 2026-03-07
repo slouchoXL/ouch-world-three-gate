@@ -117,17 +117,7 @@
 
     /* Top navigation */
     .top-nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 20px;
-      padding-left: var(--edge-pad-desktop) !important;
-      padding-right: var(--edge-pad-desktop) !important;
-    }
-    @media (max-width: 768px) {
-      .top-nav {
-        padding-left: var(--edge-pad-mobile) !important;
-        padding-right: var(--edge-pad-mobile) !important;
-      }
+      display: none !important;
     }
 
     .menu-button, .login-button {
@@ -147,11 +137,7 @@
 
     /* Menu tray */
     .menu-tray {
-      position: fixed; top: 60px; left: 20px; width: 130px;
-      background: rgba(0, 0, 0, 1); backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; z-index: 200;
-      transform: translateY(-20px); opacity: 0; visibility: hidden;
-      transition: all .3s ease; padding: 10px 0;
+      display: none !important;
     }
     .menu-tray.open { transform: translateY(0); opacity: 1; visibility: visible; }
     .menu-item {
@@ -369,8 +355,6 @@
 
     <!-- Single song UI -->
     <div class="item-action-bar">
-      <div id="songTitlePill" class="song-pill">Sloucho - Love is Fear</div>
-
       <a
         id="spotifyButton"
         class="song-pill"
@@ -378,7 +362,7 @@
         target="_blank"
         rel="noopener"
         aria-label="Listen on Spotify"
-        style="pointer-events:auto; text-decoration:none;"
+        style="text-decoration:none;"
       >
         Listen on Spotify
       </a>
@@ -546,7 +530,6 @@
       // ===== HOME AUDIO — SINGLE SONG AUTOPLAY =====
       (function () {
         const audioEl = document.getElementById("mysteryGiftAudio");
-        const pill = document.getElementById("songTitlePill");
         if (!audioEl) return;
 
         const TRACK = {
@@ -559,9 +542,6 @@
         audioEl.src = TRACK.src;
         audioEl.preload = "auto";
         audioEl.load();
-
-        if (pill) pill.textContent = `${TRACK.artist} - ${TRACK.title}`;
-
         audioEl.play().catch(() => {});
 
         function updateMediaSession() {
@@ -579,6 +559,11 @@
               { src: artAbs, sizes: "512x512", type: "image/png" }
             ]
           });
+
+          navigator.mediaSession.setActionHandler?.("play", async () => {
+            try { await audioEl.play(); } catch (_) {}
+          });
+          navigator.mediaSession.setActionHandler?.("pause", () => audioEl.pause());
         }
 
         audioEl.addEventListener("play", () => {
