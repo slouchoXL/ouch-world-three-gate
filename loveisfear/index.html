@@ -368,34 +368,20 @@
     ></audio>
 
     <!-- Single song UI -->
-    <a
-      class="icon-circle"
-      href="https://open.spotify.com/track/0DZg0r6MxuSazgaWvdxTbF"
-      target="_blank"
-      rel="noopener"
-      aria-label="Listen on Spotify"
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="white" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10
-          10-4.48 10-10S17.52 2 12 2zm4.64 14.44c-.18.3-.57.4-.87.22
-          -2.38-1.45-5.38-1.78-8.91-.98-.34.08-.68-.14-.76-.48
-          -.08-.34.14-.68.48-.76 3.86-.88 7.18-.5 9.84 1.14
-          .3.18.4.57.22.86zm1.24-2.75c-.22.35-.68.46-1.03.24
-          -2.72-1.67-6.87-2.15-10.08-1.16-.39.12-.8-.1-.92-.49
-          -.12-.39.1-.8.49-.92 3.67-1.12 8.22-.58 11.31
-          1.33.35.21.46.68.23 1zm.1-2.87C14.6 8.73 8.83
-          8.56 5.68 9.52c-.44.13-.9-.12-1.03-.56
-          -.13-.44.12-.9.56-1.03 3.63-1.1 10.05-.89
-          13.7 1.37.39.24.51.76.27 1.15-.24.39-.76.51-1.15.27z"/>
-      </svg>
-    </a>
+    <div class="item-action-bar">
+      <div id="songTitlePill" class="song-pill">Sloucho - Love is Fear</div>
 
-        <!-- Pause (two bars) -->
-        <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M8 6v12"></path>
-          <path d="M16 6v12"></path>
-        </svg>
-      </button>
+      <a
+        id="spotifyButton"
+        class="song-pill"
+        href="https://open.spotify.com/track/0DZg0r6MxuSazgaWvdxTbF"
+        target="_blank"
+        rel="noopener"
+        aria-label="Listen on Spotify"
+        style="pointer-events:auto; text-decoration:none;"
+      >
+        Listen on Spotify
+      </a>
     </div>
 
     <!-- Account Modal -->
@@ -557,91 +543,54 @@
       });
     })();
 
-    // ===== HOME AUDIO — SINGLE SONG (PLAY/PAUSE) =====
-    (function () {
-      const audioEl = document.getElementById("mysteryGiftAudio");
-      const btn = null;
-      const pill = document.getElementById("songTitlePill");
-      if (!audioEl || !btn) return;
+      // ===== HOME AUDIO — SINGLE SONG AUTOPLAY =====
+      (function () {
+        const audioEl = document.getElementById("mysteryGiftAudio");
+        const pill = document.getElementById("songTitlePill");
+        if (!audioEl) return;
 
-      // EDIT THESE:
-      const TRACK = {
-        artist: "Sloucho",
-        title: "Love is Fear",
-        src: "/assets/Sloucho - Love is Fear.mp3",
-        artwork: "/assets/slouchometa1.png" // used for lock-screen metadata (optional)
-      };
+        const TRACK = {
+          artist: "Sloucho",
+          title: "Love is Fear",
+          src: "/assets/Sloucho - Love is Fear.mp3",
+          artwork: "/assets/slouchometa1.png"
+        };
 
-      // Initialize
-      audioEl.src = TRACK.src;
-      audioEl.preload = "auto";
-      audioEl.load();
-      audioEl.src = TRACK.audio;
-      audioEl.play().catch(()=>{});
+        audioEl.src = TRACK.src;
+        audioEl.preload = "auto";
+        audioEl.load();
 
-      if (pill) pill.textContent = `${TRACK.artist} - ${TRACK.title}`;
+        if (pill) pill.textContent = `${TRACK.artist} - ${TRACK.title}`;
 
-      function setButtonState(isPlaying) {
-        btn.classList.toggle("is-playing", isPlaying);
-        btn.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
-      }
+        audioEl.play().catch(() => {});
 
-      function updateMediaSession() {
-        if (!("mediaSession" in navigator)) return;
+        function updateMediaSession() {
+          if (!("mediaSession" in navigator)) return;
 
-        const artAbs = new URL(TRACK.artwork, location.origin).toString();
+          const artAbs = new URL(TRACK.artwork, location.origin).toString();
 
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: TRACK.title,
-          artist: TRACK.artist,
-          album: "Single",
-          artwork: [
-            { src: artAbs, sizes: "96x96", type: "image/png" },
-            { src: artAbs, sizes: "192x192", type: "image/png" },
-            { src: artAbs, sizes: "512x512", type: "image/png" }
-          ]
-        });
-
-        navigator.mediaSession.setActionHandler?.("play", async () => {
-          try { await audioEl.play(); } catch (_) {}
-        });
-        navigator.mediaSession.setActionHandler?.("pause", () => audioEl.pause());
-      }
-
-      btn.addEventListener("click", async () => {
-        console.log("[audio] click received. paused =", audioEl.paused, "src =", audioEl.currentSrc);
-
-        try {
-          if (audioEl.paused) {
-            await audioEl.play();
-            console.log("[audio] play() ok");
-          } else {
-            audioEl.pause();
-            console.log("[audio] paused");
-          }
-        } catch (e) {
-          console.warn("[audio] play/pause error:", e?.name, e?.message, e);
-          alert(`Audio error: ${e?.name || "Unknown"}\n${e?.message || ""}`);
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: TRACK.title,
+            artist: TRACK.artist,
+            album: "Single",
+            artwork: [
+              { src: artAbs, sizes: "96x96", type: "image/png" },
+              { src: artAbs, sizes: "192x192", type: "image/png" },
+              { src: artAbs, sizes: "512x512", type: "image/png" }
+            ]
+          });
         }
-      });
 
-      audioEl.addEventListener("play", () => {
-        setButtonState(true);
-        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
-      });
+        audioEl.addEventListener("play", () => {
+          if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
+        });
 
-      audioEl.addEventListener("pause", () => {
-        setButtonState(false);
-        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
-      });
+        audioEl.addEventListener("pause", () => {
+          if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
+        });
 
-      audioEl.addEventListener("ended", () => {
-        setButtonState(false);
-      });
-
-      setButtonState(false);
-      updateMediaSession();
-    })();
+        updateMediaSession();
+      })();
 
    
   </script>
