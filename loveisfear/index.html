@@ -261,7 +261,7 @@
       border-radius: 999px;
       backdrop-filter: blur(10px);
       opacity: 0.88;
-      pointer-events: none;
+      pointer-events: auto;
 
       display: inline-flex;
       align-items: center;
@@ -275,6 +275,11 @@
 
       max-width: 85vw;
     }
+      
+      .song-pill.cta-pill:hover {
+        border-color: rgba(255,255,255,0.3);
+        opacity: 1;
+      }
 
       /* Hero layer */
       #heroLayer {
