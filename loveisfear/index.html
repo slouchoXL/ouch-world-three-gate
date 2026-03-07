@@ -584,6 +584,13 @@
         updateMediaSession();
       })();
 
+      document.addEventListener("click", () => {
+        const audio = document.getElementById("mysteryGiftAudio");
+        if (!audio) return;
+
+        audio.muted = false;
+        audio.play().catch(()=>{});
+      }, { once:true });
    
   </script>
 </body>
