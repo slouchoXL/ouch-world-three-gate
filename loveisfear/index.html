@@ -353,9 +353,6 @@
     <audio
       id="mysteryGiftAudio"
       preload="auto"
-      autoplay
-      muted
-      loop
       playsinline
       style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
     ></audio>
@@ -549,7 +546,7 @@
         audioEl.src = TRACK.src;
         audioEl.preload = "auto";
         audioEl.load();
-        audioEl.play().catch(() => {});
+        
 
         function updateMediaSession() {
           if (!("mediaSession" in navigator)) return;
@@ -584,13 +581,7 @@
         updateMediaSession();
       })();
 
-      document.addEventListener("click", () => {
-        const audio = document.getElementById("mysteryGiftAudio");
-        if (!audio) return;
-
-        audio.muted = false;
-        audio.play().catch(()=>{});
-      }, { once:true });
+     
    
   </script>
 </body>
