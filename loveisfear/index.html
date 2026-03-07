@@ -360,19 +360,35 @@
     <audio
       id="mysteryGiftAudio"
       preload="auto"
+      autoplay
+      muted
+      loop
       playsinline
       style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
     ></audio>
 
     <!-- Single song UI -->
-    <div id="itemActionBar" class="item-action-bar">
-      <div id="songTitlePill" class="song-pill">Sloucho - Love is Fear</div>
-
-      <button id="audioPlayBtn" class="icon-circle" type="button" aria-label="Play">
-        <!-- Play (filled triangle) -->
-        <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M9 7l10 5-10 5V7z"></path>
-        </svg>
+    <a
+      class="icon-circle"
+      href="https://open.spotify.com/track/0DZg0r6MxuSazgaWvdxTbF"
+      target="_blank"
+      rel="noopener"
+      aria-label="Listen on Spotify"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="white" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10
+          10-4.48 10-10S17.52 2 12 2zm4.64 14.44c-.18.3-.57.4-.87.22
+          -2.38-1.45-5.38-1.78-8.91-.98-.34.08-.68-.14-.76-.48
+          -.08-.34.14-.68.48-.76 3.86-.88 7.18-.5 9.84 1.14
+          .3.18.4.57.22.86zm1.24-2.75c-.22.35-.68.46-1.03.24
+          -2.72-1.67-6.87-2.15-10.08-1.16-.39.12-.8-.1-.92-.49
+          -.12-.39.1-.8.49-.92 3.67-1.12 8.22-.58 11.31
+          1.33.35.21.46.68.23 1zm.1-2.87C14.6 8.73 8.83
+          8.56 5.68 9.52c-.44.13-.9-.12-1.03-.56
+          -.13-.44.12-.9.56-1.03 3.63-1.1 10.05-.89
+          13.7 1.37.39.24.51.76.27 1.15-.24.39-.76.51-1.15.27z"/>
+      </svg>
+    </a>
 
         <!-- Pause (two bars) -->
         <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
@@ -544,7 +560,7 @@
     // ===== HOME AUDIO — SINGLE SONG (PLAY/PAUSE) =====
     (function () {
       const audioEl = document.getElementById("mysteryGiftAudio");
-      const btn = document.getElementById("audioPlayBtn");
+      const btn = null;
       const pill = document.getElementById("songTitlePill");
       if (!audioEl || !btn) return;
 
@@ -560,6 +576,8 @@
       audioEl.src = TRACK.src;
       audioEl.preload = "auto";
       audioEl.load();
+      audioEl.src = TRACK.audio;
+      audioEl.play().catch(()=>{});
 
       if (pill) pill.textContent = `${TRACK.artist} - ${TRACK.title}`;
 
