@@ -225,22 +225,24 @@
       cursor: pointer;
     }
 
-    /* Action bar (single song: title pill + play/pause) */
-    .item-action-bar {
-      position: fixed;
-      bottom: max(60px, env(safe-area-inset-bottom) + 24px);
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      z-index: 1500;
-      gap: 10px;
-      pointer-events: auto; /* container is inert; buttons re-enable */
-    }
-    @supports not (bottom: env(safe-area-inset-bottom)) {
-      .item-action-bar { bottom: 35px; }
-    }
+      .item-action-bar {
+        position: fixed;
+        bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 1500;
+        gap: 10px;
+        pointer-events: auto;
+      }
+
+      @media (max-width: 768px) {
+        .item-action-bar {
+          bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+        }
+      }
 
     /* Play/Pause icon styling */
     .icon-circle svg {
