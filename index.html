@@ -8,14 +8,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 
   <!-- Supabase -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     window.__SUPABASE_URL = 'https://srdwkfjterotzjwzoauj.supabase.co';
     window.__SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ';
-  <\/script>
+  </script>
   <script>
     window.supa = window.supabase.createClient(window.__SUPABASE_URL, window.__SUPABASE_ANON_KEY);
-  <\/script>
+  </script>
 
   <!-- Magic link processing -->
   <script>
@@ -36,7 +36,7 @@
         }
       } catch (e) { console.error('[supabase] Magic link processing failed:', e); }
     })();
-  <\/script>
+  </script>
 
   <!-- Safari class -->
   <script>
@@ -45,7 +45,7 @@
       const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua);
       if (isSafari) document.documentElement.classList.add('safari');
     })();
-  <\/script>
+  </script>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -320,7 +320,7 @@
 
   <div id="move-hint">W A S D to move &nbsp;·&nbsp; drag to look</div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     // ===== THREE.JS ROOM =====
     (function () {
@@ -461,7 +461,7 @@
       }
       animate();
     })();
-  <\/script>
+  </script>
 
   <script>
     // ===== Menu / Modal =====
@@ -749,6 +749,6 @@
         if (!willMute) { updateMediaSessionMetadata(normalizeTrack(station?.order?.[station?.trackIndex])); try { await audioEl.play(); } catch (_) {} }
       });
     })();
-  <\/script>
+  </script>
 </body>
 </html>
