@@ -7,7 +7,6 @@
   <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 
-  <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     window.__SUPABASE_URL = 'https://srdwkfjterotzjwzoauj.supabase.co';
@@ -16,8 +15,6 @@
   <script>
     window.supa = window.supabase.createClient(window.__SUPABASE_URL, window.__SUPABASE_ANON_KEY);
   </script>
-
-  <!-- Magic link processing -->
   <script>
     (async function () {
       try {
@@ -37,8 +34,6 @@
       } catch (e) { console.error('[supabase] Magic link processing failed:', e); }
     })();
   </script>
-
-  <!-- Safari class -->
   <script>
     (function () {
       const ua = navigator.userAgent;
@@ -56,7 +51,6 @@
       touch-action: none; -ms-touch-action: none;
     }
 
-    /* Three.js canvas fills the whole background */
     #room-canvas {
       position: fixed; inset: 0;
       width: 100%; height: 100%;
@@ -65,13 +59,11 @@
     }
     #room-canvas.dragging { cursor: grabbing; }
 
-    /* Hidden video source for wall texture */
     #room-video {
       position: absolute; opacity: 0;
       pointer-events: none; width: 1px; height: 1px;
     }
 
-    /* All UI sits above the canvas */
     .container { width: 100vw; height: 100vh; position: relative; z-index: 10; pointer-events: none; }
     .container > * { pointer-events: auto; }
 
@@ -106,7 +98,6 @@
     .icon-close::before { transform: translate(-50%,-50%) rotate(45deg); }
     .icon-close::after  { transform: translate(-50%,-50%) rotate(-45deg); }
 
-    /* Top nav */
     .top-nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; justify-content: space-between; align-items: center;
@@ -114,9 +105,7 @@
       pointer-events: none;
     }
     .top-nav > * { pointer-events: auto; }
-    @media (max-width: 768px) {
-      .top-nav { padding: 20px var(--edge-pad-mobile); }
-    }
+    @media (max-width: 768px) { .top-nav { padding: 20px var(--edge-pad-mobile); } }
 
     .menu-button, .login-button {
       width: 30px; height: 30px;
@@ -131,14 +120,12 @@
     .user-icon { width: 16px; height: 16px; color: #fff; }
     .user-icon svg { width: 100%; height: 100%; fill: currentColor; }
 
-    /* Menu tray */
     .menu-tray {
       position: fixed; top: 60px; left: 20px; width: 130px;
       background: rgba(0,0,0,1); backdrop-filter: blur(20px);
       border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; z-index: 200;
       transform: translateY(-20px); opacity: 0; visibility: hidden;
-      transition: all .3s ease; padding: 10px 0;
-      pointer-events: none;
+      transition: all .3s ease; padding: 10px 0; pointer-events: none;
     }
     .menu-tray.open { transform: translateY(0); opacity: 1; visibility: visible; pointer-events: auto; }
     .menu-item {
@@ -157,7 +144,6 @@
     .menu-item, .menu-item * { position: relative; z-index: 1; }
     .menu-item .menu-pill { background: transparent !important; padding: 0 !important; border-radius: 0 !important; }
 
-    /* Modal */
     .modal-overlay {
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.96); z-index: 9999;
@@ -200,7 +186,6 @@
       font-weight: 600; font-size: 14px; cursor: pointer;
     }
 
-    /* Action bar */
     .item-action-bar {
       position: fixed;
       bottom: max(60px, env(safe-area-inset-bottom) + 24px);
@@ -235,28 +220,57 @@
     }
     .sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
 
-    /* WASD hint */
     #move-hint {
       position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
       font-size: 11px; color: rgba(255,255,255,0.22);
       pointer-events: none; white-space: nowrap;
       transition: opacity 1.5s; font-family: Arial, sans-serif;
+      z-index: 50;
+    }
+
+    /* ── Mobile joystick ── */
+    #joystick-zone {
+      display: none;
+      position: fixed;
+      bottom: max(160px, env(safe-area-inset-bottom) + 140px);
+      left: 28px;
+      width: 110px; height: 110px;
+      z-index: 1400;
+      pointer-events: auto;
+    }
+    #joystick-base {
+      width: 110px; height: 110px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.15);
+      position: absolute;
+      backdrop-filter: blur(4px);
+    }
+    #joystick-knob {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.35);
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      transition: none;
+    }
+    @media (hover: none) and (pointer: coarse) {
+      #joystick-zone { display: block; }
+      #move-hint { display: none; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Hidden video — texture source for Three.js walls -->
-  <video id="room-video" autoplay loop muted playsinline>
+  <video id="room-video" autoplay loop muted playsinline webkit-playsinline>
     <source src="VidInfinity.mp4" type="video/mp4" />
   </video>
 
-  <!-- Three.js canvas (background) -->
   <canvas id="room-canvas"></canvas>
 
-  <!-- UI layer -->
   <div class="container">
-    <!-- Top Navigation -->
     <div class="top-nav">
       <button class="menu-button" onclick="toggleMenu()">
         <div class="menu-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
@@ -268,17 +282,14 @@
       </button>
     </div>
 
-    <!-- Menu Tray -->
     <div class="menu-tray" id="menuTray">
       <a href="/" class="menu-item"><span class="menu-pill">Home</span></a>
       <a href="/portal" class="menu-item"><span class="menu-pill">Broken Spirit</span></a>
       <a href="/shop" class="menu-item"><span class="menu-pill">Shop</span></a>
     </div>
 
-    <!-- Audio -->
     <audio id="mysteryGiftAudio" preload="auto" autoplay muted playsinline style="position:absolute;left:-9999px;width:0;height:0;opacity:0;"></audio>
 
-    <!-- Speaker + Now Playing -->
     <div id="itemActionBar" class="item-action-bar">
       <div id="nowPlaying" class="now-playing" aria-live="polite">
         <span class="np-label">Now Playing:</span>
@@ -298,7 +309,6 @@
       </button>
     </div>
 
-    <!-- Account Modal -->
     <div class="modal-overlay" id="loginModal" role="dialog" aria-modal="true" aria-label="Account">
       <div class="login-modal">
         <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
@@ -318,6 +328,12 @@
     </div>
   </div>
 
+  <!-- Mobile joystick (shown only on touch devices via CSS) -->
+  <div id="joystick-zone">
+    <div id="joystick-base"></div>
+    <div id="joystick-knob"></div>
+  </div>
+
   <div id="move-hint">W A S D to move &nbsp;·&nbsp; drag to look</div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -331,10 +347,12 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
       const scene  = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000);
+      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 5000);
 
-      const roomW = 800, roomH = 400, roomD = 900;
-      camera.position.set(0, -roomH * 0.3, 0);
+      // FIX 1 & 4: Much bigger room
+      const roomW = 2400, roomH = 900, roomD = 2800;
+      const EYE_Y = -roomH * 0.3;
+      camera.position.set(0, EYE_Y, 0);
 
       function resize() {
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -343,6 +361,9 @@
       }
       window.addEventListener('resize', resize);
       resize();
+
+      // FIX 1 (desktop video): use crossOrigin + force play inside user gesture unlock
+      videoEl.crossOrigin = 'anonymous';
 
       const videoTexture = new THREE.VideoTexture(videoEl);
       videoTexture.minFilter = THREE.LinearFilter;
@@ -357,16 +378,17 @@
         if (rx) m.rotation.x = rx;
         scene.add(m);
       }
-      addWall(roomW, roomH,  0,         0,  -roomD/2,  0,            0);
-      addWall(roomW, roomH,  0,         0,   roomD/2,  Math.PI,      0);
-      addWall(roomD, roomH, -roomW/2,   0,   0,        Math.PI/2,    0);
-      addWall(roomD, roomH,  roomW/2,   0,   0,       -Math.PI/2,    0);
-      addWall(roomW, roomD,  0,  roomH/2,   0,         0,            Math.PI/2);
-      addWall(roomW, roomD,  0, -roomH/2,   0,         0,           -Math.PI/2);
+      addWall(roomW, roomH,  0,      0,  -roomD/2,  0,           0);
+      addWall(roomW, roomH,  0,      0,   roomD/2,  Math.PI,     0);
+      addWall(roomD, roomH, -roomW/2, 0,  0,        Math.PI/2,   0);
+      addWall(roomD, roomH,  roomW/2, 0,  0,       -Math.PI/2,   0);
+      addWall(roomW, roomD,  0,  roomH/2, 0,        0,            Math.PI/2);
+      addWall(roomW, roomD,  0, -roomH/2, 0,        0,           -Math.PI/2);
 
-      // Look controls
+      // Look controls (drag)
       let phi = 0, theta = 0.05;
-      let dragging = false, lastX = 0, lastY = 0;
+      let lookId = -1; // touch ID reserved for looking (right side)
+      let lookLastX = 0, lookLastY = 0;
       let velPhi = 0, velTheta = 0, rafInertia = null;
 
       function updateCamera() {
@@ -377,64 +399,44 @@
           camera.position.z + Math.cos(theta) * Math.cos(phi)
         );
       }
-
       function runInertia() {
-        if (!dragging && (Math.abs(velPhi) > 0.00003 || Math.abs(velTheta) > 0.00003)) {
+        if (lookId === -1 && (Math.abs(velPhi) > 0.00003 || Math.abs(velTheta) > 0.00003)) {
           phi += velPhi; theta += velTheta;
           velPhi *= 0.85; velTheta *= 0.85;
           updateCamera(); rafInertia = requestAnimationFrame(runInertia);
         }
       }
 
-      // Only start drag if not clicking a UI element
+      // Mouse look (desktop)
+      let mouseDragging = false, mouseLastX = 0, mouseLastY = 0;
       canvas.addEventListener('mousedown', e => {
         if (e.target !== canvas) return;
-        dragging = true; lastX = e.clientX; lastY = e.clientY;
+        mouseDragging = true; mouseLastX = e.clientX; mouseLastY = e.clientY;
         velPhi = velTheta = 0; cancelAnimationFrame(rafInertia);
         canvas.classList.add('dragging');
         document.getElementById('move-hint').style.opacity = '0';
       });
       window.addEventListener('mousemove', e => {
-        if (!dragging) return;
-        velPhi   = -(e.clientX - lastX) * 0.002;
-        velTheta = -(e.clientY - lastY) * 0.002;
+        if (!mouseDragging) return;
+        velPhi   = -(e.clientX - mouseLastX) * 0.002;
+        velTheta = -(e.clientY - mouseLastY) * 0.002;
         phi += velPhi; theta += velTheta;
-        lastX = e.clientX; lastY = e.clientY; updateCamera();
+        mouseLastX = e.clientX; mouseLastY = e.clientY; updateCamera();
       });
       window.addEventListener('mouseup', () => {
-        dragging = false; canvas.classList.remove('dragging');
+        mouseDragging = false; canvas.classList.remove('dragging');
         rafInertia = requestAnimationFrame(runInertia);
       });
 
-      canvas.addEventListener('touchstart', e => {
-        if (e.touches.length !== 1) return;
-        dragging = true;
-        lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
-        velPhi = velTheta = 0; cancelAnimationFrame(rafInertia);
-        document.getElementById('move-hint').style.opacity = '0';
-      }, { passive: true });
-      canvas.addEventListener('touchmove', e => {
-        if (!dragging || e.touches.length !== 1) return;
-        velPhi   = -(e.touches[0].clientX - lastX) * 0.002;
-        velTheta = -(e.touches[0].clientY - lastY) * 0.002;
-        phi += velPhi; theta += velTheta;
-        lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
-        updateCamera(); e.preventDefault();
-      }, { passive: false });
-      canvas.addEventListener('touchend', () => {
-        dragging = false; rafInertia = requestAnimationFrame(runInertia);
-      });
-
-      // WASD movement
+      // WASD movement (desktop)
       const keys = {};
       window.addEventListener('keydown', e => { keys[e.code] = true; document.getElementById('move-hint').style.opacity = '0'; });
       window.addEventListener('keyup',   e => { keys[e.code] = false; });
 
-      const SPEED = 1.5;
-      const HALF_W = roomW/2 - 5, HALF_D = roomD/2 - 5;
-      const EYE_Y = -roomH * 0.3;
+      const SPEED = 4;
+      const HALF_W = roomW/2 - 10, HALF_D = roomD/2 - 10;
 
-      function applyMovement() {
+      function applyKeyMovement() {
         const fX = Math.sin(phi), fZ = Math.cos(phi);
         const rX = Math.cos(phi), rZ = -Math.sin(phi);
         let dx = 0, dz = 0;
@@ -450,12 +452,99 @@
         updateCamera();
       }
 
+      // ── Mobile joystick ──────────────────────────────────────
+      const jZone = document.getElementById('joystick-zone');
+      const jKnob = document.getElementById('joystick-knob');
+      const J_RADIUS = 33; // max knob travel (px)
+      let jActive = false, jTouchId = -1;
+      let jDx = 0, jDz = 0; // normalised joystick vector
+
+      jZone.addEventListener('touchstart', e => {
+        e.stopPropagation();
+        const t = e.changedTouches[0];
+        jTouchId = t.identifier; jActive = true;
+        updateJoystick(t.clientX, t.clientY);
+      }, { passive: true });
+
+      window.addEventListener('touchmove', e => {
+        // Joystick touch
+        for (const t of e.changedTouches) {
+          if (t.identifier === jTouchId && jActive) {
+            updateJoystick(t.clientX, t.clientY);
+          }
+          // Look touch (any touch NOT on joystick zone, right side of screen)
+          if (t.identifier !== jTouchId && lookId === -1 && t.clientX > window.innerWidth * 0.35) {
+            lookId = t.identifier;
+            lookLastX = t.clientX; lookLastY = t.clientY;
+            velPhi = velTheta = 0; cancelAnimationFrame(rafInertia);
+          }
+          if (t.identifier === lookId) {
+            velPhi   = -(t.clientX - lookLastX) * 0.003;
+            velTheta = -(t.clientY - lookLastY) * 0.003;
+            phi += velPhi; theta += velTheta;
+            lookLastX = t.clientX; lookLastY = t.clientY;
+            updateCamera();
+          }
+        }
+        e.preventDefault();
+      }, { passive: false });
+
+      window.addEventListener('touchend', e => {
+        for (const t of e.changedTouches) {
+          if (t.identifier === jTouchId) {
+            jActive = false; jTouchId = -1; jDx = 0; jDz = 0;
+            jKnob.style.transform = 'translate(-50%, -50%)';
+          }
+          if (t.identifier === lookId) {
+            lookId = -1;
+            rafInertia = requestAnimationFrame(runInertia);
+          }
+        }
+      }, { passive: true });
+
+      function updateJoystick(cx, cy) {
+        const rect = jZone.getBoundingClientRect();
+        const ox = cx - (rect.left + rect.width / 2);
+        const oy = cy - (rect.top  + rect.height / 2);
+        const dist = Math.min(Math.sqrt(ox*ox + oy*oy), J_RADIUS);
+        const angle = Math.atan2(oy, ox);
+        const kx = Math.cos(angle) * dist;
+        const ky = Math.sin(angle) * dist;
+        jKnob.style.transform = `translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
+        jDx = (dist / J_RADIUS) * Math.cos(angle);
+        jDz = (dist / J_RADIUS) * Math.sin(angle);
+      }
+
+      function applyJoystickMovement() {
+        if (!jActive || (jDx === 0 && jDz === 0)) return;
+        // jDx = right/left relative to joystick screen space; map to world
+        const fX = Math.sin(phi), fZ = Math.cos(phi); // forward
+        const rX = Math.cos(phi), rZ = -Math.sin(phi); // right
+        const dx = fX * (-jDz) + rX * jDx;
+        const dz = fZ * (-jDz) + rZ * jDx;
+        const len = Math.sqrt(dx*dx + dz*dz) || 1;
+        camera.position.x = Math.max(-HALF_W, Math.min(HALF_W, camera.position.x + (dx/len)*SPEED));
+        camera.position.z = Math.max(-HALF_D, Math.min(HALF_D, camera.position.z + (dz/len)*SPEED));
+        camera.position.y = EYE_Y;
+        updateCamera();
+      }
+
+      // FIX 1: Desktop video unlock — play on first user gesture
+      let videoUnlocked = false;
+      function unlockVideo() {
+        if (videoUnlocked) return;
+        videoEl.play().then(() => { videoUnlocked = true; }).catch(() => {});
+      }
+      ['mousedown','keydown','wheel'].forEach(ev => window.addEventListener(ev, unlockVideo, { once: true, capture: true }));
+      // Also attempt immediately (works if browser allows it)
       videoEl.play().catch(() => {});
+
       updateCamera();
 
       function animate() {
         requestAnimationFrame(animate);
-        applyMovement();
+        applyKeyMovement();
+        applyJoystickMovement();
         if (videoEl.readyState >= videoEl.HAVE_CURRENT_DATA) videoTexture.needsUpdate = true;
         renderer.render(scene, camera);
       }
@@ -500,7 +589,6 @@
     document.getElementById('loginModal')?.addEventListener('click', function(e) { if (e.target === this) closeLoginModal(); });
     document.getElementById('logoutBtn')?.addEventListener('click', logout);
 
-    // Mobile zoom suppression
     (function () {
       let lastTouchEnd = 0;
       document.addEventListener('touchend', function (e) {
@@ -564,8 +652,8 @@
     function updateMediaSessionMetadata(rawTrack) {
       if (!('mediaSession' in navigator)) return;
       const track = normalizeTrack(rawTrack);
-      const title  = track?.title  || document.getElementById('nowPlayingTitle')?.textContent?.trim()  || 'OUCH\u2122';
-      const artist = track?.artist || document.getElementById('nowPlayingArtist')?.textContent?.trim() || 'Sloucho';
+      const title  = track?.title  || 'OUCH\u2122';
+      const artist = track?.artist || 'Sloucho';
       const art = `${location.origin}/assets/slouchometa.png`;
       navigator.mediaSession.metadata = new MediaMetadata({
         title, artist, album: 'Discography',
@@ -573,106 +661,44 @@
       });
     }
 
-    // ===== LIVE AUDIO STATION =====
+    // ===== AUDIO — single looping track (FIX 2) =====
     (function () {
       const audioEl = document.getElementById('mysteryGiftAudio');
       const btn     = document.getElementById('audioMuteBtn');
       if (!audioEl || !btn) return;
 
-      const PLAYLIST = [
-        { title: "Sloucho & Rory Sweeney - Goodbye", dur: 262, src: "/assets/music/Sloucho_RorySweeney_Goodbye.mp3" },
-        { title: "Sloucho & Rory Sweeney - Watching Us", dur: 266, src: "/assets/music/Sloucho_RorySweeney_WatchingUs.mp3" },
-        { title: "Sloucho & Spooklet - Casse-Toi", dur: 200, src: "/assets/music/Sloucho_Spooklet_CasseToi.mp3" },
-        { title: "Ultra Marinu 4000 - Sky Path", dur: 209, src: "/assets/music/UltraMarinu4000_SkyPath.mp3" },
-        { title: "Sloucho - Power Plant", dur: 272, src: "/assets/music/Sloucho_PowerPlant.mp3" },
-        { title: "Sloucho - Rhinestones (ft. Lil Skag & Ahmed, with Love)", dur: 178, src: "/assets/music/Sloucho_Rhinestones.mp3" },
-        { title: "Sloucho - Rocks (ft. Zack Oke + Vatican Jail)", dur: 171, src: "/assets/music/Sloucho_Rocks.mp3" },
-        { title: "Sloucho - Slow Feet", dur: 246, src: "/assets/music/Sloucho_SlowFeet.mp3" },
-        { title: "Sloucho - Super Maramu 2000", dur: 264, src: "/assets/music/Sloucho_SuperMaramu2000.mp3" },
-        { title: "Sloucho - techno party", dur: 177, src: "/assets/music/Sloucho_TechnoParty.mp3" },
-        { title: "Sloucho - the end", dur: 219, src: "/assets/music/Sloucho_TheEnd.mp3" },
-        { title: "Sloucho - The Power of the Plant", dur: 44, src: "/assets/music/Sloucho_ThePowerOfThePlant.mp3" },
-        { title: "Sloucho - TMD my DMS", dur: 200, src: "/assets/music/Sloucho_TMDmyDMS.mp3" },
-        { title: "Sloucho - Two Thousands (ft. Emby + Curtisy)", dur: 194, src: "/assets/music/Sloucho_TwoThousands.mp3" },
-        { title: "Sloucho - when inches became miles", dur: 251, src: "/assets/music/Sloucho_WhenInchesBecameMiles.mp3" },
-        { title: "Sloucho & Brawni - Silver Veil", dur: 208, src: "/assets/music/Sloucho_Brawni_SilverVeil.mp3" },
-        { title: "Sloucho & Curtisy - gimme it", dur: 212, src: "/assets/music/Sloucho_GimmeIt.mp3" },
-        { title: "Sloucho & Rhoshi - Mutant", dur: 240, src: "/assets/music/Sloucho_Rhoshi_Mutant.mp3" },
-        { title: "Sloucho & Rory Sweeney - 150K (Rhoshi's Monster Mix)", dur: 77, src: "/assets/music/Sloucho_RorySweeney_150K_MonsterMix.mp3" },
-        { title: "Sloucho & Rory Sweeney - 150K", dur: 220, src: "/assets/music/Sloucho_RorySweeney_150K.mp3" },
-        { title: "Sloucho & Rory Sweeney - Come Around", dur: 244, src: "/assets/music/Sloucho_RorySweeney_ComeAround.mp3" },
-        { title: "Isabella Lovestory - Telenovela (Sloucho Edit)", dur: 153, src: "/assets/music/IsabellaLovestory_Telenovela_SlouchoEdit.mp3" },
-        { title: "Llainwire - Trust Fund (Sloucho Edit)", dur: 239, src: "/assets/music/Llainwire_TrustFund_SlouchoEdit.mp3" },
-        { title: "Skillibeng - Coke (Sloucho Edit)", dur: 207, src: "/assets/music/Skillibeng_Coke_SlouchoEdit.mp3" },
-        { title: "Sloucho - always remember", dur: 173, src: "/assets/music/Sloucho_AlwaysRemember.mp3" },
-        { title: "Sloucho - Brand New (ft. Zack Oke + Emby)", dur: 219, src: "/assets/music/Sloucho_BrandNew.mp3" },
-        { title: "Sloucho - Bronze Age (Bing's Malfunction Mix)", dur: 63, src: "/assets/music/Sloucho_BronzeAge_BingsMix.mp3" },
-        { title: "Sloucho - Bronze Age", dur: 191, src: "/assets/music/Sloucho_BronzeAge.mp3" },
-        { title: "Sloucho - Hold It Down", dur: 389, src: "/assets/music/Sloucho_HoldItDown.mp3" },
-        { title: "Sloucho - i found u", dur: 200, src: "/assets/music/Sloucho_IFoundU.mp3" },
-        { title: "Sloucho - just u", dur: 201, src: "/assets/music/Sloucho_JustU.mp3" },
-        { title: "Sloucho - Lights On (ft. Yamagōchi)", dur: 203, src: "/assets/music/Sloucho_LightsOn.mp3" },
-        { title: "Sloucho - Make it Work", dur: 209, src: "/assets/music/Sloucho_MakeItWork.mp3" },
-        { title: "Sloucho - Memory Walk", dur: 344, src: "/assets/music/Sloucho_MemoryWalk.mp3" },
-        { title: "Sloucho - Mind Traveller", dur: 90, src: "/assets/music/Sloucho_MindTraveller.mp3" },
-        { title: "Sloucho - Over & Out", dur: 298, src: "/assets/music/Sloucho_OverAndOut.mp3" },
-        { title: "Sloucho - Power Plant (Sloucho's Memory Mix)", dur: 62, src: "/assets/music/Sloucho_PowerPlant_MemoryMix.mp3" },
-      ];
+      // Single track, looping
+      const TRACK = { title: "Sloucho - Infinity", artist: "Sloucho", src: "/assets/music/Sloucho_Infinity.mp3" };
 
-      const TZ = 'Europe/Dublin'; const START_HOUR = 6;
-      const totalDur = PLAYLIST.reduce((s, t) => s + (t.dur || 0), 0);
-      if (!totalDur) return;
+      audioEl.src = TRACK.src;
+      audioEl.loop = true;
+      audioEl.load();
 
-      function xmur3(str) { let h = 1779033703 ^ str.length; for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); } return function () { h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return (h ^= h >>> 16) >>> 0; }; }
-      function mulberry32(seed) { return function () { let t = (seed += 0x6D2B79F5); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-      function seededShuffle(arr, seedStr) { const seedFn = xmur3(seedStr); const rand = mulberry32(seedFn()); const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-
-      function getTZParts(date, timeZone) {
-        const dtf = new Intl.DateTimeFormat('en-GB', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-        const parts = dtf.formatToParts(date); const get = (t) => parts.find(p => p.type === t)?.value;
-        return { year: +get('year'), month: +get('month'), day: +get('day'), hour: +get('hour'), minute: +get('minute'), second: +get('second') };
-      }
-      function tzLocalToUTCms({year, month, day, hour, minute, second}, timeZone) {
-        const guess = Date.UTC(year, month - 1, day, hour, minute, second);
-        const parts = getTZParts(new Date(guess), timeZone);
-        const rendered = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
-        return guess + (Date.UTC(year, month - 1, day, hour, minute, second) - rendered);
-      }
-      function mostRecent6amUTCms(now = new Date()) {
-        const p = getTZParts(now, TZ);
-        let startMs = tzLocalToUTCms({ year: p.year, month: p.month, day: p.day, hour: START_HOUR, minute: 0, second: 0 }, TZ);
-        if (now.getTime() < startMs) { const yesterday = new Date(startMs - 3600 * 1000); const yp = getTZParts(yesterday, TZ); startMs = tzLocalToUTCms({ year: yp.year, month: yp.month, day: yp.day, hour: START_HOUR, minute: 0, second: 0 }, TZ); }
-        return startMs;
-      }
-      function dayKeyForSeed(startMs) { const p = getTZParts(new Date(startMs), TZ); return `${p.year}-${String(p.month).padStart(2,'0')}-${String(p.day).padStart(2,'0')}`; }
-
-      let station = { cycleIndex: 0, order: [], trackIndex: 0 };
-      let marqueeTimers = [];
-      function clearMarqueeTimers() { marqueeTimers.forEach(t => clearTimeout(t)); marqueeTimers = []; }
-
-      function updateNowPlaying(track) {
-        const runEl = document.getElementById('nowPlayingRun');
+      // Update now-playing UI
+      function updateNowPlaying() {
+        const runEl    = document.getElementById('nowPlayingRun');
         const artistEl = document.getElementById('nowPlayingArtist');
         const titleEl  = document.getElementById('nowPlayingTitle');
-        const artist = track?.artist || 'Sloucho'; const title = track?.title || 'OUCH\u2122';
-        if (runEl) runEl.textContent = `${artist} - ${title}`;
-        if (artistEl) artistEl.textContent = artist;
-        if (titleEl) titleEl.textContent = title;
+        if (runEl)    runEl.textContent    = `${TRACK.artist} - ${TRACK.title}`;
+        if (artistEl) artistEl.textContent = TRACK.artist;
+        if (titleEl)  titleEl.textContent  = TRACK.title;
         startNowPlayingMarquee();
       }
 
+      let marqueeTimers = [];
+      function clearMarqueeTimers() { marqueeTimers.forEach(t => clearTimeout(t)); marqueeTimers = []; }
+
       function startNowPlayingMarquee() {
         const nowPlaying = document.getElementById('nowPlaying');
-        const marquee = document.querySelector('#nowPlaying .np-marquee');
-        const text = document.getElementById('nowPlayingRun');
+        const marquee    = document.querySelector('#nowPlaying .np-marquee');
+        const text       = document.getElementById('nowPlayingRun');
         if (!marquee || !text || !nowPlaying) return;
         clearMarqueeTimers();
         text.style.transition = 'none'; text.style.transform = 'translateX(0)';
         requestAnimationFrame(() => {
           const marqueeW = marquee.clientWidth; const textW = text.scrollWidth;
-          if (textW <= marqueeW) { nowPlaying.classList.remove('is-scrolling','is-scrolling-active'); text.style.paddingRight = '0px'; return; }
+          if (textW <= marqueeW) { nowPlaying.classList.remove('is-scrolling','is-scrolling-active'); return; }
           nowPlaying.classList.add('is-scrolling'); nowPlaying.classList.remove('is-scrolling-active');
-          text.style.paddingRight = '0px';
           const distance = text.scrollWidth - marqueeW; const duration = distance / 45;
           const loop = () => {
             nowPlaying.classList.remove('is-scrolling-active');
@@ -687,66 +713,49 @@
         });
       }
 
-      async function loadAndSeek(track, offsetSec) {
-        if (!track?.src) return;
-        audioEl.src = track.src; audioEl.load();
-        const t = normalizeTrack(track); updateNowPlaying(t); updateMediaSessionMetadata(t);
-        await new Promise((resolve) => { const onMeta = () => { audioEl.removeEventListener('loadedmetadata', onMeta); resolve(); }; audioEl.addEventListener('loadedmetadata', onMeta); });
-        const dur = audioEl.duration || track.dur || 0;
-        const safe = dur ? Math.min(Math.max(0, offsetSec), Math.max(0, dur - 0.25)) : Math.max(0, offsetSec);
-        try { audioEl.currentTime = safe; } catch (_) {}
-      }
-
-      function computeLivePosition() {
-        const now = Date.now(); const startMs = mostRecent6amUTCms(new Date(now)); const dayKey = dayKeyForSeed(startMs);
-        const elapsedSec = Math.floor((now - startMs) / 1000); const cycleIndex = Math.floor(elapsedSec / totalDur);
-        let cycleOffset = elapsedSec % totalDur; if (cycleOffset < 0) cycleOffset += totalDur;
-        const order = seededShuffle(PLAYLIST, `${dayKey}|cycle:${cycleIndex}`);
-        let i = 0; while (i < order.length && cycleOffset >= order[i].dur) { cycleOffset -= order[i].dur; i++; }
-        if (i >= order.length) i = 0;
-        return { cycleIndex, order, trackIndex: i, offset: cycleOffset };
-      }
-
-      async function syncToLive() { const pos = computeLivePosition(); station = { cycleIndex: pos.cycleIndex, order: pos.order, trackIndex: pos.trackIndex }; await loadAndSeek(station.order[station.trackIndex], pos.offset); }
-
-      async function playNext() {
-        station.trackIndex++;
-        if (station.trackIndex >= station.order.length) {
-          station.cycleIndex++;
-          const startMs = mostRecent6amUTCms(new Date()); const dayKey = dayKeyForSeed(startMs);
-          station.order = seededShuffle(PLAYLIST, `${dayKey}|cycle:${station.cycleIndex}`); station.trackIndex = 0;
-        }
-        await loadAndSeek(station.order[station.trackIndex], 0);
-        try { await audioEl.play(); } catch (_) {}
-      }
-
-      audioEl.addEventListener('ended', playNext);
-      audioEl.addEventListener('play', () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; updateMediaSessionMetadata(normalizeTrack(station?.order?.[station?.trackIndex])); });
-      audioEl.addEventListener('playing', () => {
-        updateMediaSessionMetadata(normalizeTrack(station?.order?.[station?.trackIndex]));
-        if ('mediaSession' in navigator && typeof navigator.mediaSession.setPositionState === 'function') {
-          const t = station?.order?.[station?.trackIndex]; const dur = audioEl.duration || t?.dur || 0;
-          if (dur) navigator.mediaSession.setPositionState({ duration: dur, playbackRate: audioEl.playbackRate || 1, position: audioEl.currentTime || 0 });
-        }
-      });
-      audioEl.addEventListener('pause', () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; });
+      updateNowPlaying();
+      updateMediaSessionMetadata(TRACK);
 
       audioEl.muted = true; audioEl.setAttribute('muted', '');
       btn.classList.add('is-muted'); btn.setAttribute('aria-label', 'Unmute audio');
       let started = false;
 
-      async function tryPlayMuted() { if (started || !audioEl.paused) { started = true; return; } try { await audioEl.play(); started = true; removeUnlockers(); } catch (_) {} }
+      async function tryPlayMuted() {
+        if (started || !audioEl.paused) { started = true; return; }
+        try { await audioEl.play(); started = true; removeUnlockers(); } catch (_) {}
+      }
       function unlock() { tryPlayMuted(); }
-      function addUnlockers() { ['pointerdown','mousedown','touchstart','keydown','wheel','scroll'].forEach(ev => window.addEventListener(ev, unlock, { capture: true, once: true })); }
-      function removeUnlockers() { ['pointerdown','mousedown','touchstart','keydown','wheel','scroll'].forEach(ev => window.removeEventListener(ev, unlock, { capture: true })); }
+      function addUnlockers() {
+        ['pointerdown','mousedown','touchstart','keydown','wheel','scroll'].forEach(ev =>
+          window.addEventListener(ev, unlock, { capture: true, once: true }));
+      }
+      function removeUnlockers() {
+        ['pointerdown','mousedown','touchstart','keydown','wheel','scroll'].forEach(ev =>
+          window.removeEventListener(ev, unlock, { capture: true }));
+      }
 
-      syncToLive().then(() => { tryPlayMuted(); audioEl.addEventListener('canplay', tryPlayMuted); window.addEventListener('load', tryPlayMuted, { once: true }); addUnlockers(); });
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) syncToLive(); });
+      audioEl.addEventListener('canplay', tryPlayMuted);
+      window.addEventListener('load', tryPlayMuted, { once: true });
+      tryPlayMuted();
+      addUnlockers();
+
+      audioEl.addEventListener('play', () => {
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+        updateMediaSessionMetadata(TRACK);
+      });
+      audioEl.addEventListener('pause', () => {
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+      });
 
       btn.addEventListener('click', async () => {
         const willMute = !audioEl.muted; audioEl.muted = willMute;
-        btn.classList.toggle('is-muted', willMute); btn.setAttribute('aria-label', willMute ? 'Unmute audio' : 'Mute audio');
-        if (!willMute) { updateMediaSessionMetadata(normalizeTrack(station?.order?.[station?.trackIndex])); try { await audioEl.play(); } catch (_) {} }
+        btn.classList.toggle('is-muted', willMute);
+        btn.setAttribute('aria-label', willMute ? 'Unmute audio' : 'Mute audio');
+        if (!willMute) { try { await audioEl.play(); } catch (_) {} }
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && audioEl.paused && started) audioEl.play().catch(() => {});
       });
     })();
   </script>
