@@ -24,10 +24,10 @@
           const refresh_token = params.get('refresh_token');
           const error = params.get('error');
           const error_description = params.get('error_description');
-          if (error) { alert(`Authentication error: ${error_description || error}`); history.replaceState({}, '', location.pathname + location.search); return; }
+          if (error) { alert('Authentication error: ' + (error_description || error)); history.replaceState({}, '', location.pathname + location.search); return; }
           if (access_token && refresh_token) {
-            const { error } = await window.supa.auth.setSession({ access_token, refresh_token });
-            if (error) alert(`Session error: ${error.message}`); else window.location.reload();
+            const { error: se } = await window.supa.auth.setSession({ access_token, refresh_token });
+            if (se) alert('Session error: ' + se.message); else window.location.reload();
           }
           history.replaceState({}, '', location.pathname + location.search);
         }
@@ -37,63 +37,38 @@
   <script>
     (function () {
       const ua = navigator.userAgent;
-      const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua);
-      if (isSafari) document.documentElement.classList.add('safari');
+      if (/Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua)) document.documentElement.classList.add('safari');
     })();
   </script>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      height: 100%; overflow: hidden;
-      font-family: Arial, sans-serif;
-      background: #000; color: #fff;
-      touch-action: none; -ms-touch-action: none;
-    }
+    html, body { height: 100%; overflow: hidden; font-family: Arial, sans-serif; background: #000; color: #fff; touch-action: none; }
 
-    #room-canvas {
-      position: fixed; inset: 0;
-      width: 100%; height: 100%;
-      display: block; z-index: 0;
-      cursor: grab;
-    }
+    #room-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; cursor: grab; }
     #room-canvas.dragging { cursor: grabbing; }
-
-    #room-video {
-      position: absolute; opacity: 0;
-      pointer-events: none; width: 1px; height: 1px;
-    }
+    #room-video { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
 
     .container { width: 100vw; height: 100vh; position: relative; z-index: 10; pointer-events: none; }
     .container > * { pointer-events: auto; }
 
     :root {
-      --circle: 30px;
-      --circle-bg: rgba(0,0,0,0.8);
-      --circle-border: rgba(255,255,255,0.25);
-      --circle-border-hover: rgba(255,255,255,0.45);
-      --circle-icon: 12px;
-      --edge-pad-desktop: 28px;
-      --edge-pad-mobile: 16px;
+      --circle: 30px; --circle-bg: rgba(0,0,0,0.8);
+      --circle-border: rgba(255,255,255,0.25); --circle-border-hover: rgba(255,255,255,0.45);
+      --circle-icon: 12px; --edge-pad-desktop: 28px; --edge-pad-mobile: 16px;
     }
 
     .icon-circle {
-      width: var(--circle); height: var(--circle);
-      border-radius: 50%;
-      background: var(--circle-bg);
-      border: 1px solid var(--circle-border);
+      width: var(--circle); height: var(--circle); border-radius: 50%;
+      background: var(--circle-bg); border: 1px solid var(--circle-border);
       display: inline-flex; align-items: center; justify-content: center;
-      cursor: pointer; padding: 0;
-      transition: border-color .2s ease;
-      backdrop-filter: blur(10px);
-      pointer-events: auto;
+      cursor: pointer; padding: 0; transition: border-color .2s; backdrop-filter: blur(10px); pointer-events: auto;
     }
     .icon-circle:hover { border-color: var(--circle-border-hover); }
     .icon-close { position: relative; }
     .icon-close::before, .icon-close::after {
       content: ""; position: absolute; top: 50%; left: 50%;
-      width: var(--circle-icon); height: 2px;
-      background: rgba(255,255,255,0.85); border-radius: 2px; transform-origin: center;
+      width: var(--circle-icon); height: 2px; background: rgba(255,255,255,0.85); border-radius: 2px; transform-origin: center;
     }
     .icon-close::before { transform: translate(-50%,-50%) rotate(45deg); }
     .icon-close::after  { transform: translate(-50%,-50%) rotate(-45deg); }
@@ -101,18 +76,16 @@
     .top-nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; justify-content: space-between; align-items: center;
-      padding: 20px var(--edge-pad-desktop);
-      pointer-events: none;
+      padding: 20px var(--edge-pad-desktop); pointer-events: none;
     }
     .top-nav > * { pointer-events: auto; }
     @media (max-width: 768px) { .top-nav { padding: 20px var(--edge-pad-mobile); } }
 
     .menu-button, .login-button {
-      width: 30px; height: 30px;
-      background: #000; border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 50%; cursor: pointer;
+      width: 30px; height: 30px; background: #000;
+      border: 1px solid rgba(255,255,255,0.25); border-radius: 50%; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      transition: border-color .2s ease, background .2s ease;
+      transition: border-color .2s;
     }
     .menu-button:hover, .login-button:hover { border-color: rgba(255,255,255,0.45); }
     .menu-dots { display: flex; gap: 4px; }
@@ -125,73 +98,50 @@
       background: rgba(0,0,0,1); backdrop-filter: blur(20px);
       border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; z-index: 200;
       transform: translateY(-20px); opacity: 0; visibility: hidden;
-      transition: all .3s ease; padding: 10px 0; pointer-events: none;
+      transition: all .3s; padding: 10px 0; pointer-events: none;
     }
     .menu-tray.open { transform: translateY(0); opacity: 1; visibility: visible; pointer-events: auto; }
     .menu-item {
-      position: relative; display: block; width: 100%;
-      padding: 6px 15px; color: #fff; text-decoration: none;
-      font-size: 14px; font-weight: 300; cursor: pointer;
-      background: none; border: 0;
+      position: relative; display: block; width: 100%; padding: 6px 15px;
+      color: #fff; text-decoration: none; font-size: 14px; font-weight: 300; cursor: pointer; background: none; border: 0;
     }
     .menu-item::before {
       content: ""; position: absolute; inset: 1px; left: 8px; right: 8px;
-      border-radius: 8px; background: rgba(255,255,255,0.12);
-      opacity: 0; transform: scaleY(0.96);
-      transition: opacity .15s ease, transform .2s ease; pointer-events: none;
+      border-radius: 8px; background: rgba(255,255,255,0.12); opacity: 0; transform: scaleY(0.96);
+      transition: opacity .15s, transform .2s; pointer-events: none;
     }
-    .menu-item:hover::before, .menu-item:focus-visible::before { opacity: 1; transform: scaleY(1); }
+    .menu-item:hover::before { opacity: 1; transform: scaleY(1); }
     .menu-item, .menu-item * { position: relative; z-index: 1; }
-    .menu-item .menu-pill { background: transparent !important; padding: 0 !important; border-radius: 0 !important; }
 
     .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.96); z-index: 9999;
-      display: none; align-items: center; justify-content: center;
-      backdrop-filter: blur(5px);
+      position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 9999;
+      display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px);
     }
     .modal-overlay.show { display: flex; }
     .login-modal {
-      background: rgba(15,15,15,0.95); border-radius: 16px;
-      padding: 24px 20px; width: 90%; max-width: 360px;
-      box-shadow: 0 20px 45px rgba(0,0,0,0.7);
-      text-align: center; color: #fff;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-      position: relative; min-height: 260px;
+      background: rgba(15,15,15,0.95); border-radius: 16px; padding: 24px 20px;
+      width: 90%; max-width: 360px; box-shadow: 0 20px 45px rgba(0,0,0,0.7);
+      text-align: center; color: #fff; position: relative; min-height: 260px;
       display: flex; flex-direction: column; justify-content: center;
     }
     .login-modal > :not(.icon-circle) { width: 100%; }
     .login-modal .icon-circle.icon-close { position: absolute; top: 14px; right: 14px; }
-    .modal-header {
-      position: relative; min-height: 30px; margin-bottom: 18px; padding-top: 2px;
-      display: flex; align-items: flex-start; justify-content: center;
-    }
-    .modal-header .icon-circle { position: absolute; top: 0; transform: none; }
-    .modal-header .modal-back { left: 0; }
-    .modal-header .modal-close { right: 0; }
-    .modal-title { line-height: 30px; margin: 0; }
     .login-modal h2 { font-size: 18px; margin-bottom: 12px; }
     .login-modal p { font-size: 13px; opacity: 0.75; margin-bottom: 16px; }
     .form-group { margin-bottom: 12px; }
     .form-input {
       width: 100%; padding: 10px 12px; border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.3);
-      background: rgba(0,0,0,0.7); color: #fff; font-size: 14px; outline: none;
+      border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.7); color: #fff; font-size: 14px; outline: none;
     }
     .form-input:focus { border-color: #fff; }
     .form-input::placeholder { color: rgba(255,255,255,0.5); }
-    .form-button {
-      width: 100%; padding: 10px 12px; border-radius: 999px;
-      border: none; background: #fff; color: #000;
-      font-weight: 600; font-size: 14px; cursor: pointer;
-    }
+    .form-button { width: 100%; padding: 10px 12px; border-radius: 999px; border: none; background: #fff; color: #000; font-weight: 600; font-size: 14px; cursor: pointer; }
 
+    /* Action bar */
     .item-action-bar {
-      position: fixed;
-      bottom: max(60px, env(safe-area-inset-bottom) + 24px);
+      position: fixed; bottom: max(60px, env(safe-area-inset-bottom) + 24px);
       left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center;
-      z-index: 1500; gap: 10px; pointer-events: none;
+      display: flex; flex-direction: column; align-items: center; z-index: 1500; gap: 10px; pointer-events: none;
     }
     @supports not (bottom: env(safe-area-inset-bottom)) { .item-action-bar { bottom: 35px; } }
 
@@ -200,61 +150,37 @@
     .icon-circle.is-muted .icon-sound { display: none; }
     .icon-circle.is-muted .icon-muted { display: block; }
 
-    :root { --np-width: 260px; }
+    /* FIX 3: Simple static now-playing pill */
     .now-playing {
-      position: relative; z-index: 110; color: #fff;
-      width: var(--np-width); max-width: calc(100vw - 40px);
-      padding: 10px 14px;
+      color: #fff; padding: 10px 18px;
       background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.14);
       border-radius: 999px; backdrop-filter: blur(10px);
       opacity: 0.88; pointer-events: none;
-      display: flex; align-items: center; gap: 10px;
-      min-width: 0; font-size: 14px; line-height: 1.2;
+      font-size: 14px; line-height: 1.2; white-space: nowrap;
     }
-    .np-marquee { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; -webkit-mask-image: none; mask-image: none; }
-    .np-text { display: inline-block; white-space: nowrap; will-change: transform; }
-    .now-playing .np-label { white-space: nowrap; flex: 0 0 auto; }
-    .now-playing.is-scrolling-active .np-marquee {
-      -webkit-mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
-      mask-image: linear-gradient(to right, transparent 0px, #000 18px, #000 100%);
-    }
-    .sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
 
+    /* Desktop hint */
     #move-hint {
       position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-      font-size: 11px; color: rgba(255,255,255,0.22);
-      pointer-events: none; white-space: nowrap;
-      transition: opacity 1.5s; font-family: Arial, sans-serif;
-      z-index: 50;
+      font-size: 11px; color: rgba(255,255,255,0.22); pointer-events: none;
+      white-space: nowrap; transition: opacity 1.5s; z-index: 50;
     }
 
-    /* ── Mobile joystick ── */
+    /* Mobile joystick — only shown on touch devices */
     #joystick-zone {
-      display: none;
-      position: fixed;
+      display: none; position: fixed;
       bottom: max(160px, env(safe-area-inset-bottom) + 140px);
-      left: 28px;
-      width: 110px; height: 110px;
-      z-index: 1400;
-      pointer-events: auto;
+      left: 28px; width: 110px; height: 110px; z-index: 1400; pointer-events: auto;
     }
     #joystick-base {
-      width: 110px; height: 110px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.15);
-      position: absolute;
-      backdrop-filter: blur(4px);
+      width: 110px; height: 110px; border-radius: 50%;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+      position: absolute; backdrop-filter: blur(4px);
     }
     #joystick-knob {
-      width: 44px; height: 44px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.18);
-      border: 1px solid rgba(255,255,255,0.35);
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      transition: none;
+      width: 44px; height: 44px; border-radius: 50%;
+      background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     }
     @media (hover: none) and (pointer: coarse) {
       #joystick-zone { display: block; }
@@ -283,22 +209,16 @@
     </div>
 
     <div class="menu-tray" id="menuTray">
-      <a href="/" class="menu-item"><span class="menu-pill">Home</span></a>
-      <a href="/portal" class="menu-item"><span class="menu-pill">Broken Spirit</span></a>
-      <a href="/shop" class="menu-item"><span class="menu-pill">Shop</span></a>
+      <a href="/" class="menu-item">Home</a>
+      <a href="/portal" class="menu-item">Broken Spirit</a>
+      <a href="/shop" class="menu-item">Shop</a>
     </div>
 
-    <audio id="mysteryGiftAudio" preload="auto" autoplay muted playsinline style="position:absolute;left:-9999px;width:0;height:0;opacity:0;"></audio>
+    <audio id="mysteryGiftAudio" preload="auto" autoplay muted playsinline loop style="position:absolute;left:-9999px;width:0;height:0;opacity:0;"></audio>
 
     <div id="itemActionBar" class="item-action-bar">
-      <div id="nowPlaying" class="now-playing" aria-live="polite">
-        <span class="np-label">Now Playing:</span>
-        <span class="np-marquee">
-          <span class="np-text" id="nowPlayingRun">Loading…</span>
-        </span>
-        <span class="sr-only" id="nowPlayingArtist">Sloucho</span>
-        <span class="sr-only" id="nowPlayingTitle">Loading…</span>
-      </div>
+      <!-- FIX 3: Static pill, no marquee -->
+      <div class="now-playing">Sloucho - Infinity</div>
       <button id="audioMuteBtn" class="icon-circle is-muted" type="button" aria-label="Unmute audio">
         <svg class="icon-sound" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M11 5L6 9H3v6h3l5 4V5z" /><path d="M15.5 8.5a5 5 0 010 7" /><path d="M18 6a9 9 0 010 12" />
@@ -328,7 +248,7 @@
     </div>
   </div>
 
-  <!-- Mobile joystick (shown only on touch devices via CSS) -->
+  <!-- Mobile joystick -->
   <div id="joystick-zone">
     <div id="joystick-base"></div>
     <div id="joystick-knob"></div>
@@ -338,7 +258,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    // ===== THREE.JS ROOM =====
     (function () {
       const canvas  = document.getElementById('room-canvas');
       const videoEl = document.getElementById('room-video');
@@ -347,11 +266,12 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
       const scene  = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 5000);
 
-      // FIX 1 & 4: Much bigger room
-      const roomW = 2400, roomH = 900, roomD = 2800;
+      // FIX 1: Enormous room — 5x bigger than before, far clip to match
+      const roomW = 12000, roomH = 4500, roomD = 14000;
       const EYE_Y = -roomH * 0.3;
+
+      const camera = new THREE.PerspectiveCamera(45, 1, 1, 30000);
       camera.position.set(0, EYE_Y, 0);
 
       function resize() {
@@ -362,9 +282,8 @@
       window.addEventListener('resize', resize);
       resize();
 
-      // FIX 1 (desktop video): use crossOrigin + force play inside user gesture unlock
+      // Video texture
       videoEl.crossOrigin = 'anonymous';
-
       const videoTexture = new THREE.VideoTexture(videoEl);
       videoTexture.minFilter = THREE.LinearFilter;
       videoTexture.magFilter = THREE.LinearFilter;
@@ -378,17 +297,15 @@
         if (rx) m.rotation.x = rx;
         scene.add(m);
       }
-      addWall(roomW, roomH,  0,      0,  -roomD/2,  0,           0);
-      addWall(roomW, roomH,  0,      0,   roomD/2,  Math.PI,     0);
-      addWall(roomD, roomH, -roomW/2, 0,  0,        Math.PI/2,   0);
-      addWall(roomD, roomH,  roomW/2, 0,  0,       -Math.PI/2,   0);
-      addWall(roomW, roomD,  0,  roomH/2, 0,        0,            Math.PI/2);
-      addWall(roomW, roomD,  0, -roomH/2, 0,        0,           -Math.PI/2);
+      addWall(roomW, roomH,  0,        0,  -roomD/2,  0,          0);           // front
+      addWall(roomW, roomH,  0,        0,   roomD/2,  Math.PI,    0);           // back
+      addWall(roomD, roomH, -roomW/2,  0,   0,        Math.PI/2,  0);           // left
+      addWall(roomD, roomH,  roomW/2,  0,   0,       -Math.PI/2,  0);           // right
+      addWall(roomW, roomD,  0,  roomH/2,   0,        0,           Math.PI/2);  // ceiling
+      addWall(roomW, roomD,  0, -roomH/2,   0,        0,          -Math.PI/2);  // floor
 
-      // Look controls (drag)
+      // ── Look state ───────────────────────────────────────────
       let phi = 0, theta = 0.05;
-      let lookId = -1; // touch ID reserved for looking (right side)
-      let lookLastX = 0, lookLastY = 0;
       let velPhi = 0, velTheta = 0, rafInertia = null;
 
       function updateCamera() {
@@ -400,41 +317,42 @@
         );
       }
       function runInertia() {
-        if (lookId === -1 && (Math.abs(velPhi) > 0.00003 || Math.abs(velTheta) > 0.00003)) {
+        if (Math.abs(velPhi) > 0.00003 || Math.abs(velTheta) > 0.00003) {
           phi += velPhi; theta += velTheta;
           velPhi *= 0.85; velTheta *= 0.85;
           updateCamera(); rafInertia = requestAnimationFrame(runInertia);
         }
       }
 
-      // Mouse look (desktop)
-      let mouseDragging = false, mouseLastX = 0, mouseLastY = 0;
+      // ── Desktop: mouse look ──────────────────────────────────
+      let mouseDragging = false, mLastX = 0, mLastY = 0;
       canvas.addEventListener('mousedown', e => {
         if (e.target !== canvas) return;
-        mouseDragging = true; mouseLastX = e.clientX; mouseLastY = e.clientY;
+        mouseDragging = true; mLastX = e.clientX; mLastY = e.clientY;
         velPhi = velTheta = 0; cancelAnimationFrame(rafInertia);
         canvas.classList.add('dragging');
         document.getElementById('move-hint').style.opacity = '0';
       });
       window.addEventListener('mousemove', e => {
         if (!mouseDragging) return;
-        velPhi   = -(e.clientX - mouseLastX) * 0.002;
-        velTheta = -(e.clientY - mouseLastY) * 0.002;
+        velPhi   = -(e.clientX - mLastX) * 0.002;
+        velTheta = -(e.clientY - mLastY) * 0.002;
         phi += velPhi; theta += velTheta;
-        mouseLastX = e.clientX; mouseLastY = e.clientY; updateCamera();
+        mLastX = e.clientX; mLastY = e.clientY; updateCamera();
       });
       window.addEventListener('mouseup', () => {
         mouseDragging = false; canvas.classList.remove('dragging');
         rafInertia = requestAnimationFrame(runInertia);
       });
 
-      // WASD movement (desktop)
+      // ── Desktop: WASD ────────────────────────────────────────
       const keys = {};
       window.addEventListener('keydown', e => { keys[e.code] = true; document.getElementById('move-hint').style.opacity = '0'; });
       window.addEventListener('keyup',   e => { keys[e.code] = false; });
 
-      const SPEED = 4;
-      const HALF_W = roomW/2 - 10, HALF_D = roomD/2 - 10;
+      const SPEED   = 18;
+      const HALF_W  = roomW / 2 - 20;
+      const HALF_D  = roomD / 2 - 20;
 
       function applyKeyMovement() {
         const fX = Math.sin(phi), fZ = Math.cos(phi);
@@ -444,7 +362,7 @@
         if (keys['KeyS'] || keys['ArrowDown'])  { dx -= fX; dz -= fZ; }
         if (keys['KeyA'] || keys['ArrowLeft'])  { dx -= rX; dz -= rZ; }
         if (keys['KeyD'] || keys['ArrowRight']) { dx += rX; dz += rZ; }
-        if (dx === 0 && dz === 0) return;
+        if (!dx && !dz) return;
         const len = Math.sqrt(dx*dx + dz*dz);
         camera.position.x = Math.max(-HALF_W, Math.min(HALF_W, camera.position.x + (dx/len)*SPEED));
         camera.position.z = Math.max(-HALF_D, Math.min(HALF_D, camera.position.z + (dz/len)*SPEED));
@@ -452,37 +370,39 @@
         updateCamera();
       }
 
-      // ── Mobile joystick ──────────────────────────────────────
+      // ── Mobile: dual-touch (joystick left, look right) ───────
       const jZone = document.getElementById('joystick-zone');
       const jKnob = document.getElementById('joystick-knob');
-      const J_RADIUS = 33; // max knob travel (px)
-      let jActive = false, jTouchId = -1;
-      let jDx = 0, jDz = 0; // normalised joystick vector
+      const J_RADIUS = 33;
+      let jTouchId = -1, jActive = false, jDx = 0, jDz = 0;
+      let lookTouchId = -1, lLastX = 0, lLastY = 0;
 
       jZone.addEventListener('touchstart', e => {
         e.stopPropagation();
         const t = e.changedTouches[0];
         jTouchId = t.identifier; jActive = true;
-        updateJoystick(t.clientX, t.clientY);
+        moveKnob(t.clientX, t.clientY);
+      }, { passive: true });
+
+      canvas.addEventListener('touchstart', e => {
+        for (const t of e.changedTouches) {
+          if (lookTouchId === -1) {
+            lookTouchId = t.identifier; lLastX = t.clientX; lLastY = t.clientY;
+            velPhi = velTheta = 0; cancelAnimationFrame(rafInertia);
+          }
+        }
       }, { passive: true });
 
       window.addEventListener('touchmove', e => {
-        // Joystick touch
         for (const t of e.changedTouches) {
-          if (t.identifier === jTouchId && jActive) {
-            updateJoystick(t.clientX, t.clientY);
+          if (t.identifier === jTouchId) {
+            moveKnob(t.clientX, t.clientY);
           }
-          // Look touch (any touch NOT on joystick zone, right side of screen)
-          if (t.identifier !== jTouchId && lookId === -1 && t.clientX > window.innerWidth * 0.35) {
-            lookId = t.identifier;
-            lookLastX = t.clientX; lookLastY = t.clientY;
-            velPhi = velTheta = 0; cancelAnimationFrame(rafInertia);
-          }
-          if (t.identifier === lookId) {
-            velPhi   = -(t.clientX - lookLastX) * 0.003;
-            velTheta = -(t.clientY - lookLastY) * 0.003;
+          if (t.identifier === lookTouchId) {
+            velPhi   = -(t.clientX - lLastX) * 0.003;
+            velTheta = -(t.clientY - lLastY) * 0.003;
             phi += velPhi; theta += velTheta;
-            lookLastX = t.clientX; lookLastY = t.clientY;
+            lLastX = t.clientX; lLastY = t.clientY;
             updateCamera();
           }
         }
@@ -495,33 +415,32 @@
             jActive = false; jTouchId = -1; jDx = 0; jDz = 0;
             jKnob.style.transform = 'translate(-50%, -50%)';
           }
-          if (t.identifier === lookId) {
-            lookId = -1;
+          if (t.identifier === lookTouchId) {
+            lookTouchId = -1;
             rafInertia = requestAnimationFrame(runInertia);
           }
         }
       }, { passive: true });
 
-      function updateJoystick(cx, cy) {
-        const rect = jZone.getBoundingClientRect();
-        const ox = cx - (rect.left + rect.width / 2);
-        const oy = cy - (rect.top  + rect.height / 2);
-        const dist = Math.min(Math.sqrt(ox*ox + oy*oy), J_RADIUS);
+      function moveKnob(cx, cy) {
+        const r = jZone.getBoundingClientRect();
+        const ox = cx - (r.left + r.width  / 2);
+        const oy = cy - (r.top  + r.height / 2);
+        const dist  = Math.min(Math.sqrt(ox*ox + oy*oy), J_RADIUS);
         const angle = Math.atan2(oy, ox);
-        const kx = Math.cos(angle) * dist;
-        const ky = Math.sin(angle) * dist;
-        jKnob.style.transform = `translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
+        jKnob.style.transform = `translate(calc(-50% + ${Math.cos(angle)*dist}px), calc(-50% + ${Math.sin(angle)*dist}px))`;
+        // jDx = screen-right, jDz = screen-down
         jDx = (dist / J_RADIUS) * Math.cos(angle);
         jDz = (dist / J_RADIUS) * Math.sin(angle);
       }
 
       function applyJoystickMovement() {
-        if (!jActive || (jDx === 0 && jDz === 0)) return;
-        // jDx = right/left relative to joystick screen space; map to world
+        if (!jActive || (!jDx && !jDz)) return;
         const fX = Math.sin(phi), fZ = Math.cos(phi); // forward
         const rX = Math.cos(phi), rZ = -Math.sin(phi); // right
-        const dx = fX * (-jDz) + rX * jDx;
-        const dz = fZ * (-jDz) + rZ * jDx;
+        // FIX 2: negate jDx so left on joystick = strafe left
+        const dx = fX * (-jDz) + rX * (-jDx);
+        const dz = fZ * (-jDz) + rZ * (-jDx);
         const len = Math.sqrt(dx*dx + dz*dz) || 1;
         camera.position.x = Math.max(-HALF_W, Math.min(HALF_W, camera.position.x + (dx/len)*SPEED));
         camera.position.z = Math.max(-HALF_D, Math.min(HALF_D, camera.position.z + (dz/len)*SPEED));
@@ -529,14 +448,13 @@
         updateCamera();
       }
 
-      // FIX 1: Desktop video unlock — play on first user gesture
+      // Desktop video unlock on first gesture
       let videoUnlocked = false;
       function unlockVideo() {
         if (videoUnlocked) return;
         videoEl.play().then(() => { videoUnlocked = true; }).catch(() => {});
       }
       ['mousedown','keydown','wheel'].forEach(ev => window.addEventListener(ev, unlockVideo, { once: true, capture: true }));
-      // Also attempt immediately (works if browser allows it)
       videoEl.play().catch(() => {});
 
       updateCamera();
@@ -566,10 +484,10 @@
       if (user) {
         if (emailEl) emailEl.textContent = user.email || '';
         if (loggedInView) loggedInView.style.display = 'block';
-        if (loginForm) loginForm.style.display = 'none';
+        if (loginForm)    loginForm.style.display    = 'none';
       } else {
         if (loggedInView) loggedInView.style.display = 'none';
-        if (loginForm) loginForm.style.display = 'block';
+        if (loginForm)    loginForm.style.display    = 'block';
       }
       modal.classList.add('show');
     }
@@ -589,12 +507,11 @@
     document.getElementById('loginModal')?.addEventListener('click', function(e) { if (e.target === this) closeLoginModal(); });
     document.getElementById('logoutBtn')?.addEventListener('click', logout);
 
+    // Mobile zoom suppression
     (function () {
       let lastTouchEnd = 0;
       document.addEventListener('touchend', function (e) {
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) e.preventDefault();
-        lastTouchEnd = now;
+        const now = Date.now(); if (now - lastTouchEnd <= 300) e.preventDefault(); lastTouchEnd = now;
       }, { passive: false });
     })();
     document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
@@ -604,13 +521,10 @@
     document.addEventListener('touchmove', function (e) { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
 
     function escapeHtml(str) {
-      return String(str || '').replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+      return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     }
-
     function showCheckEmailUI(email) {
-      const modal = document.getElementById('loginModal');
-      if (!modal) return;
-      const card = modal.querySelector('.login-modal');
+      const card = document.querySelector('#loginModal .login-modal');
       if (!card) return;
       card.innerHTML = `
         <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
@@ -618,144 +532,78 @@
         <p style="font-size:14px;opacity:0.8;margin:0 0 12px;line-height:1.45;text-align:center;">
           We sent a login link to <strong>${escapeHtml(email)}</strong>.
         </p>`;
-      modal.classList.add('show');
+      document.getElementById('loginModal').classList.add('show');
     }
 
     (function () {
       const emailInput = document.getElementById('loginEmail');
       const loginBtn   = document.getElementById('loginSubmit');
       if (!emailInput || !loginBtn) return;
-      loginBtn.addEventListener('click', async (e) => {
+      loginBtn.addEventListener('click', async e => {
         e.preventDefault();
         const email = (emailInput.value || '').trim();
         if (!email) return alert('Enter your email');
         if (!window.supa?.auth) return alert('Auth not initialized');
-        loginBtn.disabled = true;
-        const old = loginBtn.textContent;
-        loginBtn.textContent = 'Sending…';
+        loginBtn.disabled = true; const old = loginBtn.textContent; loginBtn.textContent = 'Sending…';
         const { error } = await supa.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
-        loginBtn.disabled = false;
-        loginBtn.textContent = old;
-        if (error) alert(error.message);
-        else showCheckEmailUI(email);
+        loginBtn.disabled = false; loginBtn.textContent = old;
+        if (error) alert(error.message); else showCheckEmailUI(email);
       });
     })();
 
-    function normalizeTrack(raw) {
-      const full = (raw?.title || '').trim();
-      const m = full.match(/\s[-\u2013\u2014]\s/);
-      if (!m) return { ...raw, artist: raw?.artist || 'Sloucho', title: full || 'OUCH\u2122' };
-      const idx = m.index; const sepLen = m[0].length;
-      return { ...raw, artist: raw?.artist || full.slice(0, idx).trim() || 'Sloucho', title: full.slice(idx + sepLen).trim() || 'OUCH\u2122' };
-    }
-
-    function updateMediaSessionMetadata(rawTrack) {
+    function updateMediaSessionMetadata() {
       if (!('mediaSession' in navigator)) return;
-      const track = normalizeTrack(rawTrack);
-      const title  = track?.title  || 'OUCH\u2122';
-      const artist = track?.artist || 'Sloucho';
-      const art = `${location.origin}/assets/slouchometa.png`;
       navigator.mediaSession.metadata = new MediaMetadata({
-        title, artist, album: 'Discography',
-        artwork: [{ src: art, sizes: '96x96', type: 'image/png' }, { src: art, sizes: '192x192', type: 'image/png' }, { src: art, sizes: '512x512', type: 'image/png' }]
+        title: 'Infinity', artist: 'Sloucho', album: 'Discography',
+        artwork: [
+          { src: location.origin + '/assets/slouchometa.png', sizes: '96x96',  type: 'image/png' },
+          { src: location.origin + '/assets/slouchometa.png', sizes: '512x512', type: 'image/png' }
+        ]
       });
     }
 
-    // ===== AUDIO — single looping track (FIX 2) =====
+    // ===== AUDIO — single looping track =====
     (function () {
       const audioEl = document.getElementById('mysteryGiftAudio');
       const btn     = document.getElementById('audioMuteBtn');
       if (!audioEl || !btn) return;
 
-      // Single track, looping
-      const TRACK = { title: "Sloucho - Infinity", artist: "Sloucho", src: "/assets/music/Sloucho_Infinity.mp3" };
-
-      audioEl.src = TRACK.src;
+      audioEl.src  = '/assets/music/Sloucho_Infinity.mp3';
       audioEl.loop = true;
       audioEl.load();
 
-      // Update now-playing UI
-      function updateNowPlaying() {
-        const runEl    = document.getElementById('nowPlayingRun');
-        const artistEl = document.getElementById('nowPlayingArtist');
-        const titleEl  = document.getElementById('nowPlayingTitle');
-        if (runEl)    runEl.textContent    = `${TRACK.artist} - ${TRACK.title}`;
-        if (artistEl) artistEl.textContent = TRACK.artist;
-        if (titleEl)  titleEl.textContent  = TRACK.title;
-        startNowPlayingMarquee();
-      }
+      audioEl.muted = true;
+      btn.classList.add('is-muted');
+      btn.setAttribute('aria-label', 'Unmute audio');
 
-      let marqueeTimers = [];
-      function clearMarqueeTimers() { marqueeTimers.forEach(t => clearTimeout(t)); marqueeTimers = []; }
-
-      function startNowPlayingMarquee() {
-        const nowPlaying = document.getElementById('nowPlaying');
-        const marquee    = document.querySelector('#nowPlaying .np-marquee');
-        const text       = document.getElementById('nowPlayingRun');
-        if (!marquee || !text || !nowPlaying) return;
-        clearMarqueeTimers();
-        text.style.transition = 'none'; text.style.transform = 'translateX(0)';
-        requestAnimationFrame(() => {
-          const marqueeW = marquee.clientWidth; const textW = text.scrollWidth;
-          if (textW <= marqueeW) { nowPlaying.classList.remove('is-scrolling','is-scrolling-active'); return; }
-          nowPlaying.classList.add('is-scrolling'); nowPlaying.classList.remove('is-scrolling-active');
-          const distance = text.scrollWidth - marqueeW; const duration = distance / 45;
-          const loop = () => {
-            nowPlaying.classList.remove('is-scrolling-active');
-            text.style.transition = 'transform 420ms cubic-bezier(0.22,0.61,0.36,1)'; text.style.transform = 'translateX(0)';
-            marqueeTimers.push(setTimeout(() => {
-              nowPlaying.classList.add('is-scrolling-active');
-              text.style.transition = `transform ${duration}s linear`; text.style.transform = `translateX(-${distance}px)`;
-            }, 900));
-            marqueeTimers.push(setTimeout(loop, 900 + duration * 1000 + 900));
-          };
-          loop();
-        });
-      }
-
-      updateNowPlaying();
-      updateMediaSessionMetadata(TRACK);
-
-      audioEl.muted = true; audioEl.setAttribute('muted', '');
-      btn.classList.add('is-muted'); btn.setAttribute('aria-label', 'Unmute audio');
       let started = false;
-
-      async function tryPlayMuted() {
+      async function tryPlay() {
         if (started || !audioEl.paused) { started = true; return; }
         try { await audioEl.play(); started = true; removeUnlockers(); } catch (_) {}
       }
-      function unlock() { tryPlayMuted(); }
       function addUnlockers() {
-        ['pointerdown','mousedown','touchstart','keydown','wheel','scroll'].forEach(ev =>
-          window.addEventListener(ev, unlock, { capture: true, once: true }));
+        ['pointerdown','mousedown','touchstart','keydown','wheel'].forEach(ev =>
+          window.addEventListener(ev, tryPlay, { capture: true, once: true }));
       }
       function removeUnlockers() {
-        ['pointerdown','mousedown','touchstart','keydown','wheel','scroll'].forEach(ev =>
-          window.removeEventListener(ev, unlock, { capture: true }));
+        ['pointerdown','mousedown','touchstart','keydown','wheel'].forEach(ev =>
+          window.removeEventListener(ev, tryPlay, { capture: true }));
       }
 
-      audioEl.addEventListener('canplay', tryPlayMuted);
-      window.addEventListener('load', tryPlayMuted, { once: true });
-      tryPlayMuted();
+      audioEl.addEventListener('canplay', tryPlay);
+      window.addEventListener('load', tryPlay, { once: true });
+      tryPlay();
       addUnlockers();
 
-      audioEl.addEventListener('play', () => {
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-        updateMediaSessionMetadata(TRACK);
-      });
-      audioEl.addEventListener('pause', () => {
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
-      });
+      audioEl.addEventListener('play',  () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; updateMediaSessionMetadata(); });
+      audioEl.addEventListener('pause', () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; });
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && audioEl.paused && started) audioEl.play().catch(() => {}); });
 
       btn.addEventListener('click', async () => {
         const willMute = !audioEl.muted; audioEl.muted = willMute;
         btn.classList.toggle('is-muted', willMute);
         btn.setAttribute('aria-label', willMute ? 'Unmute audio' : 'Mute audio');
         if (!willMute) { try { await audioEl.play(); } catch (_) {} }
-      });
-
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && audioEl.paused && started) audioEl.play().catch(() => {});
       });
     })();
   </script>
