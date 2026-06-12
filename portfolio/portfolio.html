@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cóilín Phelan — Portfolio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      grid-template-columns: 50% 50%;
+      height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      grid-column: 1 / -1;
+      padding: 32px 40px 24px;
+      display: flex; align-items: baseline; justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    header h1 { font-size: 13px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: #fff; }
+    header a  { font-size: 13px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: #fff; text-decoration: none; opacity: 0.5; transition: opacity 0.2s; }
+    header a:hover { opacity: 1; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      grid-column: 1 / -1;
+      padding: 0 40px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      cursor: grab;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-bar.grabbing { cursor: grabbing; }
+
+    .filter-btn {
+      font-size: 11px; font-weight: 400; letter-spacing: 0.12em; text-transform: uppercase;
+      color: #fff; background: none; border: none;
+      padding: 18px 24px 18px 0;
+      cursor: pointer; opacity: 0.28; transition: opacity 0.2s; white-space: nowrap;
+      user-select: none;
+    }
+    .filter-btn:hover { opacity: 0.6; }
+    .filter-btn.active { opacity: 1; }
+
+    /* ── Left panel ── */
+    .left-panel {
+      border-right: 1px solid rgba(255,255,255,0.08);
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .left-panel::-webkit-scrollbar { display: none; }
+
+    /* ── Right panel ── */
+    .right-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      position: relative;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    .right-panel img,
+    .right-panel video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      outline: none;
+    }
+
+    /* ── Projects ── */
+    .project {
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 40px 32px;
+    }
+    .project:last-child { border-bottom: none; }
+    .project.hidden { display: none; }
+
+    .project-name { font-size: 16px; font-weight: 400; letter-spacing: 0.02em; margin-bottom: 8px; color: #fff; }
+    .project-desc { font-size: 12px; line-height: 1.7; color: rgba(255,255,255,0.75); margin-bottom: 24px; }
+
+    /* ── Media section ── */
+    .media-section { margin-bottom: 20px; }
+    .media-section:last-child { margin-bottom: 0; }
+    .media-section.hidden { display: none; }
+
+    .media-section-label {
+      font-size: 9px; letter-spacing: 0.14em;
+      text-transform: uppercase; color: #fff;
+      margin-bottom: 10px;
+    }
+
+    /* ── Thumb grid ── */
+    .thumb-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+    }
+
+    .thumb-item {
+      position: relative;
+      aspect-ratio: 1;
+      background: #0a0a0a;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .thumb-item img,
+    .thumb-item video {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+      transition: transform 0.3s ease;
+    }
+    .thumb-item:hover img,
+    .thumb-item:hover video { transform: scale(1.05); }
+
+    .thumb-item.active {
+      outline: 1px solid rgba(255,255,255,0.6);
+      outline-offset: -1px;
+    }
+
+    .thumb-play {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .thumb-play-circle {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.5);
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.4);
+    }
+    .thumb-play-circle svg { width: 9px; height: 9px; fill: #fff; margin-left: 2px; }
+
+    /* ── Mobile modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.95);
+      z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-close {
+      position: fixed; top: 20px; right: 24px;
+      font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: #fff; opacity: 0.5; cursor: pointer;
+      background: none; border: none; z-index: 101;
+    }
+
+    .modal-nav-btn {
+      position: fixed;
+      top: 50%; transform: translateY(-50%);
+      font-size: 20px; color: #fff;
+      background: none; border: none;
+      cursor: pointer; opacity: 0.6;
+      transition: opacity 0.2s;
+      z-index: 101; padding: 16px;
+    }
+    .modal-nav-btn:hover { opacity: 1; }
+    #modal-prev { left: 8px; }
+    #modal-next { right: 8px; }
+
+    .modal-media img,
+    .modal-media video {
+      max-width: 92vw; max-height: 85vh;
+      display: block; object-fit: contain;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      html, body { overflow: auto; height: auto; }
+
+      .layout {
+        display: block;
+        height: auto;
+      }
+
+      header { padding: 24px 20px 18px; }
+      .filter-bar { padding: 0 20px; }
+
+      .left-panel {
+        border-right: none;
+        overflow-y: visible;
+      }
+
+      .right-panel { display: none; }
+
+      .project { padding: 32px 20px; }
+
+      .thumb-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <header>
+    <h1>Cóilín Phelan</h1>
+  </header>
+
+  <nav class="filter-bar" id="filter-bar">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="video-edit">Video Editing</button>
+    <button class="filter-btn" data-filter="graphic-design">Graphic Design + Imagery</button>
+    <button class="filter-btn" data-filter="motion">Motion + Animation</button>
+    <button class="filter-btn" data-filter="video-photo">Video + Photo Capture</button>
+  </nav>
+
+  <!-- Left: scrollable project list -->
+  <div class="left-panel">
+
+    <!-- ══════ BROKEN SPIRIT ══════ -->
+    <div class="project" data-tags="graphic-design motion video-photo video-edit">
+      <p class="project-name">Broken Spirit</p>
+      <p class="project-desc">Broken Spirit is the most recent EP from Sloucho. This campaign included creating a video game in Unreal Engine with an accompanying promotional trailer, hosting 3 Listening Parties, designing and producing NFC Cards and T-Shirts.</p>
+      <div class="media-section" data-section="graphic-design">
+        <p class="media-section-label">Graphic Design + Imagery</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Graphic-Design-Imagery/ClickFarm.jpeg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Graphic-Design-Imagery/ClickFarm.jpeg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Graphic-Design-Imagery/RasIntro.1325.jpeg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Graphic-Design-Imagery/RasIntro.1325.jpeg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Graphic-Design-Imagery/Sky.jpeg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Graphic-Design-Imagery/Sky.jpeg" loading="lazy" /></div>
+        </div>
+      </div>
+      <div class="media-section" data-section="motion">
+        <p class="media-section-label">Motion + Animation</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Motion-Animation/Broken Spirit Announcement.mp4">
+            <video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Motion-Animation/Broken Spirit Announcement.mp4" preload="metadata" muted></video>
+            <div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="media-section" data-section="video-photo">
+        <p class="media-section-label">Video + Photo Capture</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Video-Photo/NFC-03.png"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Video-Photo/NFC-03.png" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Video-Photo/NFC-04.png"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Video-Photo/NFC-04.png" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Video-Photo/SlouchoTShirt.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Video-Photo/SlouchoTShirt.jpg" loading="lazy" /></div>
+        </div>
+      </div>
+      <div class="media-section" data-section="video-edit">
+        <p class="media-section-label">Video Editing</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Video-Edit/BSTrailerFinal.mp4">
+            <video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Video-Edit/BSTrailerFinal.mp4" preload="metadata" muted></video>
+            <div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ NPC ══════ -->
+    <div class="project" data-tags="graphic-design video-edit">
+      <p class="project-name">NPC</p>
+      <p class="project-desc">Sloucho's debut album. I designed the vinyl cover art for print and digital mockup, and created promotional material for its announcement.</p>
+      <div class="media-section" data-section="graphic-design">
+        <p class="media-section-label">Graphic Design + Imagery</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/NPC/Graphic-Design-Imagery/Front Cover.png"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/NPC/Graphic-Design-Imagery/Front Cover.png" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/NPC/Graphic-Design-Imagery/Back Cover.png"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/NPC/Graphic-Design-Imagery/Back Cover.png" loading="lazy" /></div>
+        </div>
+      </div>
+      <div class="media-section" data-section="video-edit">
+        <p class="media-section-label">Video Editing</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/NPC/Video-Edit/BEYONDTHE9THWAVE.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/NPC/Video-Edit/BEYONDTHE9THWAVE.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/NPC/Video-Edit/Album Announce.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/NPC/Video-Edit/Album Announce.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/NPC/Video-Edit/Make it Work (live).mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/NPC/Video-Edit/Make it Work (live).mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ RHINESTONES ══════ -->
+    <div class="project" data-tags="graphic-design video-edit">
+      <p class="project-name">Rhinestones</p>
+      <p class="project-desc">Rhinestones was a collaborative track with Irish rappers Lil Skag + Ahmed with Love. The music video was shot entirely in Unreal Engine — I created a Metahuman for each artist using 3D scans, and filmed their performances to use as motion capture for their avatars.</p>
+      <div class="media-section" data-section="graphic-design">
+        <p class="media-section-label">Graphic Design + Imagery</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Rhinestones/Graphic-Design-Imagery/RhinestonesCover.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Rhinestones/Graphic-Design-Imagery/RhinestonesCover.jpg" loading="lazy" /></div>
+        </div>
+      </div>
+      <div class="media-section" data-section="video-edit">
+        <p class="media-section-label">Video Editing</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Rhinestones/Video-Edit/ReleaseDay Post1.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Rhinestones/Video-Edit/ReleaseDay Post1.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Rhinestones/Video-Edit/Rhinestones (ft. Lil Skag & Ahmed, with Love).mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Rhinestones/Video-Edit/Rhinestones (ft. Lil Skag & Ahmed, with Love).mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Rhinestones/Video-Edit/SkagHook1.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Rhinestones/Video-Edit/SkagHook1.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ LOVE IS FEAR ══════ -->
+    <div class="project" data-tags="graphic-design video-edit">
+      <p class="project-name">Love is Fear</p>
+      <p class="project-desc">Love is Fear was the lead single from Sloucho's Broken Spirit EP. I created title cards for the music video with custom logo and typography treatment, and cut the video to short form clips for social.</p>
+      <div class="media-section" data-section="graphic-design">
+        <p class="media-section-label">Graphic Design + Imagery</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Love-is-Fear/Graphic-Design-Imagery/CredtisCard.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Love-is-Fear/Graphic-Design-Imagery/CredtisCard.jpg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Love-is-Fear/Graphic-Design-Imagery/TitleCard.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Love-is-Fear/Graphic-Design-Imagery/TitleCard.jpg" loading="lazy" /></div>
+        </div>
+      </div>
+      <div class="media-section" data-section="video-edit">
+        <p class="media-section-label">Video Editing</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Love-is-Fear/Video-Edit/LiF_Ad_Outro.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Love-is-Fear/Video-Edit/LiF_Ad_Outro.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Love-is-Fear/Video-Edit/LiF_Bridge.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Love-is-Fear/Video-Edit/LiF_Bridge.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Love-is-Fear/Video-Edit/LiF_DontSugarCoat.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Love-is-Fear/Video-Edit/LiF_DontSugarCoat.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ ALL NIGHT ══════ -->
+    <div class="project" data-tags="graphic-design video-edit">
+      <p class="project-name">All Night</p>
+      <p class="project-desc">All Night is a single taken from Sloucho's Broken Spirit EP, made with Davinci, Higgsfield AI, and Photoshop.</p>
+      <div class="media-section" data-section="graphic-design">
+        <p class="media-section-label">Graphic Design + Imagery</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/All-Night/Graphic-Design-Imagery/Cover.png">
+            <img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/All-Night/Graphic-Design-Imagery/Cover.png" loading="lazy" />
+          </div>
+        </div>
+      </div>
+      <div class="media-section" data-section="video-edit">
+        <p class="media-section-label">Video Editing</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/All-Night/Video-Edit/Clip.mp4">
+            <video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/All-Night/Video-Edit/Clip.mp4" preload="metadata" muted></video>
+            <div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div>
+          </div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/All-Night/Video-Edit/Clip1.mp4">
+            <video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/All-Night/Video-Edit/Clip1.mp4" preload="metadata" muted></video>
+            <div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div>
+          </div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/All-Night/Video-Edit/Clip2.mp4">
+            <video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/All-Night/Video-Edit/Clip2.mp4" preload="metadata" muted></video>
+            <div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ ECHOES ══════ -->
+    <div class="project" data-tags="graphic-design video-edit">
+      <p class="project-name">ECHOES</p>
+      <p class="project-desc">The ECHOES EP was released in 2025, and featured a custom Metahuman, social assets for Dazed Magazine, along with promotional videos for YouTube and Instagram.</p>
+      <div class="media-section" data-section="graphic-design">
+        <p class="media-section-label">Graphic Design + Imagery</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Graphic-Design-Imagery/Single Artwork.png"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Graphic-Design-Imagery/Single Artwork.png" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Graphic-Design-Imagery/Sloucho_ECHOES(EP cover).jpeg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Graphic-Design-Imagery/Sloucho_ECHOES(EP cover).jpeg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Graphic-Design-Imagery/Sloucho_theend (single cover).png"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Graphic-Design-Imagery/Sloucho_theend (single cover).png" loading="lazy" /></div>
+        </div>
+      </div>
+      <div class="media-section" data-section="video-edit">
+        <p class="media-section-label">Video Editing</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Video-Edit/DAZED x OUCH(Final).mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Video-Edit/DAZED x OUCH(Final).mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Video-Edit/the ECHOES are coming....mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Video-Edit/the ECHOES are coming....mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Video-Edit/The End.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Video-Edit/The End.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Video-Edit/Waterworks Asset.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/ECHOES/Video-Edit/Waterworks Asset.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ CABAL ══════ -->
+    <div class="project" data-tags="motion video-photo video-edit">
+      <p class="project-name">Cabal</p>
+      <p class="project-desc">Cabal was a dance music party I ran in Limerick and Galway. I created animated posters, shot BTS photography, and edited videos for social.</p>
+      <div class="media-section" data-section="motion">
+        <p class="media-section-label">Motion + Animation</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Motion-Animation/CabalPoster1.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Motion-Animation/CabalPoster1.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Motion-Animation/CabalPoster3.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Motion-Animation/CabalPoster3.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Motion-Animation/CabalPoster5.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Motion-Animation/CabalPoster5.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+        </div>
+      </div>
+      <div class="media-section" data-section="video-photo">
+        <p class="media-section-label">Video + Photo Capture</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Photo/BTS1.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Photo/BTS1.jpg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Photo/BTS2.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Photo/BTS2.jpg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Photo/BTS3.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Photo/BTS3.jpg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Photo/BTS4.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Photo/BTS4.jpg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Photo/BTS5.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Photo/BTS5.jpg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Photo/BTS6.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Photo/BTS6.jpg" loading="lazy" /></div>
+        </div>
+      </div>
+      <div class="media-section" data-section="video-edit">
+        <p class="media-section-label">Video Editing</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Edit/Cabal.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Cabal/Video-Edit/Cabal.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ DREAM BAGS ══════ -->
+    <div class="project" data-tags="graphic-design video-edit">
+      <p class="project-name">Dream Bags Jaguar Shoes</p>
+      <p class="project-desc">Sloucho + Friends was an event I ran in London. I created social assets for each performer along with an announcement video.</p>
+      <div class="media-section" data-section="graphic-design">
+        <p class="media-section-label">Graphic Design + Imagery</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Dream-Bags/Graphic-Design-Imagery/DB_JustLil.png"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Dream-Bags/Graphic-Design-Imagery/DB_JustLil.png" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Dream-Bags/Graphic-Design-Imagery/DB_Nathan.png"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Dream-Bags/Graphic-Design-Imagery/DB_Nathan.png" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Dream-Bags/Graphic-Design-Imagery/DB_Sloucho.png"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Dream-Bags/Graphic-Design-Imagery/DB_Sloucho.png" loading="lazy" /></div>
+        </div>
+      </div>
+      <div class="media-section" data-section="video-edit">
+        <p class="media-section-label">Video Editing</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Dream-Bags/Graphic-Design-Imagery/DB_Video.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Dream-Bags/Graphic-Design-Imagery/DB_Video.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Dream-Bags/Graphic-Design-Imagery/IGReel2.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Dream-Bags/Graphic-Design-Imagery/IGReel2.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ ARCA-DIA ══════ -->
+    <div class="project" data-tags="graphic-design motion">
+      <p class="project-name">Arca-Dia</p>
+      <p class="project-desc">This project was made for my Masters Degree Show and included Editorial Design of a magazine and hand drawn animation.</p>
+      <div class="media-section" data-section="graphic-design">
+        <p class="media-section-label">Graphic Design + Imagery</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Arca-Dia/Graphic-Design-Imagery/3-min-scaled.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Arca-Dia/Graphic-Design-Imagery/3-min-scaled.jpg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Arca-Dia/Graphic-Design-Imagery/Spreadas-min-scaled.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Arca-Dia/Graphic-Design-Imagery/Spreadas-min-scaled.jpg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Arca-Dia/Graphic-Design-Imagery/Spreadas1-min-scaled.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Arca-Dia/Graphic-Design-Imagery/Spreadas1-min-scaled.jpg" loading="lazy" /></div>
+        </div>
+      </div>
+      <div class="media-section" data-section="motion">
+        <p class="media-section-label">Motion + Animation</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Arca-Dia/Motion-Animation/arca-dia_(brand_video1).mp4">
+            <video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Arca-Dia/Motion-Animation/arca-dia_(brand_video1).mp4" preload="metadata" muted></video>
+            <div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ HOLD IT DOWN ══════ -->
+    <div class="project" data-tags="video-photo">
+      <p class="project-name">Hold it Down</p>
+      <p class="project-desc">This was the first release under the Sloucho alias. I shot BTS footage and on set photography.</p>
+      <div class="media-section" data-section="video-photo">
+        <p class="media-section-label">Video + Photo Capture</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Hold-it-Down/Video-Photo/BTS.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Hold-it-Down/Video-Photo/BTS.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Hold-it-Down/Video-Photo/BTS1.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Hold-it-Down/Video-Photo/BTS1.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Hold-it-Down/Video-Photo/Craig.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Hold-it-Down/Video-Photo/Craig.jpg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Hold-it-Down/Video-Photo/Craig1.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Hold-it-Down/Video-Photo/Craig1.jpg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Hold-it-Down/Video-Photo/Wings.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Hold-it-Down/Video-Photo/Wings.jpg" loading="lazy" /></div>
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Hold-it-Down/Video-Photo/WingsBTS.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Hold-it-Down/Video-Photo/WingsBTS.jpg" loading="lazy" /></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ SPOOKLET ══════ -->
+    <div class="project" data-tags="graphic-design video-photo">
+      <p class="project-name">Spooklet</p>
+      <p class="project-desc">I created cover art and shot social assets with Spooklet to promote her track Casse-Toi.</p>
+      <div class="media-section" data-section="graphic-design">
+        <p class="media-section-label">Graphic Design + Imagery</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="image" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Spooklet/Graphic-Design-Imagery/Spooklet.jpg"><img src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Spooklet/Graphic-Design-Imagery/Spooklet.jpg" loading="lazy" /></div>
+        </div>
+      </div>
+      <div class="media-section" data-section="video-photo">
+        <p class="media-section-label">Video + Photo Capture</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Spooklet/Video-Photo/Spooklet Clip.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Spooklet/Video-Photo/Spooklet Clip.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Spooklet/Video-Photo/SpookletClip1.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Spooklet/Video-Photo/SpookletClip1.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Spooklet/Video-Photo/SpookletClip2.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Spooklet/Video-Photo/SpookletClip2.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ MISC ══════ -->
+    <div class="project" data-tags="motion">
+      <p class="project-name">Misc</p>
+      <p class="project-desc">Here are a few loose motion experiments from unrealised projects.</p>
+      <div class="media-section" data-section="motion">
+        <p class="media-section-label">Motion + Animation</p>
+        <div class="thumb-grid">
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Misc/Ayeland.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Misc/Ayeland.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Misc/Catalyst.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Misc/Catalyst.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+          <div class="thumb-item" data-type="video" data-src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Misc/When%26Where.mp4"><video src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Misc/When%26Where.mp4" preload="metadata" muted></video><div class="thumb-play"><div class="thumb-play-circle"><svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /left-panel -->
+
+  <!-- Right: viewer -->
+  <div class="right-panel" id="right-panel">
+    <img id="viewer-img" src="https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/Broken-Spirit/Graphic-Design-Imagery/ClickFarm.jpeg" style="display:block" />
+    <video id="viewer-video" controls style="display:none"></video>
+  </div>
+
+</div><!-- /layout -->
+
+<!-- Mobile modal -->
+<div class="modal-overlay" id="modal">
+  <button class="modal-close" id="modal-close">Close</button>
+  <button class="modal-nav-btn" id="modal-prev">←</button>
+  <button class="modal-nav-btn" id="modal-next">→</button>
+  <div class="modal-media" id="modal-media"></div>
+</div>
+
+<script>
+  const isMobile = () => window.innerWidth <= 768;
+
+  // Seek video thumbs to 1s for a real frame
+  document.querySelectorAll('.thumb-item video').forEach(v => {
+    v.addEventListener('loadedmetadata', () => { v.currentTime = 1; });
+  });
+
+  // Right panel elements
+  const viewerImg   = document.getElementById('viewer-img');
+  const viewerVideo = document.getElementById('viewer-video');
+
+  // Mobile modal
+  const modal      = document.getElementById('modal');
+  const modalMedia = document.getElementById('modal-media');
+  const modalPrev  = document.getElementById('modal-prev');
+  const modalNext  = document.getElementById('modal-next');
+  let mobileItems  = [];
+  let mobileIndex  = 0;
+
+  function getVisibleItems() {
+    return Array.from(document.querySelectorAll('.project:not(.hidden) .media-section:not(.hidden) .thumb-item'));
+  }
+
+  function renderModal(index) {
+    mobileIndex = index;
+    const item = mobileItems[index];
+    const { type, src } = item.dataset;
+    modalMedia.innerHTML = '';
+    if (type === 'image') {
+      const img = document.createElement('img');
+      img.src = src;
+      modalMedia.appendChild(img);
+    } else {
+      const v = document.createElement('video');
+      v.src = src; v.controls = true; v.autoplay = true;
+      v.style.maxWidth = '92vw'; v.style.maxHeight = '80vh';
+      modalMedia.appendChild(v);
+    }
+    modalPrev.style.opacity = index > 0 ? '0.6' : '0.15';
+    modalNext.style.opacity = index < mobileItems.length - 1 ? '0.6' : '0.15';
+    modalPrev.style.pointerEvents = index > 0 ? 'all' : 'none';
+    modalNext.style.pointerEvents = index < mobileItems.length - 1 ? 'all' : 'none';
+  }
+
+  function closeModal() {
+    modal.classList.remove('open');
+    modalMedia.innerHTML = '';
+  }
+
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+  modalPrev.addEventListener('click', e => { e.stopPropagation(); if (mobileIndex > 0) renderModal(mobileIndex - 1); });
+  modalNext.addEventListener('click', e => { e.stopPropagation(); if (mobileIndex < mobileItems.length - 1) renderModal(mobileIndex + 1); });
+
+  // Swipe
+  let touchStartX = 0;
+  modal.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  modal.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) < 40) return;
+    if (dx < 0 && mobileIndex < mobileItems.length - 1) renderModal(mobileIndex + 1);
+    if (dx > 0 && mobileIndex > 0) renderModal(mobileIndex - 1);
+  }, { passive: true });
+
+  // Set active state on first item
+  const firstItem = document.querySelector('.thumb-item');
+  if (firstItem) firstItem.classList.add('active');
+
+  function showInPanel(type, src) {
+    if (type === 'image') {
+      viewerVideo.pause();
+      viewerVideo.style.display = 'none';
+      viewerImg.src = src;
+      viewerImg.style.display = 'block';
+    } else {
+      viewerImg.style.display = 'none';
+      viewerVideo.src = src;
+      viewerVideo.style.display = 'block';
+      viewerVideo.load();
+      viewerVideo.play().catch(() => {});
+    }
+  }
+
+  document.querySelectorAll('.thumb-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const { type, src } = item.dataset;
+      document.querySelectorAll('.thumb-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+
+      if (isMobile()) {
+        // Scope items to the project this thumbnail belongs to
+        const project = item.closest('.project');
+        mobileItems = Array.from(project.querySelectorAll('.media-section:not(.hidden) .thumb-item'));
+        const index = mobileItems.indexOf(item);
+        modal.classList.add('open');
+        renderModal(index);
+      } else {
+        showInPanel(type, src);
+      }
+    });
+  });
+
+  // Filter
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const filter = btn.dataset.filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      document.querySelectorAll('.project').forEach(project => {
+        const tags = project.dataset.tags.split(' ');
+        if (filter === 'all') {
+          project.classList.remove('hidden');
+          project.querySelectorAll('.media-section').forEach(s => s.classList.remove('hidden'));
+        } else if (!tags.includes(filter)) {
+          project.classList.add('hidden');
+        } else {
+          project.classList.remove('hidden');
+          project.querySelectorAll('.media-section').forEach(s => {
+            s.classList.toggle('hidden', s.dataset.section !== filter);
+          });
+        }
+      });
+    });
+  });
+
+  // Draggable filter bar
+  const filterBar = document.getElementById('filter-bar');
+  let isDown = false, startX, scrollLeft;
+  filterBar.addEventListener('mousedown', e => {
+    isDown = true; filterBar.classList.add('grabbing');
+    startX = e.pageX - filterBar.offsetLeft;
+    scrollLeft = filterBar.scrollLeft;
+  });
+  filterBar.addEventListener('mouseleave', () => { isDown = false; filterBar.classList.remove('grabbing'); });
+  filterBar.addEventListener('mouseup', () => { isDown = false; filterBar.classList.remove('grabbing'); });
+  filterBar.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - filterBar.offsetLeft;
+    filterBar.scrollLeft = scrollLeft - (x - startX);
+  });
+</script>
+
+</body>
+</html>
