@@ -154,14 +154,17 @@
     .modal-overlay {
       display: none;
       position: fixed; inset: 0;
-      background: rgba(0,0,0,0.95);
+      background: #000;
       z-index: 100;
       align-items: center; justify-content: center;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
     }
     .modal-overlay.open { display: flex; }
 
     .modal-close {
-      position: fixed; top: 20px; right: 24px;
+      position: fixed; top: 52px; right: 24px;
       font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
       color: #fff; opacity: 0.5; cursor: pointer;
       background: none; border: none; z-index: 101;
@@ -578,6 +581,8 @@
   function closeModal() {
     modal.classList.remove('open');
     modalMedia.innerHTML = '';
+    document.body.style.overflow = '';
+    document.body.style.position = '';
   }
 
   document.getElementById('modal-close').addEventListener('click', closeModal);
@@ -626,6 +631,9 @@
         const project = item.closest('.project');
         mobileItems = Array.from(project.querySelectorAll('.media-section:not(.hidden) .thumb-item'));
         const index = mobileItems.indexOf(item);
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
         modal.classList.add('open');
         renderModal(index);
       } else {
