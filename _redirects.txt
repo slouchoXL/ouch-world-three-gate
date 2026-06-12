@@ -1,2 +1,3 @@
 /api/*  https://backend-o9ot.onrender.com/api/:splat  200
 /portal/*   /portal/index.html   200
+/media/*  https://pub-e6d1958d62a94f03ad715d54b58aedcb.r2.dev/:splat  200
