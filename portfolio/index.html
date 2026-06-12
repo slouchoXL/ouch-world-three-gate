@@ -563,15 +563,16 @@
     modalNext.style.pointerEvents = index < mobileItems.length - 1 ? 'all' : 'none';
   }
 
+  let savedScrollY = 0;
+
   function closeModal() {
-    const scrollY = document.body.style.top;
     modal.classList.remove('open');
     modalMedia.innerHTML = '';
     document.body.style.overflow = '';
     document.body.style.position = '';
     document.body.style.width = '';
     document.body.style.top = '';
-    window.scrollTo(0, parseInt(scrollY || '0') * -1);
+    window.scrollTo(0, savedScrollY);
   }
 
   document.getElementById('modal-close').addEventListener('click', closeModal);
@@ -620,10 +621,11 @@
         const project = item.closest('.project');
         mobileItems = Array.from(project.querySelectorAll('.media-section:not(.hidden) .thumb-item'));
         const index = mobileItems.indexOf(item);
+        savedScrollY = window.scrollY;
         document.body.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
         document.body.style.width = '100%';
-        document.body.style.top = `-${window.scrollY}px`;
+        document.body.style.top = `-${savedScrollY}px`;
         modal.classList.add('open');
         renderModal(index);
       } else {
