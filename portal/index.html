@@ -25,7 +25,6 @@
       --border-hover: rgba(0,0,0,0.28);
       --pill-bg: rgba(255,255,255,0.92);
       --pill-bg-hover: rgba(255,255,255,0.97);
-      --pill-bg-playing: #fff;
       --btn-bg: rgba(0,0,0,0.05);
       --btn-bg-hover: rgba(0,0,0,0.10);
       --radius-card: 14px;
@@ -60,18 +59,17 @@
       font-display: swap;
     }
 
-    /* ── bg.png overlay – full opacity, zoomed ── */
-    body::before {
-      content: '';
+    /* ── Top nav fade gradient ── */
+    .nav-fade {
       position: fixed;
-      inset: 0;
-      background-image: url('/assets/bg.png');
-      background-size: 200% 200%;
-      background-position: center;
-      background-repeat: no-repeat;
-      opacity: 1;
+      top: 0; left: 0; right: 0;
+      height: 88px;
+      background: linear-gradient(to bottom,
+        rgba(255,255,255,1) 0%,
+        rgba(255,255,255,0.85) 55%,
+        rgba(255,255,255,0) 100%);
       pointer-events: none;
-      z-index: 0;
+      z-index: 999;
     }
 
     /* ── Page layout ── */
@@ -116,7 +114,7 @@
       max-height: 0;
       transition: max-height 0.35s ease;
     }
-    .bs-copy-more.open { max-height: 400px; }
+    .bs-copy-more.open { max-height: 600px; }
 
     .bs-read-more {
       background: none;
@@ -133,32 +131,32 @@
     }
     .bs-read-more:hover { color: var(--text); }
 
-    /* ── Download buttons ── */
+    /* ── Download buttons (icon-only, row, centred) ── */
     .bs-download-wrap {
       margin-top: 20px;
       margin-bottom: 40px;
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
       gap: 10px;
     }
     .bs-download-btn {
+      width: 44px; height: 44px;
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      font-size: 12px;
-      padding: 8px 20px;
-      border-radius: var(--radius-pill);
+      justify-content: center;
+      border-radius: 50%;
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.9);
       color: var(--muted);
-      font-family: inherit;
       cursor: pointer;
       text-decoration: none;
       transition: border-color 0.15s, color 0.15s, background 0.15s;
+      flex-shrink: 0;
     }
     .bs-download-btn:hover { border-color: var(--border-hover); color: var(--text); background: #fff; }
-    .bs-download-btn svg { width: 11px; height: 11px; flex-shrink: 0; }
+    .bs-download-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
 
     /* ── Track section ── */
     .track-section { margin-bottom: 48px; }
@@ -171,17 +169,14 @@
       padding-left: 2px;
     }
 
-    /* ── Track pill (solid white cards) ── */
+    /* ── Track pill ── */
     .track-pill {
       background: var(--pill-bg);
       border: 1px solid var(--border);
       border-radius: var(--radius-card);
       margin-bottom: 5px;
       overflow: hidden;
-      transition: border-color 0.18s ease, background 0.18s ease;
     }
-    .track-pill:hover { background: var(--pill-bg-hover); border-color: var(--border-hover); }
-    .track-pill.playing { background: var(--pill-bg-playing); border-color: rgba(0,0,0,0.20); box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
 
     .pill-row {
       display: grid;
@@ -259,21 +254,6 @@
     }
     .pill-sub a:hover { border-color: rgba(0,0,0,0.5); }
 
-    .pill-progress {
-      height: 1px;
-      background: rgba(0,0,0,0.08);
-      margin: 0 9px;
-      display: none;
-      position: relative;
-    }
-    .track-pill.playing .pill-progress { display: block; }
-    .pill-progress-fill {
-      position: absolute; left: 0; top: 0; bottom: 0;
-      background: rgba(0,0,0,0.35);
-      width: 0%;
-      transition: width 0.5s linear;
-    }
-
     /* ── Expanded panel ── */
     .pill-expanded { max-height: 0; overflow: hidden; transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1); }
     .pill-expanded.open { max-height: 360px; }
@@ -314,12 +294,13 @@
     }
     .now-playing-bar.visible { display: flex; }
 
+    /* play | info | waveform | time | prev | next */
     .now-playing-inner {
       width: 100%;
       max-width: 740px;
       padding: 0 24px;
       display: grid;
-      grid-template-columns: 40px 40px minmax(0, 160px) 1fr auto 40px;
+      grid-template-columns: 40px minmax(0, 160px) 1fr auto 40px 40px;
       align-items: center;
       gap: 10px;
     }
@@ -376,7 +357,7 @@
     .user-icon { width: 16px; height: 16px; color: #000; }
     .user-icon svg { width: 100%; height: 100%; fill: currentColor; }
 
-    /* ── Menu tray (white) ── */
+    /* ── Menu tray ── */
     .menu-tray {
       position: fixed; top: 60px; left: 20px; width: 130px;
       background: rgba(255,255,255,0.97);
@@ -405,7 +386,7 @@
     .menu-item:hover::before, .menu-item:focus-visible::before { opacity: 1; transform: scaleY(1); }
     .menu-item, .menu-item * { position: relative; z-index: 1; }
 
-    /* ── Shared circular button (white theme) ── */
+    /* ── Shared circular button ── */
     .icon-circle {
       width: var(--circle); height: var(--circle);
       border-radius: 50%;
@@ -434,7 +415,7 @@
       transform: rotate(45deg); display: block;
     }
 
-    /* ── Modal (white) ── */
+    /* ── Modal ── */
     input, textarea, select { font-size: 16px; }
     button, a { touch-action: manipulation; }
 
@@ -508,7 +489,7 @@
     }
     .form-button:hover { background: #222; }
 
-    /* ── Cinematic Intro (keep dark) ── */
+    /* ── Cinematic Intro ── */
     .cinematic-intro {
       position: fixed; inset: 0; background: #000;
       display: none; align-items: center; justify-content: center;
@@ -526,7 +507,7 @@
     .cinematic-intro .intro-sub { display: block; margin-top: 8px; font-size: 14px; opacity: 0.75; user-select: none; }
     .cinematic-intro .intro-text.intro-text-hide { opacity: 0; transform: translateY(-6px); }
 
-    /* ── Portal lock overlay (white) ── */
+    /* ── Portal lock overlay ── */
     #portalLockOverlay {
       position: fixed; inset: 0; z-index: 99999;
       display: flex; align-items: center; justify-content: center;
@@ -573,7 +554,8 @@
     @media (max-width: 600px) {
       .page { padding-top: 64px; }
       .pill-expanded-inner { padding-left: 12px; padding-right: 12px; }
-      .now-playing-inner { grid-template-columns: 40px 40px 1fr auto 40px; }
+      /* play | waveform | time | prev | next */
+      .now-playing-inner { grid-template-columns: 40px 1fr auto 40px 40px; }
       .now-playing-info { display: none; }
       .now-playing-time { min-width: 60px; font-size: 10px; }
     }
@@ -582,6 +564,9 @@
 <body class="portal-hidden">
 
   <div id="preGate" aria-hidden="true"></div>
+
+  <!-- Nav fade gradient (sits below nav buttons) -->
+  <div class="nav-fade" aria-hidden="true"></div>
 
   <div id="cinematicIntro" class="cinematic-intro">
     <div class="intro-text">
@@ -618,30 +603,37 @@
     </header>
 
     <div class="bs-copy">
-      <!-- Always visible -->
+      <!-- Always visible: first paragraph only -->
       <p>As we race towards our algorithmic demise, we may stop for a moment of reflection and wonder... was it really worth it?</p>
-      <p>Broken Spirit can be seen less as an album but as an era, a period of great dejection, instability, growth, love, and acceptance. It is simply a collection of songs and video game experience that were created as an attempt to re-connect with the world, with the physical, with life itself and the possibility of hope. I have decided to include many of the demos and failed experiments that led to this project taking shape as an ode to the process and a means of tracing the journey.</p>
-      <!-- Collapsed by default -->
+      <!-- Rest collapsed by default -->
       <div class="bs-copy-more" id="bsCopyMore">
+        <p>Broken Spirit can be seen less as an album but as an era, a period of great dejection, instability, growth, love, and acceptance. It is simply a collection of songs and video game experience that were created as an attempt to re-connect with the world, with the physical, with life itself and the possibility of hope. I have decided to include many of the demos and failed experiments that led to this project taking shape as an ode to the process and a means of tracing the journey.</p>
         <p>Reclaiming our personal autonomy is paramount to defeating the algorithm, the systems of control, and the future that has been imagined for us, this much is known. And so, here is my offering, something that exists in the hands of the people, this project is yours, it belongs to you free from any algorithm, it is yours to do with as you please.</p>
         <p>You can download the project and listen to it locally either on mobile or desktop, you can download the game on Mac/Windows and play with your friends, these files are yours, sell them, pirate them, share them with a friend, their future is yours to shape.</p>
       </div>
       <button class="bs-read-more" id="bsReadMore" onclick="toggleReadMore()">Read more</button>
     </div>
 
+    <!-- Download: EP (music), Mac game (Apple), Windows game — icon-only circles -->
     <div class="bs-download-wrap">
-      <a href="/assets/sloucho-broken-spirit.zip" download class="bs-download-btn">
-        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 1v7M3 5.5l3 3 3-3M1 10h10"/>
+      <!-- EP download: music note icon -->
+      <a href="/assets/sloucho-broken-spirit.zip" download title="Download EP" class="bs-download-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
         </svg>
-        Download EP
       </a>
-      <a href="https://pub-c8aa24ff7c554f949ea424cb6843d696.r2.dev/BrokenSpirit.dmg"
-         target="_blank" rel="noopener noreferrer" class="bs-download-btn">
-        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 1v7M3 5.5l3 3 3-3M1 10h10"/>
+      <!-- Mac game: Apple icon -->
+      <a href="https://pub-c8aa24ff7c554f949ea424cb6843d696.r2.dev/BrokenSpirit.dmg" target="_blank" rel="noopener noreferrer" title="Download Game (Mac)" class="bs-download-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
         </svg>
-        Download Game (Mac Silicon)
+      </a>
+      <!-- Windows game: Windows icon -->
+      <a href="https://pub-c8aa24ff7c554f949ea424cb6843d696.r2.dev/BrokenSpirit.exe" target="_blank" rel="noopener noreferrer" title="Download Game (Windows)" class="bs-download-btn">
+        <!-- ← update Windows game URL -->
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 12V6.75l6-1.32v6.57H3zm17 0V5.25L11 3v9h9zm-17 .75H9v6.57l-6-1.32V12.75zm17 0H11V21l9-1.99v-6.26z"/>
+        </svg>
       </a>
     </div>
 
@@ -656,16 +648,9 @@
     </section>
   </div>
 
-  <!-- Fixed bottom bar -->
+  <!-- Fixed bottom bar: play | info | waveform | time | prev | next -->
   <div class="now-playing-bar" id="nowPlayingBar">
     <div class="now-playing-inner">
-      <!-- Prev -->
-      <button class="circ-btn" onclick="prevTrack()" aria-label="Previous track">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14 3L6 8L14 13V3Z" fill="#000"/>
-          <rect x="2" y="3" width="2" height="10" rx="1" fill="#000"/>
-        </svg>
-      </button>
       <!-- Play / Pause -->
       <button class="circ-btn bar-play-btn" onclick="toggleGlobalPlay()">
         <span class="bar-play-icon"></span>
@@ -682,6 +667,13 @@
       </div>
       <!-- Time -->
       <div class="now-playing-time" id="globalTime">0:00 / 0:00</div>
+      <!-- Prev -->
+      <button class="circ-btn" onclick="prevTrack()" aria-label="Previous track">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 3L6 8L14 13V3Z" fill="#000"/>
+          <rect x="2" y="3" width="2" height="10" rx="1" fill="#000"/>
+        </svg>
+      </button>
       <!-- Next -->
       <button class="circ-btn" onclick="skipTrack()" aria-label="Next track">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -821,21 +813,18 @@ const MAIN_TRACKS = [
   },
 ];
 
+// Removed: 271024, 070325, 080325, 170325
 const DEMO_TRACKS = [
-  { title: 'brokenspirit_[demo_071024]',  date: 'Oct 2024', bpm: '116', duration: '2:48', desc: 'The earliest sketch that survived. A chord progression and a vocal idea that ended up buried inside two other tracks.',                                            src: '/assets/brokenspirit_[demo_071024].mp3' },
-  { title: 'brokenspirit_[demo_271024]',  date: 'Oct 2024', bpm: '108', duration: '1:55', desc: 'An attempt at something minimal that went wrong in an interesting way. The drum pattern here was salvaged for Fake.',                                               src: '/assets/brokenspirit_[demo_271024].mp3' },
-  { title: 'brokenspirit_[demo_151124]',  date: 'Nov 2024', bpm: '130', duration: '3:02', desc: 'First session back after a two-week break. You can hear the rust.',                                                                                               src: '/assets/brokenspirit_[demo_151124].mp3' },
-  { title: 'brokenspirit_[demo_161124]',  date: 'Nov 2024', bpm: '122', duration: '2:30', desc: 'The day after. Looser. The beginning of what became All Night.',                                                                                                  src: '/assets/brokenspirit_[demo_161124].mp3' },
-  { title: 'brokenspirit_[demo_170125]',  date: 'Jan 2025', bpm: '95',  duration: '4:10', desc: 'New year, different headspace. Slower and more patient than anything from 2024.',                                                                                 src: '/assets/brokenspirit_[demo_170125].mp3' },
-  { title: 'brokenspirit_[demo_240125]',  date: 'Jan 2025', bpm: '112', duration: '3:20', desc: 'A detour into something more electronic. Didn\'t fit the record but felt important to make.',                                                                     src: '/assets/brokenspirit_[demo_240125].mp3' },
-  { title: 'brokenspirit_[demo_120225]',  date: 'Feb 2025', bpm: '104', duration: '2:55', desc: 'Built around a sample that got cleared too late to use. Included here because the bones are good.',                                                               src: '/assets/brokenspirit_[demo_120225].mp3' },
-  { title: 'brokenspirit_[demo_260225]',  date: 'Feb 2025', bpm: '127', duration: '3:08', desc: 'The most uptempo moment in the archive. An attempt to shake off a week of slow sessions.',                                                                        src: '/assets/brokenspirit_[demo_260225].mp3' },
-  { title: 'brokenspirit_[demo_300225]',  date: 'Feb 2025', bpm: '88',  duration: '3:50', desc: 'A late-night record after a difficult few weeks. Everything slower than intended.',                                                                               src: '/assets/brokenspirit_[demo_300225].mp3' },
-  { title: 'brokenspirit_[demo_040325]',  date: 'Mar 2025', bpm: '90',  duration: '5:22', desc: 'The longest demo. Meandering in a way that felt honest at the time.',                                                                                             src: '/assets/brokenspirit_[demo_040325].mp3' },
-  { title: 'brokenspirit_[demo_070325]',  date: 'Mar 2025', bpm: '118', duration: '2:44', desc: 'Fast turnaround — started and finished in one sitting. Three days later everything in it was repurposed for Boring.',                                             src: '/assets/brokenspirit_[demo_070325].mp3' },
-  { title: 'brokenspirit_[demo_080325]',  date: 'Mar 2025', bpm: '100', duration: '3:15', desc: 'A companion to the session before. Different tempo, same mood.',                                                                                                  src: '/assets/brokenspirit_[demo_080325].mp3' },
-  { title: 'brokenspirit_[demo_170325]',  date: 'Mar 2025', bpm: '134', duration: '2:38', desc: 'The last session before mixing began. Rushed, unfinished, and somehow the most alive thing here.',                                                                src: '/assets/brokenspirit_[demo_170325].mp3' },
-  { title: 'brokenspirit_[demo_180625]',  date: 'Jun 2025', bpm: '115', duration: '2:20', desc: 'Made after the EP was already done — couldn\'t stop. A coda that didn\'t make it.',                                                                              src: '/assets/brokenspirit_[demo_180625].mp3' },
+  { title: 'brokenspirit_[demo_071024]',  bpm: '116', duration: '2:48', desc: 'The earliest sketch that survived. A chord progression and a vocal idea that ended up buried inside two other tracks.',          src: '/assets/brokenspirit_[demo_071024].mp3' },
+  { title: 'brokenspirit_[demo_151124]',  bpm: '130', duration: '3:02', desc: 'First session back after a two-week break. You can hear the rust.',                                                                   src: '/assets/brokenspirit_[demo_151124].mp3' },
+  { title: 'brokenspirit_[demo_161124]',  bpm: '122', duration: '2:30', desc: 'The day after. Looser. The beginning of what became All Night.',                                                                       src: '/assets/brokenspirit_[demo_161124].mp3' },
+  { title: 'brokenspirit_[demo_170125]',  bpm: '95',  duration: '4:10', desc: 'New year, different headspace. Slower and more patient than anything from 2024.',                                                      src: '/assets/brokenspirit_[demo_170125].mp3' },
+  { title: 'brokenspirit_[demo_240125]',  bpm: '112', duration: '3:20', desc: 'A detour into something more electronic. Didn\'t fit the record but felt important to make.',                                          src: '/assets/brokenspirit_[demo_240125].mp3' },
+  { title: 'brokenspirit_[demo_120225]',  bpm: '104', duration: '2:55', desc: 'Built around a sample that got cleared too late to use. Included here because the bones are good.',                                    src: '/assets/brokenspirit_[demo_120225].mp3' },
+  { title: 'brokenspirit_[demo_260225]',  bpm: '127', duration: '3:08', desc: 'The most uptempo moment in the archive. An attempt to shake off a week of slow sessions.',                                             src: '/assets/brokenspirit_[demo_260225].mp3' },
+  { title: 'brokenspirit_[demo_300225]',  bpm: '88',  duration: '3:50', desc: 'A late-night record after a difficult few weeks. Everything slower than intended.',                                                    src: '/assets/brokenspirit_[demo_300225].mp3' },
+  { title: 'brokenspirit_[demo_040325]',  bpm: '90',  duration: '5:22', desc: 'The longest demo. Meandering in a way that felt honest at the time.',                                                                  src: '/assets/brokenspirit_[demo_040325].mp3' },
+  { title: 'brokenspirit_[demo_180625]',  bpm: '115', duration: '2:20', desc: 'Made after the EP was already done — couldn\'t stop. A coda that didn\'t make it.',                                                   src: '/assets/brokenspirit_[demo_180625].mp3' },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -907,22 +896,17 @@ function drawWaveform(trackIndex, progress) {
 // ─────────────────────────────────────────────────────────────
 let allTracks = [];
 
-function buildPill(track, globalIndex, isDemo) {
+function buildPill(track, globalIndex) {
   const featHtml = track.feat
     ? ` · ${track.featInstagram
         ? `<a href="${track.featInstagram}" onclick="event.stopPropagation()" target="_blank" rel="noopener">${track.feat}</a>`
         : track.feat}`
     : '';
 
-  // Demos just show "Sloucho" (no date); main tracks show "Sloucho · feat"
   const subText = `Sloucho${featHtml}`;
 
-  const extraStats = isDemo && track.date
-    ? `<div class="pill-stat"><span class="stat-label">Date</span><span class="stat-value">${track.date}</span></div>`
-    : '';
-
-  const dlIcon  = `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 1v7M3 5.5l3 3 3-3M1 10h10"/></svg>`;
-  const ytIcon  = `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3,2 10,6 3,10" fill="currentColor" stroke="none"/></svg>`;
+  const dlIcon = `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 1v7M3 5.5l3 3 3-3M1 10h10"/></svg>`;
+  const ytIcon = `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3,2 10,6 3,10" fill="currentColor" stroke="none"/></svg>`;
 
   const ytBtn = track.youtube
     ? `<a class="pill-action-btn" href="${track.youtube}" target="_blank" rel="noopener">${ytIcon} Watch</a>`
@@ -943,13 +927,11 @@ function buildPill(track, globalIndex, isDemo) {
           <span class="info-icon">i</span>
         </button>
       </div>
-      <div class="pill-progress"><div class="pill-progress-fill" id="progress-${globalIndex}"></div></div>
       <div class="pill-expanded" id="expanded-${globalIndex}">
         <div class="pill-expanded-inner">
           <div class="pill-stats">
             <div class="pill-stat"><span class="stat-label">BPM</span><span class="stat-value">${track.bpm}</span></div>
             <div class="pill-stat"><span class="stat-label">Duration</span><span class="stat-value">${track.duration}</span></div>
-            ${extraStats}
           </div>
           <p class="pill-desc">${track.desc}</p>
           <div class="pill-actions">
@@ -964,9 +946,9 @@ function buildPill(track, globalIndex, isDemo) {
 function renderAll() {
   allTracks = [...MAIN_TRACKS, ...DEMO_TRACKS];
   document.getElementById('mainTracks').innerHTML =
-    MAIN_TRACKS.map((t, i) => buildPill(t, i, false)).join('');
+    MAIN_TRACKS.map((t, i) => buildPill(t, i)).join('');
   document.getElementById('demoTracks').innerHTML =
-    DEMO_TRACKS.map((t, i) => buildPill(t, MAIN_TRACKS.length + i, true)).join('');
+    DEMO_TRACKS.map((t, i) => buildPill(t, MAIN_TRACKS.length + i)).join('');
 }
 
 renderAll();
@@ -984,7 +966,6 @@ function fmt(s) {
 }
 function getPill(i)     { return document.getElementById(`pill-${i}`); }
 function getExpanded(i) { return document.getElementById(`expanded-${i}`); }
-function getFill(i)     { return document.getElementById(`progress-${i}`); }
 
 function setBarPlayState(playing) {
   document.getElementById('nowPlayingBar')?.classList.toggle('is-playing', playing);
@@ -993,8 +974,6 @@ function setBarPlayState(playing) {
 function loadTrack(id) {
   if (currentTrack !== null) {
     getPill(currentTrack)?.classList.remove('playing');
-    const f = getFill(currentTrack);
-    if (f) f.style.width = '0%';
   }
   currentTrack = id;
   const track = allTracks[id];
@@ -1074,8 +1053,6 @@ function seekFromWaveform(e) {
 audio.addEventListener('timeupdate', () => {
   if (currentTrack === null || !isFinite(audio.duration)) return;
   const pct = audio.currentTime / audio.duration;
-  const fill = getFill(currentTrack);
-  if (fill) fill.style.width = `${pct * 100}%`;
   drawWaveform(currentTrack, pct);
   document.getElementById('globalTime').textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`;
 });
