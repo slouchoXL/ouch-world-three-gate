@@ -59,17 +59,43 @@
       font-display: swap;
     }
 
-    /* ── Top nav fade gradient ── */
+    /* ── Fixed album header ── */
+    .fixed-header {
+      position: fixed;
+      top: 68px;
+      left: 0; right: 0;
+      text-align: center;
+      padding: 4px 24px 6px;
+      z-index: 999;
+      pointer-events: none;
+    }
+    .fixed-header .fh-artist {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 500;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+    .fixed-header .fh-title {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 500;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--muted);
+    }
+
+    /* ── Top nav fade gradient — covers nav + fixed header ── */
     .nav-fade {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 88px;
+      height: 180px;
       background: linear-gradient(to bottom,
         rgba(255,255,255,1) 0%,
-        rgba(255,255,255,0.85) 55%,
+        rgba(255,255,255,1) 68%,
+        rgba(255,255,255,0.65) 82%,
         rgba(255,255,255,0) 100%);
       pointer-events: none;
-      z-index: 999;
+      z-index: 998;
     }
 
     /* ── Page layout ── */
@@ -78,27 +104,7 @@
     .page {
       max-width: 740px;
       margin: 0 auto;
-      padding: 80px 24px 160px;
-    }
-
-    /* ── Album header (centred) ── */
-    .album-header {
-      margin-bottom: 28px;
-      text-align: center;
-    }
-    .album-artist {
-      font-size: clamp(30px, 5vw, 46px);
-      font-weight: 500;
-      line-height: 1.05;
-      letter-spacing: -0.03em;
-    }
-    .album-title {
-      font-size: clamp(30px, 5vw, 46px);
-      font-weight: 500;
-      line-height: 1.05;
-      letter-spacing: -0.03em;
-      color: var(--muted);
-      margin-bottom: 0;
+      padding: 168px 24px 160px;
     }
 
     /* ── Description copy ── */
@@ -156,7 +162,7 @@
       flex-shrink: 0;
     }
     .bs-download-btn:hover { border-color: var(--border-hover); color: var(--text); background: #fff; }
-    .bs-download-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .bs-download-btn svg { width: 16px; height: 20px; flex-shrink: 0; }
 
     /* ── Track section ── */
     .track-section { margin-bottom: 48px; }
@@ -277,7 +283,7 @@
       transition: border-color 0.15s, color 0.15s;
     }
     .pill-action-btn:hover { border-color: var(--border-hover); color: var(--text); }
-    .pill-action-btn svg { width: 10px; height: 10px; flex-shrink: 0; }
+    .pill-action-btn svg { width: 10px; height: 12px; flex-shrink: 0; }
 
     /* ── BOTTOM BAR ── */
     .now-playing-bar {
@@ -294,13 +300,13 @@
     }
     .now-playing-bar.visible { display: flex; }
 
-    /* play | info | waveform | time | prev | next */
+    /* play | info | waveform | time */
     .now-playing-inner {
       width: 100%;
       max-width: 740px;
       padding: 0 24px;
       display: grid;
-      grid-template-columns: 40px minmax(0, 160px) 1fr auto 40px 40px;
+      grid-template-columns: 40px minmax(0, 160px) 1fr auto;
       align-items: center;
       gap: 10px;
     }
@@ -552,10 +558,10 @@
 
     /* ── Mobile ── */
     @media (max-width: 600px) {
-      .page { padding-top: 64px; }
+      .page { padding-top: 148px; }
       .pill-expanded-inner { padding-left: 12px; padding-right: 12px; }
-      /* play | waveform | time | prev | next */
-      .now-playing-inner { grid-template-columns: 40px 1fr auto 40px 40px; }
+      /* play | waveform | time */
+      .now-playing-inner { grid-template-columns: 40px 1fr auto; }
       .now-playing-info { display: none; }
       .now-playing-time { min-width: 60px; font-size: 10px; }
     }
@@ -565,8 +571,14 @@
 
   <div id="preGate" aria-hidden="true"></div>
 
-  <!-- Nav fade gradient (sits below nav buttons) -->
+  <!-- Nav fade gradient (sits below nav buttons + fixed header) -->
   <div class="nav-fade" aria-hidden="true"></div>
+
+  <!-- Fixed album header -->
+  <div class="fixed-header" aria-hidden="true">
+    <div class="fh-artist">Sloucho</div>
+    <div class="fh-title">Broken Spirit</div>
+  </div>
 
   <div id="cinematicIntro" class="cinematic-intro">
     <div class="intro-text">
@@ -597,11 +609,6 @@
 
   <!-- Main page content -->
   <div class="page">
-    <header class="album-header">
-      <h1 class="album-artist">Sloucho</h1>
-      <h2 class="album-title">Broken Spirit</h2>
-    </header>
-
     <div class="bs-copy">
       <!-- Always visible: first paragraph only -->
       <p>As we race towards our algorithmic demise, we may stop for a moment of reflection and wonder... was it really worth it?</p>
@@ -614,25 +621,37 @@
       <button class="bs-read-more" id="bsReadMore" onclick="toggleReadMore()">Read more</button>
     </div>
 
-    <!-- Download: EP (music), Mac game (Apple), Windows game — icon-only circles -->
+    <!-- Download: EP (music note↓), Mac (Apple↓), Windows (grid↓) — icon-only circles -->
     <div class="bs-download-wrap">
-      <!-- EP download: music note icon -->
+      <!-- EP download: music note + arrow -->
       <a href="/assets/sloucho-broken-spirit.zip" download title="Download EP" class="bs-download-btn">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+        <svg viewBox="0 0 20 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="2" x2="8" y2="11"/>
+          <ellipse cx="5.5" cy="11.5" rx="3.5" ry="2.2" transform="rotate(-12,5.5,11.5)"/>
+          <path d="M8 2 Q15 1 14 6"/>
+          <line x1="10" y1="15" x2="10" y2="21"/>
+          <polyline points="7.5,18.5 10,22 12.5,18.5"/>
         </svg>
       </a>
-      <!-- Mac game: Apple icon -->
+      <!-- Mac game: Apple logo + arrow -->
       <a href="https://pub-c8aa24ff7c554f949ea424cb6843d696.r2.dev/BrokenSpirit.dmg" target="_blank" rel="noopener noreferrer" title="Download Game (Mac)" class="bs-download-btn">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+        <svg viewBox="0 0 20 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13.5 3.5 C13.5 1.5 12 1 10.5 1 C9 1 7.5 1.5 7.5 3.5 C5.5 3.5 4 5 4 7 C4 9.5 5.5 12 7.5 12 C8.3 12 9 11.5 10 11.5 C11 11.5 11.7 12 12.5 12 C14.5 12 16 9.5 16 7 C16 5 14.5 3.5 13.5 3.5Z"/>
+          <path d="M10 1 Q11 -0.5 13 0.5"/>
+          <line x1="10" y1="15" x2="10" y2="21"/>
+          <polyline points="7.5,18.5 10,22 12.5,18.5"/>
         </svg>
       </a>
-      <!-- Windows game: Windows icon -->
-      <a href="https://pub-c8aa24ff7c554f949ea424cb6843d696.r2.dev/BrokenSpirit.exe" target="_blank" rel="noopener noreferrer" title="Download Game (Windows)" class="bs-download-btn">
+      <!-- Windows game: grid + arrow -->
+      <a href="https://pub-c8aa24ff7c554f949ea424cb6843d696.r2.dev/BrokenSpirit-Windows.exe" target="_blank" rel="noopener noreferrer" title="Download Game (Windows)" class="bs-download-btn">
         <!-- ← update Windows game URL -->
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M3 12V6.75l6-1.32v6.57H3zm17 0V5.25L11 3v9h9zm-17 .75H9v6.57l-6-1.32V12.75zm17 0H11V21l9-1.99v-6.26z"/>
+        <svg viewBox="0 0 20 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2"  y="2"  width="7" height="5" rx="0.5"/>
+          <rect x="11" y="1"  width="7" height="6" rx="0.5"/>
+          <rect x="2"  y="8"  width="7" height="5" rx="0.5"/>
+          <rect x="11" y="8"  width="7" height="5" rx="0.5"/>
+          <line x1="10" y1="16" x2="10" y2="21"/>
+          <polyline points="7.5,18.5 10,22 12.5,18.5"/>
         </svg>
       </a>
     </div>
@@ -648,7 +667,7 @@
     </section>
   </div>
 
-  <!-- Fixed bottom bar: play | info | waveform | time | prev | next -->
+  <!-- Fixed bottom bar: play | info | waveform | time -->
   <div class="now-playing-bar" id="nowPlayingBar">
     <div class="now-playing-inner">
       <!-- Play / Pause -->
@@ -667,20 +686,6 @@
       </div>
       <!-- Time -->
       <div class="now-playing-time" id="globalTime">0:00 / 0:00</div>
-      <!-- Prev -->
-      <button class="circ-btn" onclick="prevTrack()" aria-label="Previous track">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14 3L6 8L14 13V3Z" fill="#000"/>
-          <rect x="2" y="3" width="2" height="10" rx="1" fill="#000"/>
-        </svg>
-      </button>
-      <!-- Next -->
-      <button class="circ-btn" onclick="skipTrack()" aria-label="Next track">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M2 3L10 8L2 13V3Z" fill="#000"/>
-          <rect x="12" y="3" width="2" height="10" rx="1" fill="#000"/>
-        </svg>
-      </button>
     </div>
   </div>
 
@@ -905,7 +910,7 @@ function buildPill(track, globalIndex) {
 
   const subText = `Sloucho${featHtml}`;
 
-  const dlIcon = `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 1v7M3 5.5l3 3 3-3M1 10h10"/></svg>`;
+  const dlIcon = `<svg viewBox="0 0 12 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="3.5" x2="1" y2="7"/><line x1="3" y1="1.5" x2="3" y2="7"/><line x1="5" y1="2.5" x2="5" y2="7"/><line x1="7" y1="0.5" x2="7" y2="7"/><line x1="9" y1="2" x2="9" y2="7"/><line x1="11" y1="3" x2="11" y2="7"/><line x1="6" y1="9" x2="6" y2="12.5"/><polyline points="4,10.5 6,13 8,10.5"/></svg>`;
   const ytIcon = `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3,2 10,6 3,10" fill="currentColor" stroke="none"/></svg>`;
 
   const ytBtn = track.youtube
