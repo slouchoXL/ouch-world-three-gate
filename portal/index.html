@@ -148,11 +148,11 @@
       gap: 10px;
     }
     .bs-download-btn {
-      width: 64px; height: 44px;
+      width: 44px; height: 44px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: 22px;
+      border-radius: 50%;
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.9);
       color: var(--muted);
@@ -558,7 +558,7 @@
 
     /* ── Mobile ── */
     @media (max-width: 600px) {
-      .page { padding-top: 185px; }
+      .page { padding-top: 220px; }
       .pill-expanded-inner { padding-left: 12px; padding-right: 12px; }
       /* play | waveform | time */
       .now-playing-inner { grid-template-columns: 40px 1fr auto; }
@@ -621,7 +621,7 @@
       <button class="bs-read-more" id="bsReadMore" onclick="toggleReadMore()">Read more</button>
     </div>
 
-    <!-- Download: EP (music note↓), Mac (Apple↓), Windows (grid↓) — icon-only circles -->
+    <p class="section-label" style="text-align:center; margin-bottom:12px;">Download the Album &amp; Video Game</p>
     <div class="bs-download-wrap">
       <!-- EP download: music note + arrow beside -->
       <a href="/assets/sloucho-broken-spirit.zip" download title="Download EP" class="bs-download-btn">
@@ -655,7 +655,7 @@
     </section>
 
     <section class="track-section">
-      <p class="section-label">Demos &amp; Process</p>
+      <p class="section-label">Demos</p>
       <div id="demoTracks"></div>
     </section>
   </div>
@@ -933,7 +933,7 @@ function buildPill(track, globalIndex) {
           </div>
           <p class="pill-desc">${track.desc}</p>
           <div class="pill-actions">
-            <a class="pill-action-btn" href="${track.src}" download="${track.title} — Sloucho.mp3">${dlIcon} Download</a>
+            <a class="pill-action-btn" href="${track.src}" download="${track.title} — Sloucho.mp3">Download</a>
             ${ytBtn}
           </div>
         </div>
