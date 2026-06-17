@@ -123,6 +123,7 @@
     .bs-copy-more.open { max-height: 600px; }
 
     .bs-read-more {
+      margin-bottom: 40px;
       background: none;
       border: none;
       font-family: inherit;
@@ -162,7 +163,7 @@
       flex-shrink: 0;
     }
     .bs-download-btn:hover { border-color: var(--border-hover); color: var(--text); background: #fff; }
-    .bs-download-btn svg { width: 28px; height: auto; flex-shrink: 0; }
+    .bs-download-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
 
     /* ── Track section ── */
     .track-section { margin-bottom: 48px; }
@@ -621,34 +622,6 @@
       <button class="bs-read-more" id="bsReadMore" onclick="toggleReadMore()">Read more</button>
     </div>
 
-    <p class="section-label" style="text-align:center; margin-bottom:12px;">Download the Album &amp; Video Game</p>
-    <div class="bs-download-wrap">
-      <!-- EP download: music note + arrow beside -->
-      <a href="/assets/sloucho-broken-spirit.zip" download title="Download EP" class="bs-download-btn">
-        <svg viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path fill="currentColor" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-          <line x1="30" y1="9" x2="30" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <polyline points="27.5,15 30,18.5 32.5,15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </a>
-      <!-- Mac game: Apple logo + arrow beside -->
-      <a href="https://pub-c8aa24ff7c554f949ea424cb6843d696.r2.dev/BrokenSpirit.dmg" target="_blank" rel="noopener noreferrer" title="Download Game (Mac)" class="bs-download-btn">
-        <svg viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path fill="currentColor" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-          <line x1="30" y1="9" x2="30" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <polyline points="27.5,15 30,18.5 32.5,15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </a>
-      <!-- Windows game: grid + arrow beside -->
-      <a href="https://pub-c8aa24ff7c554f949ea424cb6843d696.r2.dev/BrokenSpirit-Windows.exe" target="_blank" rel="noopener noreferrer" title="Download Game (Windows)" class="bs-download-btn">
-        <svg viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path fill="currentColor" d="M3 12V6.75l6-1.32v6.57H3zm17 0V5.25L11 3v9h9zm-17 .75H9v6.57l-6-1.32V12.75zm17 0H11V21l9-1.99v-6.26z"/>
-          <line x1="30" y1="9" x2="30" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <polyline points="27.5,15 30,18.5 32.5,15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </a>
-    </div>
-
     <section class="track-section">
       <p class="section-label">Tracks</p>
       <div id="mainTracks"></div>
@@ -657,6 +630,30 @@
     <section class="track-section">
       <p class="section-label">Demos</p>
       <div id="demoTracks"></div>
+    </section>
+
+    <section class="track-section">
+      <p class="section-label">Download Album &amp; Video Game</p>
+      <div class="bs-download-wrap" style="justify-content:flex-start;">
+        <!-- EP download: music note -->
+        <a href="/assets/sloucho-broken-spirit.zip" download title="Download EP" class="bs-download-btn">
+          <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+          </svg>
+        </a>
+        <!-- Mac game: Apple logo -->
+        <a href="https://pub-c8aa24ff7c554f949ea424cb6843d696.r2.dev/BrokenSpirit.dmg" target="_blank" rel="noopener noreferrer" title="Download Game (Mac)" class="bs-download-btn">
+          <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+          </svg>
+        </a>
+        <!-- Windows game: grid -->
+        <a href="https://pub-c8aa24ff7c554f949ea424cb6843d696.r2.dev/BrokenSpirit-Windows.exe" target="_blank" rel="noopener noreferrer" title="Download Game (Windows)" class="bs-download-btn">
+          <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 12V6.75l6-1.32v6.57H3zm17 0V5.25L11 3v9h9zm-17 .75H9v6.57l-6-1.32V12.75zm17 0H11V21l9-1.99v-6.26z"/>
+          </svg>
+        </a>
+      </div>
     </section>
   </div>
 
@@ -933,7 +930,6 @@ function buildPill(track, globalIndex) {
           </div>
           <p class="pill-desc">${track.desc}</p>
           <div class="pill-actions">
-            <a class="pill-action-btn" href="${track.src}" download="${track.title} — Sloucho.mp3">Download</a>
             ${ytBtn}
           </div>
         </div>
