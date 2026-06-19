@@ -106,7 +106,7 @@
     .bs-copy { max-width: 640px; margin: 0 0 0; }
     .bs-copy p {
       font-size: 13px;
-      line-height: 1.6;
+      line-height: 1.3;
       color: var(--muted);
       margin-bottom: 12px;
     }
@@ -259,14 +259,14 @@
     /* ── Expanded panel ── */
     .pill-expanded { max-height: 0; overflow: hidden; transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1); }
     .pill-expanded.open { max-height: 360px; }
-    .pill-expanded-inner { padding: 14px 59px 18px 59px; border-top: 1px solid var(--border); }
+    .pill-expanded-inner { padding: 14px 49px 18px 59px; border-top: 1px solid var(--border); }
 
     .pill-stats { display: flex; gap: 28px; margin-bottom: 12px; flex-wrap: wrap; }
     .pill-stat { display: flex; flex-direction: column; gap: 3px; }
     .stat-label { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(0,0,0,0.3); }
     .stat-value { font-size: 13px; color: rgba(0,0,0,0.75); }
 
-    .pill-desc { font-size: 12px; line-height: 1.65; color: var(--muted); margin-bottom: 14px; max-width: 480px; }
+    .pill-desc { font-size: 12px; line-height: 1.3; color: var(--muted); margin-bottom: 14px; }
 
     .pill-actions { display: flex; gap: 7px; flex-wrap: wrap; }
     .pill-action-btn {
@@ -514,7 +514,7 @@
     /* ── Mobile ── */
     @media (max-width: 600px) {
       .page { padding-top: 220px; }
-      .pill-expanded-inner { padding-left: 12px; padding-right: 12px; }
+      .pill-expanded-inner { padding-left: 59px; padding-right: 49px; }
       /* play | waveform | time */
       .now-playing-inner { grid-template-columns: 40px 1fr auto; }
       .now-playing-info { display: none; }
@@ -539,7 +539,7 @@
   <div class="page">
     <div class="bs-copy">
       <!-- Always visible: first paragraph only -->
-      <p>As we race towards our algorithmic demise, we may stop for a moment of reflection and wonder... was it really worth it?</p>
+      <p>As we race towards our algorithmic demise, we may stop for a moment of reflection and wonder... <br> was it really worth it?</p>
       <!-- Rest collapsed by default -->
       <div class="bs-copy-more" id="bsCopyMore">
         <p>Broken Spirit can be seen less as an album but as an era, a period of great dejection, instability, growth, love, and acceptance. It is simply a collection of songs that were created as an attempt to re-connect with the world, with the physical, with life itself and the possibility of hope.</p>
