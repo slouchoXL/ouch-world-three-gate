@@ -320,6 +320,73 @@
     }
     .form-button:hover { background: #222; }
 
+    /* ── Social link button + tray ── */
+    .social-wrap {
+      position: fixed;
+      bottom: max(28px, env(safe-area-inset-bottom) + 20px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .social-tray {
+      display: flex;
+      gap: 8px;
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 10px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      transform: translateY(8px);
+      opacity: 0;
+      visibility: hidden;
+      transition: transform .25s ease, opacity .25s ease, visibility .25s ease;
+    }
+    .social-tray.open {
+      transform: translateY(0);
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .social-btn {
+      width: 30px; height: 30px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      border: 1px solid var(--circle-border);
+      background: var(--btn-bg);
+      color: var(--muted);
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      flex-shrink: 0;
+    }
+    .social-btn:hover { border-color: var(--circle-border-hover); background: var(--btn-bg-hover); color: var(--text); }
+    .social-btn svg { width: 13px; height: 13px; }
+
+    .link-button {
+      width: 30px; height: 30px;
+      background: rgba(255,255,255,0.88);
+      border: 1px solid var(--circle-border);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+      backdrop-filter: blur(10px);
+      color: var(--muted);
+      transition: border-color .2s ease, background .2s ease, color .2s ease;
+    }
+    .link-button:hover, .link-button.active {
+      border-color: var(--circle-border-hover);
+      background: #fff;
+      color: var(--text);
+    }
+    .link-button svg { width: 13px; height: 13px; }
+
     .sr-only {
       position: absolute !important; width: 1px !important; height: 1px !important;
       padding: 0 !important; margin: -1px !important; overflow: hidden !important;
@@ -398,6 +465,64 @@
     </div>
   </div>
 
+  <!-- Social link button + tray -->
+  <div class="social-wrap">
+    <div class="social-tray" id="socialTray">
+      <!-- Instagram -->
+      <a class="social-btn" href="https://www.instagram.com/sloucho/" target="_blank" rel="noopener" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+          <circle cx="12" cy="12" r="5"/>
+          <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+      </a>
+      <!-- YouTube -->
+      <a class="social-btn" href="https://www.youtube.com/@slouchomusic" target="_blank" rel="noopener" aria-label="YouTube">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M21.6 7.2a2.7 2.7 0 00-1.9-1.9C18 5 12 5 12 5s-6 0-7.7.3A2.7 2.7 0 002.4 7.2C2 8.9 2 12 2 12s0 3.1.4 4.8a2.7 2.7 0 001.9 1.9C6 19 12 19 12 19s6 0 7.7-.3a2.7 2.7 0 001.9-1.9C22 15.1 22 12 22 12s0-3.1-.4-4.8zM10 15V9l5.5 3L10 15z"/>
+        </svg>
+      </a>
+      <!-- Bandcamp -->
+      <a class="social-btn" href="https://sloucho.bandcamp.com" target="_blank" rel="noopener" aria-label="Bandcamp">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M1 17.5L8.6 6.5H23l-7.6 11z"/>
+        </svg>
+      </a>
+      <!-- Spotify -->
+      <a class="social-btn" href="https://open.spotify.com/artist/0tra0xmq3lbJkWbXGf2da6?si=jIjVjZTrT7mTpwmPkh5Wvw" target="_blank" rel="noopener" aria-label="Spotify">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 11-.277-1.215c3.809-.87 7.077-.496 9.712 1.115a.623.623 0 01.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.973c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 11-.543-1.793c3.525-1.07 9.381-.863 13.081 1.345a.937.937 0 01-.921 1.605z"/>
+        </svg>
+      </a>
+      <!-- TikTok -->
+      <a class="social-btn" href="https://www.tiktok.com/@slouchomusic" target="_blank" rel="noopener" aria-label="TikTok">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.75a4.85 4.85 0 01-1.01-.06z"/>
+        </svg>
+      </a>
+      <!-- Vault.fm -->
+      <a class="social-btn" href="https://www.vault.fm/sloucho" target="_blank" rel="noopener" aria-label="Vault.fm">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+          <circle cx="2" cy="12" r="1.2"/>
+          <circle cx="22" cy="12" r="1.2"/>
+          <rect x="5.5"  y="10"  width="1.8" height="4"  rx="0.9"/>
+          <rect x="8.5"  y="7.5" width="1.8" height="9"  rx="0.9"/>
+          <rect x="11.5" y="5"   width="1.8" height="14" rx="0.9"/>
+          <rect x="14.5" y="7.5" width="1.8" height="9"  rx="0.9"/>
+          <rect x="17.5" y="10"  width="1.8" height="4"  rx="0.9"/>
+        </svg>
+      </a>
+    </div>
+
+    <!-- Link toggle button -->
+    <button class="link-button" id="socialToggle" onclick="toggleSocial()" aria-label="Links">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+        <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+      </svg>
+    </button>
+  </div>
+
   <!-- Account Modal -->
   <div class="modal-overlay" id="loginModal" role="dialog" aria-modal="true" aria-label="Account">
     <div class="login-modal">
@@ -432,11 +557,28 @@
     function toggleMenu() {
       document.getElementById('menuTray')?.classList.toggle('open');
     }
+
+    // ── Social tray ──
+    function toggleSocial() {
+      const tray = document.getElementById('socialTray');
+      const btn  = document.getElementById('socialToggle');
+      const isOpen = tray.classList.toggle('open');
+      btn.classList.toggle('active', isOpen);
+    }
+
+    // ── Close trays on outside click ──
     document.addEventListener('click', function (e) {
-      const tray = document.getElementById('menuTray');
-      const btn  = document.querySelector('.menu-button');
-      if (tray && btn && !tray.contains(e.target) && !btn.contains(e.target))
-        tray.classList.remove('open');
+      const menuTray = document.getElementById('menuTray');
+      const menuBtn  = document.querySelector('.menu-button');
+      if (menuTray && menuBtn && !menuTray.contains(e.target) && !menuBtn.contains(e.target))
+        menuTray.classList.remove('open');
+
+      const socialTray   = document.getElementById('socialTray');
+      const socialToggle = document.getElementById('socialToggle');
+      if (socialTray && socialToggle && !socialTray.contains(e.target) && !socialToggle.contains(e.target)) {
+        socialTray.classList.remove('open');
+        socialToggle.classList.remove('active');
+      }
     });
 
     // ── Auth ──
