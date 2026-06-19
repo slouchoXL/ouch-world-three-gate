@@ -511,8 +511,10 @@
     /* ── Portal lock overlay ── */
 
     /* ── Mobile ── */
+    .bg-img-wrap { text-align: center; margin-top: 40px; }
     @media (max-width: 600px) {
       .page { padding-top: 180px; }
+      .bg-img-wrap { margin-top: 10px; }
       .pill-expanded-inner { padding-left: 59px; padding-right: 49px; }
       /* play | waveform | time */
       .now-playing-inner { grid-template-columns: 40px 1fr auto; padding-left: 34px; }
@@ -552,8 +554,8 @@
       <div id="mainTracks"></div>
     </section>
 
-    <div style="text-align:center; margin-top:40px;">
-      <img src="/assets/bg.png" alt="" style="width:150px; height:auto;">
+    <div class="bg-img-wrap">
+      <img src="/assets/bg.png" alt="" style="width:60px; height:auto;">
     </div>
   </div>
 
