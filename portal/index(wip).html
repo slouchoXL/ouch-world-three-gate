@@ -72,14 +72,14 @@
     .fixed-header .fh-artist {
       font-size: clamp(22px, 4vw, 34px);
       font-weight: 500;
-      line-height: 1.0;
+      line-height: 1.1;
       letter-spacing: -0.03em;
       color: var(--text);
     }
     .fixed-header .fh-title {
       font-size: clamp(22px, 4vw, 34px);
       font-weight: 500;
-      line-height: 1.0;
+      line-height: 1.1;
       letter-spacing: -0.03em;
       color: var(--muted);
     }
@@ -88,11 +88,12 @@
     .nav-fade {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 210px;
+      height: 220px;
       background: linear-gradient(to bottom,
         rgba(255,255,255,1) 0%,
         rgba(255,255,255,1) 72%,
-        rgba(255,255,255,0) 88%);
+        rgba(255,255,255,0.6) 86%,
+        rgba(255,255,255,0) 100%);
       pointer-events: none;
       z-index: 998;
     }
@@ -103,14 +104,14 @@
     .page {
       max-width: 740px;
       margin: 0 auto;
-      padding: 195px 24px 60px;
+      padding: 200px 24px 160px;
     }
 
     /* ── Description copy ── */
     .bs-copy { max-width: 640px; margin: 0 0 0; }
     .bs-copy p {
       font-size: 13px;
-      line-height: 1.3;
+      line-height: 1.6;
       color: var(--muted);
       margin-bottom: 12px;
     }
@@ -263,14 +264,14 @@
     /* ── Expanded panel ── */
     .pill-expanded { max-height: 0; overflow: hidden; transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1); }
     .pill-expanded.open { max-height: 360px; }
-    .pill-expanded-inner { padding: 14px 49px 18px 59px; border-top: 1px solid var(--border); }
+    .pill-expanded-inner { padding: 14px 59px 18px 59px; border-top: 1px solid var(--border); }
 
     .pill-stats { display: flex; gap: 28px; margin-bottom: 12px; flex-wrap: wrap; }
     .pill-stat { display: flex; flex-direction: column; gap: 3px; }
     .stat-label { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(0,0,0,0.3); }
     .stat-value { font-size: 13px; color: rgba(0,0,0,0.75); }
 
-    .pill-desc { font-size: 12px; line-height: 1.3; color: var(--muted); margin-bottom: 14px; }
+    .pill-desc { font-size: 12px; line-height: 1.65; color: var(--muted); margin-bottom: 14px; max-width: 480px; }
 
     .pill-actions { display: flex; gap: 7px; flex-wrap: wrap; }
     .pill-action-btn {
@@ -304,7 +305,7 @@
     .now-playing-inner {
       width: 100%;
       max-width: 740px;
-      padding: 0 24px 0 34px;
+      padding: 0 24px;
       display: grid;
       grid-template-columns: 40px minmax(0, 160px) 1fr auto;
       align-items: center;
@@ -558,10 +559,10 @@
 
     /* ── Mobile ── */
     @media (max-width: 600px) {
-      .page { padding-top: 180px; }
-      .pill-expanded-inner { padding-left: 59px; padding-right: 49px; }
+      .page { padding-top: 220px; }
+      .pill-expanded-inner { padding-left: 12px; padding-right: 12px; }
       /* play | waveform | time */
-      .now-playing-inner { grid-template-columns: 40px 1fr auto; padding-left: 34px; }
+      .now-playing-inner { grid-template-columns: 40px 1fr auto; }
       .now-playing-info { display: none; }
       .now-playing-time { min-width: 60px; font-size: 10px; }
     }
@@ -726,96 +727,99 @@ function toggleReadMore() {
 const MAIN_TRACKS = [
   {
     title: 'fall4me', feat: null, featInstagram: null,
-    bpm: '90', duration: '1:55',
-    desc: "Created in Dublin in February 2025. This song began the journey of Broken Spirit, the only album with auto-tuned kick drums, live violin, baile funk and voice memo lead vocals. I wanted this song to be rough around the edges, scrappy and feel human, whatever that means in 2026. Strings recorded by Chloe Fitzgerald.",
+    bpm: '90', duration: '2:07',
+    desc: 'The opening statement. A bedroom-pop haze built around a guitar loop recorded at 2am. Lyrically it sits at the intersection of infatuation and self-doubt — the feeling of falling for someone before you even know if they exist.',
     src: '/assets/Sloucho - fall4me.mp3',
   },
   {
     title: 'Boring', feat: 'Jaydonclover',
-    featInstagram: 'https://instagram.com/jaydonclover',
+    featInstagram: 'https://instagram.com/jaydonclover', // ← update
     bpm: '120', duration: '2:58',
-    desc: "Created in London in June 2026. Jaydon was late to the studio and I had nothing prepared so I speed ran a beat in 30 minutes, played it for her and she wrote the whole song in an hour, who said music was difficult?",
+    desc: 'A collab that came together in one afternoon. Jaydonclover brought an energy that pushed the track somewhere neither of us expected — restless, a little fractured, but oddly danceable.',
     src: '/assets/Sloucho - Boring (ft. Jaydonclover).mp3',
   },
   {
     title: 'Angel', feat: null, featInstagram: null,
     bpm: '130', duration: '3:57',
-    desc: "Created in Mexico in March 2025, I played two shows in CDMX and met Mensik, Pearla, Lapi and the whole Furia gang. I recorded the sounds of the street and the lead vocal with my phone from my flat. Smoked 1 million cigs and drank 1 millon Modelos. Additional vocals by Alex Gough recorded in London in January 2026.",
+    desc: 'The slowest moment on the record. Built on a single chord that doesn\'t resolve. Written during a stretch of weeks where sleep felt impossible and mornings felt borrowed.',
     src: '/assets/Sloucho - Angel.mp3',
   },
   {
     title: 'All Night', feat: null, featInstagram: null,
     bpm: '102', duration: '3:31',
-    desc: "Created in London in July 2025. I met Lily in a random studio by the water and we wrote this song together. It had been so many different genres, bpm's and key signatures before I finally landed on the final version over a year later.... lol.",
+    desc: 'The most urgent track on the EP. A vocal feature that sits so naturally in the groove it felt like the song was always supposed to sound this way — we just had to find it.',
     src: '/assets/Sloucho - All Night (w. just lil).mp3',
   },
   {
     title: 'Fake', feat: 'Gemma Dunleavy',
-    featInstagram: 'https://instagram.com/gemmadunleavy_',
+    featInstagram: 'https://instagram.com/gemmadunleavy', // ← update
     bpm: '133', duration: '3:24',
-    desc: "Created in Dublin in September 2025. I made the instrumental from my bed a few weeks prior (one of the best places to produce btw) and sent it to Gemma to write to. She came to my home studio and we drank tea, talked about life, got sidetracked, lost track of time, then made the best song ever.",
+    youtube: 'https://www.youtube.com/watch?v=XXXXXXX', // ← update YouTube URL
+    desc: 'Gemma brought something fragile and honest to a track that could easily have gone cold. About performing a version of yourself you no longer believe in.',
     src: '/assets/Sloucho - Fake (w. Gemma Dunleavy).mp3',
   },
   {
     title: 'Love is Fear', feat: null, featInstagram: null,
     bpm: '150', duration: '3:29',
-    youtube: 'https://www.youtube.com/watch?v=XXXXXXX',
-    desc: "Created in Wicklow in January 2025. This track was one of the worst mixed demos I had made, it sounded so bad for so long, but there was always something interesting about it that I felt compelled to pursue it. Check out the music video directed by Elius Grace.",
+    youtube: 'https://www.youtube.com/watch?v=XXXXXXX', // ← update YouTube URL
+    desc: 'Written last, placed last. The realisation that every love song is also a fear song — and that might be okay.',
     src: '/assets/Sloucho - Love is Fear.mp3',
   },
   {
-    title: 'Survival [WIP]', feat: null, featInstagram: null,
-    bpm: '150', duration: '2:24',
-    desc: "WIP bear with me...",
-    src: '/assets/Sloucho - Survival.mp3',
-  },
-  {
     title: 'Catfished V2', feat: 'Crutch',
-    featInstagram: 'https://instagram.com/crutchinn',
+    featInstagram: 'https://instagram.com/crutch', // ← update
     bpm: '92', duration: '2:44',
-    desc: "Created in Dublin in April 2025. Crutch is a Dublin cult figure, if you know you know. I heard the original that he released produced by New Machine and made this edit. We finally linked up after a year to get the all clear and put it in on the album.",
+    desc: 'The Crutch edit strips the original down to something harder and more direct. A second attempt that became its own thing entirely.',
     src: '/assets/Sloucho - Catfished (w. Crutch).mp3',
   },
   {
     title: 'Something Else', feat: 'Kibo',
-    featInstagram: 'https://instagram.com/kibo_69_',
+    featInstagram: 'https://instagram.com/kibo', // ← update
     bpm: '124', duration: '1:54',
-    desc: "Created in London in July 2025. It was 30 degrees and we were in a studio with zero air conditioning so we only recorded half the verse before we succumbed to heat stroke. A year later we recorded the second half and put the final touches on it. This song has 3 beat switches and still comes in under 2 minutes, the hallmark of a good Sloucho song imo.",
+    youtube: 'https://www.youtube.com/watch?v=XXXXXXX', // ← update YouTube URL
+    desc: 'A conversation between two producers trying to make something neither of them would make alone. Kibo\'s influence is everywhere here — in the percussion especially.',
     src: '/assets/Sloucho - Something Else (w. Kibo).mp3',
   },
   {
+    title: 'Big Brother', feat: null, featInstagram: null,
+    bpm: '140', duration: '2:45',
+    desc: 'Written about surveillance in the ambient sense — the slow feeling that someone or something is always watching, cataloguing, predicting. More of a texture than a song.',
+    src: '/assets/Sloucho - Big Brother.mp3',
+  },
+  {
     title: 'Goodbye', feat: 'Rory Sweeney',
-    featInstagram: 'https://instagram.com/rory_sweeney123',
+    featInstagram: 'https://instagram.com/rorysweeneymusic', // ← update
     bpm: '150', duration: '4:22',
-    desc: "Created in Sligo in September 2024. Rory had a residency in The Regional Cultural Centre in Letterkenny so we pulled up for a few days and made a bunch of music. We also made 150K in that same week, inspired by the drag race festival that had shut down the whole town, we could hear the engines reving from the studio and tried to make something that people could blast out of their speakers while diffin.",
+    desc: 'Rory\'s guitar was recorded on a borrowed amp in a stairwell. The reverb you hear is real. This one took the longest to finish because finishing it felt like admitting something.',
     src: '/assets/Sloucho - Goodbye (ft. Rory Sweeney).mp3',
   },
   {
     title: 'Wiggidy Woo', feat: 'Tommy Holohan',
-    featInstagram: 'https://instagram.com/tommy.holohan',
+    featInstagram: 'https://instagram.com/tommyholohan', // ← update
     bpm: '160', duration: '4:05',
-    desc: "Created in Dublin in February 2025. Tommy hit me up to do a session and we locked in for few hours and this happened. We tried a bunch of stuff that sounded terrible for a while but out of nowhere we kinda just realised we had a weapon on our hands. Very proud of the Wiggidy Woo sample, I was deep in a YouTube rabbit hole and managed to pull an adlib from a grime song from 2010.",
+    desc: 'The outlier. Tommy and I made this in an hour and a half as a joke and then couldn\'t stop listening to it. It made the record because it felt true.',
     src: '/assets/Sloucho - Wiggidy Woo Day (ft. Tommy Holohan).mp3',
   },
   {
-    title: 'Weightless [WIP]', feat: null, featInstagram: null,
+    title: 'Weightless', feat: null, featInstagram: null,
     bpm: '155', duration: '2:56',
-    desc: "Created in Dublin in January 2025. There was a rough storm for a few days so I just locked myself in the studio and made a bunch of the early Broken Spirit demos. The idea for this track came from a song I heard Stella and the Dreaming perform at the NCH, I fell in love with the word Weightless and build the idea around the idea of feeling new things for the first time, and the liberation that comes with that.",
+    desc: 'The longest track and the last thing recorded. A deliberate come-down. Left mostly unfinished on purpose — some songs don\'t need an ending.',
     src: '/assets/Sloucho - Weightless.mp3',
   },
 ];
 
+// Removed: 271024, 070325, 080325, 170325
 const DEMO_TRACKS = [
   { title: 'brokenspirit_[demo_071024]',  bpm: '116', duration: '2:48', desc: 'The earliest sketch that survived. A chord progression and a vocal idea that ended up buried inside two other tracks.',          src: '/assets/brokenspirit_[demo_071024].mp3' },
   { title: 'brokenspirit_[demo_151124]',  bpm: '130', duration: '3:02', desc: 'First session back after a two-week break. You can hear the rust.',                                                                   src: '/assets/brokenspirit_[demo_151124].mp3' },
   { title: 'brokenspirit_[demo_161124]',  bpm: '122', duration: '2:30', desc: 'The day after. Looser. The beginning of what became All Night.',                                                                       src: '/assets/brokenspirit_[demo_161124].mp3' },
   { title: 'brokenspirit_[demo_170125]',  bpm: '95',  duration: '4:10', desc: 'New year, different headspace. Slower and more patient than anything from 2024.',                                                      src: '/assets/brokenspirit_[demo_170125].mp3' },
-  { title: 'brokenspirit_[demo_240125]',  bpm: '112', duration: '3:20', desc: "A detour into something more electronic. Didn't fit the record but felt important to make.",                                          src: '/assets/brokenspirit_[demo_240125].mp3' },
+  { title: 'brokenspirit_[demo_240125]',  bpm: '112', duration: '3:20', desc: 'A detour into something more electronic. Didn\'t fit the record but felt important to make.',                                          src: '/assets/brokenspirit_[demo_240125].mp3' },
   { title: 'brokenspirit_[demo_120225]',  bpm: '104', duration: '2:55', desc: 'Built around a sample that got cleared too late to use. Included here because the bones are good.',                                    src: '/assets/brokenspirit_[demo_120225].mp3' },
   { title: 'brokenspirit_[demo_260225]',  bpm: '127', duration: '3:08', desc: 'The most uptempo moment in the archive. An attempt to shake off a week of slow sessions.',                                             src: '/assets/brokenspirit_[demo_260225].mp3' },
   { title: 'brokenspirit_[demo_300225]',  bpm: '88',  duration: '3:50', desc: 'A late-night record after a difficult few weeks. Everything slower than intended.',                                                    src: '/assets/brokenspirit_[demo_300225].mp3' },
   { title: 'brokenspirit_[demo_040325]',  bpm: '90',  duration: '5:22', desc: 'The longest demo. Meandering in a way that felt honest at the time.',                                                                  src: '/assets/brokenspirit_[demo_040325].mp3' },
-  { title: 'brokenspirit_[demo_180625]',  bpm: '115', duration: '2:20', desc: "Made after the EP was already done — couldn't stop. A coda that didn't make it.",                                                   src: '/assets/brokenspirit_[demo_180625].mp3' },
+  { title: 'brokenspirit_[demo_180625]',  bpm: '115', duration: '2:20', desc: 'Made after the EP was already done — couldn\'t stop. A coda that didn\'t make it.',                                                   src: '/assets/brokenspirit_[demo_180625].mp3' },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -896,6 +900,7 @@ function buildPill(track, globalIndex) {
 
   const subText = `Sloucho${featHtml}`;
 
+  const dlIcon = `<svg viewBox="0 0 22 9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="2.5" x2="1" y2="7.5"/><line x1="3" y1="1" x2="3" y2="7.5"/><line x1="5" y1="1.5" x2="5" y2="7.5"/><line x1="7" y1="0.5" x2="7" y2="7.5"/><line x1="9" y1="1.5" x2="9" y2="7.5"/><line x1="11" y1="2.5" x2="11" y2="7.5"/><line x1="17" y1="1" x2="17" y2="6.5"/><polyline points="14.5,5 17,8 19.5,5"/></svg>`;
   const ytIcon = `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3,2 10,6 3,10" fill="currentColor" stroke="none"/></svg>`;
 
   const ytBtn = track.youtube
