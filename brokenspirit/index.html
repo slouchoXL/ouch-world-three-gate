@@ -67,14 +67,14 @@
     .fixed-header .fh-artist {
       font-size: clamp(22px, 4vw, 34px);
       font-weight: 500;
-      line-height: 0.9;
+      line-height: 1.0;
       letter-spacing: -0.03em;
       color: var(--text);
     }
     .fixed-header .fh-title {
       font-size: clamp(22px, 4vw, 34px);
       font-weight: 500;
-      line-height: 0.9;
+      line-height: 1.0;
       letter-spacing: -0.03em;
       color: var(--muted);
     }
@@ -99,7 +99,7 @@
     .page {
       max-width: 740px;
       margin: 0 auto;
-      padding: 210px 24px 160px;
+      padding: 240px 24px 160px;
     }
 
     /* ── Description copy ── */
@@ -300,7 +300,7 @@
     .now-playing-inner {
       width: 100%;
       max-width: 740px;
-      padding: 0 24px;
+      padding: 0 24px 0 34px;
       display: grid;
       grid-template-columns: 40px minmax(0, 160px) 1fr auto;
       align-items: center;
@@ -516,7 +516,7 @@
       .page { padding-top: 220px; }
       .pill-expanded-inner { padding-left: 59px; padding-right: 49px; }
       /* play | waveform | time */
-      .now-playing-inner { grid-template-columns: 40px 1fr auto; }
+      .now-playing-inner { grid-template-columns: 40px 1fr auto; padding-left: 34px; }
       .now-playing-info { display: none; }
       .now-playing-time { min-width: 60px; font-size: 10px; }
     }
@@ -537,9 +537,12 @@
 
   <!-- Main page content -->
   <div class="page">
+    <div class="hero-img-wrap" style="text-align:center; margin-top:-70px; margin-bottom:32px; pointer-events:none;">
+      <img src="/assets/bg.png" alt="" style="width:120px; height:auto; opacity:0.85;">
+    </div>
     <div class="bs-copy">
       <!-- Always visible: first paragraph only -->
-      <p>As we race towards our algorithmic demise, we may stop for a moment of reflection and wonder... <br> was it really worth it?</p>
+      <p>As we race towards our algorithmic demise, we may stop for a moment of reflection and wonder... was it really worth it?</p>
       <!-- Rest collapsed by default -->
       <div class="bs-copy-more" id="bsCopyMore">
         <p>Broken Spirit can be seen less as an album but as an era, a period of great dejection, instability, growth, love, and acceptance. It is simply a collection of songs that were created as an attempt to re-connect with the world, with the physical, with life itself and the possibility of hope.</p>
@@ -632,7 +635,7 @@ const MAIN_TRACKS = [
     title: 'Boring', feat: 'Jaydonclover',
     featInstagram: 'https://instagram.com/jaydonclover',
     bpm: '120', duration: '2:58',
-    desc: "Created in London in June 2026. Jaydon was late to the studio and I had nothing prepared so I speed ran a beat in 30 minutes, played it for her and she wrote the whole song in an hour, who said music was difficult?",
+    desc: "Created in London in June 2026. Jaydon was late to the studio and I had nothing prepared so I speed ran a beat in 30 minutes, played it for her and she wrote the whole song in an hour, who said music was difficult??.",
     src: '/assets/bsalbum/Boring (ft. Jaydonclover) 1.mp3',
   },
   {
