@@ -497,7 +497,7 @@
 
     /* ── Cinematic Intro ── */
     .cinematic-intro {
-      position: fixed; inset: 0; background: #fff;
+      position: fixed; inset: 0; background: #000;
       display: none; align-items: center; justify-content: center;
       z-index: 999999; opacity: 1;
       pointer-events: auto; transition: opacity 1.2s ease; cursor: pointer;
@@ -506,7 +506,7 @@
     .cinematic-intro .intro-text {
       font-family: 'PPMori', sans-serif; font-size: 26px;
       letter-spacing: 0.04em; text-align: center;
-      color: #000; opacity: 1;
+      color: #fff; opacity: 1;
       transition: opacity 0.6s ease, transform 0.6s ease;
       user-select: none;
     }
@@ -539,7 +539,7 @@
     #portalLockOverlay .login-modal { width: min(92vw, 560px); }
 
     /* ── Pre-gate ── */
-    #preGate { position: fixed; inset: 0; background: #fff; z-index: 99990; }
+    #preGate { position: fixed; inset: 0; background: #000; z-index: 99990; }
     #preGate.hidden { display: none; }
 
     /* ── Portal state classes ── */
@@ -611,7 +611,7 @@
   <div class="page">
     <div class="bs-copy">
       <!-- Always visible: first paragraph only -->
-      <p>As we race towards our algorithmic demise, we may stop for a moment of reflection and wonder... was it really worth it?</p>
+      <p>As we race towards our algorithmic demise, we may stop for a moment of reflection and wonder...<br> was it really worth it?</p>
       <!-- Rest collapsed by default -->
       <div class="bs-copy-more" id="bsCopyMore">
         <p>Broken Spirit can be seen less as an album but as an era, a period of great dejection, instability, growth, love, and acceptance. It is simply a collection of songs and video game experience that were created as an attempt to re-connect with the world, with the physical, with life itself and the possibility of hope. I have decided to include many of the demos and failed experiments that led to this project taking shape as an ode to the process and a means of tracing the journey.</p>
@@ -735,7 +735,7 @@ const MAIN_TRACKS = [
     featInstagram: 'https://instagram.com/jaydonclover',
     bpm: '120', duration: '2:58',
     desc: "Created in London in June 2026. Jaydon was late to the studio and I had nothing prepared so I speed ran a beat in 30 minutes, played it for her and she wrote the whole song in an hour, who said music was difficult?",
-    src: '/assets/bsalbum/Boring (ft. Jaydonclover) 1.mp3',
+    src: '/assets/bsalbum/Sloucho - Boring (ft. Jaydonclover).mp3',
   },
   {
     title: 'Angel', feat: null, featInstagram: null,
@@ -747,61 +747,61 @@ const MAIN_TRACKS = [
     title: 'All Night', feat: null, featInstagram: null,
     bpm: '102', duration: '3:31',
     desc: "Created in London in July 2025. I met Lily in a random studio by the water and we wrote this song together. It had been so many different genres, bpm's and key signatures before I finally landed on the final version over a year later.... lol.",
-    src: '/assets/bsalbum/All Night.mp3',
+    src: '/assets/bsalbum/Sloucho - All Night (w. just lil).mp3',
   },
   {
     title: 'Fake', feat: 'Gemma Dunleavy',
     featInstagram: 'https://instagram.com/gemmadunleavy_',
     bpm: '133', duration: '3:24',
     desc: "Created in Dublin in September 2025. I made the instrumental from my bed a few weeks prior (one of the best places to produce btw) and sent it to Gemma to write to. She came to my home studio and we drank tea, talked about life, got sidetracked, lost track of time, then made the best song ever.",
-    src: '/assets/bsalbum/Fake (ft. Gemma Dunleavy).mp3',
+    src: '/assets/bsalbum/Sloucho - Fake (w. Gemma Dunleavy).mp3',
   },
   {
     title: 'Love is Fear', feat: null, featInstagram: null,
     bpm: '150', duration: '3:29',
     youtube: 'https://www.youtube.com/watch?v=XXXXXXX',
     desc: "Created in Wicklow in January 2025. This track was one of the worst mixed demos I had made, it sounded so bad for so long, but there was always something interesting about it that I felt compelled to pursue it. Check out the music video directed by Elius Grace.",
-    src: '/assets/bsalbum/Love is Fear.mp3',
+    src: '/assets/bsalbum/Sloucho - Love is Fear.mp3',
   },
   {
     title: 'Survival [WIP]', feat: null, featInstagram: null,
     bpm: '150', duration: '2:24',
     desc: "WIP bear with me...",
-    src: '/assets/bsalbum/Survival.mp3',
+    src: '/assets/bsalbum/loucho - Survival.mp3',
   },
   {
     title: 'Catfished V2', feat: 'Crutch',
     featInstagram: 'https://instagram.com/crutchinn',
     bpm: '92', duration: '2:44',
     desc: "Created in Dublin in April 2025. Crutch is a Dublin cult figure, if you know you know. I heard the original that he released produced by New Machine and made this edit. We finally linked up after a year to get the all clear and put it in on the album.",
-    src: '/assets/bsalbum/Catfished V2 (ft. Crutch).mp3',
+    src: '/assets/bsalbum/Sloucho - Catfished (w. Crutch).mp3',
   },
   {
     title: 'Something Else', feat: 'Kibo',
     featInstagram: 'https://instagram.com/kibo_69_',
     bpm: '124', duration: '1:54',
     desc: "Created in London in July 2025. It was 30 degrees and we were in a studio with zero air conditioning so we only recorded half the verse before we succumbed to heat stroke. A year later we recorded the second half and put the final touches on it. This song has 3 beat switches and still comes in under 2 minutes, the hallmark of a good Sloucho song imo.",
-    src: '/assets/bsalbum/Sloucho & Kibo - Something Else.mp3',
+    src: '/assets/bsalbum/Sloucho - Something Else (w. Kibo).mp3',
   },
   {
     title: 'Goodbye', feat: 'Rory Sweeney',
     featInstagram: 'https://instagram.com/rory_sweeney123',
     bpm: '150', duration: '4:22',
     desc: "Created in Sligo in September 2024. Rory had a residency in The Regional Cultural Centre in Letterkenny so we pulled up for a few days and made a bunch of music. We also made 150K in that same week, inspired by the drag race festival that had shut down the whole town, we could hear the engines reving from the studio and tried to make something that people could blast out of their speakers while diffin.",
-    src: '/assets/bsalbum/Goodbye (ft. Rory Sweeney).mp3',
+    src: '/assets/bsalbum/Sloucho - Goodbye (ft. Rory Sweeney).mp3',
   },
   {
     title: 'Wiggidy Woo', feat: 'Tommy Holohan',
     featInstagram: 'https://instagram.com/tommy.holohan',
     bpm: '160', duration: '4:05',
     desc: "Created in Dublin in February 2025. Tommy hit me up to do a session and we locked in for few hours and this happened. We tried a bunch of stuff that sounded terrible for a while but out of nowhere we kinda just realised we had a weapon on our hands. Very proud of the Wiggidy Woo sample, I was deep in a YouTube rabbit hole and managed to pull an adlib from a grime song from 2010.",
-    src: '/assets/bsalbum/Wiggidy Woo (ft. Tommy Holohan).mp3',
+    src: '/assets/bsalbum/Sloucho - Wiggidy Woo Day (ft. Tommy Holohan).mp3',
   },
   {
     title: 'Weightless [WIP]', feat: null, featInstagram: null,
     bpm: '155', duration: '2:56',
     desc: "Created in Dublin in January 2025. There was a rough storm for a few days so I just locked myself in the studio and made a bunch of the early Broken Spirit demos. The idea for this track came from a song I heard Stella and the Dreaming perform at the NCH, I fell in love with the word Weightless and build the idea around the idea of feeling new things for the first time, and the liberation that comes with that.",
-    src: '/assets/bsalbum/Weightless.mp3',
+    src: '/assets/bsalbum/Sloucho - Weightless.mp3',
   },
 ];
 
