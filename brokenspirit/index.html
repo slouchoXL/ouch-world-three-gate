@@ -6,7 +6,7 @@
   <link rel="icon" href="favicon.ico?v=2">
   <link rel="preload" as="image" href="/assets/spiral.png">
   <link rel="icon" type="image/png" href="assets/favicon.png?v=2">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 
   
   <style>
@@ -83,12 +83,11 @@
     .nav-fade {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 220px;
+      height: 210px;
       background: linear-gradient(to bottom,
         rgba(255,255,255,1) 0%,
         rgba(255,255,255,1) 72%,
-        rgba(255,255,255,0.6) 86%,
-        rgba(255,255,255,0) 100%);
+        rgba(255,255,255,0) 88%);
       pointer-events: none;
       z-index: 998;
     }
@@ -99,7 +98,7 @@
     .page {
       max-width: 740px;
       margin: 0 auto;
-      padding: 240px 24px 160px;
+      padding: 195px 24px 60px;
     }
 
     /* ── Description copy ── */
@@ -513,7 +512,7 @@
 
     /* ── Mobile ── */
     @media (max-width: 600px) {
-      .page { padding-top: 220px; }
+      .page { padding-top: 180px; }
       .pill-expanded-inner { padding-left: 59px; padding-right: 49px; }
       /* play | waveform | time */
       .now-playing-inner { grid-template-columns: 40px 1fr auto; padding-left: 34px; }
@@ -553,8 +552,8 @@
       <div id="mainTracks"></div>
     </section>
 
-    <div style="text-align:center; margin-top:60px;">
-      <img src="/assets/bg.png" alt="" style="width:250px; height:auto;">
+    <div style="text-align:center; margin-top:40px;">
+      <img src="/assets/bg.png" alt="" style="width:60px; height:auto;">
     </div>
   </div>
 
@@ -1199,6 +1198,14 @@ function showInvalidCardMessage() {
 function closeLoginModal() { document.getElementById('loginModal').classList.remove('show'); }
 
 
+
+// Disable browser zoom on desktop
+document.addEventListener('wheel', function(e) {
+  if (e.ctrlKey) e.preventDefault();
+}, { passive: false });
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && ['+', '-', '=', '0'].includes(e.key)) e.preventDefault();
+});
 </script>
 
 
