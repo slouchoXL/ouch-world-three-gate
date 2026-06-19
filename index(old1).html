@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OUCH™</title>
+  <link rel="icon" href="favicon.ico?v=2" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    window.__SUPABASE_URL = 'https://srdwkfjterotzjwzoauj.supabase.co';
+    window.__SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHdrZmp0ZXJvdHpqd3pvYXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NjU5NTksImV4cCI6MjA3MTQ0MTk1OX0.c0mJbQsfJMmqLiulXdZfWscd7J507buzRXkd700ymAQ';
+  </script>
+  <script>
+    window.supa = window.supabase.createClient(window.__SUPABASE_URL, window.__SUPABASE_ANON_KEY);
+  </script>
+  <script>
+    (async function () {
+      try {
+        if (window.supa && location.hash && location.hash.includes('access_token')) {
+          const params = new URLSearchParams(location.hash.slice(1));
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+          const error = params.get('error');
+          const error_description = params.get('error_description');
+          if (error) { alert('Authentication error: ' + (error_description || error)); history.replaceState({}, '', location.pathname + location.search); return; }
+          if (access_token && refresh_token) {
+            const { error: se } = await window.supa.auth.setSession({ access_token, refresh_token });
+            if (se) alert('Session error: ' + se.message); else window.location.reload();
+          }
+          history.replaceState({}, '', location.pathname + location.search);
+        }
+      } catch (e) { console.error('[supabase] Magic link processing failed:', e); }
+    })();
+  </script>
+  <script>
+    (function () {
+      const ua = navigator.userAgent;
+      if (/Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua)) document.documentElement.classList.add('safari');
+    })();
+  </script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; font-family: Arial, sans-serif; background: #000; color: #fff; touch-action: none; }
+
+    #room-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; cursor: grab; }
+    #room-canvas.dragging { cursor: grabbing; }
+    #room-video { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+
+    .container { width: 100vw; height: 100vh; position: relative; z-index: 10; pointer-events: none; }
+    .container > * { pointer-events: auto; }
+
+    :root {
+      --circle: 30px; --circle-bg: rgba(0,0,0,0.8);
+      --circle-border: rgba(255,255,255,0.25); --circle-border-hover: rgba(255,255,255,0.45);
+      --circle-icon: 12px; --edge-pad-desktop: 28px; --edge-pad-mobile: 16px;
+    }
+
+    .icon-circle {
+      width: var(--circle); height: var(--circle); border-radius: 50%;
+      background: var(--circle-bg); border: 1px solid var(--circle-border);
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; padding: 0; transition: border-color .2s; backdrop-filter: blur(10px); pointer-events: auto;
+    }
+    .icon-circle:hover { border-color: var(--circle-border-hover); }
+    .icon-close { position: relative; }
+    .icon-close::before, .icon-close::after {
+      content: ""; position: absolute; top: 50%; left: 50%;
+      width: var(--circle-icon); height: 2px; background: rgba(255,255,255,0.85); border-radius: 2px; transform-origin: center;
+    }
+    .icon-close::before { transform: translate(-50%,-50%) rotate(45deg); }
+    .icon-close::after  { transform: translate(-50%,-50%) rotate(-45deg); }
+
+    .top-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px var(--edge-pad-desktop); pointer-events: none;
+    }
+    .top-nav > * { pointer-events: auto; }
+    @media (max-width: 768px) { .top-nav { padding: 20px var(--edge-pad-mobile); } }
+
+    .menu-button, .login-button {
+      width: 30px; height: 30px; background: #000;
+      border: 1px solid rgba(255,255,255,0.25); border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color .2s;
+    }
+    .menu-button:hover, .login-button:hover { border-color: rgba(255,255,255,0.45); }
+    .menu-dots { display: flex; gap: 4px; }
+    .dot { width: 3px; height: 3px; background: #fff; border-radius: 50%; }
+    .user-icon { width: 16px; height: 16px; color: #fff; }
+    .user-icon svg { width: 100%; height: 100%; fill: currentColor; }
+
+    .menu-tray {
+      position: fixed; top: 60px; left: 20px; width: 130px;
+      background: rgba(0,0,0,1); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; z-index: 200;
+      transform: translateY(-20px); opacity: 0; visibility: hidden;
+      transition: all .3s; padding: 10px 0; pointer-events: none;
+    }
+    .menu-tray.open { transform: translateY(0); opacity: 1; visibility: visible; pointer-events: auto; }
+    .menu-item {
+      position: relative; display: block; width: 100%; padding: 6px 15px;
+      color: #fff; text-decoration: none; font-size: 14px; font-weight: 300; cursor: pointer; background: none; border: 0;
+    }
+    .menu-item::before {
+      content: ""; position: absolute; inset: 1px; left: 8px; right: 8px;
+      border-radius: 8px; background: rgba(255,255,255,0.12); opacity: 0; transform: scaleY(0.96);
+      transition: opacity .15s, transform .2s; pointer-events: none;
+    }
+    .menu-item:hover::before { opacity: 1; transform: scaleY(1); }
+    .menu-item, .menu-item * { position: relative; z-index: 1; }
+
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 9999;
+      display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px);
+    }
+    .modal-overlay.show { display: flex; }
+    .login-modal {
+      background: rgba(15,15,15,0.95); border-radius: 16px; padding: 24px 20px;
+      width: 90%; max-width: 360px; box-shadow: 0 20px 45px rgba(0,0,0,0.7);
+      text-align: center; color: #fff; position: relative; min-height: 260px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .login-modal > :not(.icon-circle) { width: 100%; }
+    .login-modal .icon-circle.icon-close { position: absolute; top: 14px; right: 14px; }
+    .login-modal h2 { font-size: 18px; margin-bottom: 12px; }
+    .login-modal p { font-size: 13px; opacity: 0.75; margin-bottom: 16px; }
+    .form-group { margin-bottom: 12px; }
+    .form-input {
+      width: 100%; padding: 10px 12px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.7); color: #fff; font-size: 14px; outline: none;
+    }
+    .form-input:focus { border-color: #fff; }
+    .form-input::placeholder { color: rgba(255,255,255,0.5); }
+    .form-button { width: 100%; padding: 10px 12px; border-radius: 999px; border: none; background: #fff; color: #000; font-weight: 600; font-size: 14px; cursor: pointer; }
+
+    /* Action bar */
+    .item-action-bar {
+      position: fixed; bottom: max(60px, env(safe-area-inset-bottom) + 24px);
+      left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; z-index: 1500; gap: 10px; pointer-events: none;
+    }
+    @supports not (bottom: env(safe-area-inset-bottom)) { .item-action-bar { bottom: 35px; } }
+
+    .icon-circle svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 1.25; stroke-linecap: round; stroke-linejoin: round; }
+    .icon-circle .icon-muted { display: none; }
+    .icon-circle.is-muted .icon-sound { display: none; }
+    .icon-circle.is-muted .icon-muted { display: block; }
+
+    /* FIX 3: Simple static now-playing pill */
+    .now-playing {
+      color: #fff; padding: 10px 18px;
+      background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 999px; backdrop-filter: blur(10px);
+      opacity: 0.88; pointer-events: none;
+      font-size: 14px; line-height: 1.2; white-space: nowrap;
+    }
+
+    /* Desktop hint */
+    #move-hint {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      font-size: 11px; color: rgba(255,255,255,0.22); pointer-events: none;
+      white-space: nowrap; transition: opacity 1.5s; z-index: 50;
+    }
+
+    /* Mobile joystick — only shown on touch devices */
+    #joystick-zone {
+      display: none; position: fixed;
+      bottom: max(160px, env(safe-area-inset-bottom) + 140px);
+      left: 28px; width: 110px; height: 110px; z-index: 1400; pointer-events: auto;
+    }
+    #joystick-base {
+      width: 110px; height: 110px; border-radius: 50%;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+      position: absolute; backdrop-filter: blur(4px);
+    }
+    #joystick-knob {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    }
+    @media (hover: none) and (pointer: coarse) {
+      #joystick-zone { display: block; }
+      #move-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <video id="room-video" autoplay loop muted playsinline webkit-playsinline>
+    <source src="VidInfinity.mp4" type="video/mp4" />
+  </video>
+
+  <canvas id="room-canvas"></canvas>
+
+  <div class="container">
+    <div class="top-nav">
+      <button class="menu-button" onclick="toggleMenu()">
+        <div class="menu-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      </button>
+      <button class="login-button" onclick="handleLogin()">
+        <div class="user-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        </div>
+      </button>
+    </div>
+
+    <div class="menu-tray" id="menuTray">
+      <a href="/" class="menu-item">Home</a>
+      <a href="/portal" class="menu-item">Broken Spirit</a>
+      <a href="/shop" class="menu-item">Shop</a>
+    </div>
+
+    <audio id="mysteryGiftAudio" preload="auto" autoplay muted playsinline loop style="position:absolute;left:-9999px;width:0;height:0;opacity:0;"></audio>
+
+    <div id="itemActionBar" class="item-action-bar">
+      <!-- FIX 3: Static pill, no marquee -->
+      <div class="now-playing">Sloucho - Infinity</div>
+      <button id="audioMuteBtn" class="icon-circle is-muted" type="button" aria-label="Unmute audio">
+        <svg class="icon-sound" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M11 5L6 9H3v6h3l5 4V5z" /><path d="M15.5 8.5a5 5 0 010 7" /><path d="M18 6a9 9 0 010 12" />
+        </svg>
+        <svg class="icon-muted" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M11 5L6 9H3v6h3l5 4V5z" /><path d="M22 9l-6 6" /><path d="M16 9l6 6" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-overlay" id="loginModal" role="dialog" aria-modal="true" aria-label="Account">
+      <div class="login-modal">
+        <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
+        <h2>Account</h2>
+        <div id="accountLoggedIn" style="display:none;text-align:center;">
+          <p style="margin-bottom:12px;opacity:0.85;line-height:1.4;">You're signed in as<br /><strong id="accountEmail" style="word-break:break-word;"></strong></p>
+          <button type="button" class="form-button" id="logoutBtn" style="background:rgba(255,255,255,0.10);color:#fff;border:1px solid rgba(255,255,255,0.18);margin-top:4px;">Log out</button>
+        </div>
+        <form id="loginForm" onsubmit="return false;" style="display:none;">
+          <div class="form-group">
+            <input type="email" id="loginEmail" class="form-input" placeholder="Email" autocomplete="email" required />
+          </div>
+          <button type="submit" id="loginSubmit" class="form-button">Send login link</button>
+          <p id="loginError" style="font-size:12px;color:#f97373;margin-top:10px;min-height:18px;"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile joystick -->
+  <div id="joystick-zone">
+    <div id="joystick-base"></div>
+    <div id="joystick-knob"></div>
+  </div>
+
+  <div id="move-hint">W A S D to move &nbsp;·&nbsp; drag to look</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    (function () {
+      const canvas  = document.getElementById('room-canvas');
+      const videoEl = document.getElementById('room-video');
+
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      const scene  = new THREE.Scene();
+
+      // FIX 1: Enormous room — 5x bigger than before, far clip to match
+      const roomW = 12000, roomH = 4500, roomD = 14000;
+      const EYE_Y = -roomH * 0.3;
+
+      const camera = new THREE.PerspectiveCamera(45, 1, 1, 30000);
+      camera.position.set(0, EYE_Y, 0);
+
+      function resize() {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      // Video texture
+      videoEl.crossOrigin = 'anonymous';
+      const videoTexture = new THREE.VideoTexture(videoEl);
+      videoTexture.minFilter = THREE.LinearFilter;
+      videoTexture.magFilter = THREE.LinearFilter;
+      videoTexture.format    = THREE.RGBFormat;
+      const wallMat = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.FrontSide });
+
+      function addWall(w, h, px, py, pz, ry, rx) {
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), wallMat);
+        m.position.set(px, py, pz);
+        if (ry) m.rotation.y = ry;
+        if (rx) m.rotation.x = rx;
+        scene.add(m);
+      }
+      addWall(roomW, roomH,  0,        0,  -roomD/2,  0,          0);           // front
+      addWall(roomW, roomH,  0,        0,   roomD/2,  Math.PI,    0);           // back
+      addWall(roomD, roomH, -roomW/2,  0,   0,        Math.PI/2,  0);           // left
+      addWall(roomD, roomH,  roomW/2,  0,   0,       -Math.PI/2,  0);           // right
+      addWall(roomW, roomD,  0,  roomH/2,   0,        0,           Math.PI/2);  // ceiling
+      addWall(roomW, roomD,  0, -roomH/2,   0,        0,          -Math.PI/2);  // floor
+
+      // ── Look state ───────────────────────────────────────────
+      let phi = 0, theta = 0.05;
+      let velPhi = 0, velTheta = 0, rafInertia = null;
+
+      function updateCamera() {
+        theta = Math.max(-Math.PI/2 + 0.02, Math.min(Math.PI/2 - 0.02, theta));
+        camera.lookAt(
+          camera.position.x + Math.cos(theta) * Math.sin(phi),
+          camera.position.y + Math.sin(theta),
+          camera.position.z + Math.cos(theta) * Math.cos(phi)
+        );
+      }
+      function runInertia() {
+        if (Math.abs(velPhi) > 0.00003 || Math.abs(velTheta) > 0.00003) {
+          phi += velPhi; theta += velTheta;
+          velPhi *= 0.85; velTheta *= 0.85;
+          updateCamera(); rafInertia = requestAnimationFrame(runInertia);
+        }
+      }
+
+      // ── Desktop: mouse look ──────────────────────────────────
+      let mouseDragging = false, mLastX = 0, mLastY = 0;
+      canvas.addEventListener('mousedown', e => {
+        if (e.target !== canvas) return;
+        mouseDragging = true; mLastX = e.clientX; mLastY = e.clientY;
+        velPhi = velTheta = 0; cancelAnimationFrame(rafInertia);
+        canvas.classList.add('dragging');
+        document.getElementById('move-hint').style.opacity = '0';
+      });
+      window.addEventListener('mousemove', e => {
+        if (!mouseDragging) return;
+        velPhi   = -(e.clientX - mLastX) * 0.002;
+        velTheta = -(e.clientY - mLastY) * 0.002;
+        phi += velPhi; theta += velTheta;
+        mLastX = e.clientX; mLastY = e.clientY; updateCamera();
+      });
+      window.addEventListener('mouseup', () => {
+        mouseDragging = false; canvas.classList.remove('dragging');
+        rafInertia = requestAnimationFrame(runInertia);
+      });
+
+      // ── Desktop: WASD ────────────────────────────────────────
+      const keys = {};
+      window.addEventListener('keydown', e => { keys[e.code] = true; document.getElementById('move-hint').style.opacity = '0'; });
+      window.addEventListener('keyup',   e => { keys[e.code] = false; });
+
+      const SPEED   = 18;
+      const HALF_W  = roomW / 2 - 20;
+      const HALF_D  = roomD / 2 - 20;
+
+      function applyKeyMovement() {
+        const fX = Math.sin(phi), fZ = Math.cos(phi);
+        const rX = Math.cos(phi), rZ = -Math.sin(phi);
+        let dx = 0, dz = 0;
+        if (keys['KeyW'] || keys['ArrowUp'])    { dx += fX; dz += fZ; }
+        if (keys['KeyS'] || keys['ArrowDown'])  { dx -= fX; dz -= fZ; }
+        if (keys['KeyA'] || keys['ArrowLeft'])  { dx -= rX; dz -= rZ; }
+        if (keys['KeyD'] || keys['ArrowRight']) { dx += rX; dz += rZ; }
+        if (!dx && !dz) return;
+        const len = Math.sqrt(dx*dx + dz*dz);
+        camera.position.x = Math.max(-HALF_W, Math.min(HALF_W, camera.position.x + (dx/len)*SPEED));
+        camera.position.z = Math.max(-HALF_D, Math.min(HALF_D, camera.position.z + (dz/len)*SPEED));
+        camera.position.y = EYE_Y;
+        updateCamera();
+      }
+
+      // ── Mobile: dual-touch (joystick left, look right) ───────
+      const jZone = document.getElementById('joystick-zone');
+      const jKnob = document.getElementById('joystick-knob');
+      const J_RADIUS = 33;
+      let jTouchId = -1, jActive = false, jDx = 0, jDz = 0;
+      let lookTouchId = -1, lLastX = 0, lLastY = 0;
+
+      jZone.addEventListener('touchstart', e => {
+        e.stopPropagation();
+        const t = e.changedTouches[0];
+        jTouchId = t.identifier; jActive = true;
+        moveKnob(t.clientX, t.clientY);
+      }, { passive: true });
+
+      canvas.addEventListener('touchstart', e => {
+        for (const t of e.changedTouches) {
+          if (lookTouchId === -1) {
+            lookTouchId = t.identifier; lLastX = t.clientX; lLastY = t.clientY;
+            velPhi = velTheta = 0; cancelAnimationFrame(rafInertia);
+          }
+        }
+      }, { passive: true });
+
+      window.addEventListener('touchmove', e => {
+        for (const t of e.changedTouches) {
+          if (t.identifier === jTouchId) {
+            moveKnob(t.clientX, t.clientY);
+          }
+          if (t.identifier === lookTouchId) {
+            velPhi   = -(t.clientX - lLastX) * 0.003;
+            velTheta = -(t.clientY - lLastY) * 0.003;
+            phi += velPhi; theta += velTheta;
+            lLastX = t.clientX; lLastY = t.clientY;
+            updateCamera();
+          }
+        }
+        e.preventDefault();
+      }, { passive: false });
+
+      window.addEventListener('touchend', e => {
+        for (const t of e.changedTouches) {
+          if (t.identifier === jTouchId) {
+            jActive = false; jTouchId = -1; jDx = 0; jDz = 0;
+            jKnob.style.transform = 'translate(-50%, -50%)';
+          }
+          if (t.identifier === lookTouchId) {
+            lookTouchId = -1;
+            rafInertia = requestAnimationFrame(runInertia);
+          }
+        }
+      }, { passive: true });
+
+      function moveKnob(cx, cy) {
+        const r = jZone.getBoundingClientRect();
+        const ox = cx - (r.left + r.width  / 2);
+        const oy = cy - (r.top  + r.height / 2);
+        const dist  = Math.min(Math.sqrt(ox*ox + oy*oy), J_RADIUS);
+        const angle = Math.atan2(oy, ox);
+        jKnob.style.transform = `translate(calc(-50% + ${Math.cos(angle)*dist}px), calc(-50% + ${Math.sin(angle)*dist}px))`;
+        // jDx = screen-right, jDz = screen-down
+        jDx = (dist / J_RADIUS) * Math.cos(angle);
+        jDz = (dist / J_RADIUS) * Math.sin(angle);
+      }
+
+      function applyJoystickMovement() {
+        if (!jActive || (!jDx && !jDz)) return;
+        const fX = Math.sin(phi), fZ = Math.cos(phi); // forward
+        const rX = Math.cos(phi), rZ = -Math.sin(phi); // right
+        // FIX 2: negate jDx so left on joystick = strafe left
+        const dx = fX * (-jDz) + rX * (-jDx);
+        const dz = fZ * (-jDz) + rZ * (-jDx);
+        const len = Math.sqrt(dx*dx + dz*dz) || 1;
+        camera.position.x = Math.max(-HALF_W, Math.min(HALF_W, camera.position.x + (dx/len)*SPEED));
+        camera.position.z = Math.max(-HALF_D, Math.min(HALF_D, camera.position.z + (dz/len)*SPEED));
+        camera.position.y = EYE_Y;
+        updateCamera();
+      }
+
+      // Desktop video unlock on first gesture
+      let videoUnlocked = false;
+      function unlockVideo() {
+        if (videoUnlocked) return;
+        videoEl.play().then(() => { videoUnlocked = true; }).catch(() => {});
+      }
+      ['mousedown','keydown','wheel'].forEach(ev => window.addEventListener(ev, unlockVideo, { once: true, capture: true }));
+      videoEl.play().catch(() => {});
+
+      updateCamera();
+
+      function animate() {
+        requestAnimationFrame(animate);
+        applyKeyMovement();
+        applyJoystickMovement();
+        if (videoEl.readyState >= videoEl.HAVE_CURRENT_DATA) videoTexture.needsUpdate = true;
+        renderer.render(scene, camera);
+      }
+      animate();
+    })();
+  </script>
+
+  <script>
+    // ===== Menu / Modal =====
+    function toggleMenu() { document.getElementById('menuTray')?.classList.toggle('open'); }
+
+    async function handleLogin() {
+      const modal = document.getElementById('loginModal');
+      if (!modal || !window.supa) return;
+      const loggedInView = document.getElementById('accountLoggedIn');
+      const loginForm    = document.getElementById('loginForm');
+      const emailEl      = document.getElementById('accountEmail');
+      const { data: { user } } = await window.supa.auth.getUser();
+      if (user) {
+        if (emailEl) emailEl.textContent = user.email || '';
+        if (loggedInView) loggedInView.style.display = 'block';
+        if (loginForm)    loginForm.style.display    = 'none';
+      } else {
+        if (loggedInView) loggedInView.style.display = 'none';
+        if (loginForm)    loginForm.style.display    = 'block';
+      }
+      modal.classList.add('show');
+    }
+
+    function closeLoginModal() { document.getElementById('loginModal')?.classList.remove('show'); }
+
+    async function logout() {
+      try { await window.supa?.auth?.signOut(); closeLoginModal(); }
+      catch (e) { console.error('[auth] signOut failed', e); }
+    }
+
+    document.addEventListener('click', function(e) {
+      const tray = document.getElementById('menuTray');
+      const btn  = document.querySelector('.menu-button');
+      if (tray && btn && !tray.contains(e.target) && !btn.contains(e.target)) tray.classList.remove('open');
+    });
+    document.getElementById('loginModal')?.addEventListener('click', function(e) { if (e.target === this) closeLoginModal(); });
+    document.getElementById('logoutBtn')?.addEventListener('click', logout);
+
+    // Mobile zoom suppression
+    (function () {
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function (e) {
+        const now = Date.now(); if (now - lastTouchEnd <= 300) e.preventDefault(); lastTouchEnd = now;
+      }, { passive: false });
+    })();
+    document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+    document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
+    document.addEventListener('touchstart', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+    document.addEventListener('touchmove', function (e) { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+    function showCheckEmailUI(email) {
+      const card = document.querySelector('#loginModal .login-modal');
+      if (!card) return;
+      card.innerHTML = `
+        <button class="icon-circle icon-close" type="button" onclick="closeLoginModal()" aria-label="Close"></button>
+        <h2 style="margin:8px 0 10px;text-align:center;">Check your email</h2>
+        <p style="font-size:14px;opacity:0.8;margin:0 0 12px;line-height:1.45;text-align:center;">
+          We sent a login link to <strong>${escapeHtml(email)}</strong>.
+        </p>`;
+      document.getElementById('loginModal').classList.add('show');
+    }
+
+    (function () {
+      const emailInput = document.getElementById('loginEmail');
+      const loginBtn   = document.getElementById('loginSubmit');
+      if (!emailInput || !loginBtn) return;
+      loginBtn.addEventListener('click', async e => {
+        e.preventDefault();
+        const email = (emailInput.value || '').trim();
+        if (!email) return alert('Enter your email');
+        if (!window.supa?.auth) return alert('Auth not initialized');
+        loginBtn.disabled = true; const old = loginBtn.textContent; loginBtn.textContent = 'Sending…';
+        const { error } = await supa.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
+        loginBtn.disabled = false; loginBtn.textContent = old;
+        if (error) alert(error.message); else showCheckEmailUI(email);
+      });
+    })();
+
+    function updateMediaSessionMetadata() {
+      if (!('mediaSession' in navigator)) return;
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: 'Infinity', artist: 'Sloucho', album: 'Discography',
+        artwork: [
+          { src: location.origin + '/assets/slouchometa.png', sizes: '96x96',  type: 'image/png' },
+          { src: location.origin + '/assets/slouchometa.png', sizes: '512x512', type: 'image/png' }
+        ]
+      });
+    }
+
+    // ===== AUDIO — single looping track =====
+    (function () {
+      const audioEl = document.getElementById('mysteryGiftAudio');
+      const btn     = document.getElementById('audioMuteBtn');
+      if (!audioEl || !btn) return;
+
+      audioEl.src  = '/assets/music/Sloucho_Infinity.mp3';
+      audioEl.loop = true;
+      audioEl.load();
+
+      audioEl.muted = true;
+      btn.classList.add('is-muted');
+      btn.setAttribute('aria-label', 'Unmute audio');
+
+      let started = false;
+      async function tryPlay() {
+        if (started || !audioEl.paused) { started = true; return; }
+        try { await audioEl.play(); started = true; removeUnlockers(); } catch (_) {}
+      }
+      function addUnlockers() {
+        ['pointerdown','mousedown','touchstart','keydown','wheel'].forEach(ev =>
+          window.addEventListener(ev, tryPlay, { capture: true, once: true }));
+      }
+      function removeUnlockers() {
+        ['pointerdown','mousedown','touchstart','keydown','wheel'].forEach(ev =>
+          window.removeEventListener(ev, tryPlay, { capture: true }));
+      }
+
+      audioEl.addEventListener('canplay', tryPlay);
+      window.addEventListener('load', tryPlay, { once: true });
+      tryPlay();
+      addUnlockers();
+
+      audioEl.addEventListener('play',  () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; updateMediaSessionMetadata(); });
+      audioEl.addEventListener('pause', () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; });
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && audioEl.paused && started) audioEl.play().catch(() => {}); });
+
+      btn.addEventListener('click', async () => {
+        const willMute = !audioEl.muted; audioEl.muted = willMute;
+        btn.classList.toggle('is-muted', willMute);
+        btn.setAttribute('aria-label', willMute ? 'Unmute audio' : 'Mute audio');
+        if (!willMute) { try { await audioEl.play(); } catch (_) {} }
+      });
+    })();
+  </script>
+</body>
+</html>
