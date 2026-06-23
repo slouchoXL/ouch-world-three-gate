@@ -722,90 +722,90 @@ function toggleReadMore() {
   btn.textContent = isOpen ? 'Read more' : 'See less';
 }
 
-// ─────────────────────────────────────────────────────────────
-// TRACK DATA
-// ─────────────────────────────────────────────────────────────
-const MAIN_TRACKS = [
-  {
-    title: 'fall4me', feat: null, featInstagram: null,
-    bpm: '90', duration: '1:55',
-    desc: "Created in Dublin in February 2025. This song began the journey of Broken Spirit, the only album with auto-tuned kick drums, live violin, baile funk and voice memo lead vocals. I wanted this song to be rough around the edges, scrappy and feel human, whatever that means in 2026. Strings recorded by Chloe Fitzgerald.",
-    src: '/assets/bsalbum/Sloucho - fall4me.mp3',
-  },
-  {
-    title: 'Boring', feat: 'Jaydonclover',
-    featInstagram: 'https://instagram.com/jaydonclover',
-    bpm: '120', duration: '2:58',
-    desc: "Created in London in June 2026. Jaydon was late to the studio and I had nothing prepared so I speed ran a beat in 30 minutes, played it for her and she wrote the whole song in an hour, who said music was difficult?",
-    src: '/assets/bsalbum/Boring (ft. Jaydonclover) 1.mp3',
-  },
-  {
-    title: 'Angel', feat: null, featInstagram: null,
-    bpm: '130', duration: '3:57',
-    desc: "Created in Mexico in March 2025, I played two shows in CDMX and met Mensik, Pearla, Lapi and the whole Furia gang. I recorded the sounds of the street and the lead vocal with my phone from my flat. Smoked 1 million cigs and drank 1 millon Modelos. Additional vocals by Alex Gough recorded in London in January 2026.",
-    src: '/assets/bsalbum/Sloucho - Angel.mp3',
-  },
-  {
-    title: 'All Night', feat: null, featInstagram: null,
-    bpm: '102', duration: '3:31',
-    desc: "Created in London in July 2025. I met Lily in a random studio by the water and we wrote this song together. It had been so many different genres, bpm's and key signatures before I finally landed on the final version over a year later.... lol.",
-    src: '/assets/bsalbum/All Night.mp3',
-  },
-  {
-    title: 'Fake', feat: 'Gemma Dunleavy',
-    featInstagram: 'https://instagram.com/gemmadunleavy_',
-    bpm: '133', duration: '3:24',
-    desc: "Created in Dublin in September 2025. I made the instrumental from my bed a few weeks prior (one of the best places to produce btw) and sent it to Gemma to write to. She came to my home studio and we drank tea, talked about life, got sidetracked, lost track of time, then made the best song ever.",
-    src: '/assets/bsalbum/Fake (ft. Gemma Dunleavy).mp3',
-  },
-  {
-    title: 'Love is Fear', feat: null, featInstagram: null,
-    bpm: '150', duration: '3:29',
-    youtube: 'https://www.youtube.com/watch?v=XXXXXXX',
-    desc: "Created in Wicklow in January 2025. This track was one of the worst mixed demos I had made, it sounded so bad for so long, but there was always something interesting about it that I felt compelled to pursue it. Check out the music video directed by Elius Grace.",
-    src: '/assets/bsalbum/Love is Fear.mp3',
-  },
-  {
-    title: 'Survival [WIP]', feat: null, featInstagram: null,
-    bpm: '150', duration: '2:24',
-    desc: "WIP bear with me...",
-    src: '/assets/bsalbum/Survival.mp3',
-  },
-  {
-    title: 'Catfished V2', feat: 'Crutch',
-    featInstagram: 'https://instagram.com/crutchinn',
-    bpm: '92', duration: '2:44',
-    desc: "Created in Dublin in April 2025. Crutch is a Dublin cult figure, if you know you know. I heard the original that he released produced by New Machine and made this edit. We finally linked up after a year to get the all clear and put it in on the album.",
-    src: '/assets/bsalbum/Catfished V2 (ft. Crutch).mp3',
-  },
-  {
-    title: 'Something Else', feat: 'Kibo',
-    featInstagram: 'https://instagram.com/kibo_69_',
-    bpm: '124', duration: '1:54',
-    desc: "Created in London in July 2025. It was 30 degrees and we were in a studio with zero air conditioning so we only recorded half the verse before we succumbed to heat stroke. A year later we recorded the second half and put the final touches on it. This song has 3 beat switches and still comes in under 2 minutes, the hallmark of a good Sloucho song imo.",
-    src: '/assets/bsalbum/Sloucho & Kibo - Something Else.mp3',
-  },
-  {
-    title: 'Goodbye', feat: 'Rory Sweeney',
-    featInstagram: 'https://instagram.com/rory_sweeney123',
-    bpm: '150', duration: '4:22',
-    desc: "Created in Sligo in September 2024. Rory had a residency in The Regional Cultural Centre in Letterkenny so we pulled up for a few days and made a bunch of music. We also made 150K in that same week, inspired by the drag race festival that had shut down the whole town, we could hear the engines reving from the studio and tried to make something that people could blast out of their speakers while diffin.",
-    src: '/assets/bsalbum/Goodbye (ft. Rory Sweeney).mp3',
-  },
-  {
-    title: 'Wiggidy Woo', feat: 'Tommy Holohan',
-    featInstagram: 'https://instagram.com/tommy.holohan',
-    bpm: '160', duration: '4:05',
-    desc: "Created in Dublin in February 2025. Tommy hit me up to do a session and we locked in for few hours and this happened. We tried a bunch of stuff that sounded terrible for a while but out of nowhere we kinda just realised we had a weapon on our hands. Very proud of the Wiggidy Woo sample, I was deep in a YouTube rabbit hole and managed to pull an adlib from a grime song from 2010.",
-    src: '/assets/bsalbum/Wiggidy Woo (ft. Tommy Holohan).mp3',
-  },
-  {
-    title: 'Weightless [WIP]', feat: null, featInstagram: null,
-    bpm: '155', duration: '2:56',
-    desc: "Created in Dublin in January 2025. There was a rough storm for a few days so I just locked myself in the studio and made a bunch of the early Broken Spirit demos. The idea for this track came from a song I heard Stella and the Dreaming perform at the NCH, I fell in love with the word Weightless and build the idea around the idea of feeling new things for the first time, and the liberation that comes with that.",
-    src: '/assets/bsalbum/Weightless.mp3',
-  },
-];
+    // ─────────────────────────────────────────────────────────────
+    // TRACK DATA
+    // ─────────────────────────────────────────────────────────────
+    const MAIN_TRACKS = [
+      {
+        title: 'fall4me', feat: null, featInstagram: null,
+        bpm: '90', duration: '1:55',
+        desc: "Created in Dublin in February 2025. This song began the journey of Broken Spirit, the only album with auto-tuned kick drums, live violin, baile funk and voice memo lead vocals. I wanted this song to be rough around the edges, scrappy and feel human, whatever that means in 2026. Strings recorded by Chloe Fitzgerald.",
+        src: '/assets/bsalbum/A1. Sloucho - fall4me.mp3',
+      },
+      {
+        title: 'Nothing Like Me', feat: 'Jaydonclover',
+        featInstagram: 'https://instagram.com/jaydonclover',
+        bpm: '120', duration: '2:58',
+        desc: "Created in London in June 2026. Jaydon was late to the studio and I had nothing prepared so I speed ran a beat in 30 minutes, played it for her and she wrote the whole song in an hour, who said music was difficult?",
+        src: '/assets/bsalbum/A2. Sloucho - Nothing Like Me (ft. Jaydonclover).mp3',
+      },
+      {
+        title: 'Angel', feat: null, featInstagram: null,
+        bpm: '130', duration: '3:57',
+        desc: "Created in Mexico in March 2025, I played two shows in CDMX and met Mensik, Pearla, Lapi and the whole Furia gang. I recorded the sounds of the street and the lead vocal with my phone from my flat. Smoked 1 million cigs and drank 1 millon Modelos. Additional vocals by Alex Gough recorded in London in January 2026.",
+        src: '/assets/bsalbum/A3. Sloucho - Angel.mp3',
+      },
+      {
+        title: 'All Night', feat: null, featInstagram: null,
+        bpm: '102', duration: '3:31',
+        desc: "Created in London in July 2025. I met Lily in a random studio by the water and we wrote this song together. It had been so many different genres, bpm's and key signatures before I finally landed on the final version over a year later.... lol.",
+        src: '/assets/bsalbum/A4. All Night.mp3',
+      },
+                         {
+                           title: 'Love is Fear', feat: null, featInstagram: null,
+                           bpm: '150', duration: '3:29',
+                           desc: "Created in Wicklow in January 2025. This track was one of the worst mixed demos I had made, it sounded so bad for so long, but there was always something interesting about it that I felt compelled to pursue it. Check out the music video directed by Elius Grace.",
+                           src: '/assets/bsalbum/A5. Sloucho - Love is Fear.mp3',
+                         },
+      {
+        title: 'Fake', feat: 'Gemma Dunleavy',
+        featInstagram: 'https://instagram.com/gemmadunleavy_',
+        bpm: '133', duration: '3:24',
+        desc: "Created in Dublin in September 2025. I made the instrumental from my bed a few weeks prior (one of the best places to produce btw) and sent it to Gemma to write to. She came to my home studio and we drank tea, talked about life, got sidetracked, lost track of time, then made the best song ever.",
+        src: '/assets/bsalbum/A6. Sloucho - Fake (ft. Gemma Dunleavy).mp3',
+      },
+
+      {
+        title: 'Survival', feat: null, featInstagram: null,
+        bpm: '150', duration: '2:24',
+        desc: "Created in Dublin in April 2026. I gathered a bunch of references and things to chop up over the course of a week and then speedran the whole thing in like 2 hours. Last thing that got added was the Korg M1 preset and it was over from there lol.",
+        src: '/assets/bsalbum/B1. Sloucho - Survival.mp3',
+      },
+      {
+        title: 'Catfished V2', feat: 'Crutch',
+        featInstagram: 'https://instagram.com/crutchinn',
+        bpm: '92', duration: '2:44',
+        desc: "Created in Dublin in April 2025. Crutch is a Dublin cult figure, if you know you know. I heard the original that he released produced by New Machine and made this edit. We finally linked up after a year to get the all clear and put it in on the album.",
+        src: '/assets/bsalbum/B2. Sloucho - Catfished V2 (ft. Crutch).mp3',
+      },
+      {
+        title: 'Something Else', feat: 'Kibo',
+        featInstagram: 'https://instagram.com/kibo_69_',
+        bpm: '124', duration: '1:54',
+        desc: "Created in London in July 2025. It was 30 degrees and we were in a studio with zero air conditioning so we only recorded half the verse before we succumbed to heat stroke. A year later we recorded the second half and put the final touches on it. This song has 3 beat switches and still comes in under 2 minutes, the hallmark of a good Sloucho song imo.",
+        src: '/assets/bsalbum/B3. Sloucho - Something Else (ft.Kibo).mp3',
+      },
+      {
+        title: 'Goodbye', feat: 'Rory Sweeney',
+        featInstagram: 'https://instagram.com/rory_sweeney123',
+        bpm: '150', duration: '4:22',
+        desc: "Created in Sligo in September 2024. Rory had a residency in The Regional Cultural Centre in Letterkenny so we pulled up for a few days and made a bunch of music. We also made 150K in that same week, inspired by the drag race festival that had shut down the whole town, we could hear the engines reving from the studio and tried to make something that people could blast out of their speakers while diffin.",
+        src: '/assets/bsalbum/B4. Sloucho - Goodbye (ft. Rory Sweeney).mp3',
+      },
+      {
+        title: 'Wiggidy Woo', feat: 'Tommy Holohan',
+        featInstagram: 'https://instagram.com/tommy.holohan',
+        bpm: '160', duration: '4:05',
+        desc: "Created in Dublin in February 2025. Tommy hit me up to do a session and we locked in for few hours and this happened. We tried a bunch of stuff that sounded terrible for a while but out of nowhere we kinda just realised we had a weapon on our hands. Very proud of the Wiggidy Woo sample, I was deep in a YouTube rabbit hole and managed to pull an adlib from a grime song from 2010.",
+        src: '/assets/bsalbum/B5. Sloucho - Wiggidy Woo (ft. Tommy Holohan).mp3',
+      },
+      {
+        title: 'Weightless', feat: null, featInstagram: null,
+        bpm: '155', duration: '2:56',
+        desc: "Created in Dublin in January 2025. There was a rough storm for a few days so I just locked myself in the studio and made a bunch of the early Broken Spirit demos. The idea for this track came from a song I heard Stella and the Dreaming perform at the NCH, I fell in love with the word Weightless and build the idea around the idea of feeling new things for the first time, and the liberation that comes with that.",
+        src: '/assets/bsalbum/B6. Sloucho - Weightless.mp3',
+      },
+    ];
 
 const DEMO_TRACKS = [
   { title: 'brokenspirit_[demo_071024]',  bpm: '116', duration: '2:48', desc: 'The earliest sketch that survived. A chord progression and a vocal idea that ended up buried inside two other tracks.',          src: '/assets/brokenspirit_[demo_071024].mp3' },
