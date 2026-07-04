@@ -1892,7 +1892,6 @@ async function initWorld() {
   const { EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js');
   const { RenderPass } = await import('three/addons/postprocessing/RenderPass.js');
   const { ShaderPass } = await import('three/addons/postprocessing/ShaderPass.js');
-  const { UnrealBloomPass } = await import('three/addons/postprocessing/UnrealBloomPass.js');
 
   const bs = window.__bs;                  // portal player hook
   const audio = bs.audio;
@@ -1910,7 +1909,7 @@ async function initWorld() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
+  renderer.toneMappingExposure = 1.3;
 
   const fadeEl = document.getElementById('fade3d');
   function flashFade() {           // start covered, reveal (mode entry)
@@ -1941,9 +1940,6 @@ async function initWorld() {
   composer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
   composer.setSize(window.innerWidth, window.innerHeight);
   composer.addPass(new RenderPass(scene, camera));
-  composer.addPass(new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight), 0.42, 0.65, 0.8
-  ));
   const postPass = new ShaderPass({
     uniforms: { tDiffuse: { value: null }, time: { value: 0 } },
     vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
@@ -1961,7 +1957,7 @@ async function initWorld() {
   });
   composer.addPass(postPass);
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xd8d8e0, 1.15));
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xd8d8e0, 1.35));
   const sun = new THREE.DirectionalLight(0xffffff, 1.25);
   sun.position.set(18, 32, -14);
   sun.castShadow = true;
@@ -1972,19 +1968,19 @@ async function initWorld() {
   scene.add(sun.target);
 
   // ── warehouse dimensions ──
-  const WX = 44, WZ = 64, WH = 13;        // half-width, half-depth, wall height
+  const WX = 56, WZ = 78, WH = 13;        // half-width, half-depth, wall height
   const DOOR_HALF = 0.75, DOOR_H = 2.5;   // human-scale doorway, south wall (z = -WZ)
   const PH = 2.4;                          // platform height — above the algorithm
   const PTOP = 8;                          // platform top size
   const SL = 3.6;                          // stair run
   // staggered album flow: 1-2-3-3-2-1 from the door to the far wall
   const P_POS = [
-    [0, -42],                              // fall4me
-    [-14, -25], [14, -25],                 // Nothing Like Me · Angel
-    [-19, -8], [19, -8], [0, -8],          // All Night · (Love is Fear right) · (Fake centre)
-    [-19, 9], [0, 9], [19, 9],             // Survival · Catfished V2 · Something Else
-    [-14, 26], [14, 26],                   // Goodbye · Wiggidy Woo
-    [0, 43],                               // Weightless
+    [0, -52],                              // fall4me
+    [-18, -31], [18, -31],                 // Nothing Like Me · Angel
+    [-24, -10], [24, -10], [0, -10],       // All Night · (Love is Fear right) · (Fake centre)
+    [-24, 11], [0, 11], [24, 11],          // Survival · Catfished V2 · Something Else
+    [-18, 32], [18, 32],                   // Goodbye · Wiggidy Woo
+    [0, 53],                               // Weightless
   ];
   const PX = (i) => P_POS[i][0];
   const PZ = (i) => P_POS[i][1];
@@ -2085,8 +2081,8 @@ async function initWorld() {
   const panelGeo = new THREE.BoxGeometry(3.4, 0.12, 1.4);
   const panelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.85 });
   const panelPos = [];
-  for (let px = -40; px <= 40; px += 12) {
-    for (let pz = -56; pz <= 56; pz += 11.5) panelPos.push([px, pz]);
+  for (let px = -52; px <= 52; px += 13) {
+    for (let pz = -72; pz <= 72; pz += 12) panelPos.push([px, pz]);
   }
   const panels = new THREE.InstancedMesh(panelGeo, panelMat, panelPos.length);
   const _pm4 = new THREE.Matrix4();
@@ -2707,13 +2703,15 @@ async function initWorld() {
     const dt = Math.min(clock.getDelta(), 0.05);
     const t = clock.elapsedTime;
 
-    // movement
+    // movement (frozen while the info card is open)
     let ix = 0, iz = 0;
-    if (keys['KeyW'] || keys['ArrowUp'])    iz -= 1;
-    if (keys['KeyS'] || keys['ArrowDown'])  iz += 1;
-    if (keys['KeyA'] || keys['ArrowLeft'])  ix -= 1;
-    if (keys['KeyD'] || keys['ArrowRight']) ix += 1;
-    ix += stickVec.x; iz += stickVec.y;
+    if (!info3d.classList.contains('show')) {
+      if (keys['KeyW'] || keys['ArrowUp'])    iz -= 1;
+      if (keys['KeyS'] || keys['ArrowDown'])  iz += 1;
+      if (keys['KeyA'] || keys['ArrowLeft'])  ix -= 1;
+      if (keys['KeyD'] || keys['ArrowRight']) ix += 1;
+      ix += stickVec.x; iz += stickVec.y;
+    }
     const inLen = Math.hypot(ix, iz);
     if (inLen > 1) { ix /= inLen; iz /= inLen; }
     const sinY = Math.sin(camYaw), cosY = Math.cos(camYaw);
