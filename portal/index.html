@@ -6,7 +6,7 @@
   <link rel="icon" href="favicon.ico?v=2">
   <link rel="preload" as="image" href="/assets/spiral.png">
   <link rel="icon" type="image/png" href="assets/favicon.png?v=2">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 
   <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
@@ -293,7 +293,7 @@
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border-top: 1px solid var(--border);
-      padding: 10px 0 14px;
+      padding: 10px 0 calc(14px + env(safe-area-inset-bottom, 0px));
       display: none;
       justify-content: center;
       z-index: 500;
@@ -2188,6 +2188,22 @@ async function initWorld() {
   }
   const signPts = [];
 
+  // solid sign pill — rounded shape extruded to real depth
+  const SIGN_W = 1.9, SIGN_H = 0.475, SIGN_D = 0.07;
+  const signShape = new THREE.Shape();
+  {
+    const r = SIGN_H / 2;
+    signShape.moveTo(-SIGN_W / 2 + r, -SIGN_H / 2);
+    signShape.lineTo(SIGN_W / 2 - r, -SIGN_H / 2);
+    signShape.absarc(SIGN_W / 2 - r, 0, r, -Math.PI / 2, Math.PI / 2, false);
+    signShape.lineTo(-SIGN_W / 2 + r, SIGN_H / 2);
+    signShape.absarc(-SIGN_W / 2 + r, 0, r, Math.PI / 2, Math.PI * 1.5, false);
+  }
+  const signBodyGeo = new THREE.ExtrudeGeometry(signShape, { depth: SIGN_D, bevelEnabled: false, curveSegments: 24 });
+  signBodyGeo.translate(0, 0, -SIGN_D / 2);
+  const signBodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+  const signFaceGeo = new THREE.PlaneGeometry(SIGN_W, SIGN_H);
+
   const labelsEl = document.getElementById('labels3d');
   const ringGeo = new THREE.TorusGeometry(0.85, 0.035, 12, 60);
   const coreGeo = new THREE.SphereGeometry(0.22, 20, 20);
@@ -2260,16 +2276,17 @@ async function initWorld() {
     post.position.set(sgx, 0.4, sgz);
     post.castShadow = true;
     scene.add(post);
+    const body = new THREE.Mesh(signBodyGeo, signBodyMat);
+    body.position.set(sgx, 1.05, sgz);
+    body.castShadow = true;
+    body.userData.sign = i;
     const faceMat = new THREE.MeshBasicMaterial({ map: makeSignTexture(TRACKS[i]), transparent: true });
-    const face = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.475), faceMat);
-    face.position.set(sgx, 1.05, sgz - 0.01);
-    face.rotation.y = Math.PI;             // faces the approach
+    const face = new THREE.Mesh(signFaceGeo, faceMat);
+    face.position.set(sgx, 1.05, sgz - SIGN_D / 2 - 0.004);
+    face.rotation.y = Math.PI;             // text on the approach side only — back is blank
     face.userData.sign = i;
-    const face2 = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.475), faceMat);
-    face2.position.set(sgx, 1.05, sgz + 0.01);
-    face2.userData.sign = i;
-    scene.add(face, face2);
-    pickMeshes.push(face, face2);
+    scene.add(body, face);
+    pickMeshes.push(body, face);
     colliders.push({ minX: sgx - 0.4, maxX: sgx + 0.4, minZ: sgz - 0.22, maxZ: sgz + 0.22 });
     signPts.push({ x: sgx, z: sgz });
 
