@@ -616,11 +616,6 @@
     .pill3d:hover { background: var(--pill-bg-hover); border-color: var(--border-hover); }
     .pill3d .t { font-size: 13px; color: #000; font-weight: 500; }
     .pill3d .f { font-size: 11px; color: var(--muted); }
-    .pill3d .hint {
-      font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase;
-      color: var(--muted); display: none;
-    }
-    .pill3d.near .hint { display: inline; }
     .pill3d.playing { border-color: rgba(0,0,0,0.4); }
     .pill3d.playing::before {
       content: '';
@@ -653,10 +648,10 @@
     .bubble3d.show { opacity: 1; }
 
     #hint3d {
-      position: fixed; bottom: 22px; left: 22px; z-index: 5;
+      position: fixed; bottom: 104px; left: 22px; z-index: 5;
       display: none;
-      font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase;
-      color: rgba(0,0,0,0.3); line-height: 2;
+      font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase;
+      color: rgba(0,0,0,0.55); line-height: 2.1;
       pointer-events: none;
     }
     @media (min-width: 701px) { body.mode-3d #hint3d { display: block; } }
@@ -1962,15 +1957,22 @@ async function initWorld() {
   scene.add(sun.target);
 
   // ── warehouse dimensions ──
-  const WX = 62, WZ = 46, WH = 13;        // half-width, half-depth, wall height
+  const WX = 34, WZ = 46, WH = 13;        // half-width, half-depth, wall height
   const DOOR_HALF = 0.75, DOOR_H = 2.5;   // human-scale doorway, south wall (z = -WZ)
   const PH = 2.4;                          // platform height — above the algorithm
   const PTOP = 8;                          // platform top size
   const SL = 3.6;                          // stair run
-  const COLS_X = [-45, -15, 15, 45];
-  const ROWS_Z = [-28, 0, 28];             // south row first: reading order from the door
-  const PX = (i) => COLS_X[i % 4];
-  const PZ = (i) => ROWS_Z[Math.floor(i / 4)];
+  // staggered album flow: 1-2-3-3-2-1 from the door to the far wall
+  const P_POS = [
+    [0, -32],                              // fall4me
+    [-11, -18.5], [11, -18.5],             // Nothing Like Me · Angel
+    [-15, -5], [15, -5], [0, -5],          // All Night · (Love is Fear right) · (Fake centre)
+    [-15, 8.5], [0, 8.5], [15, 8.5],       // Survival · Catfished V2 · Something Else
+    [-11, 22], [11, 22],                   // Goodbye · Wiggidy Woo
+    [0, 35.5],                             // Weightless
+  ];
+  const PX = (i) => P_POS[i][0];
+  const PZ = (i) => P_POS[i][1];
 
   const colliders = [];
   const occluders = [];      // block pills + camera (walls, platforms)
@@ -2045,8 +2047,16 @@ async function initWorld() {
   const header = new THREE.Mesh(new THREE.BoxGeometry(DOOR_HALF * 2 + 0.44, 0.22, 0.75), frameMat);
   header.position.set(0, DOOR_H, -WZ);
   scene.add(header);
-  const doorBlock = { minX: -DOOR_HALF - 0.2, maxX: DOOR_HALF + 0.2, minZ: -WZ - 0.6, maxZ: -WZ + 0.6 };
-  colliders.push(doorBlock);   // sealed until Ras invites you in
+  const doorPanel = new THREE.Mesh(
+    new THREE.BoxGeometry(DOOR_HALF * 2 + 0.1, DOOR_H, 0.14),
+    new THREE.MeshStandardMaterial({ color: 0x2e2e34, roughness: 0.7 })
+  );
+  doorPanel.position.set(0, DOOR_H / 2, -WZ);
+  scene.add(doorPanel);
+  occluders.push(doorPanel);
+  camOccluders.push(doorPanel);
+  colliders.push({ minX: -DOOR_HALF - 0.2, maxX: DOOR_HALF + 0.2, minZ: -WZ - 0.6, maxZ: -WZ + 0.6 });
+  // the door never opens — Ras carries you through it
 
   const ceiling = new THREE.Mesh(
     new THREE.PlaneGeometry(WX * 2, WZ * 2),
@@ -2060,7 +2070,7 @@ async function initWorld() {
   const panelGeo = new THREE.BoxGeometry(3.4, 0.12, 1.4);
   const panelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.85 });
   const panelPos = [];
-  for (let px = -54; px <= 54; px += 12) {
+  for (let px = -30; px <= 30; px += 12) {
     for (let pz = -40; pz <= 40; pz += 11.5) panelPos.push([px, pz]);
   }
   const panels = new THREE.InstancedMesh(panelGeo, panelMat, panelPos.length);
@@ -2140,7 +2150,18 @@ async function initWorld() {
       { minX: x + 1.58, maxX: x + 1.95, minZ: z - PTOP / 2 - SL, maxZ: z - PTOP / 2 },
       // platform sides are solid unless you're already on top
       { minX: x - PTOP / 2 - 0.05, maxX: x + PTOP / 2 + 0.05,
-        minZ: z - PTOP / 2 - 0.05, maxZ: z + PTOP / 2 + 0.05, below: PH - 0.6 }
+        minZ: z - PTOP / 2 - 0.05, maxZ: z + PTOP / 2 + 0.05, below: PH - 0.6 },
+      // invisible guard rails on top — only the stair gap leads down
+      { minX: x - PTOP / 2 - 0.2, maxX: x + PTOP / 2 + 0.2,
+        minZ: z + PTOP / 2 - 0.05, maxZ: z + PTOP / 2 + 0.25, above: PH - 0.6 },
+      { minX: x - PTOP / 2 - 0.25, maxX: x - PTOP / 2 + 0.05,
+        minZ: z - PTOP / 2 - 0.2, maxZ: z + PTOP / 2 + 0.2, above: PH - 0.6 },
+      { minX: x + PTOP / 2 - 0.05, maxX: x + PTOP / 2 + 0.25,
+        minZ: z - PTOP / 2 - 0.2, maxZ: z + PTOP / 2 + 0.2, above: PH - 0.6 },
+      { minX: x - PTOP / 2 - 0.2, maxX: x - 1.6,
+        minZ: z - PTOP / 2 - 0.25, maxZ: z - PTOP / 2 + 0.05, above: PH - 0.6 },
+      { minX: x + 1.6, maxX: x + PTOP / 2 + 0.2,
+        minZ: z - PTOP / 2 - 0.25, maxZ: z - PTOP / 2 + 0.05, above: PH - 0.6 }
     );
 
     const group = new THREE.Group();
@@ -2160,8 +2181,7 @@ async function initWorld() {
     pill.className = 'pill3d';
     pill.innerHTML =
       `<span class="t">${TRACKS[i].title}</span>` +
-      (TRACKS[i].feat ? `<span class="f">ft. ${TRACKS[i].feat}</span>` : '') +
-      `<span class="hint">Play</span>`;
+      (TRACKS[i].feat ? `<span class="f">ft. ${TRACKS[i].feat}</span>` : '');
     pill.addEventListener('click', (e) => { e.stopPropagation(); select(i, true); });
     labelsEl.appendChild(pill);
 
@@ -2338,35 +2358,44 @@ async function initWorld() {
     rasLoaded = true;
     colliders.push({ minX: rasPos.x - 0.4, maxX: rasPos.x + 0.4, minZ: rasPos.z - 0.4, maxZ: rasPos.z + 0.4 });
     rasResolve();
-  }, undefined, (e) => { console.warn('[3d] ras.glb not found', e); doorBlock.off = true; rasResolve(); });
+  }, undefined, (e) => { console.warn('[3d] ras.glb not found', e); rasResolve(); });
 
-  // talk to Ras → he welcomes you, then you're brought inside
-  let rasTalked = false, rasTalking = false;
+  // talk to Ras → he welcomes you, then you're carried inside.
+  // at the closed door inside, interact to step back out.
+  let rasTalking = false;
   function talkToRas() {
-    if (rasTalking || !rasLoaded) return;
-    if (rasTalked) {   // repeat visits: he just says it again
-      bubble.classList.add('show');
-      setTimeout(() => bubble.classList.remove('show'), 2400);
-      return;
-    }
+    if (rasTalking) return;
     rasTalking = true;
-    bubble.classList.add('show');
+    if (rasLoaded) bubble.classList.add('show');
     setTimeout(() => {
       fadeCover(() => {
-        player.position.set(0, 0, -WZ + 3.5);
+        player.position.set(0, 0, -WZ + 4);
         playerY = 0;
         player.position.y = 0;
         vel.set(0, 0, 0);
-        player.rotation.y = 0;
+        player.rotation.y = 0;      // facing into the warehouse
         targetRotY = 0;
         camYaw = Math.PI;
         snapCamera();
         bubble.classList.remove('show');
-        doorBlock.off = true;      // the door stays open from now on
-        rasTalked = true;
         rasTalking = false;
       });
-    }, 2100);
+    }, rasLoaded ? 2100 : 200);
+  }
+  function exitOutside() {
+    if (rasTalking) return;
+    rasTalking = true;
+    fadeCover(() => {
+      player.position.set(0, 0, -WZ - 4.5);
+      playerY = 0;
+      player.position.y = 0;
+      vel.set(0, 0, 0);
+      player.rotation.y = 0;        // facing Ras and the door
+      targetRotY = 0;
+      camYaw = Math.PI;
+      snapCamera();
+      rasTalking = false;
+    });
   }
 
   // footsteps (synthesized)
@@ -2428,10 +2457,17 @@ async function initWorld() {
   }
 
   function nearRas() {
-    return rasLoaded && player.position.distanceTo(rasPos) < 3.5;
+    return player.position.z < -WZ &&
+      (rasLoaded ? player.position.distanceTo(rasPos) < 3.5
+                 : (Math.abs(player.position.x) < 3 && player.position.z > -WZ - 5));
+  }
+  function nearDoorInside() {
+    return player.position.z >= -WZ && player.position.z < -WZ + 3.5 &&
+           Math.abs(player.position.x) < 3;
   }
   function doInteract() {
     if (nearRas()) { talkToRas(); return; }
+    if (nearDoorInside()) { exitOutside(); return; }
     const on = standingOn();
     if (on !== null) select(on, true);
   }
@@ -2575,11 +2611,18 @@ async function initWorld() {
 
   function snapCamera() {
     camLook.set(player.position.x, player.position.y + 1.5, player.position.z);
-    camera.position.set(
+    _p.set(
       camLook.x + Math.sin(camYaw) * Math.cos(camPitch) * camDist,
       camLook.y + Math.sin(camPitch) * camDist,
       camLook.z + Math.cos(camYaw) * Math.cos(camPitch) * camDist
     );
+    _pv.copy(_p).sub(camLook);
+    const len = _pv.length();
+    _ray.far = len;
+    _ray.set(camLook, _pv.normalize());
+    const hits = _ray.intersectObjects(camOccluders, false);
+    if (hits.length) _p.copy(camLook).addScaledVector(_pv, Math.max(hits[0].distance - 0.35, 1.2));
+    camera.position.copy(_p);
     camera.lookAt(camLook);
   }
 
@@ -2614,6 +2657,7 @@ async function initWorld() {
       const b = colliders[ci];
       if (b.off) continue;
       if (b.below !== undefined && playerY > b.below) continue;
+      if (b.above !== undefined && playerY < b.above) continue;
       const px = Math.max(b.minX, Math.min(player.position.x, b.maxX));
       const pz = Math.max(b.minZ, Math.min(player.position.z, b.maxZ));
       const dx = player.position.x - px, dz = player.position.z - pz;
@@ -2706,7 +2750,7 @@ async function initWorld() {
     const cur = bs.current();
     const playing = cur !== null && cur < N && !audio.paused;
     const onIdx = standingOn();
-    if (isTouch) interactBtn.classList.toggle('on', onIdx !== null || nearRas());
+    if (isTouch) interactBtn.classList.toggle('on', onIdx !== null || nearRas() || nearDoorInside());
     camera.getWorldDirection(_v);
     const placed = [];
     const order = [];
@@ -2754,7 +2798,6 @@ async function initWorld() {
       p.pill.style.opacity = String(0.15 + fade * 0.85);
       p.pill.style.pointerEvents = 'auto';
       p.pill.style.transform = `translate(-50%,-50%) translate(${sx}px,${sy}px) scale(${sc})`;
-      p.pill.classList.toggle('near', i === onIdx);
     }
 
     // Ras bubble (visible while he speaks)
