@@ -597,39 +597,6 @@
     }
     body.mode-3d .now-playing-bar { z-index: 6; }
 
-    .pill3d {
-      position: absolute; left: 0; top: 0;
-      transform: translate(-50%, -50%);
-      background: var(--pill-bg);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 7px 14px;
-      display: flex; align-items: baseline; gap: 7px;
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: auto;
-      cursor: pointer;
-      will-change: transform;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    .pill3d:hover { background: var(--pill-bg-hover); border-color: var(--border-hover); }
-    .pill3d .t { font-size: 13px; color: #000; font-weight: 500; }
-    .pill3d .f { font-size: 11px; color: var(--muted); }
-    .pill3d.playing { border-color: rgba(0,0,0,0.4); }
-    .pill3d.playing::before {
-      content: '';
-      width: 6px; height: 6px; border-radius: 50%;
-      background: #000; align-self: center;
-      animation: pill3dPulse 1.4s infinite;
-    }
-    @keyframes pill3dPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
-    @media (max-width: 700px) {
-      .pill3d { padding: 5px 10px; gap: 5px; }
-      .pill3d .t { font-size: 11px; }
-      .pill3d .f { font-size: 9px; }
-    }
-
     .bubble3d {
       position: absolute; left: 0; top: 0;
       transform: translate(-50%, -100%);
@@ -706,6 +673,50 @@
       transition: opacity 0.2s, border-color 0.2s;
     }
     #ctlInteract.on { opacity: 1; border-color: rgba(0,0,0,0.45); color: #000; background: rgba(255,255,255,0.92); }
+
+    /* sign info popup (the "i" panel, in-world) */
+    #info3d {
+      position: fixed; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.28);
+      z-index: 30;
+      padding: 20px;
+    }
+    #info3d.show { display: flex; }
+    #info3dCard {
+      position: relative;
+      width: min(400px, 92vw);
+      max-height: 74vh;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 22px 24px 20px;
+      user-select: text; -webkit-user-select: text;
+    }
+    #info3dClose {
+      position: absolute; top: 10px; right: 10px;
+      width: 30px; height: 30px; border-radius: 50%;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.04);
+      color: var(--muted); font-size: 12px; line-height: 1;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    #info3dClose:hover { border-color: var(--border-hover); color: #000; }
+    #info3dTitle { font-size: 16px; font-weight: 500; color: #000; margin-bottom: 4px; padding-right: 32px; }
+    #info3dTitle span { font-size: 12px; color: var(--muted); font-weight: 400; }
+    #info3dStats { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(0,0,0,0.35); margin-bottom: 12px; }
+    #info3dDesc { font-size: 12px; line-height: 1.6; color: rgba(0,0,0,0.65); margin: 0; }
+    #info3dActions { margin-top: 14px; }
+    #info3dActions:empty { display: none; }
+    #info3dActions a {
+      display: inline-flex; font-size: 11px; padding: 6px 14px;
+      border-radius: 999px; border: 1px solid var(--border);
+      color: var(--muted); text-decoration: none;
+    }
+    #info3dActions a:hover { border-color: var(--border-hover); color: #000; }
 
     /* 3D entry / teleport fade */
     #fade3d {
@@ -1881,6 +1892,7 @@ async function initWorld() {
   const { EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js');
   const { RenderPass } = await import('three/addons/postprocessing/RenderPass.js');
   const { ShaderPass } = await import('three/addons/postprocessing/ShaderPass.js');
+  const { UnrealBloomPass } = await import('three/addons/postprocessing/UnrealBloomPass.js');
 
   const bs = window.__bs;                  // portal player hook
   const audio = bs.audio;
@@ -1929,6 +1941,9 @@ async function initWorld() {
   composer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
   composer.setSize(window.innerWidth, window.innerHeight);
   composer.addPass(new RenderPass(scene, camera));
+  composer.addPass(new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight), 0.42, 0.65, 0.8
+  ));
   const postPass = new ShaderPass({
     uniforms: { tDiffuse: { value: null }, time: { value: 0 } },
     vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
@@ -1957,19 +1972,19 @@ async function initWorld() {
   scene.add(sun.target);
 
   // ── warehouse dimensions ──
-  const WX = 34, WZ = 46, WH = 13;        // half-width, half-depth, wall height
+  const WX = 44, WZ = 64, WH = 13;        // half-width, half-depth, wall height
   const DOOR_HALF = 0.75, DOOR_H = 2.5;   // human-scale doorway, south wall (z = -WZ)
   const PH = 2.4;                          // platform height — above the algorithm
   const PTOP = 8;                          // platform top size
   const SL = 3.6;                          // stair run
   // staggered album flow: 1-2-3-3-2-1 from the door to the far wall
   const P_POS = [
-    [0, -32],                              // fall4me
-    [-11, -18.5], [11, -18.5],             // Nothing Like Me · Angel
-    [-15, -5], [15, -5], [0, -5],          // All Night · (Love is Fear right) · (Fake centre)
-    [-15, 8.5], [0, 8.5], [15, 8.5],       // Survival · Catfished V2 · Something Else
-    [-11, 22], [11, 22],                   // Goodbye · Wiggidy Woo
-    [0, 35.5],                             // Weightless
+    [0, -42],                              // fall4me
+    [-14, -25], [14, -25],                 // Nothing Like Me · Angel
+    [-19, -8], [19, -8], [0, -8],          // All Night · (Love is Fear right) · (Fake centre)
+    [-19, 9], [0, 9], [19, 9],             // Survival · Catfished V2 · Something Else
+    [-14, 26], [14, 26],                   // Goodbye · Wiggidy Woo
+    [0, 43],                               // Weightless
   ];
   const PX = (i) => P_POS[i][0];
   const PZ = (i) => P_POS[i][1];
@@ -1990,7 +2005,7 @@ async function initWorld() {
   videoTex.colorSpace = THREE.SRGBColorSpace;
   videoTex.wrapS = videoTex.wrapT = THREE.RepeatWrapping;
   videoTex.repeat.set(3, 2);
-  const floorMat = new THREE.MeshBasicMaterial({ map: videoTex, color: 0xbbbbbb });
+  const floorMat = new THREE.MeshBasicMaterial({ map: videoTex });   // unlit, full brightness — reads as a screen
   video.addEventListener('error', () => {
     floorMat.map = null;
     floorMat.color.set(0x2a2a30);
@@ -2070,8 +2085,8 @@ async function initWorld() {
   const panelGeo = new THREE.BoxGeometry(3.4, 0.12, 1.4);
   const panelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.85 });
   const panelPos = [];
-  for (let px = -30; px <= 30; px += 12) {
-    for (let pz = -40; pz <= 40; pz += 11.5) panelPos.push([px, pz]);
+  for (let px = -40; px <= 40; px += 12) {
+    for (let pz = -56; pz <= 56; pz += 11.5) panelPos.push([px, pz]);
   }
   const panels = new THREE.InstancedMesh(panelGeo, panelMat, panelPos.length);
   const _pm4 = new THREE.Matrix4();
@@ -2110,6 +2125,22 @@ async function initWorld() {
   const baseMat = new THREE.MeshStandardMaterial({ color: 0xdfdfe5, roughness: 1 });
   const deckMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, map: deckTex });
   const stepMat = new THREE.MeshStandardMaterial({ color: 0xd6d6dc, roughness: 1 });
+
+  function makeSignTexture() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#f2f1ec';
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.fillStyle = 'rgba(0,0,0,0.75)';
+    ctx.font = 'italic 74px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('i', 64, 66);
+    return new THREE.CanvasTexture(c);
+  }
+  const signMat = new THREE.MeshStandardMaterial({ map: makeSignTexture(), roughness: 0.9 });
+  const signPts = [];
 
   const labelsEl = document.getElementById('labels3d');
   const ringGeo = new THREE.TorusGeometry(0.85, 0.035, 12, 60);
@@ -2177,15 +2208,22 @@ async function initWorld() {
     scene.add(group);
     pickMeshes.push(ring, ring2, core);
 
-    const pill = document.createElement('div');
-    pill.className = 'pill3d';
-    pill.innerHTML =
-      `<span class="t">${TRACKS[i].title}</span>` +
-      (TRACKS[i].feat ? `<span class="f">ft. ${TRACKS[i].feat}</span>` : '');
-    pill.addEventListener('click', (e) => { e.stopPropagation(); select(i, true); });
-    labelsEl.appendChild(pill);
+    // info sign at the foot of the stairs
+    const sgx = x + 2.5, sgz = z - PTOP / 2 - SL - 0.2;
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.85, 0.1), frameMat);
+    post.position.set(sgx, 0.425, sgz);
+    post.castShadow = true;
+    scene.add(post);
+    const board = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.66, 0.07), signMat);
+    board.position.set(sgx, 1.02, sgz);
+    board.castShadow = true;
+    board.userData.sign = i;
+    scene.add(board);
+    pickMeshes.push(board);
+    colliders.push({ minX: sgx - 0.4, maxX: sgx + 0.4, minZ: sgz - 0.22, maxZ: sgz + 0.22 });
+    signPts.push({ x: sgx, z: sgz });
 
-    platforms.push({ x, z, group, ring, ring2, pill, baseY: PH + 1.8, phase: Math.random() * Math.PI * 2 });
+    platforms.push({ x, z, group, ring, ring2, baseY: PH + 1.8, phase: Math.random() * Math.PI * 2 });
   }
 
   // height of the walkable ground at (x, z): floor, stair ramp, or platform top
@@ -2382,6 +2420,31 @@ async function initWorld() {
       });
     }, rasLoaded ? 2100 : 200);
   }
+  const info3d = document.createElement('div');
+  info3d.id = 'info3d';
+  info3d.innerHTML =
+    '<div id="info3dCard">' +
+      '<button id="info3dClose" aria-label="Close">✕</button>' +
+      '<div id="info3dTitle"></div>' +
+      '<div id="info3dStats"></div>' +
+      '<p id="info3dDesc"></p>' +
+      '<div id="info3dActions"></div>' +
+    '</div>';
+  document.body.appendChild(info3d);
+  function openInfo(i) {
+    const tr = TRACKS[i];
+    document.getElementById('info3dTitle').innerHTML =
+      tr.title + (tr.feat ? ` <span>ft. ${tr.feat}</span>` : '');
+    document.getElementById('info3dStats').textContent = `${tr.bpm} BPM · ${tr.duration}`;
+    document.getElementById('info3dDesc').textContent = tr.desc || '';
+    document.getElementById('info3dActions').innerHTML =
+      tr.youtube ? `<a href="${tr.youtube}" target="_blank" rel="noopener">Watch video</a>` : '';
+    info3d.classList.add('show');
+  }
+  function closeInfo() { info3d.classList.remove('show'); }
+  info3d.addEventListener('click', (e) => { if (e.target === info3d) closeInfo(); });
+  info3d.querySelector('#info3dClose').addEventListener('click', closeInfo);
+
   function exitOutside() {
     if (rasTalking) return;
     rasTalking = true;
@@ -2465,9 +2528,21 @@ async function initWorld() {
     return player.position.z >= -WZ && player.position.z < -WZ + 3.5 &&
            Math.abs(player.position.x) < 3;
   }
+  function nearSign() {
+    if (playerY > 0.6) return null;
+    for (let i = 0; i < N; i++) {
+      const dx = player.position.x - signPts[i].x;
+      const dz = player.position.z - signPts[i].z;
+      if (dx * dx + dz * dz < 4.8) return i;
+    }
+    return null;
+  }
   function doInteract() {
+    if (info3d.classList.contains('show')) { closeInfo(); return; }
     if (nearRas()) { talkToRas(); return; }
     if (nearDoorInside()) { exitOutside(); return; }
+    const s = nearSign();
+    if (s !== null) { openInfo(s); return; }
     const on = standingOn();
     if (on !== null) select(on, true);
   }
@@ -2488,7 +2563,10 @@ async function initWorld() {
     if (!document.body.classList.contains('mode-3d')) return;
     keys[e.code] = true;
     if (e.code === 'KeyE') doInteract();
-    if (e.code === 'Escape') window.toggle3D();
+    if (e.code === 'Escape') {
+      if (info3d.classList.contains('show')) closeInfo();
+      else window.toggle3D();
+    }
   });
   window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
@@ -2532,7 +2610,12 @@ async function initWorld() {
     _ray.setFromCamera(_ndc, camera);
     const hits = _ray.intersectObjects(pickMeshes, false);
     if (!hits.length) return;
-    const idx = hits[0].object.userData.idx;
+    const ud = hits[0].object.userData;
+    if (ud.sign !== undefined) {
+      if (player.position.distanceTo(hits[0].object.position) < 7) openInfo(ud.sign);
+      return;
+    }
+    const idx = ud.idx;
     if (idx === 'ras') {
       if (player.position.distanceTo(rasPos) < 5) talkToRas();
       return;
@@ -2592,14 +2675,6 @@ async function initWorld() {
   camPad.addEventListener('pointercancel', endCam);
 
   interactBtn.addEventListener('click', () => doInteract());
-
-  // pill sizes for overlap resolution (measured when 3D mode is visible)
-  function measurePills() {
-    platforms.forEach((p) => {
-      p.pw = p.pill.offsetWidth || 130;
-      p.ph2 = p.pill.offsetHeight || 32;
-    });
-  }
 
   // ── loop ──
   const clock = new THREE.Clock();
@@ -2746,58 +2821,22 @@ async function initWorld() {
     sun.target.position.copy(player.position);
     dust.rotation.y = t * 0.008;
 
-    // pills + rings
+    // rings (the playing track pulses)
     const cur = bs.current();
     const playing = cur !== null && cur < N && !audio.paused;
     const onIdx = standingOn();
-    if (isTouch) interactBtn.classList.toggle('on', onIdx !== null || nearRas() || nearDoorInside());
-    camera.getWorldDirection(_v);
-    const placed = [];
-    const order = [];
+    if (isTouch) {
+      interactBtn.classList.toggle('on',
+        onIdx !== null || nearRas() || nearDoorInside() || nearSign() !== null);
+    }
     for (let i = 0; i < N; i++) {
       const p = platforms[i];
       p.group.position.y = p.baseY + Math.sin(t * 0.8 + p.phase) * 0.25;
       p.ring.rotation.z = t * 0.4 + p.phase;
       p.ring2.rotation.y = t * 0.55 + p.phase;
       const isCur = playing && cur === i;
-      p.pill.classList.toggle('playing', isCur);
       p.group.scale.setScalar(isCur ? 1 + Math.sin(t * 4) * 0.06 : 1);
       p.ring.material.emissiveIntensity = isCur ? 0.7 + Math.sin(t * 4) * 0.25 : 0.35;
-      // hidden unless it survives visibility, occlusion and overlap tests
-      p.pill.style.opacity = '0';
-      p.pill.style.pointerEvents = 'none';
-      _p.set(p.x, p.baseY + 1.4, p.z);
-      p._dist = _p.distanceTo(camera.position);
-      order.push(i);
-    }
-    order.sort((a, b) => platforms[a]._dist - platforms[b]._dist);   // nearer pills win space
-    for (let oi = 0; oi < order.length; oi++) {
-      const i = order[oi];
-      const p = platforms[i];
-      const dist = p._dist;
-      _p.set(p.x, p.baseY + 1.4, p.z);
-      _pv.copy(_p).sub(camera.position);
-      if (_pv.dot(_v) < 0.1 || dist > 110) continue;
-      // hidden behind walls / platforms?
-      _ray.far = Math.max(dist - 1.4, 0.1);
-      _ray.set(camera.position, _pv.normalize());
-      if (_ray.intersectObjects(occluders, false).length) continue;
-      _p.project(camera);
-      const sx = (_p.x * 0.5 + 0.5) * window.innerWidth;
-      const sy = (-_p.y * 0.5 + 0.5) * window.innerHeight;
-      const fade = dist < 25 ? 1 : Math.max(0, 1 - (dist - 25) / 65);
-      const sc = 0.65 + fade * 0.35;
-      const w = (p.pw || 130) * sc, hh = (p.ph2 || 32) * sc;
-      let clash = false;
-      for (let k = 0; k < placed.length; k++) {
-        const r = placed[k];
-        if (Math.abs(sx - r[0]) < (w + r[2]) / 2 + 4 && Math.abs(sy - r[1]) < (hh + r[3]) / 2 + 4) { clash = true; break; }
-      }
-      if (clash) continue;
-      placed.push([sx, sy, w, hh]);
-      p.pill.style.opacity = String(0.15 + fade * 0.85);
-      p.pill.style.pointerEvents = 'auto';
-      p.pill.style.transform = `translate(-50%,-50%) translate(${sx}px,${sy}px) scale(${sc})`;
     }
 
     // Ras bubble (visible while he speaks)
@@ -2816,7 +2855,6 @@ async function initWorld() {
   animate();
 
   api.onResize = function () {
-    measurePills();
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
