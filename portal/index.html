@@ -1877,6 +1877,12 @@ window.toggle3D = async function () {
 };
 
 window.addEventListener('resize', () => { if (world) world.onResize(); });
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => { if (world) world.onResize(); }, 350);
+});
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => { if (world) world.onResize(); });
+}
 
 // kill pull-to-refresh / rubber-banding while in 3D (player bar & nav still work)
 document.addEventListener('touchmove', (e) => {
@@ -2122,20 +2128,64 @@ async function initWorld() {
   const deckMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, map: deckTex });
   const stepMat = new THREE.MeshStandardMaterial({ color: 0xd6d6dc, roughness: 1 });
 
-  function makeSignTexture() {
-    const c = document.createElement('canvas');
-    c.width = c.height = 128;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#f2f1ec';
-    ctx.fillRect(0, 0, 128, 128);
-    ctx.fillStyle = 'rgba(0,0,0,0.75)';
-    ctx.font = 'italic 74px Georgia, serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('i', 64, 66);
-    return new THREE.CanvasTexture(c);
+  function signRoundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
   }
-  const signMat = new THREE.MeshStandardMaterial({ map: makeSignTexture(), roughness: 0.9 });
+  function makeSignTexture(tr) {
+    const W = 512, H = 144;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    // pill card
+    ctx.fillStyle = 'rgba(255,255,255,0.97)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.16)';
+    ctx.lineWidth = 3;
+    signRoundRect(ctx, 2, 2, W - 4, H - 4, 34);
+    ctx.fill(); ctx.stroke();
+    // play button
+    ctx.beginPath();
+    ctx.arc(72, H / 2, 40, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.05)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.moveTo(62, H / 2 - 15);
+    ctx.lineTo(62, H / 2 + 15);
+    ctx.lineTo(89, H / 2);
+    ctx.closePath();
+    ctx.fill();
+    // title / feat — sized to fit
+    const x0 = 132, maxW = W - x0 - 26;
+    let fs = 46;
+    ctx.font = `500 ${fs}px -apple-system, 'Segoe UI', sans-serif`;
+    while (ctx.measureText(tr.title).width > maxW && fs > 20) {
+      fs -= 2;
+      ctx.font = `500 ${fs}px -apple-system, 'Segoe UI', sans-serif`;
+    }
+    ctx.fillStyle = '#000';
+    ctx.fillText(tr.title, x0, tr.feat ? H / 2 - 4 : H / 2 + 16);
+    if (tr.feat) {
+      let fs2 = 27;
+      ctx.font = `400 ${fs2}px -apple-system, 'Segoe UI', sans-serif`;
+      while (ctx.measureText('ft. ' + tr.feat).width > maxW && fs2 > 14) {
+        fs2 -= 2;
+        ctx.font = `400 ${fs2}px -apple-system, 'Segoe UI', sans-serif`;
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillText('ft. ' + tr.feat, x0, H / 2 + 38);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = 4;
+    return tex;
+  }
+  const signBackMat = new THREE.MeshStandardMaterial({ color: 0xf4f3ee, roughness: 0.9 });
   const signPts = [];
 
   const labelsEl = document.getElementById('labels3d');
@@ -2206,16 +2256,25 @@ async function initWorld() {
 
     // info sign at the foot of the stairs
     const sgx = x + 2.5, sgz = z - PTOP / 2 - SL - 0.2;
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.85, 0.1), frameMat);
-    post.position.set(sgx, 0.425, sgz);
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), frameMat);
+    post.position.set(sgx, 0.4, sgz);
     post.castShadow = true;
     scene.add(post);
-    const board = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.66, 0.07), signMat);
-    board.position.set(sgx, 1.02, sgz);
+    const board = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.55, 0.06), signBackMat);
+    board.position.set(sgx, 1.05, sgz);
     board.castShadow = true;
     board.userData.sign = i;
     scene.add(board);
     pickMeshes.push(board);
+    const face = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.84, 0.5),
+      new THREE.MeshBasicMaterial({ map: makeSignTexture(TRACKS[i]), transparent: true })
+    );
+    face.position.set(sgx, 1.05, sgz - 0.035);
+    face.rotation.y = Math.PI;             // faces the approach
+    face.userData.sign = i;
+    scene.add(face);
+    pickMeshes.push(face);
     colliders.push({ minX: sgx - 0.4, maxX: sgx + 0.4, minZ: sgz - 0.22, maxZ: sgz + 0.22 });
     signPts.push({ x: sgx, z: sgz });
 
@@ -2567,7 +2626,8 @@ async function initWorld() {
   window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
-  let camYaw = Math.PI, camPitch = 0.32, camDist = 7;
+  let camYaw = Math.PI, camPitch = 0.32;
+  const camDist = 9;                       // fixed follow distance
   let dragging = false, dragMoved = 0, lastX = 0, lastY = 0, downT = 0;
 
   canvas.addEventListener('pointerdown', (e) => {
@@ -2592,11 +2652,6 @@ async function initWorld() {
     if (dragMoved < 10 && performance.now() - downT < 500) pick(e.clientX, e.clientY);
   });
   canvas.addEventListener('pointercancel', () => { dragging = false; });
-
-  window.addEventListener('wheel', (e) => {
-    if (!document.body.classList.contains('mode-3d')) return;
-    camDist = Math.max(4, Math.min(12, camDist + e.deltaY * 0.005));
-  }, { passive: true });
 
   const _ray = new THREE.Raycaster();
   const _ndc = new THREE.Vector2();
