@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sloucho — Broken Spirit World</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --pill-bg: rgba(255,255,255,0.92);
+    --pill-bg-hover: rgba(255,255,255,0.97);
+    --border: rgba(0,0,0,0.12);
+    --border-hover: rgba(0,0,0,0.28);
+    --muted: rgba(0,0,0,0.45);
+    --radius-card: 14px;
+    --font: 'PPMori', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', sans-serif;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #f4f4f6;
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    touch-action: none;
+  }
+
+  #scene { position: fixed; inset: 0; display: block; }
+
+  /* ── floating 3D track pills ── */
+  #labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .pill3d {
+    position: absolute;
+    left: 0; top: 0;
+    transform: translate(-50%, -50%);
+    background: var(--pill-bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 7px 14px;
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.25s;
+    pointer-events: auto;
+    cursor: pointer;
+    will-change: transform;
+    user-select: none;
+  }
+  .pill3d:hover { background: var(--pill-bg-hover); border-color: var(--border-hover); }
+  .pill3d .t { font-size: 13px; color: #000; font-weight: 500; }
+  .pill3d .f { font-size: 11px; color: var(--muted); }
+  .pill3d .hint {
+    font-size: 9px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: none;
+  }
+  .pill3d.near .hint { display: inline; }
+  .pill3d.playing { border-color: rgba(0,0,0,0.4); }
+  .pill3d.playing::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #000;
+    align-self: center;
+    animation: pulse 1.4s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  /* ── start screen ── */
+  #start {
+    position: fixed; inset: 0;
+    background: #f4f4f6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 26px;
+    z-index: 20;
+    transition: opacity 1.2s;
+    color: rgba(0,0,0,0.9);
+    text-align: center;
+    padding: 20px;
+  }
+  #start.hidden { opacity: 0; pointer-events: none; }
+  #start h1 {
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.45em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.5);
+  }
+  #start h2 {
+    font-size: clamp(30px, 7vw, 54px);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+  }
+  #start p {
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.4);
+    line-height: 2;
+  }
+  #enterBtn {
+    font-family: var(--font);
+    background: #000;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 13px 34px;
+    font-size: 12px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: #fff;
+    transition: transform 0.2s;
+  }
+  #enterBtn:hover { transform: scale(1.04); }
+  #loadState { font-size: 10px; color: rgba(0,0,0,0.35); letter-spacing: 0.13em; text-transform: uppercase; }
+
+  /* ── bottom player ── */
+  #player {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    width: min(430px, calc(100vw - 28px));
+    background: var(--pill-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    z-index: 10;
+    overflow: hidden;
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  #player.hidden { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(12px); }
+  .p-row {
+    display: grid;
+    grid-template-columns: 40px 1fr auto auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 9px;
+  }
+  .circ-btn {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.05);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .circ-btn:hover { border-color: var(--border-hover); background: rgba(0,0,0,0.10); }
+  .circ-btn.small { width: 30px; height: 30px; }
+  .play-icon {
+    width: 0; height: 0;
+    border-left: 8px solid #000;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    transform: translateX(1px);
+  }
+  .pause-icon { width: 9px; height: 11px; display: none; position: relative; }
+  .pause-icon::before, .pause-icon::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 3px; background: #000;
+    border-radius: 2px;
+  }
+  .pause-icon::before { left: 0; }
+  .pause-icon::after  { right: 0; }
+  #player.playing .play-icon { display: none; }
+  #player.playing .pause-icon { display: block; }
+  .p-meta { min-width: 0; }
+  .p-title { font-size: 14px; color: #000; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+  .p-title a { color: var(--muted); text-decoration: none; font-size: 12px; }
+  .p-title a:hover { text-decoration: underline; }
+  .p-sub { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+  .info-icon { font-size: 14px; font-style: italic; font-family: Georgia, serif; color: var(--muted); line-height: 1; }
+  .x-icon { font-size: 13px; color: var(--muted); line-height: 1; }
+  .skip-icon { font-size: 15px; color: #000; line-height: 1; letter-spacing: -1px; }
+  #pDesc {
+    display: none;
+    padding: 0 14px 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: rgba(0,0,0,0.6);
+  }
+  #player.info-open #pDesc { display: block; }
+  #pBar { height: 2px; background: rgba(0,0,0,0.08); cursor: pointer; }
+  #pFill { height: 100%; width: 0%; background: #000; transition: width 0.2s linear; }
+  #pMissing {
+    display: none;
+    padding: 0 14px 12px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  #player.missing #pMissing { display: block; }
+
+  /* ── HUD ── */
+  #hud {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    font-size: 10px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.35);
+    pointer-events: none;
+    text-align: center;
+    transition: opacity 1s;
+  }
+  #controlsHint {
+    position: fixed;
+    bottom: 22px;
+    left: 22px;
+    z-index: 5;
+    font-size: 9px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.3);
+    line-height: 2;
+    pointer-events: none;
+    transition: opacity 1s;
+  }
+  @media (max-width: 700px) { #controlsHint { display: none; } }
+
+  /* virtual joystick (touch) */
+  #stick {
+    position: fixed;
+    display: none;
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.18);
+    z-index: 8;
+    pointer-events: none;
+  }
+  #stickKnob {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.25);
+    transform: translate(-50%, -50%);
+  }
+
+  /* ── tracklist panel (old-page pill UI) ── */
+  #tracksBtn {
+    position: fixed; top: 16px; right: 16px; z-index: 12;
+    font-family: var(--font);
+    background: var(--pill-bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 10px 20px;
+    font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase;
+    color: #000; cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  #tracksBtn:hover { border-color: var(--border-hover); }
+  #tracklist {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(340px, 100vw);
+    background: rgba(248,248,250,0.96);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-left: 1px solid var(--border);
+    z-index: 16;
+    padding: 16px 12px 24px;
+    overflow-y: auto;
+    transform: translateX(103%);
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+  }
+  #tracklist.open { transform: translateX(0); }
+  .tl-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 2px 2px 0; }
+  .section-label { font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: rgba(0,0,0,0.28); }
+  .track-pill {
+    background: var(--pill-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    margin-bottom: 5px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .track-pill:hover { border-color: var(--border-hover); }
+  .track-pill.playing { border-color: rgba(0,0,0,0.4); }
+  .track-pill.playing .play-icon { display: none; }
+  .track-pill.playing .pause-icon { display: block; }
+  .pill-row {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 9px;
+  }
+  .pill-meta { min-width: 0; }
+  .pill-title { font-size: 14px; font-weight: 500; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+  .pill-title .pill-feat { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .pill-sub { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* teleport fade */
+  #fade { position: fixed; inset: 0; background: #f4f4f6; opacity: 0; pointer-events: none; transition: opacity 0.35s; z-index: 9; }
+  #fade.on { opacity: 1; }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+<div id="labels"></div>
+
+<div id="hud">Broken Spirit</div>
+<div id="controlsHint">WASD — walk<br>Drag — look<br>E — play track<br>T — tracklist</div>
+
+<div id="stick"><div id="stickKnob"></div></div>
+
+<button id="tracksBtn">Tracks</button>
+
+<div id="tracklist">
+  <div class="tl-head">
+    <span class="section-label">Tracks</span>
+    <button class="circ-btn small" id="tlClose" aria-label="Close"><span class="x-icon">✕</span></button>
+  </div>
+  <div id="tlList"></div>
+</div>
+
+<div id="fade"></div>
+
+<div id="player" class="hidden">
+  <div class="p-row">
+    <button class="circ-btn" id="pPlay" aria-label="Play/Pause">
+      <span class="play-icon"></span><span class="pause-icon"></span>
+    </button>
+    <div class="p-meta">
+      <div class="p-title" id="pTitle"></div>
+      <div class="p-sub" id="pSub"></div>
+    </div>
+    <button class="circ-btn small" id="pSkip" aria-label="Skip song" title="Next song"><span class="skip-icon">»</span></button>
+    <button class="circ-btn small" id="pInfo" aria-label="Info"><span class="info-icon">i</span></button>
+    <button class="circ-btn small" id="pClose" aria-label="Close"><span class="x-icon">✕</span></button>
+  </div>
+  <div id="pDesc"></div>
+  <div id="pMissing">Audio file not found — drop the MP3s into assets/bsalbum/</div>
+  <div id="pBar"><div id="pFill"></div></div>
+</div>
+
+<div id="start">
+  <h1>Sloucho</h1>
+  <h2>BROKEN SPIRIT</h2>
+  <p>Twelve platforms · twelve songs<br>Pick a track — teleport to its platform</p>
+  <button id="enterBtn">Enter</button>
+  <div id="loadState">Loading world…</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+// ─────────────────────────────────────────────────────────────
+// TRACK DATA (from the Broken Spirit site)
+// ─────────────────────────────────────────────────────────────
+const TRACKS = [
+  { title: 'fall4me', feat: null, featIg: null, bpm: '90', duration: '1:55',
+    desc: "Created in Dublin in February 2025. This song began the journey of Broken Spirit, the only album with auto-tuned kick drums, live violin, baile funk and voice memo lead vocals. I wanted this song to be rough around the edges, scrappy and feel human, whatever that means in 2026. Strings recorded by Chloe Fitzgerald.",
+    src: '/assets/bsalbum/A1. Sloucho - fall4me.mp3' },
+  { title: 'Nothing Like Me', feat: 'Jaydonclover', featIg: 'https://instagram.com/jaydonclover', bpm: '120', duration: '2:58',
+    desc: "Created in London in June 2026. Jaydon was late to the studio and I had nothing prepared so I speed ran a beat in 30 minutes, played it for her and she wrote the whole song in an hour, who said music was difficult?",
+    src: '/assets/bsalbum/A2. Sloucho - Nothing Like Me (ft. Jaydonclover).mp3' },
+  { title: 'Angel', feat: null, featIg: null, bpm: '130', duration: '3:57',
+    desc: "Created in Mexico in March 2025, I played two shows in CDMX and met Mensik, Pearla, Lapi and the whole Furia gang. I recorded the sounds of the street and the lead vocal with my phone from my flat. Smoked 1 million cigs and drank 1 millon Modelos. Additional vocals by Alex Gough recorded in London in January 2026.",
+    src: '/assets/bsalbum/A3. Sloucho - Angel.mp3' },
+  { title: 'All Night', feat: null, featIg: null, bpm: '102', duration: '3:31',
+    desc: "Created in London in July 2025. I met Lily in a random studio by the water and we wrote this song together. It had been so many different genres, bpm's and key signatures before I finally landed on the final version over a year later.... lol.",
+    src: '/assets/bsalbum/A4. Sloucho - All Night.mp3' },
+  { title: 'Love is Fear', feat: null, featIg: null, bpm: '150', duration: '3:29',
+    desc: "Created in Wicklow in January 2025. This track was one of the worst mixed demos I had made, it sounded so bad for so long, but there was always something interesting about it that I felt compelled to pursue it. Check out the music video directed by Elius Grace.",
+    src: '/assets/bsalbum/A5. Sloucho - Love is Fear.mp3' },
+  { title: 'Fake', feat: 'Gemma Dunleavy', featIg: 'https://instagram.com/gemmadunleavy_', bpm: '133', duration: '3:24',
+    desc: "Created in Dublin in September 2025. I made the instrumental from my bed a few weeks prior (one of the best places to produce btw) and sent it to Gemma to write to. She came to my home studio and we drank tea, talked about life, got sidetracked, lost track of time, then made the best song ever.",
+    src: '/assets/bsalbum/A6. Sloucho - Fake (ft. Gemma Dunleavy).mp3' },
+  { title: 'Survival', feat: null, featIg: null, bpm: '150', duration: '2:24',
+    desc: "Created in Dublin in April 2026. I gathered a bunch of references and things to chop up over the course of a week and then speedran the whole thing in like 2 hours. Last thing that got added was the Korg M1 preset and it was over from there lol.",
+    src: '/assets/bsalbum/B1. Sloucho - Survival.mp3' },
+  { title: 'Catfished V2', feat: 'Crutch', featIg: 'https://instagram.com/crutchinn', bpm: '92', duration: '2:44',
+    desc: "Created in Dublin in April 2025. Crutch is a Dublin cult figure, if you know you know. I heard the original that he released produced by New Machine and made this edit. We finally linked up after a year to get the all clear and put it in on the album.",
+    src: '/assets/bsalbum/B2. Sloucho - Catfished V2 (ft. Crutch).mp3' },
+  { title: 'Something Else', feat: 'Kibo', featIg: 'https://instagram.com/kibo_69_', bpm: '124', duration: '1:54',
+    desc: "Created in London in July 2025. It was 30 degrees and we were in a studio with zero air conditioning so we only recorded half the verse before we succumbed to heat stroke. A year later we recorded the second half and put the final touches on it. This song has 3 beat switches and still comes in under 2 minutes, the hallmark of a good Sloucho song imo.",
+    src: '/assets/bsalbum/B3. Sloucho - Something Else (ft. Kibo).mp3' },
+  { title: 'Goodbye', feat: 'Rory Sweeney', featIg: 'https://instagram.com/rory_sweeney123', bpm: '150', duration: '4:22',
+    desc: "Created in Sligo in September 2024. Rory had a residency in The Regional Cultural Centre in Letterkenny so we pulled up for a few days and made a bunch of music. We also made 150K in that same week, inspired by the drag race festival that had shut down the whole town, we could hear the engines reving from the studio and tried to make something that people could blast out of their speakers while diffin.",
+    src: '/assets/bsalbum/B4. Sloucho - Goodbye (ft. Rory Sweeney).mp3' },
+  { title: 'Wiggidy Woo', feat: 'Tommy Holohan', featIg: 'https://instagram.com/tommy.holohan', bpm: '160', duration: '4:05',
+    desc: "Created in Dublin in February 2025. Tommy hit me up to do a session and we locked in for few hours and this happened. We tried a bunch of stuff that sounded terrible for a while but out of nowhere we kinda just realised we had a weapon on our hands. Very proud of the Wiggidy Woo sample, I was deep in a YouTube rabbit hole and managed to pull an adlib from a grime song from 2010.",
+    src: '/assets/bsalbum/B5. Sloucho - Wiggidy Woo (ft. Tommy Holohan).mp3' },
+  { title: 'Weightless', feat: null, featIg: null, bpm: '155', duration: '2:56',
+    desc: "Created in Dublin in January 2025. There was a rough storm for a few days so I just locked myself in the studio and made a bunch of the early Broken Spirit demos. The idea for this track came from a song I heard Stella and the Dreaming perform at the NCH, I fell in love with the word Weightless and build the idea around the idea of feeling new things for the first time, and the liberation that comes with that.",
+    src: '/assets/bsalbum/B6. Sloucho - Weightless.mp3' },
+];
+
+// ─────────────────────────────────────────────────────────────
+// SCENE
+// ─────────────────────────────────────────────────────────────
+const FOG_COLOR = 0xf4f4f6;
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(FOG_COLOR);
+scene.fog = new THREE.FogExp2(FOG_COLOR, 0.020);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 400);
+
+// ── post-processing: soft bloom + film grain + vignette ──
+const composer = new EffectComposer(renderer);
+composer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+composer.setSize(window.innerWidth, window.innerHeight);
+composer.addPass(new RenderPass(scene, camera));
+const PostShader = {
+  uniforms: { tDiffuse: { value: null }, time: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `
+    varying vec2 vUv;
+    uniform sampler2D tDiffuse;
+    uniform float time;
+    float rnd(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      c.rgb += (rnd(vUv * (800.0 + fract(time) * 100.0)) - 0.5) * 0.045;   // grain
+      c.rgb *= 1.0 - 0.30 * smoothstep(0.35, 0.85, length(vUv - 0.5));    // vignette
+      gl_FragColor = c;
+    }`
+};
+const postPass = new ShaderPass(PostShader);
+composer.addPass(postPass);
+
+// lights
+scene.add(new THREE.HemisphereLight(0xffffff, 0xd8d8e0, 1.25));
+const moon = new THREE.DirectionalLight(0xffffff, 1.4);
+moon.position.set(18, 32, -14);
+moon.castShadow = true;
+moon.shadow.mapSize.set(1024, 1024);
+moon.shadow.camera.left = -25; moon.shadow.camera.right = 25;
+moon.shadow.camera.top = 25;   moon.shadow.camera.bottom = -25;
+scene.add(moon);
+scene.add(moon.target);
+
+// ── elevated platforms + gangways over the void, one platform per track ──
+const ROOM_S = 24, COLS = 4, ROWS = 3;      // spacing between platform centres
+const PLAT = 11, GANG_W = 3.2, DECK_T = 0.5;
+function makeDeckTexture() {
+  // blue-grey carpet: dense fine grain + faint weave, no panel seams
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#c9cdd6';
+  ctx.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 14000; i++) {
+    const v = 188 + Math.floor(Math.random() * 32);
+    ctx.fillStyle = `rgba(${v - 6},${v - 2},${v + 8},0.5)`;
+    ctx.fillRect(Math.random() * 256, Math.random() * 256, 1, 1);
+  }
+  ctx.strokeStyle = 'rgba(120,126,142,0.10)';
+  ctx.lineWidth = 1;
+  for (let y = 0; y < 256; y += 3) {
+    ctx.beginPath();
+    ctx.moveTo(0, y + Math.random());
+    ctx.lineTo(256, y + Math.random());
+    ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+const deckTexBase = makeDeckTexture();
+const columnMat = new THREE.MeshStandardMaterial({ color: 0xe2e2e8, roughness: 1 });
+const railMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, roughness: 0.5, metalness: 0.3 });
+const colliders = [];
+const wallMeshes = [];   // nothing occludes views anymore; kept for the raycast code
+
+function roomCenter(c, r) {
+  return [(c - (COLS - 1) / 2) * ROOM_S, (r - (ROWS - 1) / 2) * ROOM_S];
+}
+
+const _pm = [], _bm = [];
+const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _sv = new THREE.Vector3();
+const _yAxis = new THREE.Vector3(0, 1, 0);
+function addRail(x1, z1, x2, z2) {
+  colliders.push({
+    minX: Math.min(x1, x2) - 0.12, maxX: Math.max(x1, x2) + 0.12,
+    minZ: Math.min(z1, z2) - 0.12, maxZ: Math.max(z1, z2) + 0.12
+  });
+  const dx = x2 - x1, dz = z2 - z1;
+  const len = Math.hypot(dx, dz);
+  const ang = Math.atan2(dx, dz);
+  _q.setFromAxisAngle(_yAxis, ang);
+  const n = Math.max(2, Math.round(len / 2.4) + 1);
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1);
+    _m4.compose(_v.set(x1 + dx * t, 0.55, z1 + dz * t), _q, _sv.set(0.07, 1.1, 0.07));
+    _pm.push(_m4.clone());
+  }
+  const railHeights = [1.1, 0.85, 0.6, 0.35];
+  for (let ri = 0; ri < railHeights.length; ri++) {
+    const th = ri === 0 ? 0.05 : 0.028;
+    _m4.compose(_v.set((x1 + x2) / 2, railHeights[ri], (z1 + z2) / 2), _q, _sv.set(th, th, len));
+    _bm.push(_m4.clone());
+  }
+}
+function addDeck(cx, cz, sx, sz, yOff = 0) {
+  const tex = deckTexBase.clone();
+  tex.needsUpdate = true;
+  tex.repeat.set(Math.max(1, Math.round(sx / 1.9)), Math.max(1, Math.round(sz / 1.9)));
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, map: tex });
+  const d = new THREE.Mesh(new THREE.BoxGeometry(sx, DECK_T, sz), mat);
+  d.position.set(cx, -DECK_T / 2 + yOff, cz);
+  d.receiveShadow = true;
+  scene.add(d);
+}
+function platformEdge(cx, cz, axis, sign, open) {
+  const h = PLAT / 2;
+  if (axis === 'x') {
+    const z = cz + sign * h;
+    if (open) {
+      addRail(cx - h, z, cx - GANG_W / 2, z);
+      addRail(cx + GANG_W / 2, z, cx + h, z);
+    } else addRail(cx - h, z, cx + h, z);
+  } else {
+    const x = cx + sign * h;
+    if (open) {
+      addRail(x, cz - h, x, cz - GANG_W / 2);
+      addRail(x, cz + GANG_W / 2, x, cz + h);
+    } else addRail(x, cz - h, x, cz + h);
+  }
+}
+for (let r = 0; r < ROWS; r++) {
+  for (let c = 0; c < COLS; c++) {
+    const [cx, cz] = roomCenter(c, r);
+    addDeck(cx, cz, PLAT, PLAT);
+    const col = new THREE.Mesh(new THREE.BoxGeometry(2.4, 30, 2.4), columnMat);
+    col.position.set(cx, -15 - DECK_T, cz);
+    scene.add(col);
+    platformEdge(cx, cz, 'x', -1, false);
+    platformEdge(cx, cz, 'x',  1, false);
+    platformEdge(cx, cz, 'z', -1, false);
+    platformEdge(cx, cz, 'z',  1, false);
+  }
+}
+const postMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), railMat, _pm.length);
+_pm.forEach((m, i) => postMesh.setMatrixAt(i, m));
+postMesh.castShadow = true;
+scene.add(postMesh);
+const barMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), railMat, _bm.length);
+_bm.forEach((m, i) => barMesh.setMatrixAt(i, m));
+scene.add(barMesh);
+
+// faint room number painted on each floor
+function makeRoomLabel(text) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = 'rgba(0,0,0,0.9)';
+  ctx.font = '500 110px -apple-system, "Segoe UI", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 128);
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.4, 2.4),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0.13, depthWrite: false })
+  );
+  m.rotation.x = -Math.PI / 2;
+  return m;
+}
+
+// floating dust
+const dustCount = 700;
+const dustPos = new Float32Array(dustCount * 3);
+for (let i = 0; i < dustCount; i++) {
+  dustPos[i * 3]     = (Math.random() - 0.5) * 110;
+  dustPos[i * 3 + 1] = Math.random() * 14 - 2;
+  dustPos[i * 3 + 2] = (Math.random() - 0.5) * 110;
+}
+const dustGeo = new THREE.BufferGeometry();
+dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+function makeSpeckTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+  g.addColorStop(0, 'rgba(140,140,160,1)');
+  g.addColorStop(0.5, 'rgba(140,140,160,0.4)');
+  g.addColorStop(1, 'rgba(140,140,160,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 32, 32);
+  return new THREE.CanvasTexture(c);
+}
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({
+  map: makeSpeckTexture(), size: 0.06, transparent: true, opacity: 0.35,
+  depthWrite: false, sizeAttenuation: true
+}));
+scene.add(dust);
+
+// ─────────────────────────────────────────────────────────────
+// SONG TRIGGERS
+// ─────────────────────────────────────────────────────────────
+const INTERACT_RADIUS = 5.0;
+const triggers = [];
+const labelsEl = document.getElementById('labels');
+
+// ── floating song elements, one per room, snaking A1 -> B6 ──
+const ringGeo = new THREE.TorusGeometry(0.85, 0.035, 12, 60);
+const coreGeo = new THREE.SphereGeometry(0.22, 20, 20);
+
+TRACKS.forEach((track, i) => {
+  // snake path through the grid: A1-A4 across, A5-B2 back, B3-B6 across
+  const rr = Math.floor(i / COLS);
+  const cc = (rr % 2 === 0) ? (i % COLS) : (COLS - 1 - (i % COLS));
+  const [x, z] = roomCenter(cc, rr);
+
+  const group = new THREE.Group();
+  group.position.set(x, 2.1, z);
+
+  const ring = new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({
+    color: 0x1a1a22, emissive: 0x33334a, emissiveIntensity: 0.35, roughness: 0.4
+  }));
+  const ring2 = ring.clone();
+  ring2.rotation.x = Math.PI / 2;
+  const core = new THREE.Mesh(coreGeo, new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  group.add(ring, ring2, core);
+  scene.add(group);
+
+  const floorLbl = makeRoomLabel((i < 6 ? 'A' : 'B') + ((i % 6) + 1));
+  floorLbl.position.set(x, 0.02, z);
+  scene.add(floorLbl);
+
+  // HTML pill
+  const pill = document.createElement('div');
+  pill.className = 'pill3d';
+  pill.innerHTML =
+    `<span class="t">${track.title}</span>` +
+    (track.feat ? `<span class="f">ft. ${track.feat}</span>` : '') +
+    `<span class="hint">Play</span>`;
+  pill.addEventListener('click', (e) => { e.stopPropagation(); goTo(i); });
+  labelsEl.appendChild(pill);
+
+  triggers.push({ track, group, ring, ring2, pill, baseY: 2.1, labelY: 1.5, phase: Math.random() * Math.PI * 2, audio: null, missing: false });
+});
+
+// ─────────────────────────────────────────────────────────────
+// TRACKLIST + TELEPORT
+// ─────────────────────────────────────────────────────────────
+function platformPos(i) {
+  const rr = Math.floor(i / COLS);
+  const cc = (rr % 2 === 0) ? (i % COLS) : (COLS - 1 - (i % COLS));
+  return roomCenter(cc, rr);
+}
+const fadeEl = document.getElementById('fade');
+const tracklistEl = document.getElementById('tracklist');
+const tlList = document.getElementById('tlList');
+const tlRows = [];
+TRACKS.forEach((track, i) => {
+  const row = document.createElement('div');
+  row.className = 'track-pill';
+  row.innerHTML =
+    `<div class="pill-row">` +
+      `<button class="circ-btn" tabindex="-1"><span class="play-icon"></span><span class="pause-icon"></span></button>` +
+      `<div class="pill-meta">` +
+        `<div class="pill-title">${track.title}${track.feat ? ` <span class="pill-feat">ft. ${track.feat}</span>` : ''}</div>` +
+        `<div class="pill-sub">${(i < 6 ? 'A' : 'B') + ((i % 6) + 1)} · ${track.bpm} BPM · ${track.duration}</div>` +
+      `</div>` +
+    `</div>`;
+  row.addEventListener('click', () => { goTo(i); tracklistEl.classList.remove('open'); });
+  tlList.appendChild(row);
+  tlRows.push(row);
+});
+document.getElementById('tracksBtn').addEventListener('click', () => tracklistEl.classList.toggle('open'));
+document.getElementById('tlClose').addEventListener('click', () => tracklistEl.classList.remove('open'));
+
+let teleporting = false;
+function teleportTo(i) {
+  if (teleporting) return;
+  teleporting = true;
+  const [x, z] = platformPos(i);
+  fadeEl.classList.add('on');
+  setTimeout(() => {
+    player.position.set(x, 0, z + 3.4);
+    vel.set(0, 0, 0);
+    player.rotation.y = Math.PI;   // face the song ring
+    targetRotY = Math.PI;
+    camYaw = 0;                    // camera settles behind the player
+    camera.position.set(
+      x + Math.sin(camYaw) * Math.cos(camPitch) * camDist,
+      1.5 + Math.sin(camPitch) * camDist,
+      z + 3.4 + Math.cos(camYaw) * Math.cos(camPitch) * camDist
+    );
+    fadeEl.classList.remove('on');
+    teleporting = false;
+  }, 380);
+}
+function goTo(i) {
+  const [x, z] = platformPos(i);
+  const onIt = Math.abs(player.position.x - x) < PLAT / 2 && Math.abs(player.position.z - z) < PLAT / 2;
+  if (!onIt) teleportTo(i);
+  playTrack(i);
+}
+
+// ─────────────────────────────────────────────────────────────
+// AUDIO
+// ─────────────────────────────────────────────────────────────
+let currentIdx = -1;        // track locked into the player
+const playerEl = document.getElementById('player');
+const pTitle = document.getElementById('pTitle');
+const pSub = document.getElementById('pSub');
+const pDesc = document.getElementById('pDesc');
+const pFill = document.getElementById('pFill');
+
+function getAudio(i) {
+  const t = triggers[i];
+  if (!t.audio) {
+    t.audio = new Audio(t.track.src);
+    t.audio.preload = 'auto';
+    t.audio.loop = false;
+    t.audio.addEventListener('error', () => {
+      t.missing = true;
+      if (currentIdx === i) playerEl.classList.add('missing');
+    });
+    t.audio.addEventListener('ended', () => {
+      if (currentIdx === i) {
+        if (i + 1 < TRACKS.length) goTo(i + 1);
+        else playerEl.classList.remove('playing');
+      }
+    });
+  }
+  return t.audio;
+}
+
+function stopAll(exceptIdx = -1) {
+  triggers.forEach((t, i) => {
+    if (i !== exceptIdx && t.audio && !t.audio.paused) t.audio.pause();
+    t.pill.classList.toggle('playing', i === exceptIdx);
+    tlRows[i].classList.toggle('playing', i === exceptIdx);
+  });
+}
+
+function playTrack(i) {
+  const t = triggers[i];
+  currentIdx = i;
+  stopAll(i);
+  const a = getAudio(i);
+  a.volume = 1;
+  a.play().catch(() => {});
+  // player UI
+  pTitle.innerHTML = t.track.title + (t.track.feat
+    ? ` <a href="${t.track.featIg}" target="_blank" rel="noopener">ft. ${t.track.feat}</a>` : '');
+  pSub.textContent = `${t.track.bpm} BPM · ${t.track.duration}`;
+  pDesc.textContent = t.track.desc;
+  playerEl.classList.remove('hidden', 'info-open');
+  playerEl.classList.toggle('missing', t.missing);
+  playerEl.classList.add('playing');
+}
+
+document.getElementById('pPlay').addEventListener('click', () => {
+  if (currentIdx < 0) return;
+  const a = getAudio(currentIdx);
+  if (a.paused) { a.volume = 1; a.play().catch(() => {}); playerEl.classList.add('playing'); }
+  else { a.pause(); playerEl.classList.remove('playing'); }
+});
+document.getElementById('pInfo').addEventListener('click', () => playerEl.classList.toggle('info-open'));
+document.getElementById('pSkip').addEventListener('click', () => {
+  if (currentIdx < 0) return;
+  const i = currentIdx;
+  if (triggers[i].audio) triggers[i].audio.pause();
+  if (i + 1 < TRACKS.length) goTo(i + 1);
+  else {
+    stopAll();
+    currentIdx = -1;
+    playerEl.classList.add('hidden');
+    playerEl.classList.remove('playing');
+  }
+});
+document.getElementById('pClose').addEventListener('click', () => {
+  if (currentIdx >= 0 && triggers[currentIdx].audio) triggers[currentIdx].audio.pause();
+  stopAll();
+  currentIdx = -1;
+  playerEl.classList.add('hidden');
+  playerEl.classList.remove('playing');
+});
+document.getElementById('pBar').addEventListener('click', (e) => {
+  if (currentIdx < 0) return;
+  const a = getAudio(currentIdx);
+  if (!isFinite(a.duration)) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  a.currentTime = ((e.clientX - r.left) / r.width) * a.duration;
+});
+
+// ─────────────────────────────────────────────────────────────
+// CHARACTER — Sloucho
+// ─────────────────────────────────────────────────────────────
+const player = new THREE.Group();
+scene.add(player);
+player.position.set(-36, 0, -20);   // start on the A1 platform
+let mixer = null;
+let idleAction = null;
+let walkAction = null;   // real walk clip from /assets/walk.glb, if provided
+let charModel = null;
+let baseModelY = 0;
+const bones = {};
+const mirrorPairs = [];   // [originalBone, duplicate_001Bone]
+let walkPhase = 0;
+let modelReady = false;
+const CHAR_HEIGHT = 1.7;
+
+const loadState = document.getElementById('loadState');
+const loader = new GLTFLoader();
+// sloucho.glb is Draco-compressed (KHR_draco_mesh_compression) — decoder is REQUIRED
+const draco = new DRACOLoader();
+draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+loader.setDRACOLoader(draco);
+// try each location until one works
+const GLB_PATHS = ['/assets/sloucho.glb', '../assets/sloucho.glb', 'sloucho.glb', '/sloucho.glb', 'assets/sloucho.glb'];
+function loadModel(pathIdx) {
+  if (pathIdx >= GLB_PATHS.length) { onModelError(new Error('sloucho.glb not found at any known path')); return; }
+  loader.load(GLB_PATHS[pathIdx],
+    onModelLoaded,
+    (xhr) => {
+      if (xhr.total) loadState.textContent = `Loading Sloucho… ${Math.round(xhr.loaded / xhr.total * 100)}%`;
+    },
+    (err) => {
+      console.warn('GLB not at ' + GLB_PATHS[pathIdx] + ', trying next…', err);
+      loadModel(pathIdx + 1);
+    }
+  );
+}
+function onModelLoaded(gltf) {
+    const model = gltf.scene;
+    // normalize scale (UE5 exports are often in cm)
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const s = CHAR_HEIGHT / Math.max(size.y, 0.0001);
+    model.scale.setScalar(s);
+    box.setFromObject(model);
+    model.position.y -= box.min.y;
+    model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+    player.add(model);
+    charModel = model;
+    baseModelY = model.position.y;
+    if (gltf.animations.length) {
+      mixer = new THREE.AnimationMixer(model);
+      idleAction = mixer.clipAction(gltf.animations[0]);
+      idleAction.play();
+      idleAction.timeScale = 0.6;
+    }
+    // grab bones for the procedural walk (standard UE5 skeleton names)
+    ['thigh_l','thigh_r','calf_l','calf_r','foot_l','foot_r','upperarm_l','upperarm_r'].forEach((n) => {
+      const b = model.getObjectByName(n);
+      if (b) bones[n] = b;
+    });
+    console.log('procedural walk bones found:', Object.keys(bones));
+    // The Blender head-join left a duplicate bone chain (spine_01_001..neck_02_001)
+    // that the head hangs from. Mirror every original bone onto its _001 twin each
+    // frame so the head follows the body through any animation.
+    model.traverse((o) => {
+      if (o.name && o.name.endsWith('_001')) {
+        const src = model.getObjectByName(o.name.slice(0, -4));
+        if (src && src !== o) mirrorPairs.push([src, o]);
+      }
+    });
+    console.log('mirroring ' + mirrorPairs.length + ' duplicate bones (head chain)');
+    // optional real walk cycle: export from UE5 as walk.glb into /assets
+    loader.load('/assets/walk.glb', (g2) => {
+      if (g2.animations.length && mixer) {
+        const clip = g2.animations[0];
+        // keep only tracks whose bones exist on this model (drops toe/twist helpers)
+        const valid = new Set();
+        model.traverse((o) => valid.add(o.name));
+        clip.tracks = clip.tracks.filter((tr) => valid.has(tr.name.split('.')[0]));
+        // Pin bones the walk doesn't animate (cap/mask/glasses helpers, facial rig)
+        // to their idle frame-0 pose, so they don't drift toward bind pose mid-walk.
+        if (idleAction) {
+          const covered = new Set(clip.tracks.map((tr) => tr.name.split('.')[0]));
+          idleAction.getClip().tracks.forEach((tr) => {
+            if (covered.has(tr.name.split('.')[0])) return;
+            const stride = tr.getValueSize();
+            clip.tracks.push(new tr.constructor(tr.name, [0], Array.from(tr.values.slice(0, stride))));
+          });
+        }
+        walkAction = mixer.clipAction(clip);
+        walkAction.play();
+        walkAction.setEffectiveWeight(0);
+        console.log('walk.glb loaded — using real walk cycle (' + clip.tracks.length + ' tracks)');
+      }
+    }, undefined, () => { console.log('no walk.glb — using procedural walk'); });
+    modelReady = true;
+    loadState.textContent = 'Ready';
+}
+function onModelError(err) {
+    console.warn('GLB failed to load, using placeholder', err);
+    const body = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.28, 0.34, 1.2, 16),
+      new THREE.MeshStandardMaterial({ color: 0x8888aa, roughness: 0.7 })
+    );
+    body.position.y = 0.6;
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.24, 16, 16),
+      new THREE.MeshStandardMaterial({ color: 0xaaaacc, roughness: 0.7 })
+    );
+    head.position.y = 1.45;
+    body.castShadow = head.castShadow = true;
+    player.add(body, head);
+    modelReady = true;
+    loadState.textContent = 'Ready (model missing — serve over http, not file://)';
+}
+loadModel(0);
+
+// ─────────────────────────────────────────────────────────────
+// INPUT
+// ─────────────────────────────────────────────────────────────
+const keys = {};
+window.addEventListener('keydown', (e) => {
+  keys[e.code] = true;
+  if (e.code === 'KeyE') tryInteract();
+  if (e.code === 'KeyT') tracklistEl.classList.toggle('open');
+});
+window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+let camYaw = Math.PI;   // camera behind player looking at spawn direction
+let camPitch = 0.32;
+let camDist = 7;
+let dragging = false, lastX = 0, lastY = 0;
+
+canvas.addEventListener('pointerdown', (e) => {
+  // right half or mouse: look. left half touch: joystick
+  if (e.pointerType === 'touch' && e.clientX < window.innerWidth / 2) { startStick(e); return; }
+  dragging = true; lastX = e.clientX; lastY = e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (stickId === e.pointerId) { moveStick(e); return; }
+  if (!dragging) return;
+  camYaw   -= (e.clientX - lastX) * 0.005;
+  camPitch += (e.clientY - lastY) * 0.004;
+  camPitch = Math.max(0.05, Math.min(1.15, camPitch));
+  lastX = e.clientX; lastY = e.clientY;
+});
+canvas.addEventListener('pointerup', (e) => {
+  if (stickId === e.pointerId) endStick();
+  dragging = false;
+});
+canvas.addEventListener('pointercancel', (e) => {
+  if (stickId === e.pointerId) endStick();
+  dragging = false;
+});
+window.addEventListener('wheel', (e) => {
+  camDist = Math.max(4, Math.min(12, camDist + e.deltaY * 0.005));
+}, { passive: true });
+
+// touch joystick
+const stickEl = document.getElementById('stick');
+const knobEl = document.getElementById('stickKnob');
+let stickId = null, stickOrigin = { x: 0, y: 0 }, stickVec = { x: 0, y: 0 };
+function startStick(e) {
+  stickId = e.pointerId;
+  stickOrigin = { x: e.clientX, y: e.clientY };
+  stickVec = { x: 0, y: 0 };
+  stickEl.style.display = 'block';
+  stickEl.style.left = (e.clientX - 48) + 'px';
+  stickEl.style.top = (e.clientY - 48) + 'px';
+  canvas.setPointerCapture(e.pointerId);
+}
+function moveStick(e) {
+  const dx = e.clientX - stickOrigin.x, dy = e.clientY - stickOrigin.y;
+  const len = Math.hypot(dx, dy), max = 44;
+  const cl = Math.min(len, max);
+  const nx = len ? dx / len : 0, ny = len ? dy / len : 0;
+  stickVec = { x: nx * (cl / max), y: ny * (cl / max) };
+  knobEl.style.transform = `translate(calc(-50% + ${nx * cl}px), calc(-50% + ${ny * cl}px))`;
+}
+function endStick() {
+  stickId = null;
+  stickVec = { x: 0, y: 0 };
+  stickEl.style.display = 'none';
+  knobEl.style.transform = 'translate(-50%, -50%)';
+}
+
+let nearestIdx = -1;
+function tryInteract() {
+  if (nearestIdx >= 0) playTrack(nearestIdx);
+}
+
+// ─────────────────────────────────────────────────────────────
+// GAME LOOP
+// ─────────────────────────────────────────────────────────────
+// ── footsteps (synthesized, no audio file needed) ──
+let audioCtx = null;
+let lowerFoot = null;   // which foot is currently planted
+const _footL = new THREE.Vector3(), _footR = new THREE.Vector3();
+function playFootstep(k) {
+  if (!audioCtx) return;
+  const dur = 0.11;
+  const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) {
+    d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.4);
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.value = 0.75 + Math.random() * 0.35;
+  const filt = audioCtx.createBiquadFilter();
+  filt.type = 'lowpass';
+  filt.frequency.value = 480 + Math.random() * 260;
+  const g = audioCtx.createGain();
+  g.gain.value = 0.06 + 0.12 * k;
+  src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
+  src.start();
+}
+
+// ── procedural walk ──
+// The GLB's baked clip is an idle (no leg motion), so when no walk.glb is
+// provided we swing the bones in code, layered on top of the idle each frame.
+const _qA = new THREE.Quaternion(), _qP = new THREE.Quaternion(), _qD = new THREE.Quaternion();
+const _rightAxis = new THREE.Vector3(), _upAxis = new THREE.Vector3(0, 1, 0);
+
+function rotateBoneWorld(bone, axisWorld, angle) {
+  // rotate a bone around a world-space axis regardless of its local orientation
+  bone.parent.getWorldQuaternion(_qP);
+  _qA.setFromAxisAngle(axisWorld, angle);
+  _qD.copy(_qP).invert().multiply(_qA).multiply(_qP);
+  bone.quaternion.premultiply(_qD);
+}
+
+function proceduralWalk(k, dt) {
+  walkPhase += dt * (4 + k * 8.5);
+  _rightAxis.set(1, 0, 0).applyAxisAngle(_upAxis, player.rotation.y);
+  const s = Math.sin(walkPhase);
+  const swing = 0.5 * k;
+  if (bones.thigh_l) rotateBoneWorld(bones.thigh_l, _rightAxis,  s * swing);
+  if (bones.thigh_r) rotateBoneWorld(bones.thigh_r, _rightAxis, -s * swing);
+  // knee bends while that leg swings forward
+  const bendL = Math.max(0, -s) * 0.75 * k;
+  const bendR = Math.max(0,  s) * 0.75 * k;
+  if (bones.calf_l) rotateBoneWorld(bones.calf_l, _rightAxis, bendL);
+  if (bones.calf_r) rotateBoneWorld(bones.calf_r, _rightAxis, bendR);
+  if (bones.foot_l) rotateBoneWorld(bones.foot_l, _rightAxis, -bendL * 0.5);
+  if (bones.foot_r) rotateBoneWorld(bones.foot_r, _rightAxis, -bendR * 0.5);
+  // arms swing opposite the legs
+  if (bones.upperarm_l) rotateBoneWorld(bones.upperarm_l, _rightAxis, -s * swing * 0.45);
+  if (bones.upperarm_r) rotateBoneWorld(bones.upperarm_r, _rightAxis,  s * swing * 0.45);
+  // step bounce
+  charModel.position.y = baseModelY + Math.abs(Math.cos(walkPhase)) * 0.045 * k;
+}
+
+const clock = new THREE.Clock();
+const vel = new THREE.Vector3();
+const SPEED = 6.5;
+let targetRotY = 0;
+let started = false;
+
+const camTarget = new THREE.Vector3();
+const projV = new THREE.Vector3();
+const _ray = new THREE.Raycaster();
+const _camDesired = new THREE.Vector3();
+const _rayDir = new THREE.Vector3();
+const _anchor = new THREE.Vector3();
+const camDir = new THREE.Vector3();
+const toTrig = new THREE.Vector3();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+
+  // ── movement ──
+  let ix = 0, iz = 0;
+  if (keys['KeyW'] || keys['ArrowUp'])    iz -= 1;
+  if (keys['KeyS'] || keys['ArrowDown'])  iz += 1;
+  if (keys['KeyA'] || keys['ArrowLeft'])  ix -= 1;
+  if (keys['KeyD'] || keys['ArrowRight']) ix += 1;
+  ix += stickVec.x; iz += stickVec.y;
+  const inLen = Math.hypot(ix, iz);
+  if (inLen > 1) { ix /= inLen; iz /= inLen; }
+
+  // rotate input by camera yaw (screen-relative: left is always left)
+  const sin = Math.sin(camYaw), cos = Math.cos(camYaw);
+  const mx = ix * cos + iz * sin;
+  const mz = iz * cos - ix * sin;
+
+  const targetVx = mx * SPEED, targetVz = mz * SPEED;
+  vel.x += (targetVx - vel.x) * Math.min(1, dt * 8);
+  vel.z += (targetVz - vel.z) * Math.min(1, dt * 8);
+  if (started) {
+    player.position.x += vel.x * dt;
+    player.position.z += vel.z * dt;
+    // wall collision (player circle vs wall boxes)
+    const CR = 0.45;
+    for (let ci = 0; ci < colliders.length; ci++) {
+      const b = colliders[ci];
+      if (b.off) continue;
+      const px = Math.max(b.minX, Math.min(player.position.x, b.maxX));
+      const pz = Math.max(b.minZ, Math.min(player.position.z, b.maxZ));
+      const dx = player.position.x - px, dz = player.position.z - pz;
+      const d2 = dx * dx + dz * dz;
+      if (d2 < CR * CR) {
+        const dd = Math.sqrt(d2);
+        if (dd > 1e-6) {
+          player.position.x = px + (dx / dd) * CR;
+          player.position.z = pz + (dz / dd) * CR;
+        } else {
+          player.position.z = b.maxZ + CR;
+        }
+      }
+    }
+  }
+
+  const speed = Math.hypot(vel.x, vel.z);
+  if (speed > 0.3) {
+    targetRotY = Math.atan2(vel.x, vel.z);
+  }
+  // smooth rotate
+  let dr = targetRotY - player.rotation.y;
+  while (dr > Math.PI) dr -= Math.PI * 2;
+  while (dr < -Math.PI) dr += Math.PI * 2;
+  player.rotation.y += dr * Math.min(1, dt * 10);
+
+  // animation
+  const moveK = Math.min(speed / SPEED, 1);
+  if (mixer) {
+    if (walkAction) {
+      // real walk clip present: crossfade idle <-> walk by speed
+      walkAction.setEffectiveWeight(moveK);
+      if (idleAction) idleAction.setEffectiveWeight(1 - moveK);
+      walkAction.timeScale = 0.6 + moveK * 0.6;
+    }
+    mixer.update(dt);
+    if (!walkAction && charModel && moveK > 0.03) proceduralWalk(moveK, dt);
+    else if (!walkAction && charModel) charModel.position.y = baseModelY;
+    // keep the duplicate head chain glued to the body chain
+    for (let i = 0; i < mirrorPairs.length; i++) {
+      const src = mirrorPairs[i][0], dst = mirrorPairs[i][1];
+      dst.position.copy(src.position);
+      dst.quaternion.copy(src.quaternion);
+      dst.scale.copy(src.scale);
+    }
+  }
+
+  // footsteps: fire exactly when the swinging foot passes below the planted one,
+  // so sound stays locked to the visible stride at any speed
+  if (started && moveK > 0.12 && bones.foot_l && bones.foot_r) {
+    bones.foot_l.getWorldPosition(_footL);
+    bones.foot_r.getWorldPosition(_footR);
+    if (_footL.y < _footR.y - 0.012 && lowerFoot !== 'l') { lowerFoot = 'l'; playFootstep(moveK); }
+    else if (_footR.y < _footL.y - 0.012 && lowerFoot !== 'r') { lowerFoot = 'r'; playFootstep(moveK); }
+  } else {
+    lowerFoot = null;
+  }
+
+  // ── camera ──
+  camTarget.set(player.position.x, player.position.y + 1.5, player.position.z);
+  const cx = camTarget.x + Math.sin(camYaw) * Math.cos(camPitch) * camDist;
+  const cy = camTarget.y + Math.sin(camPitch) * camDist;
+  const cz = camTarget.z + Math.cos(camYaw) * Math.cos(camPitch) * camDist;
+  _camDesired.set(cx, cy, cz);
+  _rayDir.copy(_camDesired).sub(camTarget);
+  const camLen = _rayDir.length();
+  _ray.set(camTarget, _rayDir.normalize());
+  _ray.far = camLen;
+  const camHits = _ray.intersectObjects(wallMeshes, false);
+  if (camHits.length) {
+    _camDesired.copy(camTarget).addScaledVector(_rayDir, Math.max(camHits[0].distance - 0.35, 1.1));
+  }
+  camera.position.lerp(_camDesired, Math.min(1, dt * 5));
+  camera.lookAt(camTarget);
+
+  // moonlight follows player for shadows
+  moon.position.set(player.position.x + 18, 32, player.position.z - 14);
+  moon.target.position.copy(player.position);
+
+  // dust drift
+  dust.rotation.y = t * 0.008;
+
+  // ── triggers ──
+  let bestDist = Infinity, bestIdx = -1;
+  triggers.forEach((tr, i) => {
+    tr.group.position.y = tr.baseY + Math.sin(t * 0.8 + tr.phase) * 0.25;
+    tr.ring.rotation.z = t * 0.4 + tr.phase;
+    tr.ring2.rotation.y = t * 0.55 + tr.phase;
+
+    const dist = tr.group.position.distanceTo(player.position);
+    if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+
+    // project pill to screen
+    camera.getWorldDirection(camDir);
+    toTrig.copy(tr.group.position).sub(camera.position);
+    let hidden = toTrig.dot(camDir) < 0.1 || dist > 45;
+    if (!hidden) {
+      _anchor.copy(tr.group.position);
+      _anchor.y += tr.labelY;
+      _rayDir.copy(_anchor).sub(camera.position);
+      const pillLen = _rayDir.length();
+      _ray.set(camera.position, _rayDir.normalize());
+      _ray.far = Math.max(pillLen - 0.3, 0.1);
+      if (_ray.intersectObjects(wallMeshes, false).length) hidden = true;
+    }
+    projV.copy(tr.group.position);
+    projV.y += tr.labelY;
+    projV.project(camera);
+    const sx = (projV.x * 0.5 + 0.5) * window.innerWidth;
+    const sy = (-projV.y * 0.5 + 0.5) * window.innerHeight;
+    if (hidden) {
+      tr.pill.style.opacity = '0';
+      tr.pill.style.pointerEvents = 'none';
+    } else {
+      const fade = dist < 8 ? 1 : Math.max(0, 1 - (dist - 8) / 40);
+      tr.pill.style.opacity = String(0.15 + fade * 0.85);
+      tr.pill.style.pointerEvents = 'auto';
+      const sc = 0.65 + fade * 0.35;
+      tr.pill.style.transform = `translate(-50%,-50%) translate(${sx}px,${sy}px) scale(${sc})`;
+      tr.pill.classList.toggle('near', dist < INTERACT_RADIUS);
+    }
+  });
+  nearestIdx = bestDist < INTERACT_RADIUS ? bestIdx : -1;
+
+  // progress bar
+  if (currentIdx >= 0) {
+    const a = triggers[currentIdx].audio;
+    if (a && isFinite(a.duration) && a.duration > 0) {
+      pFill.style.width = (a.currentTime / a.duration * 100) + '%';
+    }
+  }
+
+  postPass.uniforms.time.value = t;
+  composer.render();
+}
+animate();
+
+// ─────────────────────────────────────────────────────────────
+// START
+// ─────────────────────────────────────────────────────────────
+document.getElementById('enterBtn').addEventListener('click', () => {
+  document.getElementById('start').classList.add('hidden');
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  started = true;
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
