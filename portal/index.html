@@ -623,21 +623,22 @@
     }
     @keyframes pill3dPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
 
-    #mapBtn {
-      position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%);
-      display: none;
-      font-family: inherit;
+    .bubble3d {
+      position: absolute; left: 0; top: 0;
+      transform: translate(-50%, -100%);
       background: var(--pill-bg);
       border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 9px 20px;
-      font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase;
-      color: var(--muted); cursor: pointer;
-      z-index: 5;
-      transition: border-color .15s, color .15s;
+      border-radius: 14px;
+      padding: 11px 16px;
+      font-size: 12px; line-height: 1.55;
+      color: rgba(0,0,0,0.78);
+      max-width: 250px; text-align: center;
+      opacity: 0;
+      transition: opacity 0.45s;
+      pointer-events: none;
+      will-change: transform;
     }
-    #mapBtn:hover { border-color: var(--border-hover); color: var(--text); }
-    body.mode-3d.ground3d #mapBtn { display: block; }
+    .bubble3d.show { opacity: 1; }
 
     #hint3d {
       position: fixed; bottom: 22px; left: 22px; z-index: 5;
@@ -646,7 +647,7 @@
       color: rgba(0,0,0,0.3); line-height: 2;
       pointer-events: none;
     }
-    @media (min-width: 701px) { body.mode-3d.ground3d #hint3d { display: block; } }
+    @media (min-width: 701px) { body.mode-3d #hint3d { display: block; } }
 
     #stick3d {
       position: fixed; display: none;
@@ -780,8 +781,7 @@
   <!-- 3D mode (hidden until toggled) -->
   <canvas id="scene3d"></canvas>
   <div id="labels3d"></div>
-  <button id="mapBtn">Map</button>
-  <div id="hint3d">WASD — walk<br>Drag — look<br>E — play / pause<br>Esc — map</div>
+  <div id="hint3d">WASD — walk<br>Drag — look<br>E — play / pause<br>Esc — return</div>
   <div id="stick3d"><div id="stick3dKnob"></div></div>
 
   <!-- Login Modal -->
@@ -1770,19 +1770,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 <script type="module">
 // ═════════════════════════════════════════════════════════════
-// 3D MODE — the tracklist laid flat.
-// Same audio element, same play state; three.js loads only on
-// the first toggle so the portal stays untouched and fast.
+// 3D MODE — Broken Spirit world.
+// Spawn outside in the fog. Ras waits at the doorway. Inside:
+// one vast warehouse, the algorithm running on the floor, and
+// twelve songs raised above it. Same audio player as the list.
+// three.js loads only on the first toggle.
 // ═════════════════════════════════════════════════════════════
 let world = null;
 
 window.toggle3D = async function () {
   const btn = document.getElementById('modeToggle');
   if (document.body.classList.contains('mode-3d')) {
-    // → back to the list
     document.body.classList.remove('mode-3d');
     btn.textContent = 'Enter 3D';
-    if (world) { world.paused = true; window.scrollTo(0, world.savedScroll || 0); }
+    if (world) { world.pause(); window.scrollTo(0, world.savedScroll || 0); }
     return;
   }
   const savedScroll = window.scrollY;
@@ -1801,9 +1802,7 @@ window.toggle3D = async function () {
   world.savedScroll = savedScroll;
   document.body.classList.add('mode-3d');
   btn.textContent = 'Return';
-  world.paused = false;
-  world.onResize();
-  world.syncEntry();
+  world.resume();
 };
 
 window.addEventListener('resize', () => { if (world) world.onResize(); });
@@ -1816,7 +1815,7 @@ async function initWorld() {
   const { RenderPass } = await import('three/addons/postprocessing/RenderPass.js');
   const { ShaderPass } = await import('three/addons/postprocessing/ShaderPass.js');
 
-  const bs = window.__bs;                 // hook into the portal player
+  const bs = window.__bs;                  // portal player hook
   const audio = bs.audio;
   const TRACKS = bs.tracks().slice(0, 12); // album only — demos stay list-side
   const N = TRACKS.length;
@@ -1837,7 +1836,6 @@ async function initWorld() {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(FOG_COLOR);
   scene.fog = new THREE.FogExp2(FOG_COLOR, 0.011);
-  let fogTarget = 0.011;                  // lighter in aerial, mistier on the ground
 
   const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 600);
 
@@ -1862,20 +1860,115 @@ async function initWorld() {
   });
   composer.addPass(postPass);
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xd8d8e0, 1.25));
-  const moon = new THREE.DirectionalLight(0xffffff, 1.4);
-  moon.position.set(18, 32, -14);
-  moon.castShadow = true;
-  moon.shadow.mapSize.set(1024, 1024);
-  moon.shadow.camera.left = -25; moon.shadow.camera.right = 25;
-  moon.shadow.camera.top = 25;   moon.shadow.camera.bottom = -25;
-  scene.add(moon);
-  scene.add(moon.target);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xd8d8e0, 1.15));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.25);
+  sun.position.set(18, 32, -14);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.left = -25; sun.shadow.camera.right = 25;
+  sun.shadow.camera.top = 25;   sun.shadow.camera.bottom = -25;
+  scene.add(sun);
+  scene.add(sun.target);
 
-  // ── platforms: one row, list order (the list, lying flat) ──
-  const SPACING = 22, PLAT = 11, DECK_T = 0.5;
-  const X = (i) => (i - (N - 1) / 2) * SPACING;
+  // ── warehouse dimensions ──
+  const WX = 62, WZ = 46, WH = 13;        // half-width, half-depth, wall height
+  const DOOR_HALF = 3, DOOR_H = 5;        // doorway in the south wall (z = -WZ)
+  const PH = 2.4;                          // platform height — above the algorithm
+  const PTOP = 8;                          // platform top size
+  const SL = 3.6;                          // stair run
+  const COLS_X = [-45, -15, 15, 45];
+  const ROWS_Z = [-28, 0, 28];             // south row first: reading order from the door
+  const PX = (i) => COLS_X[i % 4];
+  const PZ = (i) => ROWS_Z[Math.floor(i / 4)];
 
+  const colliders = [];
+
+  // ── the algorithm: video floor ──
+  const video = document.createElement('video');
+  video.muted = true;
+  video.loop = true;
+  video.playsInline = true;
+  video.setAttribute('playsinline', '');
+  video.crossOrigin = 'anonymous';
+  video.preload = 'auto';
+  video.src = '/assets/VidInfinity.mp4';
+  const videoTex = new THREE.VideoTexture(video);
+  videoTex.colorSpace = THREE.SRGBColorSpace;
+  videoTex.wrapS = videoTex.wrapT = THREE.RepeatWrapping;
+  videoTex.repeat.set(3, 2);
+  const floorMat = new THREE.MeshBasicMaterial({ map: videoTex, color: 0xbbbbbb });
+  video.addEventListener('error', () => {
+    floorMat.map = null;
+    floorMat.color.set(0x2a2a30);
+    floorMat.needsUpdate = true;
+    console.warn('[3d] VidInfinity.mp4 not found — flat floor fallback');
+  });
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(WX * 2, WZ * 2), floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = 0.02;
+  scene.add(floor);
+
+  // outside ground — bare concrete in the fog
+  const outside = new THREE.Mesh(
+    new THREE.PlaneGeometry(600, 400),
+    new THREE.MeshStandardMaterial({ color: 0xc3c3c8, roughness: 1 })
+  );
+  outside.rotation.x = -Math.PI / 2;
+  outside.receiveShadow = true;
+  scene.add(outside);
+
+  // ── walls, ceiling, door ──
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xe9e7e0, roughness: 0.95 });
+  function wall(cx, cy, cz, sx, sy, sz, collide = true) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), wallMat);
+    m.position.set(cx, cy, cz);
+    m.receiveShadow = true;
+    scene.add(m);
+    if (collide) colliders.push({ minX: cx - sx / 2, maxX: cx + sx / 2, minZ: cz - sz / 2, maxZ: cz + sz / 2 });
+    return m;
+  }
+  wall(0, WH / 2,  WZ, WX * 2 + 1.2, WH, 0.6);                                  // north
+  wall(-WX, WH / 2, 0, 0.6, WH, WZ * 2 + 1.2);                                  // west
+  wall( WX, WH / 2, 0, 0.6, WH, WZ * 2 + 1.2);                                  // east
+  const segW = WX - DOOR_HALF;
+  wall(-(DOOR_HALF + segW / 2), WH / 2, -WZ, segW, WH, 0.6);                    // south left
+  wall( (DOOR_HALF + segW / 2), WH / 2, -WZ, segW, WH, 0.6);                    // south right
+  wall(0, DOOR_H + (WH - DOOR_H) / 2, -WZ, DOOR_HALF * 2, WH - DOOR_H, 0.6, false); // lintel
+  // door frame accents
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, roughness: 0.5, metalness: 0.3 });
+  [-1, 1].forEach((s) => {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.22, DOOR_H, 0.75), frameMat);
+    post.position.set(s * DOOR_HALF, DOOR_H / 2, -WZ);
+    scene.add(post);
+  });
+  const header = new THREE.Mesh(new THREE.BoxGeometry(DOOR_HALF * 2 + 0.44, 0.22, 0.75), frameMat);
+  header.position.set(0, DOOR_H, -WZ);
+  scene.add(header);
+
+  const ceiling = new THREE.Mesh(
+    new THREE.PlaneGeometry(WX * 2, WZ * 2),
+    new THREE.MeshStandardMaterial({ color: 0xdedcd6, roughness: 1 })
+  );
+  ceiling.rotation.x = Math.PI / 2;
+  ceiling.position.y = WH;
+  scene.add(ceiling);
+
+  // fluorescent panels — severance hum
+  const panelGeo = new THREE.BoxGeometry(3.4, 0.12, 1.4);
+  const panelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.85 });
+  const panelPos = [];
+  for (let px = -54; px <= 54; px += 12) {
+    for (let pz = -40; pz <= 40; pz += 11.5) panelPos.push([px, pz]);
+  }
+  const panels = new THREE.InstancedMesh(panelGeo, panelMat, panelPos.length);
+  const _pm4 = new THREE.Matrix4();
+  panelPos.forEach(([px, pz], i) => {
+    _pm4.makeTranslation(px, WH - 0.1, pz);
+    panels.setMatrixAt(i, _pm4);
+  });
+  scene.add(panels);
+
+  // ── platforms: twelve songs above the algorithm ──
   function makeDeckTexture() {
     const c = document.createElement('canvas');
     c.width = c.height = 256;
@@ -1897,47 +1990,13 @@ async function initWorld() {
     }
     const tex = new THREE.CanvasTexture(c);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(4, 4);
     return tex;
   }
-  const deckTexBase = makeDeckTexture();
-  const columnMat = new THREE.MeshStandardMaterial({ color: 0xe2e2e8, roughness: 1 });
-  const railMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, roughness: 0.5, metalness: 0.3 });
-
-  const _pm = [], _bm = [];
-  const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _sv = new THREE.Vector3();
-  const _yAxis = new THREE.Vector3(0, 1, 0);
-  function addRail(x1, z1, x2, z2) {
-    const dx = x2 - x1, dz = z2 - z1;
-    const len = Math.hypot(dx, dz);
-    const ang = Math.atan2(dx, dz);
-    _q.setFromAxisAngle(_yAxis, ang);
-    const n = Math.max(2, Math.round(len / 2.4) + 1);
-    for (let i = 0; i < n; i++) {
-      const t = i / (n - 1);
-      _m4.compose(_v.set(x1 + dx * t, 0.55, z1 + dz * t), _q, _sv.set(0.07, 1.1, 0.07));
-      _pm.push(_m4.clone());
-    }
-    const railHeights = [1.1, 0.85, 0.6, 0.35];
-    for (let ri = 0; ri < railHeights.length; ri++) {
-      const th = ri === 0 ? 0.05 : 0.028;
-      _m4.compose(_v.set((x1 + x2) / 2, railHeights[ri], (z1 + z2) / 2), _q, _sv.set(th, th, len));
-      _bm.push(_m4.clone());
-    }
-  }
-
-  const pickMeshes = [];
-  function addDeck(cx, cz, sx, sz, idx) {
-    const tex = deckTexBase.clone();
-    tex.needsUpdate = true;
-    tex.repeat.set(Math.max(1, Math.round(sx / 1.9)), Math.max(1, Math.round(sz / 1.9)));
-    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, map: tex });
-    const d = new THREE.Mesh(new THREE.BoxGeometry(sx, DECK_T, sz), mat);
-    d.position.set(cx, -DECK_T / 2, cz);
-    d.receiveShadow = true;
-    d.userData.idx = idx;
-    scene.add(d);
-    pickMeshes.push(d);
-  }
+  const deckTex = makeDeckTexture();
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0xdfdfe5, roughness: 1 });
+  const deckMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, map: deckTex });
+  const stepMat = new THREE.MeshStandardMaterial({ color: 0xd6d6dc, roughness: 1 });
 
   function makeRoomLabel(text) {
     const c = document.createElement('canvas');
@@ -1949,8 +2008,8 @@ async function initWorld() {
     ctx.textBaseline = 'middle';
     ctx.fillText(text, 128, 128);
     const m = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.4, 2.4),
-      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0.13, depthWrite: false })
+      new THREE.PlaneGeometry(2.2, 2.2),
+      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0.16, depthWrite: false })
     );
     m.rotation.x = -Math.PI / 2;
     return m;
@@ -1960,35 +2019,46 @@ async function initWorld() {
   const ringGeo = new THREE.TorusGeometry(0.85, 0.035, 12, 60);
   const coreGeo = new THREE.SphereGeometry(0.22, 20, 20);
   const platforms = [];
+  const pickMeshes = [];
+  const STEPS = 7;
 
   for (let i = 0; i < N; i++) {
-    const x = X(i);
-    addDeck(x, 0, PLAT, PLAT, i);
-    const col = new THREE.Mesh(new THREE.BoxGeometry(2.4, 30, 2.4), columnMat);
-    col.position.set(x, -15 - DECK_T, 0);
-    scene.add(col);
-    const h = PLAT / 2;
-    addRail(x - h, -h, x + h, -h);
-    addRail(x - h,  h, x + h,  h);
-    addRail(x - h, -h, x - h,  h);
-    addRail(x + h, -h, x + h,  h);
+    const x = PX(i), z = PZ(i);
+
+    const base = new THREE.Mesh(new THREE.BoxGeometry(PTOP + 0.5, PH - 0.2, PTOP + 0.5), baseMat);
+    base.position.set(x, (PH - 0.2) / 2, z);
+    base.castShadow = base.receiveShadow = true;
+    scene.add(base);
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(PTOP, 0.25, PTOP), deckMat);
+    deck.position.set(x, PH - 0.125, z);
+    deck.receiveShadow = true;
+    scene.add(deck);
+
+    // stairs on the south side — climb out of the algorithm
+    for (let s = 0; s < STEPS; s++) {
+      const sh = ((s + 1) / STEPS) * PH;
+      const sd = SL / STEPS;
+      const step = new THREE.Mesh(new THREE.BoxGeometry(3.2, sh, sd + 0.03), stepMat);
+      step.position.set(x, sh / 2, z - PTOP / 2 - SL + (s + 0.5) * sd);
+      step.castShadow = step.receiveShadow = true;
+      scene.add(step);
+    }
 
     const group = new THREE.Group();
-    group.position.set(x, 2.1, 0);
+    group.position.set(x, PH + 1.8, z);
     const ring = new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({
       color: 0x1a1a22, emissive: 0x33334a, emissiveIntensity: 0.35, roughness: 0.4
     }));
     const ring2 = ring.clone();
     ring2.rotation.x = Math.PI / 2;
     const core = new THREE.Mesh(coreGeo, new THREE.MeshBasicMaterial({ color: 0x000000 }));
-    core.userData.idx = i;
-    ring.userData.idx = i; ring2.userData.idx = i;
+    ring.userData.idx = i; ring2.userData.idx = i; core.userData.idx = i;
     group.add(ring, ring2, core);
     scene.add(group);
     pickMeshes.push(ring, ring2, core);
 
     const floorLbl = makeRoomLabel((i < 6 ? 'A' : 'B') + ((i % 6) + 1));
-    floorLbl.position.set(x, 0.02, 0);
+    floorLbl.position.set(x, PH + 0.02, z);
     scene.add(floorLbl);
 
     const pill = document.createElement('div');
@@ -2000,25 +2070,30 @@ async function initWorld() {
     pill.addEventListener('click', (e) => { e.stopPropagation(); select(i, true); });
     labelsEl.appendChild(pill);
 
-    platforms.push({ group, ring, ring2, pill, baseY: 2.1, labelY: 1.5, phase: Math.random() * Math.PI * 2 });
+    platforms.push({ x, z, group, ring, ring2, pill, baseY: PH + 1.8, phase: Math.random() * Math.PI * 2 });
   }
 
-  const postMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), railMat, _pm.length);
-  _pm.forEach((m, i) => postMesh.setMatrixAt(i, m));
-  postMesh.castShadow = true;
-  scene.add(postMesh);
-  const barMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), railMat, _bm.length);
-  _bm.forEach((m, i) => barMesh.setMatrixAt(i, m));
-  scene.add(barMesh);
+  // height of the walkable ground at (x, z): floor, stair ramp, or platform top
+  function groundHeightAt(x, z) {
+    let h = 0;
+    for (let i = 0; i < N; i++) {
+      const dx = x - PX(i), dz = z - PZ(i);
+      if (Math.abs(dx) <= PTOP / 2 && Math.abs(dz) <= PTOP / 2) { h = Math.max(h, PH); continue; }
+      if (Math.abs(dx) <= 1.6 && dz < -PTOP / 2 && dz >= -PTOP / 2 - SL) {
+        const t = 1 - ((-dz) - PTOP / 2) / SL;
+        h = Math.max(h, t * PH);
+      }
+    }
+    return h;
+  }
 
-  // floating dust
-  const dustCount = 500;
+  // dust
+  const dustCount = 600;
   const dustPos = new Float32Array(dustCount * 3);
-  const rowHalf = (N * SPACING) / 2 + 24;
   for (let i = 0; i < dustCount; i++) {
-    dustPos[i * 3]     = (Math.random() - 0.5) * rowHalf * 2;
-    dustPos[i * 3 + 1] = Math.random() * 14 - 2;
-    dustPos[i * 3 + 2] = (Math.random() - 0.5) * 70;
+    dustPos[i * 3]     = (Math.random() - 0.5) * WX * 2;
+    dustPos[i * 3 + 1] = Math.random() * (WH - 2);
+    dustPos[i * 3 + 2] = (Math.random() - 0.5) * (WZ * 2 + 90) - 20;
   }
   const dustGeo = new THREE.BufferGeometry();
   dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
@@ -2043,7 +2118,8 @@ async function initWorld() {
   // ── Sloucho ──
   const player = new THREE.Group();
   scene.add(player);
-  player.position.set(X(0), 0, 3.6);
+  player.position.set(0, 0, -WZ - 26);     // outside, facing the door
+  let playerY = 0;
   let mixer = null, idleAction = null, walkAction = null, charModel = null;
   let baseModelY = 0, walkPhase = 0;
   const bones = {};
@@ -2054,11 +2130,10 @@ async function initWorld() {
   const draco = new DRACOLoader();
   draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
   loader.setDRACOLoader(draco);
-  const GLB_PATHS = ['/assets/sloucho.glb', '../assets/sloucho.glb', 'sloucho.glb', '/sloucho.glb', 'assets/sloucho.glb'];
+  const GLB_PATHS = ['/assets/sloucho.glb', 'assets/sloucho.glb', 'sloucho.glb'];
   function loadModel(pathIdx) {
     if (pathIdx >= GLB_PATHS.length) { onModelError(); return; }
-    loader.load(GLB_PATHS[pathIdx], onModelLoaded, undefined,
-      () => loadModel(pathIdx + 1));
+    loader.load(GLB_PATHS[pathIdx], onModelLoaded, undefined, () => loadModel(pathIdx + 1));
   }
   function onModelLoaded(gltf) {
     const model = gltf.scene;
@@ -2124,6 +2199,37 @@ async function initWorld() {
   }
   loadModel(0);
 
+  // ── Ras at the doorway ──
+  let rasMixer = null;
+  const rasPos = new THREE.Vector3(3.6, 0, -WZ - 1.4);
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble3d';
+  bubble.textContent = 'Welcome to Broken Spirit — step inside and feel the music.';
+  labelsEl.appendChild(bubble);
+  let rasLoaded = false, rasHeadY = 2.1;
+  loader.load('/assets/ras.glb', (gltf) => {
+    const ras = gltf.scene;
+    const box = new THREE.Box3().setFromObject(ras);
+    const size = box.getSize(new THREE.Vector3());
+    const s = 1.85 / Math.max(size.y, 0.0001);
+    ras.scale.setScalar(s);
+    box.setFromObject(ras);
+    ras.position.y -= box.min.y;
+    ras.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+    const g = new THREE.Group();
+    g.add(ras);
+    g.position.copy(rasPos);
+    g.rotation.y = Math.PI;                // faces the approaching visitor
+    scene.add(g);
+    rasHeadY = 2.15;
+    if (gltf.animations.length) {
+      rasMixer = new THREE.AnimationMixer(ras);
+      rasMixer.clipAction(gltf.animations[0]).play();
+    }
+    rasLoaded = true;
+    colliders.push({ minX: rasPos.x - 0.4, maxX: rasPos.x + 0.4, minZ: rasPos.z - 0.4, maxZ: rasPos.z + 0.4 });
+  }, undefined, (e) => console.warn('[3d] ras.glb not found', e));
+
   // footsteps (synthesized)
   let audioCtx = null;
   let lowerFoot = null;
@@ -2148,7 +2254,7 @@ async function initWorld() {
     src.start();
   }
 
-  // procedural walk (used when no walk.glb)
+  // procedural walk (when no walk.glb)
   const _qA = new THREE.Quaternion(), _qP = new THREE.Quaternion(), _qD = new THREE.Quaternion();
   const _rightAxis = new THREE.Vector3(), _upAxis = new THREE.Vector3(0, 1, 0);
   function rotateBoneWorld(bone, axisWorld, angle) {
@@ -2175,74 +2281,21 @@ async function initWorld() {
     charModel.position.y = baseModelY + Math.abs(Math.cos(walkPhase)) * 0.045 * k;
   }
 
-  // ── modes ──
-  // 'aerial'  — the list from above; scroll along the row, click to drop in
-  // 'ground'  — third-person Sloucho on one platform
-  // 'tween'   — camera flying between the two
-  let state = 'aerial';
-  let groundIdx = null;
-  let aerialX = X(0), aerialTargetX = X(0);
-  const AER_Y = 30, AER_Z = 36;
-  const camLook = new THREE.Vector3(X(0), 0, -2);
-  camera.position.set(X(0), AER_Y, AER_Z);
-
-  let camYaw = 0, camPitch = 0.32, camDist = 7;
-  let tw = null;
-  const _twP = new THREE.Vector3(), _twL = new THREE.Vector3();
-  function tweenTo(pos, look, dur, after) {
-    tw = { p0: camera.position.clone(), l0: camLook.clone(), p1: pos, l1: look, t: 0, dur, after };
-    state = 'tween';
-  }
-  const ease = (u) => u * u * (3 - 2 * u);
-
-  function groundCamPos(px, pz) {
-    return new THREE.Vector3(
-      px + Math.sin(camYaw) * Math.cos(camPitch) * camDist,
-      1.5 + Math.sin(camPitch) * camDist,
-      pz + Math.cos(camYaw) * Math.cos(camPitch) * camDist
-    );
-  }
-
-  function gotoPlatform(i, instant) {
-    groundIdx = i;
-    player.position.set(X(i), 0, 3.6);
-    player.rotation.y = Math.PI;
-    targetRotY = Math.PI;
-    vel.set(0, 0, 0);
-    camYaw = 0; camPitch = 0.32; camDist = 7;
-    fogTarget = 0.020;
-    document.body.classList.add('ground3d');
-    const pos = groundCamPos(X(i), 3.6);
-    const look = new THREE.Vector3(X(i), 1.5, 3.6);
-    if (instant) { camera.position.copy(pos); camLook.copy(look); state = 'ground'; }
-    else tweenTo(pos, look, 1.1, 'ground');
-  }
-
-  function enterAerial(instant) {
-    if (groundIdx !== null) { aerialX = X(groundIdx); aerialTargetX = aerialX; }
-    fogTarget = 0.011;
-    document.body.classList.remove('ground3d');
-    const pos = new THREE.Vector3(aerialX, AER_Y, AER_Z);
-    const look = new THREE.Vector3(aerialX, 0, -2);
-    if (instant) { camera.position.copy(pos); camLook.copy(look); state = 'aerial'; }
-    else tweenTo(pos, look, 1.1, 'aerial');
-  }
-
+  // ── play control: nothing moves you — pills play from anywhere ──
   function select(i, toggle) {
     const cur = bs.current();
     if (cur !== i) bs.play(i);
     else if (toggle || audio.paused) bs.play(i);
-    if (state !== 'ground' || groundIdx !== i) gotoPlatform(i, false);
   }
 
-  document.getElementById('mapBtn').addEventListener('click', () => enterAerial(false));
-
-  // entering 3D: land wherever the music already is
-  function syncEntry() {
-    const cur = bs.current();
-    if (cur !== null && cur < N) {
-      if (state === 'aerial') { aerialX = X(cur); aerialTargetX = aerialX; camera.position.x = aerialX; camLook.x = aerialX; }
+  // platform the player is standing on (or null)
+  function standingOn() {
+    if (playerY < PH - 0.9) return null;
+    for (let i = 0; i < N; i++) {
+      if (Math.abs(player.position.x - PX(i)) <= PTOP / 2 + 0.6 &&
+          Math.abs(player.position.z - PZ(i)) <= PTOP / 2 + 0.6) return i;
     }
+    return null;
   }
 
   // ── input ──
@@ -2250,16 +2303,20 @@ async function initWorld() {
   window.addEventListener('keydown', (e) => {
     if (!document.body.classList.contains('mode-3d')) return;
     keys[e.code] = true;
-    if (e.code === 'KeyE' && state === 'ground' && groundIdx !== null) select(groundIdx, true);
-    if (e.code === 'Escape' && state === 'ground') enterAerial(false);
+    if (e.code === 'KeyE') {
+      const on = standingOn();
+      if (on !== null) select(on, true);
+    }
+    if (e.code === 'Escape') window.toggle3D();
   });
   window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-  let dragging = false, dragMoved = 0, lastX = 0, lastY = 0, downX = 0, downY = 0, downT = 0;
+  let camYaw = Math.PI, camPitch = 0.32, camDist = 7;
+  let dragging = false, dragMoved = 0, lastX = 0, lastY = 0, downT = 0;
   canvas.addEventListener('pointerdown', (e) => {
-    if (state === 'ground' && e.pointerType === 'touch' && e.clientX < window.innerWidth / 2) { startStick(e); return; }
+    if (e.pointerType === 'touch' && e.clientX < window.innerWidth / 2) { startStick(e); return; }
     dragging = true; dragMoved = 0;
-    lastX = downX = e.clientX; lastY = downY = e.clientY; downT = performance.now();
+    lastX = e.clientX; lastY = e.clientY; downT = performance.now();
     canvas.setPointerCapture(e.pointerId);
   });
   canvas.addEventListener('pointermove', (e) => {
@@ -2267,36 +2324,22 @@ async function initWorld() {
     if (!dragging) return;
     const dx = e.clientX - lastX, dy = e.clientY - lastY;
     dragMoved += Math.abs(dx) + Math.abs(dy);
-    if (state === 'aerial') {
-      aerialTargetX -= dx * 0.055;
-      aerialTargetX = Math.max(X(0), Math.min(X(N - 1), aerialTargetX));
-    } else if (state === 'ground') {
-      camYaw   -= dx * 0.005;
-      camPitch += dy * 0.004;
-      camPitch = Math.max(0.05, Math.min(1.15, camPitch));
-    }
+    camYaw   -= dx * 0.005;
+    camPitch += dy * 0.004;
+    camPitch = Math.max(0.05, Math.min(1.15, camPitch));
     lastX = e.clientX; lastY = e.clientY;
   });
   function endPointer(e) {
     if (stickId === e.pointerId) { endStick(); return; }
     if (!dragging) return;
     dragging = false;
-    // a click, not a drag → pick a platform
-    if (dragMoved < 7 && performance.now() - downT < 500 && state !== 'tween') {
-      pick(e.clientX, e.clientY);
-    }
+    if (dragMoved < 7 && performance.now() - downT < 500) pick(e.clientX, e.clientY);
   }
   canvas.addEventListener('pointerup', endPointer);
   canvas.addEventListener('pointercancel', (e) => { if (stickId === e.pointerId) endStick(); dragging = false; });
-
   window.addEventListener('wheel', (e) => {
     if (!document.body.classList.contains('mode-3d')) return;
-    if (state === 'aerial') {
-      aerialTargetX += (e.deltaY + e.deltaX) * 0.06;
-      aerialTargetX = Math.max(X(0), Math.min(X(N - 1), aerialTargetX));
-    } else if (state === 'ground') {
-      camDist = Math.max(4, Math.min(12, camDist + e.deltaY * 0.005));
-    }
+    camDist = Math.max(4, Math.min(12, camDist + e.deltaY * 0.005));
   }, { passive: true });
 
   const _ray = new THREE.Raycaster();
@@ -2307,13 +2350,10 @@ async function initWorld() {
     const hits = _ray.intersectObjects(pickMeshes, false);
     if (!hits.length) return;
     const idx = hits[0].object.userData.idx;
-    if (idx === undefined) return;
-    const isRing = hits[0].object.geometry.type !== 'BoxGeometry';
-    if (state === 'ground' && idx === groundIdx && !isRing) return;  // own floor: no accidental pause
-    select(idx, isRing);
+    if (idx !== undefined) select(idx, true);
   }
 
-  // touch joystick (ground mode)
+  // touch joystick
   const stickEl = document.getElementById('stick3d');
   const knobEl = document.getElementById('stick3dKnob');
   let stickId = null, stickOrigin = { x: 0, y: 0 }, stickVec = { x: 0, y: 0 };
@@ -2344,9 +2384,10 @@ async function initWorld() {
   // ── loop ──
   const clock = new THREE.Clock();
   const vel = new THREE.Vector3();
-  const SPEED = 6.5;
-  let targetRotY = Math.PI;
-  let lastCur = bs.current();
+  const SPEED = 7;
+  let targetRotY = 0;
+  const camLook = new THREE.Vector3();
+  const _v = new THREE.Vector3(), _p = new THREE.Vector3();
 
   function animate() {
     requestAnimationFrame(animate);
@@ -2354,44 +2395,57 @@ async function initWorld() {
     const dt = Math.min(clock.getDelta(), 0.05);
     const t = clock.elapsedTime;
 
-    // follow the music: track changed elsewhere (auto-advance, bar)
-    const cur = bs.current();
-    if (cur !== lastCur) {
-      lastCur = cur;
-      if (cur !== null && cur < N) {
-        if (state === 'ground' && groundIdx !== cur) gotoPlatform(cur, false);
-        else if (state === 'aerial') aerialTargetX = X(cur);
+    // movement
+    let ix = 0, iz = 0;
+    if (keys['KeyW'] || keys['ArrowUp'])    iz -= 1;
+    if (keys['KeyS'] || keys['ArrowDown'])  iz += 1;
+    if (keys['KeyA'] || keys['ArrowLeft'])  ix -= 1;
+    if (keys['KeyD'] || keys['ArrowRight']) ix += 1;
+    ix += stickVec.x; iz += stickVec.y;
+    const inLen = Math.hypot(ix, iz);
+    if (inLen > 1) { ix /= inLen; iz /= inLen; }
+    const sinY = Math.sin(camYaw), cosY = Math.cos(camYaw);
+    const mx = ix * cosY + iz * sinY;
+    const mz = iz * cosY - ix * sinY;
+    vel.x += (mx * SPEED - vel.x) * Math.min(1, dt * 8);
+    vel.z += (mz * SPEED - vel.z) * Math.min(1, dt * 8);
+
+    const prevX = player.position.x, prevZ = player.position.z;
+    player.position.x += vel.x * dt;
+    player.position.z += vel.z * dt;
+
+    // wall / prop colliders (circle pushout)
+    const CR = 0.45;
+    for (let ci = 0; ci < colliders.length; ci++) {
+      const b = colliders[ci];
+      const px = Math.max(b.minX, Math.min(player.position.x, b.maxX));
+      const pz = Math.max(b.minZ, Math.min(player.position.z, b.maxZ));
+      const dx = player.position.x - px, dz = player.position.z - pz;
+      const d2 = dx * dx + dz * dz;
+      if (d2 < CR * CR) {
+        const dd = Math.sqrt(d2);
+        if (dd > 1e-6) {
+          player.position.x = px + (dx / dd) * CR;
+          player.position.z = pz + (dz / dd) * CR;
+        } else {
+          player.position.z = b.maxZ + CR;
+        }
       }
     }
 
-    // fog breathes between modes
-    scene.fog.density += (fogTarget - scene.fog.density) * Math.min(1, dt * 2);
-
-    // ── ground movement ──
-    if (state === 'ground') {
-      let ix = 0, iz = 0;
-      if (keys['KeyW'] || keys['ArrowUp'])    iz -= 1;
-      if (keys['KeyS'] || keys['ArrowDown'])  iz += 1;
-      if (keys['KeyA'] || keys['ArrowLeft'])  ix -= 1;
-      if (keys['KeyD'] || keys['ArrowRight']) ix += 1;
-      ix += stickVec.x; iz += stickVec.y;
-      const inLen = Math.hypot(ix, iz);
-      if (inLen > 1) { ix /= inLen; iz /= inLen; }
-      const sin = Math.sin(camYaw), cos = Math.cos(camYaw);
-      const mx = ix * cos + iz * sin;
-      const mz = iz * cos - ix * sin;
-      vel.x += (mx * SPEED - vel.x) * Math.min(1, dt * 8);
-      vel.z += (mz * SPEED - vel.z) * Math.min(1, dt * 8);
-      player.position.x += vel.x * dt;
-      player.position.z += vel.z * dt;
-      // stay on the platform
-      const hb = PLAT / 2 - 0.55;
-      const gx = X(groundIdx);
-      player.position.x = Math.max(gx - hb, Math.min(gx + hb, player.position.x));
-      player.position.z = Math.max(-hb, Math.min(hb, player.position.z));
-    } else {
-      vel.multiplyScalar(Math.max(0, 1 - dt * 8));
+    // terrain: stairs climbable, ledges solid
+    let h = groundHeightAt(player.position.x, player.position.z);
+    if (h - playerY > 0.8) {
+      // blocked by a platform side — try sliding on each axis
+      const hx = groundHeightAt(player.position.x, prevZ);
+      const hz = groundHeightAt(prevX, player.position.z);
+      if (hx - playerY <= 0.8)      { player.position.z = prevZ; h = hx; }
+      else if (hz - playerY <= 0.8) { player.position.x = prevX; h = hz; }
+      else { player.position.x = prevX; player.position.z = prevZ; h = groundHeightAt(prevX, prevZ); }
     }
+    playerY += (h - playerY) * Math.min(1, dt * (h > playerY ? 11 : 8));
+    if (Math.abs(h - playerY) < 0.01) playerY = h;
+    player.position.y = playerY;
 
     const speed = Math.hypot(vel.x, vel.z);
     if (speed > 0.3) targetRotY = Math.atan2(vel.x, vel.z);
@@ -2418,9 +2472,10 @@ async function initWorld() {
         dst.scale.copy(src.scale);
       }
     }
+    if (rasMixer) rasMixer.update(dt);
 
     // footsteps
-    if (state === 'ground' && moveK > 0.12 && bones.foot_l && bones.foot_r) {
+    if (moveK > 0.12 && bones.foot_l && bones.foot_r) {
       bones.foot_l.getWorldPosition(_footL);
       bones.foot_r.getWorldPosition(_footR);
       if (_footL.y < _footR.y - 0.012 && lowerFoot !== 'l') { lowerFoot = 'l'; playFootstep(moveK); }
@@ -2429,35 +2484,25 @@ async function initWorld() {
       lowerFoot = null;
     }
 
-    // ── camera per mode ──
-    if (state === 'tween' && tw) {
-      tw.t += dt;
-      const k = ease(Math.min(1, tw.t / tw.dur));
-      camera.position.lerpVectors(tw.p0, tw.p1, k);
-      camLook.lerpVectors(tw.l0, tw.l1, k);
-      if (tw.t >= tw.dur) { state = tw.after; tw = null; }
-    } else if (state === 'aerial') {
-      aerialX += (aerialTargetX - aerialX) * Math.min(1, dt * 5);
-      _twP.set(aerialX, AER_Y, AER_Z);
-      camera.position.lerp(_twP, Math.min(1, dt * 5));
-      _twL.set(aerialX, 0, -2);
-      camLook.lerp(_twL, Math.min(1, dt * 5));
-    } else if (state === 'ground') {
-      _twP.copy(groundCamPos(player.position.x, player.position.z));
-      camera.position.lerp(_twP, Math.min(1, dt * 5));
-      _twL.set(player.position.x, player.position.y + 1.5, player.position.z);
-      camLook.lerp(_twL, Math.min(1, dt * 5));
-    }
+    // camera
+    camLook.set(player.position.x, player.position.y + 1.5, player.position.z);
+    _p.set(
+      camLook.x + Math.sin(camYaw) * Math.cos(camPitch) * camDist,
+      camLook.y + Math.sin(camPitch) * camDist,
+      camLook.z + Math.cos(camYaw) * Math.cos(camPitch) * camDist
+    );
+    camera.position.lerp(_p, Math.min(1, dt * 5));
     camera.lookAt(camLook);
 
-    // moonlight follows the character for shadows
-    moon.position.set(player.position.x + 18, 32, player.position.z - 14);
-    moon.target.position.copy(player.position);
-
+    sun.position.set(player.position.x + 18, 32, player.position.z - 14);
+    sun.target.position.copy(player.position);
     dust.rotation.y = t * 0.008;
 
-    // ── pills + rings ──
+    // pills + rings
+    const cur = bs.current();
     const playing = cur !== null && cur < N && !audio.paused;
+    const onIdx = standingOn();
+    camera.getWorldDirection(_v);
     for (let i = 0; i < N; i++) {
       const p = platforms[i];
       p.group.position.y = p.baseY + Math.sin(t * 0.8 + p.phase) * 0.25;
@@ -2465,38 +2510,48 @@ async function initWorld() {
       p.ring2.rotation.y = t * 0.55 + p.phase;
       const isCur = playing && cur === i;
       p.pill.classList.toggle('playing', isCur);
-      const pulse = isCur ? 1 + Math.sin(t * 4) * 0.06 : 1;
-      p.group.scale.setScalar(pulse);
+      p.group.scale.setScalar(isCur ? 1 + Math.sin(t * 4) * 0.06 : 1);
       p.ring.material.emissiveIntensity = isCur ? 0.7 + Math.sin(t * 4) * 0.25 : 0.35;
 
-      // project pill
-      _twL.copy(p.group.position);
-      _twL.y += p.labelY;
-      _twP.copy(_twL).sub(camera.position);
-      camera.getWorldDirection(_v);
-      const dist = _twP.length();
-      const hidden = _twP.dot(_v) < 0.1 || dist > 90;
-      _twL.project(camera);
-      const sx = (_twL.x * 0.5 + 0.5) * window.innerWidth;
-      const sy = (-_twL.y * 0.5 + 0.5) * window.innerHeight;
-      if (hidden) {
-        p.pill.style.opacity = '0';
-        p.pill.style.pointerEvents = 'none';
-      } else {
-        const fade = dist < 20 ? 1 : Math.max(0, 1 - (dist - 20) / 55);
-        p.pill.style.opacity = String(0.15 + fade * 0.85);
-        p.pill.style.pointerEvents = 'auto';
-        const sc = 0.65 + fade * 0.35;
-        p.pill.style.transform = `translate(-50%,-50%) translate(${sx}px,${sy}px) scale(${sc})`;
-        const nearIt = state === 'ground' && groundIdx === i &&
-          player.position.distanceTo(p.group.position) < 5;
-        p.pill.classList.toggle('near', nearIt);
-      }
+      _p.set(p.x, p.baseY + 1.4, p.z);
+      _v2project(_p, p.pill, i === onIdx);
+    }
+
+    // Ras bubble
+    if (rasLoaded) {
+      const near = player.position.distanceTo(rasPos) < 8;
+      bubble.classList.toggle('show', near);
+      _p.set(rasPos.x, rasHeadY + 0.35, rasPos.z);
+      _p.project(camera);
+      bubble.style.transform =
+        `translate(-50%,-100%) translate(${(_p.x * 0.5 + 0.5) * window.innerWidth}px,${(-_p.y * 0.5 + 0.5) * window.innerHeight - 10}px)`;
     }
 
     postPass.uniforms.time.value = t;
     composer.render();
   }
+
+  const _pv = new THREE.Vector3();
+  function _v2project(worldPos, el, nearIt) {
+    _pv.copy(worldPos).sub(camera.position);
+    const dist = _pv.length();
+    const behind = _pv.dot(_v) < 0.1;
+    worldPos.project(camera);
+    if (behind || dist > 110) {
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+      return;
+    }
+    const sx = (worldPos.x * 0.5 + 0.5) * window.innerWidth;
+    const sy = (-worldPos.y * 0.5 + 0.5) * window.innerHeight;
+    const fade = dist < 25 ? 1 : Math.max(0, 1 - (dist - 25) / 65);
+    el.style.opacity = String(0.15 + fade * 0.85);
+    el.style.pointerEvents = 'auto';
+    const sc = 0.65 + fade * 0.35;
+    el.style.transform = `translate(-50%,-50%) translate(${sx}px,${sy}px) scale(${sc})`;
+    el.classList.toggle('near', !!nearIt);
+  }
+
   animate();
 
   api.onResize = function () {
@@ -2505,9 +2560,15 @@ async function initWorld() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     composer.setSize(window.innerWidth, window.innerHeight);
   };
-  api.enterAerial = enterAerial;
-  api.syncEntry = syncEntry;
-  enterAerial(true);
+  api.pause = function () {
+    api.paused = true;
+    video.pause();
+  };
+  api.resume = function () {
+    api.paused = false;
+    video.play().catch(() => {});
+    api.onResize();
+  };
   return api;
 }
 </script>
