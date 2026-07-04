@@ -718,6 +718,23 @@
     }
     #info3dActions a:hover { border-color: var(--border-hover); color: #000; }
 
+    /* portrait-only on phones */
+    #rotate3d {
+      position: fixed; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      background: #f4f4f6;
+      z-index: 40;
+      text-align: center;
+      font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase;
+      color: rgba(0,0,0,0.55);
+      line-height: 2.1;
+      padding: 30px;
+    }
+    @media (orientation: landscape) and (max-height: 500px) {
+      body.mode-3d.touch3d #rotate3d { display: flex; }
+    }
+
     /* 3D entry / teleport fade */
     #fade3d {
       position: fixed; inset: 0;
@@ -755,7 +772,7 @@
     <button class="menu-button" onclick="toggleMenu()">
       <div class="menu-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
     </button>
-    <button id="modeToggle" onclick="toggle3D()">Enter 3D</button>
+    <button id="modeToggle" onclick="toggle3D()">Enter 3D View</button>
     <button class="login-button" onclick="handleLogin()">
       <div class="user-icon">
         <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
@@ -847,6 +864,7 @@
   <canvas id="scene3d"></canvas>
   <div id="labels3d"></div>
   <div id="fade3d"></div>
+  <div id="rotate3d">Portrait only<br>Rotate your phone to explore</div>
   <div id="hint3d">WASD — walk<br>Drag — look<br>E — interact<br>Esc — return</div>
   <div id="ctl3d">
     <div id="ctlMove"><div id="ctlMoveKnob"></div><span class="ctl-label">Move</span></div>
@@ -1852,7 +1870,7 @@ window.toggle3D = async function () {
   const btn = document.getElementById('modeToggle');
   if (document.body.classList.contains('mode-3d')) {
     document.body.classList.remove('mode-3d', 'touch3d');
-    btn.textContent = 'Enter 3D';
+    btn.textContent = 'Enter 3D View';
     if (world) { world.pause(); window.scrollTo(0, world.savedScroll || 0); }
     return;
   }
@@ -1863,7 +1881,7 @@ window.toggle3D = async function () {
     try { world = await initWorld(); }
     catch (e) {
       console.error('[3d] init failed', e);
-      btn.textContent = 'Enter 3D';
+      btn.textContent = 'Enter 3D View';
       btn.disabled = false;
       return;
     }
@@ -2138,54 +2156,36 @@ async function initWorld() {
     ctx.closePath();
   }
   function makeSignTexture(tr) {
-    const W = 512, H = 144;
+    const W = 512, H = 128;
     const c = document.createElement('canvas');
     c.width = W; c.height = H;
     const ctx = c.getContext('2d');
-    // pill card
     ctx.fillStyle = 'rgba(255,255,255,0.97)';
-    ctx.strokeStyle = 'rgba(0,0,0,0.16)';
-    ctx.lineWidth = 3;
-    signRoundRect(ctx, 2, 2, W - 4, H - 4, 34);
-    ctx.fill(); ctx.stroke();
-    // play button
-    ctx.beginPath();
-    ctx.arc(72, H / 2, 40, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.05)';
-    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.moveTo(62, H / 2 - 15);
-    ctx.lineTo(62, H / 2 + 15);
-    ctx.lineTo(89, H / 2);
-    ctx.closePath();
+    signRoundRect(ctx, 4, 4, W - 8, H - 8, (H - 8) / 2);
     ctx.fill();
-    // title / feat — sized to fit
-    const x0 = 132, maxW = W - x0 - 26;
-    let fs = 46;
+    const x0 = 48, maxW = W - x0 - 44;
+    let fs = 44;
     ctx.font = `500 ${fs}px -apple-system, 'Segoe UI', sans-serif`;
     while (ctx.measureText(tr.title).width > maxW && fs > 20) {
       fs -= 2;
       ctx.font = `500 ${fs}px -apple-system, 'Segoe UI', sans-serif`;
     }
     ctx.fillStyle = '#000';
-    ctx.fillText(tr.title, x0, tr.feat ? H / 2 - 4 : H / 2 + 16);
+    ctx.fillText(tr.title, x0, tr.feat ? H / 2 - 2 : H / 2 + 15);
     if (tr.feat) {
-      let fs2 = 27;
+      let fs2 = 26;
       ctx.font = `400 ${fs2}px -apple-system, 'Segoe UI', sans-serif`;
       while (ctx.measureText('ft. ' + tr.feat).width > maxW && fs2 > 14) {
         fs2 -= 2;
         ctx.font = `400 ${fs2}px -apple-system, 'Segoe UI', sans-serif`;
       }
       ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      ctx.fillText('ft. ' + tr.feat, x0, H / 2 + 38);
+      ctx.fillText('ft. ' + tr.feat, x0, H / 2 + 36);
     }
     const tex = new THREE.CanvasTexture(c);
     tex.anisotropy = 4;
     return tex;
   }
-  const signBackMat = new THREE.MeshStandardMaterial({ color: 0xf4f3ee, roughness: 0.9 });
   const signPts = [];
 
   const labelsEl = document.getElementById('labels3d');
@@ -2198,7 +2198,7 @@ async function initWorld() {
   for (let i = 0; i < N; i++) {
     const x = PX(i), z = PZ(i);
 
-    const base = new THREE.Mesh(new THREE.BoxGeometry(PTOP - 0.3, PH - 0.2, PTOP - 0.3), baseMat);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(PTOP, PH - 0.2, PTOP), baseMat);
     base.position.set(x, (PH - 0.2) / 2, z);
     base.castShadow = base.receiveShadow = true;
     scene.add(base);
@@ -2260,21 +2260,16 @@ async function initWorld() {
     post.position.set(sgx, 0.4, sgz);
     post.castShadow = true;
     scene.add(post);
-    const board = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.55, 0.06), signBackMat);
-    board.position.set(sgx, 1.05, sgz);
-    board.castShadow = true;
-    board.userData.sign = i;
-    scene.add(board);
-    pickMeshes.push(board);
-    const face = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.84, 0.5),
-      new THREE.MeshBasicMaterial({ map: makeSignTexture(TRACKS[i]), transparent: true })
-    );
-    face.position.set(sgx, 1.05, sgz - 0.035);
+    const faceMat = new THREE.MeshBasicMaterial({ map: makeSignTexture(TRACKS[i]), transparent: true });
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.475), faceMat);
+    face.position.set(sgx, 1.05, sgz - 0.01);
     face.rotation.y = Math.PI;             // faces the approach
     face.userData.sign = i;
-    scene.add(face);
-    pickMeshes.push(face);
+    const face2 = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.475), faceMat);
+    face2.position.set(sgx, 1.05, sgz + 0.01);
+    face2.userData.sign = i;
+    scene.add(face, face2);
+    pickMeshes.push(face, face2);
     colliders.push({ minX: sgx - 0.4, maxX: sgx + 0.4, minZ: sgz - 0.22, maxZ: sgz + 0.22 });
     signPts.push({ x: sgx, z: sgz });
 
@@ -2514,30 +2509,6 @@ async function initWorld() {
       snapCamera();
       rasTalking = false;
     });
-  }
-
-  // footsteps (synthesized)
-  let audioCtx = null;
-  let lowerFoot = null;
-  const _footL = new THREE.Vector3(), _footR = new THREE.Vector3();
-  function playFootstep(k) {
-    if (!audioCtx) {
-      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
-    }
-    const dur = 0.11;
-    const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.4);
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf;
-    src.playbackRate.value = 0.75 + Math.random() * 0.35;
-    const filt = audioCtx.createBiquadFilter();
-    filt.type = 'lowpass';
-    filt.frequency.value = 480 + Math.random() * 260;
-    const g = audioCtx.createGain();
-    g.gain.value = 0.06 + 0.12 * k;
-    src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
-    src.start();
   }
 
   // procedural walk (when no walk.glb)
@@ -2841,16 +2812,6 @@ async function initWorld() {
       }
     }
     if (rasMixer) rasMixer.update(dt);
-
-    // footsteps
-    if (moveK > 0.12 && bones.foot_l && bones.foot_r) {
-      bones.foot_l.getWorldPosition(_footL);
-      bones.foot_r.getWorldPosition(_footR);
-      if (_footL.y < _footR.y - 0.012 && lowerFoot !== 'l') { lowerFoot = 'l'; playFootstep(moveK); }
-      else if (_footR.y < _footL.y - 0.012 && lowerFoot !== 'r') { lowerFoot = 'r'; playFootstep(moveK); }
-    } else {
-      lowerFoot = null;
-    }
 
     // camera
     camLook.set(player.position.x, player.position.y + 1.5, player.position.z);
