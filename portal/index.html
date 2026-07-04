@@ -586,8 +586,15 @@
     #scene3d  { position: fixed; inset: 0; display: none; z-index: 0; }
     #labels3d { position: fixed; inset: 0; display: none; pointer-events: none; overflow: hidden; z-index: 2; }
     body.mode-3d #scene3d, body.mode-3d #labels3d { display: block; }
-    body.mode-3d .page, body.mode-3d .nav-fade { display: none !important; }
-    body.mode-3d { overflow: hidden; }
+    body.mode-3d .page, body.mode-3d .nav-fade, body.mode-3d .fixed-header { display: none !important; }
+    body.mode-3d {
+      overflow: hidden;
+      touch-action: none;
+      overscroll-behavior: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
     body.mode-3d .now-playing-bar { z-index: 6; }
 
     .pill3d {
@@ -622,6 +629,11 @@
       animation: pill3dPulse 1.4s infinite;
     }
     @keyframes pill3dPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+    @media (max-width: 700px) {
+      .pill3d { padding: 5px 10px; gap: 5px; }
+      .pill3d .t { font-size: 11px; }
+      .pill3d .f { font-size: 9px; }
+    }
 
     .bubble3d {
       position: absolute; left: 0; top: 0;
@@ -649,18 +661,61 @@
     }
     @media (min-width: 701px) { body.mode-3d #hint3d { display: block; } }
 
-    #stick3d {
-      position: fixed; display: none;
-      width: 96px; height: 96px; border-radius: 50%;
-      border: 1px solid rgba(0,0,0,0.18);
-      z-index: 8; pointer-events: none;
+    /* fixed touch controls — lower third, touch devices only */
+    #ctl3d {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      height: 200px;
+      display: none;
+      z-index: 7;
+      padding: 26px 18px calc(88px + env(safe-area-inset-bottom));
+      background: linear-gradient(to top, rgba(244,244,246,0.94) 55%, rgba(244,244,246,0));
+      align-items: center;
+      gap: 16px;
+      pointer-events: none;
     }
-    #stick3dKnob {
+    body.mode-3d.touch3d #ctl3d { display: flex; }
+    body.mode-3d.touch3d .now-playing-bar { bottom: 200px; }
+    body.mode-3d.touch3d #hint3d { display: none !important; }
+    #ctlMove, #ctlCam, #ctlInteract { pointer-events: auto; touch-action: none; }
+    #ctlMove {
+      position: relative;
+      width: 104px; height: 104px; flex-shrink: 0;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--pill-bg);
+    }
+    #ctlMoveKnob {
       position: absolute; left: 50%; top: 50%;
-      width: 40px; height: 40px; border-radius: 50%;
-      background: rgba(0,0,0,0.25);
+      width: 44px; height: 44px; border-radius: 50%;
+      background: rgba(0,0,0,0.22);
       transform: translate(-50%, -50%);
     }
+    #ctlCam {
+      position: relative;
+      flex: 1; height: 104px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.55);
+    }
+    .ctl-label {
+      position: absolute; left: 50%; bottom: 7px;
+      transform: translateX(-50%);
+      font-size: 8px; letter-spacing: 0.13em; text-transform: uppercase;
+      color: rgba(0,0,0,0.32);
+      pointer-events: none; white-space: nowrap;
+    }
+    #ctlInteract {
+      width: 68px; height: 68px; flex-shrink: 0;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--pill-bg);
+      font-family: inherit;
+      font-size: 8px; letter-spacing: 0.11em; text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0.45;
+      transition: opacity 0.2s, border-color 0.2s;
+    }
+    #ctlInteract.on { opacity: 1; border-color: rgba(0,0,0,0.45); color: #000; }
 
   </style>
 </head>
@@ -782,7 +837,11 @@
   <canvas id="scene3d"></canvas>
   <div id="labels3d"></div>
   <div id="hint3d">WASD — walk<br>Drag — look<br>E — play / pause<br>Esc — return</div>
-  <div id="stick3d"><div id="stick3dKnob"></div></div>
+  <div id="ctl3d">
+    <div id="ctlMove"><div id="ctlMoveKnob"></div><span class="ctl-label">Move</span></div>
+    <div id="ctlCam"><span class="ctl-label">Camera</span></div>
+    <button id="ctlInteract">Interact</button>
+  </div>
 
   <!-- Login Modal -->
   <div class="modal-overlay" id="loginModal">
@@ -1781,7 +1840,7 @@ let world = null;
 window.toggle3D = async function () {
   const btn = document.getElementById('modeToggle');
   if (document.body.classList.contains('mode-3d')) {
-    document.body.classList.remove('mode-3d');
+    document.body.classList.remove('mode-3d', 'touch3d');
     btn.textContent = 'Enter 3D';
     if (world) { world.pause(); window.scrollTo(0, world.savedScroll || 0); }
     return;
@@ -1801,11 +1860,19 @@ window.toggle3D = async function () {
   }
   world.savedScroll = savedScroll;
   document.body.classList.add('mode-3d');
+  if (window.matchMedia('(pointer: coarse)').matches) document.body.classList.add('touch3d');
   btn.textContent = 'Return';
   world.resume();
 };
 
 window.addEventListener('resize', () => { if (world) world.onResize(); });
+
+// kill pull-to-refresh / rubber-banding while in 3D (player bar & nav still work)
+document.addEventListener('touchmove', (e) => {
+  if (!document.body.classList.contains('mode-3d')) return;
+  if (e.target.closest && e.target.closest('.now-playing-bar, .top-nav, .menu-tray')) return;
+  e.preventDefault();
+}, { passive: false });
 
 async function initWorld() {
   const THREE = await import('three');
@@ -1882,6 +1949,8 @@ async function initWorld() {
   const PZ = (i) => ROWS_Z[Math.floor(i / 4)];
 
   const colliders = [];
+  const occluders = [];      // block pills + camera (walls, platforms)
+  const camOccluders = [];   // camera also avoids stairs
 
   // ── the algorithm: video floor ──
   const video = document.createElement('video');
@@ -1890,8 +1959,7 @@ async function initWorld() {
   video.playsInline = true;
   video.setAttribute('playsinline', '');
   video.crossOrigin = 'anonymous';
-  video.preload = 'auto';
-  video.src = '/assets/VidInfinity.mp4';
+  video.preload = 'none';   // src assigned on first Enter 3D
   const videoTex = new THREE.VideoTexture(video);
   videoTex.colorSpace = THREE.SRGBColorSpace;
   videoTex.wrapS = videoTex.wrapT = THREE.RepeatWrapping;
@@ -1924,6 +1992,8 @@ async function initWorld() {
     m.position.set(cx, cy, cz);
     m.receiveShadow = true;
     scene.add(m);
+    occluders.push(m);
+    camOccluders.push(m);
     if (collide) colliders.push({ minX: cx - sx / 2, maxX: cx + sx / 2, minZ: cz - sz / 2, maxZ: cz + sz / 2 });
     return m;
   }
@@ -2029,10 +2099,14 @@ async function initWorld() {
     base.position.set(x, (PH - 0.2) / 2, z);
     base.castShadow = base.receiveShadow = true;
     scene.add(base);
+    occluders.push(base);
+    camOccluders.push(base);
     const deck = new THREE.Mesh(new THREE.BoxGeometry(PTOP, 0.25, PTOP), deckMat);
     deck.position.set(x, PH - 0.125, z);
     deck.receiveShadow = true;
     scene.add(deck);
+    occluders.push(deck);
+    camOccluders.push(deck);
 
     // stairs on the south side — climb out of the algorithm
     for (let s = 0; s < STEPS; s++) {
@@ -2042,7 +2116,13 @@ async function initWorld() {
       step.position.set(x, sh / 2, z - PTOP / 2 - SL + (s + 0.5) * sd);
       step.castShadow = step.receiveShadow = true;
       scene.add(step);
+      camOccluders.push(step);
     }
+    // solid stair sides — mount from the front only
+    colliders.push(
+      { minX: x - 1.95, maxX: x - 1.58, minZ: z - PTOP / 2 - SL, maxZ: z - PTOP / 2 },
+      { minX: x + 1.58, maxX: x + 1.95, minZ: z - PTOP / 2 - SL, maxZ: z - PTOP / 2 }
+    );
 
     const group = new THREE.Group();
     group.position.set(x, PH + 1.8, z);
@@ -2081,7 +2161,8 @@ async function initWorld() {
       if (Math.abs(dx) <= PTOP / 2 && Math.abs(dz) <= PTOP / 2) { h = Math.max(h, PH); continue; }
       if (Math.abs(dx) <= 1.6 && dz < -PTOP / 2 && dz >= -PTOP / 2 - SL) {
         const t = 1 - ((-dz) - PTOP / 2) / SL;
-        h = Math.max(h, t * PH);
+        const stepIdx = Math.min(STEPS - 1, Math.floor(t * STEPS));
+        h = Math.max(h, ((stepIdx + 1) / STEPS) * PH);
       }
     }
     return h;
@@ -2204,7 +2285,7 @@ async function initWorld() {
   const rasPos = new THREE.Vector3(3.6, 0, -WZ - 1.4);
   const bubble = document.createElement('div');
   bubble.className = 'bubble3d';
-  bubble.textContent = 'Welcome to Broken Spirit — step inside and feel the music.';
+  bubble.innerHTML = 'Welcome to Broken Spirit<br>step inside and feel the music.';
   labelsEl.appendChild(bubble);
   let rasLoaded = false, rasHeadY = 2.1;
   loader.load('/assets/ras.glb', (gltf) => {
@@ -2311,32 +2392,33 @@ async function initWorld() {
   });
   window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
+  const isTouch = window.matchMedia('(pointer: coarse)').matches;
   let camYaw = Math.PI, camPitch = 0.32, camDist = 7;
   let dragging = false, dragMoved = 0, lastX = 0, lastY = 0, downT = 0;
+
   canvas.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'touch' && e.clientX < window.innerWidth / 2) { startStick(e); return; }
-    dragging = true; dragMoved = 0;
-    lastX = e.clientX; lastY = e.clientY; downT = performance.now();
-    canvas.setPointerCapture(e.pointerId);
+    dragMoved = 0; lastX = e.clientX; lastY = e.clientY; downT = performance.now();
+    if (!(isTouch && e.pointerType === 'touch')) {   // touch looks via the camera pad
+      dragging = true;
+      canvas.setPointerCapture(e.pointerId);
+    }
   });
   canvas.addEventListener('pointermove', (e) => {
-    if (stickId === e.pointerId) { moveStick(e); return; }
-    if (!dragging) return;
     const dx = e.clientX - lastX, dy = e.clientY - lastY;
     dragMoved += Math.abs(dx) + Math.abs(dy);
-    camYaw   -= dx * 0.005;
-    camPitch += dy * 0.004;
-    camPitch = Math.max(0.05, Math.min(1.15, camPitch));
+    if (dragging) {
+      camYaw   -= dx * 0.005;
+      camPitch += dy * 0.004;
+      camPitch = Math.max(0.05, Math.min(1.15, camPitch));
+    }
     lastX = e.clientX; lastY = e.clientY;
   });
-  function endPointer(e) {
-    if (stickId === e.pointerId) { endStick(); return; }
-    if (!dragging) return;
+  canvas.addEventListener('pointerup', (e) => {
     dragging = false;
-    if (dragMoved < 7 && performance.now() - downT < 500) pick(e.clientX, e.clientY);
-  }
-  canvas.addEventListener('pointerup', endPointer);
-  canvas.addEventListener('pointercancel', (e) => { if (stickId === e.pointerId) endStick(); dragging = false; });
+    if (dragMoved < 10 && performance.now() - downT < 500) pick(e.clientX, e.clientY);
+  });
+  canvas.addEventListener('pointercancel', () => { dragging = false; });
+
   window.addEventListener('wheel', (e) => {
     if (!document.body.classList.contains('mode-3d')) return;
     camDist = Math.max(4, Math.min(12, camDist + e.deltaY * 0.005));
@@ -2346,6 +2428,7 @@ async function initWorld() {
   const _ndc = new THREE.Vector2();
   function pick(cx, cy) {
     _ndc.set((cx / window.innerWidth) * 2 - 1, -(cy / window.innerHeight) * 2 + 1);
+    _ray.far = Infinity;
     _ray.setFromCamera(_ndc, camera);
     const hits = _ray.intersectObjects(pickMeshes, false);
     if (!hits.length) return;
@@ -2353,32 +2436,68 @@ async function initWorld() {
     if (idx !== undefined) select(idx, true);
   }
 
-  // touch joystick
-  const stickEl = document.getElementById('stick3d');
-  const knobEl = document.getElementById('stick3dKnob');
-  let stickId = null, stickOrigin = { x: 0, y: 0 }, stickVec = { x: 0, y: 0 };
-  function startStick(e) {
-    stickId = e.pointerId;
-    stickOrigin = { x: e.clientX, y: e.clientY };
-    stickVec = { x: 0, y: 0 };
-    stickEl.style.display = 'block';
-    stickEl.style.left = (e.clientX - 48) + 'px';
-    stickEl.style.top = (e.clientY - 48) + 'px';
-    canvas.setPointerCapture(e.pointerId);
-  }
-  function moveStick(e) {
-    const dx = e.clientX - stickOrigin.x, dy = e.clientY - stickOrigin.y;
-    const len = Math.hypot(dx, dy), max = 44;
+  // ── fixed touch controls: Move / Camera / Interact ──
+  const stickVec = { x: 0, y: 0 };
+  const movePad = document.getElementById('ctlMove');
+  const moveKnob = document.getElementById('ctlMoveKnob');
+  const camPad = document.getElementById('ctlCam');
+  const interactBtn = document.getElementById('ctlInteract');
+  let moveId = null, camId = null, camLastX = 0, camLastY = 0;
+
+  movePad.addEventListener('pointerdown', (e) => {
+    moveId = e.pointerId;
+    movePad.setPointerCapture(e.pointerId);
+    updMove(e);
+    e.preventDefault();
+  });
+  movePad.addEventListener('pointermove', (e) => { if (e.pointerId === moveId) updMove(e); });
+  function updMove(e) {
+    const r = movePad.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width / 2);
+    const dy = e.clientY - (r.top + r.height / 2);
+    const len = Math.hypot(dx, dy), max = r.width / 2 - 12;
     const cl = Math.min(len, max);
     const nx = len ? dx / len : 0, ny = len ? dy / len : 0;
-    stickVec = { x: nx * (cl / max), y: ny * (cl / max) };
-    knobEl.style.transform = `translate(calc(-50% + ${nx * cl}px), calc(-50% + ${ny * cl}px))`;
+    stickVec.x = nx * (cl / max);
+    stickVec.y = ny * (cl / max);
+    moveKnob.style.transform = `translate(calc(-50% + ${nx * cl}px), calc(-50% + ${ny * cl}px))`;
   }
-  function endStick() {
-    stickId = null;
-    stickVec = { x: 0, y: 0 };
-    stickEl.style.display = 'none';
-    knobEl.style.transform = 'translate(-50%, -50%)';
+  function endMove(e) {
+    if (e.pointerId !== moveId) return;
+    moveId = null;
+    stickVec.x = 0; stickVec.y = 0;
+    moveKnob.style.transform = 'translate(-50%, -50%)';
+  }
+  movePad.addEventListener('pointerup', endMove);
+  movePad.addEventListener('pointercancel', endMove);
+
+  camPad.addEventListener('pointerdown', (e) => {
+    camId = e.pointerId; camLastX = e.clientX; camLastY = e.clientY;
+    camPad.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  camPad.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== camId) return;
+    camYaw   -= (e.clientX - camLastX) * 0.007;
+    camPitch += (e.clientY - camLastY) * 0.005;
+    camPitch = Math.max(0.05, Math.min(1.15, camPitch));
+    camLastX = e.clientX; camLastY = e.clientY;
+  });
+  function endCam(e) { if (e.pointerId === camId) camId = null; }
+  camPad.addEventListener('pointerup', endCam);
+  camPad.addEventListener('pointercancel', endCam);
+
+  interactBtn.addEventListener('click', () => {
+    const on = standingOn();
+    if (on !== null) select(on, true);
+  });
+
+  // pill sizes for overlap resolution (measured when 3D mode is visible)
+  function measurePills() {
+    platforms.forEach((p) => {
+      p.pw = p.pill.offsetWidth || 130;
+      p.ph2 = p.pill.offsetHeight || 32;
+    });
   }
 
   // ── loop ──
@@ -2491,6 +2610,14 @@ async function initWorld() {
       camLook.y + Math.sin(camPitch) * camDist,
       camLook.z + Math.cos(camYaw) * Math.cos(camPitch) * camDist
     );
+    _pv.copy(_p).sub(camLook);
+    const camLen = _pv.length();
+    _ray.far = camLen;
+    _ray.set(camLook, _pv.normalize());
+    const camHits = _ray.intersectObjects(camOccluders, false);
+    if (camHits.length) {
+      _p.copy(camLook).addScaledVector(_pv, Math.max(camHits[0].distance - 0.35, 1.2));
+    }
     camera.position.lerp(_p, Math.min(1, dt * 5));
     camera.lookAt(camLook);
 
@@ -2502,7 +2629,10 @@ async function initWorld() {
     const cur = bs.current();
     const playing = cur !== null && cur < N && !audio.paused;
     const onIdx = standingOn();
+    if (isTouch) interactBtn.classList.toggle('on', onIdx !== null);
     camera.getWorldDirection(_v);
+    const placed = [];
+    const order = [];
     for (let i = 0; i < N; i++) {
       const p = platforms[i];
       p.group.position.y = p.baseY + Math.sin(t * 0.8 + p.phase) * 0.25;
@@ -2512,9 +2642,42 @@ async function initWorld() {
       p.pill.classList.toggle('playing', isCur);
       p.group.scale.setScalar(isCur ? 1 + Math.sin(t * 4) * 0.06 : 1);
       p.ring.material.emissiveIntensity = isCur ? 0.7 + Math.sin(t * 4) * 0.25 : 0.35;
-
+      // hidden unless it survives visibility, occlusion and overlap tests
+      p.pill.style.opacity = '0';
+      p.pill.style.pointerEvents = 'none';
       _p.set(p.x, p.baseY + 1.4, p.z);
-      _v2project(_p, p.pill, i === onIdx);
+      p._dist = _p.distanceTo(camera.position);
+      order.push(i);
+    }
+    order.sort((a, b) => platforms[a]._dist - platforms[b]._dist);   // nearer pills win space
+    for (let oi = 0; oi < order.length; oi++) {
+      const i = order[oi];
+      const p = platforms[i];
+      const dist = p._dist;
+      _p.set(p.x, p.baseY + 1.4, p.z);
+      _pv.copy(_p).sub(camera.position);
+      if (_pv.dot(_v) < 0.1 || dist > 110) continue;
+      // hidden behind walls / platforms?
+      _ray.far = Math.max(dist - 1.4, 0.1);
+      _ray.set(camera.position, _pv.normalize());
+      if (_ray.intersectObjects(occluders, false).length) continue;
+      _p.project(camera);
+      const sx = (_p.x * 0.5 + 0.5) * window.innerWidth;
+      const sy = (-_p.y * 0.5 + 0.5) * window.innerHeight;
+      const fade = dist < 25 ? 1 : Math.max(0, 1 - (dist - 25) / 65);
+      const sc = 0.65 + fade * 0.35;
+      const w = (p.pw || 130) * sc, hh = (p.ph2 || 32) * sc;
+      let clash = false;
+      for (let k = 0; k < placed.length; k++) {
+        const r = placed[k];
+        if (Math.abs(sx - r[0]) < (w + r[2]) / 2 + 4 && Math.abs(sy - r[1]) < (hh + r[3]) / 2 + 4) { clash = true; break; }
+      }
+      if (clash) continue;
+      placed.push([sx, sy, w, hh]);
+      p.pill.style.opacity = String(0.15 + fade * 0.85);
+      p.pill.style.pointerEvents = 'auto';
+      p.pill.style.transform = `translate(-50%,-50%) translate(${sx}px,${sy}px) scale(${sc})`;
+      p.pill.classList.toggle('near', i === onIdx);
     }
 
     // Ras bubble
@@ -2532,29 +2695,10 @@ async function initWorld() {
   }
 
   const _pv = new THREE.Vector3();
-  function _v2project(worldPos, el, nearIt) {
-    _pv.copy(worldPos).sub(camera.position);
-    const dist = _pv.length();
-    const behind = _pv.dot(_v) < 0.1;
-    worldPos.project(camera);
-    if (behind || dist > 110) {
-      el.style.opacity = '0';
-      el.style.pointerEvents = 'none';
-      return;
-    }
-    const sx = (worldPos.x * 0.5 + 0.5) * window.innerWidth;
-    const sy = (-worldPos.y * 0.5 + 0.5) * window.innerHeight;
-    const fade = dist < 25 ? 1 : Math.max(0, 1 - (dist - 25) / 65);
-    el.style.opacity = String(0.15 + fade * 0.85);
-    el.style.pointerEvents = 'auto';
-    const sc = 0.65 + fade * 0.35;
-    el.style.transform = `translate(-50%,-50%) translate(${sx}px,${sy}px) scale(${sc})`;
-    el.classList.toggle('near', !!nearIt);
-  }
-
   animate();
 
   api.onResize = function () {
+    measurePills();
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -2566,7 +2710,9 @@ async function initWorld() {
   };
   api.resume = function () {
     api.paused = false;
+    if (!video.src) { video.src = '/assets/VidInfinity.mp4'; video.load(); }
     video.play().catch(() => {});
+    measurePills();
     api.onResize();
   };
   return api;
