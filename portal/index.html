@@ -661,61 +661,65 @@
     }
     @media (min-width: 701px) { body.mode-3d #hint3d { display: block; } }
 
-    /* fixed touch controls — lower third, touch devices only */
+    /* fixed touch controls — floating above the player bar, touch only */
     #ctl3d {
-      position: fixed; left: 0; right: 0; bottom: 0;
-      height: 200px;
+      position: fixed; left: 0; right: 0;
+      bottom: calc(86px + env(safe-area-inset-bottom));
       display: none;
       z-index: 7;
-      padding: 26px 18px calc(88px + env(safe-area-inset-bottom));
-      background: linear-gradient(to top, rgba(244,244,246,0.94) 55%, rgba(244,244,246,0));
+      padding: 0 22px;
       align-items: center;
-      gap: 16px;
+      justify-content: space-between;
       pointer-events: none;
     }
     body.mode-3d.touch3d #ctl3d { display: flex; }
-    body.mode-3d.touch3d .now-playing-bar { bottom: 200px; }
     body.mode-3d.touch3d #hint3d { display: none !important; }
     #ctlMove, #ctlCam, #ctlInteract { pointer-events: auto; touch-action: none; }
-    #ctlMove {
+    #ctlMove, #ctlCam {
       position: relative;
-      width: 104px; height: 104px; flex-shrink: 0;
+      width: 86px; height: 86px; flex-shrink: 0;
       border-radius: 50%;
       border: 1px solid var(--border);
-      background: var(--pill-bg);
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
-    #ctlMoveKnob {
+    #ctlMoveKnob, #ctlCamKnob {
       position: absolute; left: 50%; top: 50%;
-      width: 44px; height: 44px; border-radius: 50%;
-      background: rgba(0,0,0,0.22);
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(0,0,0,0.18);
       transform: translate(-50%, -50%);
     }
-    #ctlCam {
-      position: relative;
-      flex: 1; height: 104px;
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.55);
-    }
     .ctl-label {
-      position: absolute; left: 50%; bottom: 7px;
+      position: absolute; left: 50%; bottom: -15px;
       transform: translateX(-50%);
       font-size: 8px; letter-spacing: 0.13em; text-transform: uppercase;
       color: rgba(0,0,0,0.32);
       pointer-events: none; white-space: nowrap;
     }
     #ctlInteract {
-      width: 68px; height: 68px; flex-shrink: 0;
+      width: 54px; height: 54px; flex-shrink: 0;
       border-radius: 50%;
       border: 1px solid var(--border);
-      background: var(--pill-bg);
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
       font-family: inherit;
-      font-size: 8px; letter-spacing: 0.11em; text-transform: uppercase;
+      font-size: 7px; letter-spacing: 0.1em; text-transform: uppercase;
       color: var(--muted);
       opacity: 0.45;
       transition: opacity 0.2s, border-color 0.2s;
     }
-    #ctlInteract.on { opacity: 1; border-color: rgba(0,0,0,0.45); color: #000; }
+    #ctlInteract.on { opacity: 1; border-color: rgba(0,0,0,0.45); color: #000; background: rgba(255,255,255,0.92); }
+
+    /* 3D entry / teleport fade */
+    #fade3d {
+      position: fixed; inset: 0;
+      background: #f4f4f6;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 4;
+    }
 
   </style>
 </head>
@@ -836,11 +840,12 @@
   <!-- 3D mode (hidden until toggled) -->
   <canvas id="scene3d"></canvas>
   <div id="labels3d"></div>
-  <div id="hint3d">WASD — walk<br>Drag — look<br>E — play / pause<br>Esc — return</div>
+  <div id="fade3d"></div>
+  <div id="hint3d">WASD — walk<br>Drag — look<br>E — interact<br>Esc — return</div>
   <div id="ctl3d">
     <div id="ctlMove"><div id="ctlMoveKnob"></div><span class="ctl-label">Move</span></div>
-    <div id="ctlCam"><span class="ctl-label">Camera</span></div>
     <button id="ctlInteract">Interact</button>
+    <div id="ctlCam"><div id="ctlCamKnob"></div><span class="ctl-label">Camera</span></div>
   </div>
 
   <!-- Login Modal -->
@@ -1900,6 +1905,25 @@ async function initWorld() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.1;
 
+  const fadeEl = document.getElementById('fade3d');
+  function flashFade() {           // start covered, reveal (mode entry)
+    fadeEl.style.transition = 'none';
+    fadeEl.style.opacity = '1';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      fadeEl.style.transition = 'opacity 0.8s';
+      fadeEl.style.opacity = '0';
+    }));
+  }
+  function fadeCover(cb) {         // cover, act, reveal (teleport)
+    fadeEl.style.transition = 'opacity 0.35s';
+    fadeEl.style.opacity = '1';
+    setTimeout(() => {
+      cb();
+      fadeEl.style.transition = 'opacity 0.7s';
+      fadeEl.style.opacity = '0';
+    }, 380);
+  }
+
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(FOG_COLOR);
   scene.fog = new THREE.FogExp2(FOG_COLOR, 0.011);
@@ -1939,7 +1963,7 @@ async function initWorld() {
 
   // ── warehouse dimensions ──
   const WX = 62, WZ = 46, WH = 13;        // half-width, half-depth, wall height
-  const DOOR_HALF = 3, DOOR_H = 5;        // doorway in the south wall (z = -WZ)
+  const DOOR_HALF = 0.75, DOOR_H = 2.5;   // human-scale doorway, south wall (z = -WZ)
   const PH = 2.4;                          // platform height — above the algorithm
   const PTOP = 8;                          // platform top size
   const SL = 3.6;                          // stair run
@@ -1959,7 +1983,7 @@ async function initWorld() {
   video.playsInline = true;
   video.setAttribute('playsinline', '');
   video.crossOrigin = 'anonymous';
-  video.preload = 'none';   // src assigned on first Enter 3D
+  video.preload = 'auto';
   const videoTex = new THREE.VideoTexture(video);
   videoTex.colorSpace = THREE.SRGBColorSpace;
   videoTex.wrapS = videoTex.wrapT = THREE.RepeatWrapping;
@@ -1975,6 +1999,13 @@ async function initWorld() {
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = 0.02;
   scene.add(floor);
+  const videoReady = new Promise((res) => {
+    video.addEventListener('canplay', () => res(), { once: true });
+    video.addEventListener('error', () => res(), { once: true });
+    setTimeout(res, 8000);
+  });
+  video.src = '/assets/VidInfinity.mp4';
+  video.load();
 
   // outside ground — bare concrete in the fog
   const outside = new THREE.Mesh(
@@ -2014,6 +2045,8 @@ async function initWorld() {
   const header = new THREE.Mesh(new THREE.BoxGeometry(DOOR_HALF * 2 + 0.44, 0.22, 0.75), frameMat);
   header.position.set(0, DOOR_H, -WZ);
   scene.add(header);
+  const doorBlock = { minX: -DOOR_HALF - 0.2, maxX: DOOR_HALF + 0.2, minZ: -WZ - 0.6, maxZ: -WZ + 0.6 };
+  colliders.push(doorBlock);   // sealed until Ras invites you in
 
   const ceiling = new THREE.Mesh(
     new THREE.PlaneGeometry(WX * 2, WZ * 2),
@@ -2068,23 +2101,6 @@ async function initWorld() {
   const deckMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, map: deckTex });
   const stepMat = new THREE.MeshStandardMaterial({ color: 0xd6d6dc, roughness: 1 });
 
-  function makeRoomLabel(text) {
-    const c = document.createElement('canvas');
-    c.width = 256; c.height = 256;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = 'rgba(0,0,0,0.9)';
-    ctx.font = '500 110px -apple-system, "Segoe UI", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, 128, 128);
-    const m = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.2, 2.2),
-      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0.16, depthWrite: false })
-    );
-    m.rotation.x = -Math.PI / 2;
-    return m;
-  }
-
   const labelsEl = document.getElementById('labels3d');
   const ringGeo = new THREE.TorusGeometry(0.85, 0.035, 12, 60);
   const coreGeo = new THREE.SphereGeometry(0.22, 20, 20);
@@ -2095,7 +2111,7 @@ async function initWorld() {
   for (let i = 0; i < N; i++) {
     const x = PX(i), z = PZ(i);
 
-    const base = new THREE.Mesh(new THREE.BoxGeometry(PTOP + 0.5, PH - 0.2, PTOP + 0.5), baseMat);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(PTOP - 0.3, PH - 0.2, PTOP - 0.3), baseMat);
     base.position.set(x, (PH - 0.2) / 2, z);
     base.castShadow = base.receiveShadow = true;
     scene.add(base);
@@ -2121,7 +2137,10 @@ async function initWorld() {
     // solid stair sides — mount from the front only
     colliders.push(
       { minX: x - 1.95, maxX: x - 1.58, minZ: z - PTOP / 2 - SL, maxZ: z - PTOP / 2 },
-      { minX: x + 1.58, maxX: x + 1.95, minZ: z - PTOP / 2 - SL, maxZ: z - PTOP / 2 }
+      { minX: x + 1.58, maxX: x + 1.95, minZ: z - PTOP / 2 - SL, maxZ: z - PTOP / 2 },
+      // platform sides are solid unless you're already on top
+      { minX: x - PTOP / 2 - 0.05, maxX: x + PTOP / 2 + 0.05,
+        minZ: z - PTOP / 2 - 0.05, maxZ: z + PTOP / 2 + 0.05, below: PH - 0.6 }
     );
 
     const group = new THREE.Group();
@@ -2136,10 +2155,6 @@ async function initWorld() {
     group.add(ring, ring2, core);
     scene.add(group);
     pickMeshes.push(ring, ring2, core);
-
-    const floorLbl = makeRoomLabel((i < 6 ? 'A' : 'B') + ((i % 6) + 1));
-    floorLbl.position.set(x, PH + 0.02, z);
-    scene.add(floorLbl);
 
     const pill = document.createElement('div');
     pill.className = 'pill3d';
@@ -2199,7 +2214,7 @@ async function initWorld() {
   // ── Sloucho ──
   const player = new THREE.Group();
   scene.add(player);
-  player.position.set(0, 0, -WZ - 26);     // outside, facing the door
+  player.position.set(0, 0, -WZ - 16);     // outside, facing the door
   let playerY = 0;
   let mixer = null, idleAction = null, walkAction = null, charModel = null;
   let baseModelY = 0, walkPhase = 0;
@@ -2211,6 +2226,8 @@ async function initWorld() {
   const draco = new DRACOLoader();
   draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
   loader.setDRACOLoader(draco);
+  let modelResolve;
+  const modelReady = new Promise((r) => { modelResolve = r; setTimeout(r, 10000); });
   const GLB_PATHS = ['/assets/sloucho.glb', 'assets/sloucho.glb', 'sloucho.glb'];
   function loadModel(pathIdx) {
     if (pathIdx >= GLB_PATHS.length) { onModelError(); return; }
@@ -2263,6 +2280,7 @@ async function initWorld() {
         walkAction.setEffectiveWeight(0);
       }
     }, undefined, () => {});
+    modelResolve();
   }
   function onModelError() {
     const body = new THREE.Mesh(
@@ -2277,12 +2295,15 @@ async function initWorld() {
     head.position.y = 1.45;
     body.castShadow = head.castShadow = true;
     player.add(body, head);
+    modelResolve();
   }
   loadModel(0);
 
   // ── Ras at the doorway ──
   let rasMixer = null;
-  const rasPos = new THREE.Vector3(3.6, 0, -WZ - 1.4);
+  const rasPos = new THREE.Vector3(0, 0, -WZ - 1.5);
+  let rasResolve;
+  const rasReady = new Promise((r) => { rasResolve = r; setTimeout(r, 12000); });
   const bubble = document.createElement('div');
   bubble.className = 'bubble3d';
   bubble.innerHTML = 'Welcome to Broken Spirit<br>step inside and feel the music.';
@@ -2296,7 +2317,14 @@ async function initWorld() {
     ras.scale.setScalar(s);
     box.setFromObject(ras);
     ras.position.y -= box.min.y;
-    ras.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+    ras.traverse((o) => {
+      if (o.isMesh) {
+        o.castShadow = true;
+        o.frustumCulled = false;
+        o.userData.idx = 'ras';     // clickable
+        pickMeshes.push(o);
+      }
+    });
     const g = new THREE.Group();
     g.add(ras);
     g.position.copy(rasPos);
@@ -2309,7 +2337,37 @@ async function initWorld() {
     }
     rasLoaded = true;
     colliders.push({ minX: rasPos.x - 0.4, maxX: rasPos.x + 0.4, minZ: rasPos.z - 0.4, maxZ: rasPos.z + 0.4 });
-  }, undefined, (e) => console.warn('[3d] ras.glb not found', e));
+    rasResolve();
+  }, undefined, (e) => { console.warn('[3d] ras.glb not found', e); doorBlock.off = true; rasResolve(); });
+
+  // talk to Ras → he welcomes you, then you're brought inside
+  let rasTalked = false, rasTalking = false;
+  function talkToRas() {
+    if (rasTalking || !rasLoaded) return;
+    if (rasTalked) {   // repeat visits: he just says it again
+      bubble.classList.add('show');
+      setTimeout(() => bubble.classList.remove('show'), 2400);
+      return;
+    }
+    rasTalking = true;
+    bubble.classList.add('show');
+    setTimeout(() => {
+      fadeCover(() => {
+        player.position.set(0, 0, -WZ + 3.5);
+        playerY = 0;
+        player.position.y = 0;
+        vel.set(0, 0, 0);
+        player.rotation.y = 0;
+        targetRotY = 0;
+        camYaw = Math.PI;
+        snapCamera();
+        bubble.classList.remove('show');
+        doorBlock.off = true;      // the door stays open from now on
+        rasTalked = true;
+        rasTalking = false;
+      });
+    }, 2100);
+  }
 
   // footsteps (synthesized)
   let audioCtx = null;
@@ -2369,6 +2427,15 @@ async function initWorld() {
     else if (toggle || audio.paused) bs.play(i);
   }
 
+  function nearRas() {
+    return rasLoaded && player.position.distanceTo(rasPos) < 3.5;
+  }
+  function doInteract() {
+    if (nearRas()) { talkToRas(); return; }
+    const on = standingOn();
+    if (on !== null) select(on, true);
+  }
+
   // platform the player is standing on (or null)
   function standingOn() {
     if (playerY < PH - 0.9) return null;
@@ -2384,10 +2451,7 @@ async function initWorld() {
   window.addEventListener('keydown', (e) => {
     if (!document.body.classList.contains('mode-3d')) return;
     keys[e.code] = true;
-    if (e.code === 'KeyE') {
-      const on = standingOn();
-      if (on !== null) select(on, true);
-    }
+    if (e.code === 'KeyE') doInteract();
     if (e.code === 'Escape') window.toggle3D();
   });
   window.addEventListener('keyup', (e) => { keys[e.code] = false; });
@@ -2433,6 +2497,10 @@ async function initWorld() {
     const hits = _ray.intersectObjects(pickMeshes, false);
     if (!hits.length) return;
     const idx = hits[0].object.userData.idx;
+    if (idx === 'ras') {
+      if (player.position.distanceTo(rasPos) < 5) talkToRas();
+      return;
+    }
     if (idx !== undefined) select(idx, true);
   }
 
@@ -2487,10 +2555,7 @@ async function initWorld() {
   camPad.addEventListener('pointerup', endCam);
   camPad.addEventListener('pointercancel', endCam);
 
-  interactBtn.addEventListener('click', () => {
-    const on = standingOn();
-    if (on !== null) select(on, true);
-  });
+  interactBtn.addEventListener('click', () => doInteract());
 
   // pill sizes for overlap resolution (measured when 3D mode is visible)
   function measurePills() {
@@ -2507,6 +2572,16 @@ async function initWorld() {
   let targetRotY = 0;
   const camLook = new THREE.Vector3();
   const _v = new THREE.Vector3(), _p = new THREE.Vector3();
+
+  function snapCamera() {
+    camLook.set(player.position.x, player.position.y + 1.5, player.position.z);
+    camera.position.set(
+      camLook.x + Math.sin(camYaw) * Math.cos(camPitch) * camDist,
+      camLook.y + Math.sin(camPitch) * camDist,
+      camLook.z + Math.cos(camYaw) * Math.cos(camPitch) * camDist
+    );
+    camera.lookAt(camLook);
+  }
 
   function animate() {
     requestAnimationFrame(animate);
@@ -2537,6 +2612,8 @@ async function initWorld() {
     const CR = 0.45;
     for (let ci = 0; ci < colliders.length; ci++) {
       const b = colliders[ci];
+      if (b.off) continue;
+      if (b.below !== undefined && playerY > b.below) continue;
       const px = Math.max(b.minX, Math.min(player.position.x, b.maxX));
       const pz = Math.max(b.minZ, Math.min(player.position.z, b.maxZ));
       const dx = player.position.x - px, dz = player.position.z - pz;
@@ -2629,7 +2706,7 @@ async function initWorld() {
     const cur = bs.current();
     const playing = cur !== null && cur < N && !audio.paused;
     const onIdx = standingOn();
-    if (isTouch) interactBtn.classList.toggle('on', onIdx !== null);
+    if (isTouch) interactBtn.classList.toggle('on', onIdx !== null || nearRas());
     camera.getWorldDirection(_v);
     const placed = [];
     const order = [];
@@ -2680,10 +2757,8 @@ async function initWorld() {
       p.pill.classList.toggle('near', i === onIdx);
     }
 
-    // Ras bubble
+    // Ras bubble (visible while he speaks)
     if (rasLoaded) {
-      const near = player.position.distanceTo(rasPos) < 8;
-      bubble.classList.toggle('show', near);
       _p.set(rasPos.x, rasHeadY + 0.35, rasPos.z);
       _p.project(camera);
       bubble.style.transform =
@@ -2710,11 +2785,14 @@ async function initWorld() {
   };
   api.resume = function () {
     api.paused = false;
-    if (!video.src) { video.src = '/assets/VidInfinity.mp4'; video.load(); }
     video.play().catch(() => {});
-    measurePills();
     api.onResize();
+    snapCamera();
+    flashFade();
   };
+
+  // world is ready only when Sloucho, Ras and the floor video are in
+  await Promise.all([videoReady, rasReady, modelReady]);
   return api;
 }
 </script>
