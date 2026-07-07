@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sloucho — Fake · The Ice Gym</title>
+<link rel="icon" href="../brokenspirit/favicon.ico">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @font-face {
+    font-family: 'PPMori';
+    src: url('/assets/fonts/PPMori/PPMori-Regular.woff2') format('woff2');
+    font-weight: normal; font-style: normal; font-display: swap;
+  }
+  html, body { overflow: hidden; background: #e9f2f8; font-family: 'PPMori', -apple-system, 'SF Pro Text', 'Segoe UI', sans-serif; }
+  canvas#scene { position: fixed; inset: 0; display: block; touch-action: none; }
+
+  #startTag {
+    font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(0,0,0,0.55);
+    margin-bottom: 6px;
+  }
+  #controlsHint {
+    position: fixed; top: 18px; left: 22px; z-index: 5;
+    font-size: 11px; line-height: 1.8; color: rgba(20,40,60,0.4);
+    pointer-events: none;
+  }
+  @media (pointer: coarse) { #controlsHint { display: none; } }
+
+  /* floating 3D labels */
+  #labels { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+  .pill3d {
+    position: absolute; top: 0; left: 0;
+    transform: translate(-50%, -50%);
+    background: rgba(255,255,255,0.88);
+    border: 1px solid rgba(20,40,60,0.14);
+    border-radius: 999px;
+    padding: 5px 13px;
+    font-size: 12px; color: #14283c;
+    white-space: nowrap;
+    backdrop-filter: blur(8px);
+    cursor: pointer; pointer-events: auto;
+    transition: border-color 0.2s;
+    display: flex; gap: 7px; align-items: center;
+  }
+  .pill3d .hint { font-size: 10px; color: rgba(20,40,60,0.4); display: none; }
+  .pill3d.near { border-color: rgba(20,40,60,0.45); }
+  .pill3d.near .hint { display: inline; }
+
+  /* fixed touch controls — Move / Interact / Camera, touch devices only */
+  #ctl3d {
+    position: fixed; left: 0; right: 0;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    display: none;
+    z-index: 7;
+    padding: 0 22px;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  body.touch3d #ctl3d { display: flex; }
+  body.player-open #ctl3d { bottom: calc(118px + env(safe-area-inset-bottom)); }
+  #ctlMove, #ctlCam, #ctlInteract { pointer-events: auto; touch-action: none; }
+  #ctlMove, #ctlCam {
+    position: relative;
+    width: 86px; height: 86px; flex-shrink: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.12);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  #ctlMoveKnob, #ctlCamKnob {
+    position: absolute; left: 50%; top: 50%;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(0,0,0,0.18);
+    transform: translate(-50%, -50%);
+  }
+  .ctl-label {
+    position: absolute; left: 50%; bottom: -15px;
+    transform: translateX(-50%);
+    font-size: 8px; letter-spacing: 0.13em; text-transform: uppercase;
+    color: rgba(0,0,0,0.32);
+    pointer-events: none; white-space: nowrap;
+  }
+  #ctlInteract {
+    width: 54px; height: 54px; flex-shrink: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.12);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    font-family: inherit;
+    font-size: 7px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(0,0,0,0.45);
+    opacity: 0.45;
+    transition: opacity 0.2s, border-color 0.2s;
+  }
+  #ctlInteract.on { opacity: 1; border-color: rgba(0,0,0,0.45); color: #000; background: rgba(255,255,255,0.92); }
+
+  /* dialogue */
+  #dlg {
+    position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%);
+    width: min(480px, calc(100vw - 40px));
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(20,40,60,0.16);
+    border-radius: 14px;
+    padding: 16px 20px 12px;
+    z-index: 8; cursor: pointer;
+    backdrop-filter: blur(14px);
+    display: none;
+  }
+  #dlg.open { display: block; }
+  #dlgName { font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: rgba(20,40,60,0.4); margin-bottom: 6px; }
+  #dlgText { font-size: 14px; line-height: 1.45; color: #14283c; min-height: 40px; }
+  #dlgMore { font-size: 10px; color: rgba(20,40,60,0.35); text-align: right; margin-top: 8px; }
+
+  /* song player pill — matches the /brokenspirit track pills */
+  #player {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+    width: min(440px, calc(100vw - 32px));
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(0,0,0,0.12);
+    border-radius: 14px;
+    padding: 9px 12px 11px;
+    z-index: 7;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    display: none;
+  }
+  #player.visible { display: block; }
+  .p-row { display: flex; gap: 10px; align-items: center; }
+  .circ-btn {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.12); background: rgba(0,0,0,0.05);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .circ-btn:hover { border-color: rgba(0,0,0,0.28); background: rgba(0,0,0,0.10); }
+  .play-icon { width: 0; height: 0; border-left: 8px solid #000; border-top: 6px solid transparent; border-bottom: 6px solid transparent; transform: translateX(1px); }
+  .pause-icon { width: 9px; height: 11px; display: none; position: relative; }
+  .pause-icon::before, .pause-icon::after { content: ''; position: absolute; top: 0; bottom: 0; width: 3px; background: #000; border-radius: 2px; }
+  .pause-icon::before { left: 0; } .pause-icon::after { right: 0; }
+  #player.playing .play-icon { display: none; }
+  #player.playing .pause-icon { display: block; }
+  .p-meta { min-width: 0; flex: 1; }
+  .p-title { font-size: 14px; font-weight: 450; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+  .p-title .p-feat { font-size: 12px; font-weight: 400; color: rgba(0,0,0,0.45); }
+  .p-title a { color: inherit; text-decoration: none; border-bottom: 1px solid rgba(0,0,0,0.2); }
+  .p-title a:hover { border-color: rgba(0,0,0,0.5); }
+  .p-sub { font-size: 12px; color: rgba(0,0,0,0.45); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #pTime { font-size: 11px; color: rgba(0,0,0,0.45); white-space: nowrap; text-align: right; min-width: 76px; }
+  #pInfo .info-icon { font-size: 14px; font-style: italic; font-family: Georgia, serif; color: rgba(0,0,0,0.45); line-height: 1; }
+  #pInfo.active { background: rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.2); }
+  #pInfo.active .info-icon { color: #000; }
+  #pDesc {
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1);
+    font-size: 12px; line-height: 1.5; color: rgba(0,0,0,0.45);
+  }
+  #player.info-open #pDesc { max-height: 240px; margin-top: 10px; }
+  #pBar { height: 16px; display: flex; align-items: center; margin-top: 6px; cursor: pointer; touch-action: none; }
+  #pTrack { height: 3px; flex: 1; background: rgba(0,0,0,0.1); border-radius: 2px; }
+  #pFill { height: 100%; width: 0%; background: #000; border-radius: 2px; }
+  #pMissing { display: none; font-size: 11px; color: #a04040; margin-top: 8px; }
+  #player.missing #pMissing { display: block; }
+
+  /* start overlay */
+  #start {
+    position: fixed; inset: 0; z-index: 20;
+    background: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; text-align: center; padding: 24px;
+    transition: opacity 0.6s;
+  }
+  #start.hidden { opacity: 0; pointer-events: none; }
+  #enterBtn {
+    margin-top: 14px; padding: 12px 46px;
+    border-radius: 999px; border: none;
+    background: #000; color: #fff;
+    font-family: inherit; font-size: 14px; cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  #enterBtn:hover { opacity: 0.8; }
+  #loadBar {
+    width: 150px; height: 3px; margin-top: 14px;
+    background: rgba(0,0,0,0.1); border-radius: 2px;
+    overflow: hidden;
+    transition: opacity 0.4s;
+  }
+  #loadBar.done { opacity: 0; }
+  #loadFill { height: 100%; width: 0%; background: #000; border-radius: 2px; transition: width 0.2s; }
+
+  #fade { position: fixed; inset: 0; background: #e9f2f8; opacity: 0; pointer-events: none; transition: opacity 0.35s; z-index: 9; }
+  #fade.on { opacity: 1; }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+<div id="labels"></div>
+
+<div id="controlsHint">WASD - Walk<br>Drag - Camera<br>E - Talk</div>
+
+<div id="ctl3d">
+  <div id="ctlMove"><div id="ctlMoveKnob"></div><span class="ctl-label">Move</span></div>
+  <button id="ctlInteract">Interact</button>
+  <div id="ctlCam"><div id="ctlCamKnob"></div><span class="ctl-label">Camera</span></div>
+</div>
+
+<div id="dlg">
+  <div id="dlgName">Ras</div>
+  <div id="dlgText"></div>
+  <div id="dlgMore">click to continue</div>
+</div>
+
+<div id="player">
+  <div class="p-row">
+    <button class="circ-btn" id="pPlay" aria-label="Play/Pause"><span class="play-icon"></span><span class="pause-icon"></span></button>
+    <div class="p-meta">
+      <div class="p-title">Fake <span class="p-feat"><a href="https://instagram.com/gemmadunleavy_" target="_blank" rel="noopener">ft. Gemma Dunleavy</a></span></div>
+      <div class="p-sub">133 BPM · 3:24</div>
+    </div>
+    <div id="pTime">0:00 / 3:24</div>
+    <button class="circ-btn" id="pInfo" aria-label="Info"><span class="info-icon">i</span></button>
+  </div>
+  <div id="pDesc">Created in Dublin in September 2025. I made the instrumental from my bed a few weeks prior (one of the best places to produce btw) and sent it to Gemma to write to. She came to my home studio and we drank tea, talked about life, got sidetracked, lost track of time, then made the best song ever.</div>
+  <div id="pMissing">Audio file not found</div>
+  <div id="pBar"><div id="pTrack"><div id="pFill"></div></div></div>
+</div>
+
+<div id="start">
+  <p id="startTag">Connect the paths, obtain the song</p>
+  <button id="enterBtn">Enter</button>
+  <div id="loadBar"><div id="loadFill"></div></div>
+</div>
+
+<div id="fade"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+// ─────────────────────────────────────────────────────────────
+// SCENE — pale ice light, heavy fog, snowfall
+// ─────────────────────────────────────────────────────────────
+const FOG_COLOR = 0xe9f2f8;
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(FOG_COLOR);
+scene.fog = new THREE.FogExp2(FOG_COLOR, 0.015);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 400);
+
+const composer = new EffectComposer(renderer);
+composer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+composer.setSize(window.innerWidth, window.innerHeight);
+composer.addPass(new RenderPass(scene, camera));
+const PostShader = {
+  uniforms: { tDiffuse: { value: null }, time: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `
+    varying vec2 vUv;
+    uniform sampler2D tDiffuse;
+    uniform float time;
+    float rnd(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      c.rgb += (rnd(vUv * (800.0 + fract(time) * 100.0)) - 0.5) * 0.04;
+      c.rgb *= 1.0 - 0.28 * smoothstep(0.35, 0.85, length(vUv - 0.5));
+      gl_FragColor = c;
+    }`
+};
+const postPass = new ShaderPass(PostShader);
+composer.addPass(postPass);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xc9d8e6, 1.3));
+const sun = new THREE.DirectionalLight(0xf2f8ff, 1.5);
+sun.position.set(16, 30, -12);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -34; sun.shadow.camera.right = 34;
+sun.shadow.camera.top = 34;   sun.shadow.camera.bottom = -34;
+scene.add(sun);
+scene.add(sun.target);
+
+// ─────────────────────────────────────────────────────────────
+// LEVEL LAYOUT — north is -Z
+//
+// entrance [pink switch] → pink cube → platform [blue switch] →
+// blue cube → platform [yellow switch] → yellow cube → platform
+// [green switch] → green cube → stairs → Ras (north)
+// Each cube is hollow: you walk through the inside, and the
+// switch spins it 90° about the travel axis so a different
+// inner wall becomes the floor.
+// ─────────────────────────────────────────────────────────────
+const TS = 2;                 // tile size (m)
+const DECK_T = 0.6;
+
+// Snowbelle-style: wide drums span the room; side platforms flank
+// the seams (switches live there); a narrow CENTER BRIDGE runs up
+// the spine between drums — the actual way forward, usable only
+// when a drum's center column lands underfoot.
+const FLOORS = [
+  { x0: -8,  x1: 8,  z0: 12,  z1: 18,  y: 0 },  // entrance
+  { x0: -15, x1: -2, z0: 0,   z1: 4,   y: 0 },  // seam 1 left  (pink switch)
+  { x0: 2,   x1: 15, z0: 0,   z1: 4,   y: 0 },  // seam 1 right (blue switch)
+  { x0: -1,  x1: 1,  z0: 0,   z1: 4,   y: 0 },  // center bridge 1
+  { x0: -15, x1: -2, z0: -12, z1: -8,  y: 0 },  // seam 2 left  (yellow switch)
+  { x0: 2,   x1: 15, z0: -12, z1: -8,  y: 0 },  // seam 2 right (green switch)
+  { x0: -1,  x1: 1,  z0: -12, z1: -8,  y: 0 },  // center bridge 2
+  { x0: -1,  x1: 1,  z0: -24, z1: -20, y: 0 },  // center bridge 3
+  { x0: -8,  x1: 8,  z0: -38, z1: -32, y: 0 },  // pre-stairs
+  { x0: -8,  x1: 8,  z0: -48, z1: -40, y: 2 },  // Ras platform
+];
+const SPAWN = [0, 0, 15];
+
+// ── cube face masks (4 rows × 7 cols; wide drums) ──
+// faces[f] is the wall pattern lying underfoot after f presses.
+// row 0 = north edge, col 0 = west. 1 = walkable route tile,
+// 0 = open gap (invisible collision).
+// 7 columns so the CENTER column (col 3, x -1..1) sits perfectly
+// flush with the 2m center bridges. Cols 0-2 reach the left seam
+// platforms, cols 4-6 the right ones.
+//
+// Verified solve (identical structure to Snowbelle City gym),
+// with an exhaustive audit showing no reachable state can strand:
+// pink ×2 → east route → blue switch · blue ×3 → back west,
+// pink ×3 → center → middle bridges north → yellow's east edge →
+// green switch ×3 → yellow switch ×1 → center all the way.
+const PINK = {
+  solvedK: 1,
+  x0: -7, x1: 7, z0: 4, z1: 12, cz: 8,
+  faces: [
+    [[0,1,0,0,0,0,0],[0,1,0,0,0,0,0],[0,1,0,0,0,0,0],[0,1,0,0,0,0,0]],  // west column — entrance ↔ seam1 left
+    [[0,1,1,1,0,0,0],[0,0,0,1,0,0,0],[0,0,0,1,0,0,0],[0,0,0,1,0,0,0]],  // CENTER + west arm — left ↔ bridge 1 ↔ entrance
+    [[0,1,0,0,0,1,0],[0,1,1,1,1,1,0],[0,0,0,0,0,1,0],[0,0,0,0,0,1,0]],  // east route — left ↔ RIGHT ↔ entrance (no bridge)
+    [[0,0,0,0,0,0,0],[0,0,1,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,0]],  // scattered stubs
+  ],
+};
+const BLUE = {
+  solvedK: 3,
+  x0: -7, x1: 7, z0: -8, z1: 0, cz: -4,
+  faces: [
+    [[0,0,0,0,0,0,0],[0,0,1,1,0,0,0],[0,0,1,1,0,0,0],[0,0,0,0,0,0,0]],  // stranded blob
+    [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,1,0]],  // south-east stub
+    [[0,0,0,0,0,0,0],[0,1,1,1,1,1,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]],  // stranded band
+    [[0,1,1,1,0,0,0],[0,0,0,1,0,0,0],[0,0,0,1,0,0,0],[0,0,0,1,0,0,0]],  // CENTER + west arm → seam2 left
+  ],
+};
+const YELLOW = {
+  solvedK: 1,
+  x0: -7, x1: 7, z0: -20, z1: -12, cz: -16,
+  faces: [
+    [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,1,1,1,0]],  // south edge east — bridge 2 ↔ seam2 right
+    [[0,0,0,1,0,0,0],[0,0,0,1,0,0,0],[0,0,0,1,0,0,0],[0,0,0,1,0,0,0]],  // CENTER column — bridge 2 ↔ bridge 3
+    [[0,0,0,0,0,0,0],[0,1,1,1,1,1,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]],  // stranded band
+    [[0,0,0,0,0,0,0],[0,0,0,0,0,1,0],[0,1,1,0,0,0,0],[0,0,0,0,0,0,0]],  // scattered stubs
+  ],
+};
+const GREEN = {
+  solvedK: 3,
+  x0: -7, x1: 7, z0: -32, z1: -24, cz: -28,
+  faces: [
+    [[0,0,0,0,0,0,0],[0,0,1,1,0,0,0],[0,0,0,1,0,0,0],[0,0,0,0,0,0,0]],  // stranded blob
+    [[0,0,0,0,1,1,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]],  // north stub
+    [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,1,1,1,1,1,0],[0,0,0,0,0,0,0]],  // stranded band
+    [[0,0,0,1,0,0,0],[0,0,0,1,0,0,0],[0,0,0,1,0,0,0],[0,0,0,1,0,0,0]],  // CENTER column — bridge 3 ↔ stairs
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────
+// MATERIALS + GEOMETRY
+// ─────────────────────────────────────────────────────────────
+function makeIceTexture(base, veinAlpha) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 9000; i++) {
+    const v = 225 + Math.floor(Math.random() * 30);
+    ctx.fillStyle = `rgba(${v - 10},${v},255,0.35)`;
+    ctx.fillRect(Math.random() * 256, Math.random() * 256, 1, 1);
+  }
+  ctx.strokeStyle = `rgba(130,170,210,${veinAlpha})`;
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 22; i++) {
+    ctx.beginPath();
+    let x = Math.random() * 256, y = Math.random() * 256;
+    ctx.moveTo(x, y);
+    for (let s = 0; s < 5; s++) {
+      x += (Math.random() - 0.5) * 70; y += (Math.random() - 0.5) * 70;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+const iceTexBase = makeIceTexture('#dfeaf4', 0.22);
+
+function addDeck(f) {
+  const sx = f.x1 - f.x0, sz = f.z1 - f.z0;
+  const cx = (f.x0 + f.x1) / 2, cz = (f.z0 + f.z1) / 2;
+  const tex = iceTexBase.clone();
+  tex.needsUpdate = true;
+  tex.repeat.set(Math.max(1, Math.round(sx / 3)), Math.max(1, Math.round(sz / 3)));
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.05, map: tex });
+  const d = new THREE.Mesh(new THREE.BoxGeometry(sx, DECK_T, sz), mat);
+  d.position.set(cx, f.y - DECK_T / 2, cz);
+  d.receiveShadow = true;
+  scene.add(d);
+}
+FLOORS.forEach(addDeck);
+
+// steps up to the Ras platform (z -40..-38, five 0.4m risers)
+for (let i = 0; i < 5; i++) {
+  const step = new THREE.Mesh(
+    new THREE.BoxGeometry(16, 0.4 * (i + 1), 0.4),
+    new THREE.MeshStandardMaterial({ color: 0xeaf2f8, roughness: 0.4, map: iceTexBase })
+  );
+  step.position.set(0, 0.2 * (i + 1) - DECK_T / 2 + 0.1, -38.2 - i * 0.4);
+  step.receiveShadow = true;
+  scene.add(step);
+}
+
+// distant snow floor far below (falling reads as slipping off, not a void)
+const snowGround = new THREE.Mesh(
+  new THREE.CircleGeometry(140, 40),
+  new THREE.MeshStandardMaterial({ color: 0xf3f7fb, roughness: 1 })
+);
+snowGround.rotation.x = -Math.PI / 2;
+snowGround.position.y = -11;
+scene.add(snowGround);
+
+// ─────────────────────────────────────────────────────────────
+// ROTATING HOLLOW CUBES
+// A square tunnel, open at both ends, axis pointing along the
+// direction of travel (Z). You walk INSIDE it: the inner base
+// wall is the floor, and the left wall, right wall and ceiling
+// each carry their own tile pattern, visible from within.
+// The switch spins the whole cube 90° about the travel axis —
+// the walls carousel and a different pattern lands underfoot.
+// Face f is placed pre-rotated by Rz(+f·90°); the cube sits at
+// rotation.z = -k·90°, so face k is always the current floor,
+// exactly aligned with the walk grid — visuals and logic agree.
+// ─────────────────────────────────────────────────────────────
+const CUBE_HALF = 7;      // inner half-size: floor at y=0, axis at y=7 (wide drums)
+const sections = [];
+function buildCube(def, name, tileColor, glowColor) {
+  const group = new THREE.Group();
+  group.position.set(0, CUBE_HALF, def.cz);   // rotation axis runs along Z at y=+4
+
+  const tileMat = new THREE.MeshStandardMaterial({
+    color: tileColor, roughness: 0.24, metalness: 0.05,
+    emissive: glowColor, emissiveIntensity: 0.12,
+  });
+
+  // route tiles only — face f in its floor orientation, pre-rotated by Rz(f·90°)
+  const _rotM = new THREE.Matrix4();
+  const _off = new THREE.Vector3();
+  const tileGeo = new THREE.BoxGeometry(TS - 0.08, 0.3, TS - 0.08);
+  for (let f = 0; f < 4; f++) {
+    _rotM.makeRotationZ(f * Math.PI / 2);
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 7; c++) {
+      if (!def.faces[f][r][c]) continue;
+      const mesh = new THREE.Mesh(tileGeo, tileMat);
+      // walkable tile surface flush at inner wall (y=0 world when floor)
+      _off.set((c - 3) * TS, -(CUBE_HALF + 0.15), (r - 1.5) * TS).applyMatrix4(_rotM);
+      mesh.position.copy(_off);
+      mesh.rotation.z = f * Math.PI / 2;
+      mesh.castShadow = mesh.receiveShadow = true;
+      group.add(mesh);
+    }
+  }
+  scene.add(group);
+
+  // soft colour wash so each cube reads its colour from a distance
+  const tint = new THREE.PointLight(glowColor, 10, 14, 2);
+  tint.position.set(0, 1.4, def.cz);
+  scene.add(tint);
+
+  const sec = {
+    name, k: 0, solvedK: def.solvedK, anim: null, flash: 0,
+    group, faces: def.faces, x0: def.x0, x1: def.x1, z0: def.z0, z1: def.z1, tileMat,
+  };
+  sections.push(sec);
+  return sec;
+}
+const pinkSection   = buildCube(PINK,   'pink',   0xeeb1cb, 0xd4537e);
+const blueSection   = buildCube(BLUE,   'blue',   0x9cc3e8, 0x378add);
+const yellowSection = buildCube(YELLOW, 'yellow', 0xf0d68e, 0xd9a520);
+const greenSection  = buildCube(GREEN,  'green',  0xa8d5a2, 0x4e9c44);
+
+function pressSection(sec) {
+  if (sec.anim) return;
+  sec.anim = { t: 0, from: -sec.k * Math.PI / 2 };
+  playRumble();
+}
+
+// ── switches: on the seam side platforms, Snowbelle style ──
+const switchDefs = [
+  { section: pinkSection,   x: -12, z: 2,   color: 0xd4537e, label: 'Pink switch' },
+  { section: blueSection,   x: 12,  z: 2,   color: 0x378add, label: 'Blue switch' },
+  { section: yellowSection, x: -12, z: -10, color: 0xd9a520, label: 'Yellow switch' },
+  { section: greenSection,  x: 12,  z: -10, color: 0x4e9c44, label: 'Green switch' },
+];
+const switches = [];
+switchDefs.forEach((sw) => {
+  // small, embedded in the floor — a thin ring with a flush button
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.5, 0.54, 0.05, 24),
+    new THREE.MeshStandardMaterial({ color: 0x2c3540, roughness: 0.5, metalness: 0.4 })
+  );
+  base.position.set(sw.x, 0.025, sw.z);
+  const padMat = new THREE.MeshStandardMaterial({
+    color: sw.color, roughness: 0.3, emissive: sw.color, emissiveIntensity: 0.55,
+  });
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.04, 24), padMat);
+  pad.position.set(sw.x, 0.055, sw.z);
+  scene.add(base, pad);
+  switches.push({ ...sw, padMat, on: false });
+});
+
+// ─────────────────────────────────────────────────────────────
+// FLOOR LOGIC
+// ─────────────────────────────────────────────────────────────
+// cubes: 0 = walkable tile on the current floor wall, 'blocked' =
+// gap cell / mid-spin (invisible wall — no falling inside the cube,
+// walk back out and try again), null = not inside a cube footprint
+function drumFloorAt(x, z) {
+  for (const sec of sections) {
+    if (x >= sec.x0 && x <= sec.x1 && z >= sec.z0 && z <= sec.z1) {
+      if (sec.anim) return 'blocked';
+      const c = Math.min(6, Math.max(0, Math.floor((x - sec.x0) / TS)));
+      const r = Math.min(3, Math.max(0, Math.floor((z - sec.z0) / TS)));
+      return sec.faces[sec.k][r][c] ? 0 : 'blocked';
+    }
+  }
+  return null;
+}
+function floorHeightAt(x, z) {
+  for (const f of FLOORS) {
+    if (x >= f.x0 && x <= f.x1 && z >= f.z0 && z <= f.z1) return f.y;
+  }
+  // stairs wedge
+  if (x >= -8 && x <= 8 && z >= -40 && z <= -38) {
+    const t = (-38 - z) / 2;
+    return Math.min(2, Math.ceil(t * 5 - 1e-6) * 0.4);
+  }
+  if (drumFloorAt(x, z) === 0) return 0;
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────
+// SNOWFALL
+// ─────────────────────────────────────────────────────────────
+const snowCount = 1400;
+const snowPos = new Float32Array(snowCount * 3);
+for (let i = 0; i < snowCount; i++) {
+  snowPos[i * 3]     = (Math.random() - 0.5) * 120;
+  snowPos[i * 3 + 1] = Math.random() * 24 - 4;
+  snowPos[i * 3 + 2] = (Math.random() - 0.5) * 120;
+}
+const snowGeo = new THREE.BufferGeometry();
+snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
+function makeFlakeTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.5, 'rgba(255,255,255,0.5)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 32, 32);
+  return new THREE.CanvasTexture(c);
+}
+const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({
+  map: makeFlakeTexture(), size: 0.1, transparent: true, opacity: 0.75,
+  depthWrite: false, sizeAttenuation: true,
+}));
+scene.add(snow);
+
+// ─────────────────────────────────────────────────────────────
+// CHARACTER — Sloucho (same rig pipeline as the main world)
+// ─────────────────────────────────────────────────────────────
+const player = new THREE.Group();
+scene.add(player);
+player.position.set(...SPAWN);
+let mixer = null, idleAction = null, walkAction = null, charModel = null;
+let baseModelY = 0, walkPhase = 0, modelReady = false;
+const bones = {};
+const mirrorPairs = [];
+const CHAR_HEIGHT = 1.7;
+
+const loadBar = document.getElementById('loadBar');
+const loadFill = document.getElementById('loadFill');
+const loader = new GLTFLoader();
+const draco = new DRACOLoader();
+draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+loader.setDRACOLoader(draco);
+
+const GLB_PATHS = ['/assets/sloucho.glb', '../assets/sloucho.glb', 'assets/sloucho.glb', 'sloucho.glb'];
+function loadModel(pathIdx) {
+  if (pathIdx >= GLB_PATHS.length) { onModelError(new Error('sloucho.glb not found')); return; }
+  loader.load(GLB_PATHS[pathIdx], onModelLoaded,
+    (xhr) => { if (xhr.total) loadFill.style.width = Math.round(xhr.loaded / xhr.total * 100) + '%'; },
+    () => loadModel(pathIdx + 1)
+  );
+}
+function onModelLoaded(gltf) {
+  const model = gltf.scene;
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const s = CHAR_HEIGHT / Math.max(size.y, 0.0001);
+  model.scale.setScalar(s);
+  box.setFromObject(model);
+  model.position.y -= box.min.y;
+  model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+  player.add(model);
+  charModel = model;
+  baseModelY = model.position.y;
+  if (gltf.animations.length) {
+    mixer = new THREE.AnimationMixer(model);
+    idleAction = mixer.clipAction(gltf.animations[0]);
+    idleAction.play();
+    idleAction.timeScale = 0.6;
+  }
+  ['thigh_l','thigh_r','calf_l','calf_r','foot_l','foot_r','upperarm_l','upperarm_r'].forEach((n) => {
+    const b = model.getObjectByName(n);
+    if (b) bones[n] = b;
+  });
+  model.traverse((o) => {
+    if (o.name && o.name.endsWith('_001')) {
+      const src = model.getObjectByName(o.name.slice(0, -4));
+      if (src && src !== o) mirrorPairs.push([src, o]);
+    }
+  });
+  // real walk cycle if available (same as main world)
+  const WALK_PATHS = ['/assets/walk.glb', '../assets/walk.glb'];
+  function loadWalk(i) {
+    if (i >= WALK_PATHS.length) return;
+    loader.load(WALK_PATHS[i], (g2) => {
+      if (g2.animations.length && mixer) {
+        const clip = g2.animations[0];
+        const valid = new Set();
+        model.traverse((o) => valid.add(o.name));
+        clip.tracks = clip.tracks.filter((tr) => valid.has(tr.name.split('.')[0]));
+        if (idleAction) {
+          const covered = new Set(clip.tracks.map((tr) => tr.name.split('.')[0]));
+          idleAction.getClip().tracks.forEach((tr) => {
+            if (covered.has(tr.name.split('.')[0])) return;
+            const stride = tr.getValueSize();
+            clip.tracks.push(new tr.constructor(tr.name, [0], Array.from(tr.values.slice(0, stride))));
+          });
+        }
+        walkAction = mixer.clipAction(clip);
+        walkAction.play();
+        walkAction.setEffectiveWeight(0);
+      }
+    }, undefined, () => loadWalk(i + 1));
+  }
+  loadWalk(0);
+  modelReady = true;
+  loadFill.style.width = '100%';
+  loadBar.classList.add('done');
+}
+function onModelError() {
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.28, 0.34, 1.2, 16),
+    new THREE.MeshStandardMaterial({ color: 0x8899aa, roughness: 0.7 })
+  );
+  body.position.y = 0.6;
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.24, 16, 16),
+    new THREE.MeshStandardMaterial({ color: 0xaabbcc, roughness: 0.7 })
+  );
+  head.position.y = 1.45;
+  body.castShadow = head.castShadow = true;
+  player.add(body, head);
+  modelReady = true;
+  loadBar.classList.add('done');
+}
+loadModel(0);
+
+// ── Ras, waiting at the top ──
+let ras = null, rasMixer = null;
+const RAS_POS = new THREE.Vector3(0, 2, -44);
+const RAS_PATHS = ['/assets/ras.glb', '../assets/ras.glb', '../brokenspirit/assets/ras.glb'];
+function loadRas(i) {
+  if (i >= RAS_PATHS.length) { console.warn('ras.glb not found'); return; }
+  loader.load(RAS_PATHS[i], (gltf) => {
+    ras = gltf.scene;
+    const box = new THREE.Box3().setFromObject(ras);
+    const size = box.getSize(new THREE.Vector3());
+    const s = 1.8 / Math.max(size.y, 0.0001);
+    ras.scale.setScalar(s);
+    // place feet on the platform
+    ras.position.set(RAS_POS.x, 0, RAS_POS.z);
+    const b2 = new THREE.Box3().setFromObject(ras);
+    ras.position.y = RAS_POS.y - b2.min.y;
+    ras.rotation.y = 0;   // faces south, toward the approaching player
+    ras.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+    scene.add(ras);
+    if (gltf.animations.length) {
+      rasMixer = new THREE.AnimationMixer(ras);
+      rasMixer.clipAction(gltf.animations[0]).play();
+    }
+  }, undefined, () => loadRas(i + 1));
+}
+loadRas(0);
+
+// ─────────────────────────────────────────────────────────────
+// FLOATING LABELS (switches + Ras)
+// ─────────────────────────────────────────────────────────────
+const labelsEl = document.getElementById('labels');
+const labels = [];
+function addLabel(text, pos, hint) {
+  const pill = document.createElement('div');
+  pill.className = 'pill3d';
+  pill.innerHTML = `<span>${text}</span>` + (hint ? `<span class="hint">${hint}</span>` : '');
+  labelsEl.appendChild(pill);
+  const entry = { pill, pos: pos.clone(), near: false };
+  labels.push(entry);
+  return entry;
+}
+const rasLabel = addLabel('E/Interact', new THREE.Vector3(0, 4.4, -44), null);
+rasLabel.pill.addEventListener('click', (e) => { e.stopPropagation(); tryTalk(); });
+
+// ─────────────────────────────────────────────────────────────
+// DIALOGUE + SONG REWARD
+// ─────────────────────────────────────────────────────────────
+// EDIT RAS DIALOGUE HERE ↓
+const RAS_LINES = [
+  'Ah you have made it to the end, congratulations. For your hard work you surely deserve a reward',
+  'This song will be released publicly on July 17th, but you can listen to it right now, enjoy!',
+];
+const dlgEl = document.getElementById('dlg');
+const dlgText = document.getElementById('dlgText');
+const dlgMore = document.getElementById('dlgMore');
+let dlgIdx = -1;
+let songUnlocked = localStorage.getItem('bsgym_fake_done') === '1';
+
+function startDialogue() {
+  dlgIdx = 0;
+  dlgText.textContent = RAS_LINES[0];
+  dlgMore.textContent = 'click to continue';
+  dlgEl.classList.add('open');
+}
+function advanceDialogue() {
+  dlgIdx++;
+  if (dlgIdx < RAS_LINES.length) {
+    dlgText.textContent = RAS_LINES[dlgIdx];
+    if (dlgIdx === RAS_LINES.length - 1) dlgMore.textContent = 'click';
+  } else {
+    dlgEl.classList.remove('open');
+    dlgIdx = -1;
+    unlockSong();
+  }
+}
+dlgEl.addEventListener('click', advanceDialogue);
+
+// audio
+const SONG_PATHS = [
+  '/assets/bsalbum/A6. Sloucho - Fake (ft. Gemma Dunleavy).mp3',
+  '../assets/bsalbum/A6. Sloucho - Fake (ft. Gemma Dunleavy).mp3',
+  '../brokenspirit/assets/Sloucho - Fake (ft. Gemma Dunleavy).mp3',
+];
+let songAudio = null, songPathIdx = 0;
+const playerEl = document.getElementById('player');
+const pFill = document.getElementById('pFill');
+function makeSongAudio() {
+  const a = new Audio(encodeURI(SONG_PATHS[songPathIdx]));
+  a.preload = 'auto';
+  a.addEventListener('error', () => {
+    songPathIdx++;
+    if (songPathIdx < SONG_PATHS.length) {
+      songAudio = makeSongAudio();
+      songAudio.play().catch(() => {});
+    } else {
+      playerEl.classList.add('missing');
+    }
+  });
+  a.addEventListener('ended', () => playerEl.classList.remove('playing'));
+  return a;
+}
+function unlockSong() {
+  songUnlocked = true;
+  localStorage.setItem('bsgym_fake_done', '1');
+  if (!songAudio) songAudio = makeSongAudio();
+  songAudio.currentTime = 0;
+  songAudio.play().catch(() => {});
+  playerEl.classList.add('visible', 'playing');
+  document.body.classList.add('player-open');
+  stopWind();
+}
+document.getElementById('pPlay').addEventListener('click', () => {
+  if (!songAudio) return;
+  if (songAudio.paused) { songAudio.play().catch(() => {}); playerEl.classList.add('playing'); stopWind(); }
+  else { songAudio.pause(); playerEl.classList.remove('playing'); }
+});
+const pInfoBtn = document.getElementById('pInfo');
+pInfoBtn.addEventListener('click', () => {
+  playerEl.classList.toggle('info-open');
+  pInfoBtn.classList.toggle('active');
+});
+// scrubbing — click or drag anywhere on the bar
+const pBarEl = document.getElementById('pBar');
+const pTimeEl = document.getElementById('pTime');
+let scrubbing = false;
+function seekTo(clientX) {
+  if (!songAudio || !isFinite(songAudio.duration) || songAudio.duration <= 0) return;
+  const r = pBarEl.getBoundingClientRect();
+  const f = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+  songAudio.currentTime = f * songAudio.duration;
+}
+pBarEl.addEventListener('pointerdown', (e) => { scrubbing = true; pBarEl.setPointerCapture(e.pointerId); seekTo(e.clientX); });
+pBarEl.addEventListener('pointermove', (e) => { if (scrubbing) seekTo(e.clientX); });
+pBarEl.addEventListener('pointerup', () => { scrubbing = false; });
+pBarEl.addEventListener('pointercancel', () => { scrubbing = false; });
+function fmtT(s) {
+  s = Math.max(0, Math.floor(s || 0));
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+
+function tryTalk() {
+  if (dlgEl.classList.contains('open')) { advanceDialogue(); return; }
+  const d = Math.hypot(player.position.x - RAS_POS.x, player.position.z - RAS_POS.z);
+  const sameLevel = Math.abs(player.position.y - RAS_POS.y) < 1;
+  if (d < 3.6 && sameLevel) startDialogue();   // Ras always speaks, then the song plays
+}
+
+// ─────────────────────────────────────────────────────────────
+// SOUND (synthesized)
+// ─────────────────────────────────────────────────────────────
+let audioCtx = null;
+function playFootstep(k) {
+  if (!audioCtx) return;
+  // soft, dull thud — carpet
+  const dur = 0.08;
+  const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3.2);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.value = 0.55 + Math.random() * 0.25;
+  const filt = audioCtx.createBiquadFilter();
+  filt.type = 'lowpass';
+  filt.frequency.value = 220 + Math.random() * 120;
+  const g = audioCtx.createGain();
+  g.gain.value = 0.04 + 0.06 * k;
+  src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
+  src.start();
+}
+
+// ── low ambient wind, silenced once the track plays ──
+let windGain = null, windStopped = false;
+function startWind() {
+  if (!audioCtx || windGain || windStopped) return;
+  const len = audioCtx.sampleRate * 5;
+  const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < len; i++) {
+    const w = Math.random() * 2 - 1;
+    last = (last + 0.02 * w) / 1.02;   // brownish noise
+    d[i] = last * 3.5;
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+  const filt = audioCtx.createBiquadFilter();
+  filt.type = 'lowpass';
+  filt.frequency.value = 300;
+  windGain = audioCtx.createGain();
+  windGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  windGain.gain.linearRampToValueAtTime(0.06, audioCtx.currentTime + 3);
+  src.connect(filt); filt.connect(windGain); windGain.connect(audioCtx.destination);
+  src.start();
+}
+function stopWind() {
+  if (!windGain || windStopped) return;
+  windStopped = true;
+  windGain.gain.cancelScheduledValues(audioCtx.currentTime);
+  windGain.gain.setValueAtTime(windGain.gain.value, audioCtx.currentTime);
+  windGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 2);
+}
+function playRumble() {
+  if (!audioCtx) return;
+  const dur = 1.25;
+  const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const filt = audioCtx.createBiquadFilter();
+  filt.type = 'lowpass';
+  filt.frequency.value = 110;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.001, audioCtx.currentTime);
+  g.gain.linearRampToValueAtTime(0.22, audioCtx.currentTime + 0.15);
+  g.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+  src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
+  src.start();
+}
+function playChime() {
+  if (!audioCtx) return;
+  [880, 1318.5].forEach((f, i) => {
+    const o = audioCtx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = f;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, audioCtx.currentTime + i * 0.12);
+    g.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + i * 0.12 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + i * 0.12 + 0.9);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(audioCtx.currentTime + i * 0.12);
+    o.stop(audioCtx.currentTime + i * 0.12 + 1);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// INPUT
+// ─────────────────────────────────────────────────────────────
+const keys = {};
+window.addEventListener('keydown', (e) => {
+  keys[e.code] = true;
+  if (e.code === 'KeyE' || e.code === 'Enter') tryTalk();
+});
+window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+let camYaw = 0;   // camera south of the player, behind him, looking north into the gym
+let camPitch = 0.34;
+const camDist = 7;      // fixed — no zoom
+let dragging = false, lastX = 0, lastY = 0;
+
+const isTouch = window.matchMedia('(pointer: coarse)').matches;
+if (isTouch) document.body.classList.add('touch3d');
+
+canvas.addEventListener('pointerdown', (e) => {
+  if (isTouch && e.pointerType === 'touch') return;   // touch looks via the camera pad
+  dragging = true; lastX = e.clientX; lastY = e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  camYaw   -= (e.clientX - lastX) * 0.005;
+  camPitch += (e.clientY - lastY) * 0.004;
+  camPitch = Math.max(0.05, Math.min(0.6, camPitch));   // capped below the cube ceilings
+  lastX = e.clientX; lastY = e.clientY;
+});
+canvas.addEventListener('pointerup', () => { dragging = false; });
+canvas.addEventListener('pointercancel', () => { dragging = false; });
+
+// ── fixed touch controls: Move / Camera / Interact (same as /brokenspirit) ──
+const stickVec = { x: 0, y: 0 };
+const movePad = document.getElementById('ctlMove');
+const moveKnob = document.getElementById('ctlMoveKnob');
+const camPad = document.getElementById('ctlCam');
+const interactBtn = document.getElementById('ctlInteract');
+let moveId = null, camId = null, camLastX = 0, camLastY = 0;
+
+movePad.addEventListener('pointerdown', (e) => {
+  moveId = e.pointerId;
+  movePad.setPointerCapture(e.pointerId);
+  updMove(e);
+  e.preventDefault();
+});
+movePad.addEventListener('pointermove', (e) => { if (e.pointerId === moveId) updMove(e); });
+function updMove(e) {
+  const r = movePad.getBoundingClientRect();
+  const dx = e.clientX - (r.left + r.width / 2);
+  const dy = e.clientY - (r.top + r.height / 2);
+  const len = Math.hypot(dx, dy), max = r.width / 2 - 12;
+  const cl = Math.min(len, max);
+  const nx = len ? dx / len : 0, ny = len ? dy / len : 0;
+  stickVec.x = nx * (cl / max);
+  stickVec.y = ny * (cl / max);
+  moveKnob.style.transform = `translate(calc(-50% + ${nx * cl}px), calc(-50% + ${ny * cl}px))`;
+}
+function endMove(e) {
+  if (e.pointerId !== moveId) return;
+  moveId = null;
+  stickVec.x = 0; stickVec.y = 0;
+  moveKnob.style.transform = 'translate(-50%, -50%)';
+}
+movePad.addEventListener('pointerup', endMove);
+movePad.addEventListener('pointercancel', endMove);
+
+camPad.addEventListener('pointerdown', (e) => {
+  camId = e.pointerId; camLastX = e.clientX; camLastY = e.clientY;
+  camPad.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+camPad.addEventListener('pointermove', (e) => {
+  if (e.pointerId !== camId) return;
+  camYaw   -= (e.clientX - camLastX) * 0.007;
+  camPitch += (e.clientY - camLastY) * 0.005;
+  camPitch = Math.max(0.05, Math.min(0.6, camPitch));
+  camLastX = e.clientX; camLastY = e.clientY;
+});
+function endCam(e) { if (e.pointerId === camId) camId = null; }
+camPad.addEventListener('pointerup', endCam);
+camPad.addEventListener('pointercancel', endCam);
+
+interactBtn.addEventListener('click', () => tryTalk());
+
+// ─────────────────────────────────────────────────────────────
+// PROCEDURAL WALK (fallback when no walk.glb)
+// ─────────────────────────────────────────────────────────────
+const _qA = new THREE.Quaternion(), _qP = new THREE.Quaternion(), _qD = new THREE.Quaternion();
+const _rightAxis = new THREE.Vector3(), _upAxis = new THREE.Vector3(0, 1, 0);
+function rotateBoneWorld(bone, axisWorld, angle) {
+  bone.parent.getWorldQuaternion(_qP);
+  _qA.setFromAxisAngle(axisWorld, angle);
+  _qD.copy(_qP).invert().multiply(_qA).multiply(_qP);
+  bone.quaternion.premultiply(_qD);
+}
+function proceduralWalk(k, dt) {
+  walkPhase += dt * (4 + k * 8.5);
+  _rightAxis.set(1, 0, 0).applyAxisAngle(_upAxis, player.rotation.y);
+  const s = Math.sin(walkPhase);
+  const swing = 0.5 * k;
+  if (bones.thigh_l) rotateBoneWorld(bones.thigh_l, _rightAxis,  s * swing);
+  if (bones.thigh_r) rotateBoneWorld(bones.thigh_r, _rightAxis, -s * swing);
+  const bendL = Math.max(0, -s) * 0.75 * k;
+  const bendR = Math.max(0,  s) * 0.75 * k;
+  if (bones.calf_l) rotateBoneWorld(bones.calf_l, _rightAxis, bendL);
+  if (bones.calf_r) rotateBoneWorld(bones.calf_r, _rightAxis, bendR);
+  if (bones.foot_l) rotateBoneWorld(bones.foot_l, _rightAxis, -bendL * 0.5);
+  if (bones.foot_r) rotateBoneWorld(bones.foot_r, _rightAxis, -bendR * 0.5);
+  if (bones.upperarm_l) rotateBoneWorld(bones.upperarm_l, _rightAxis, -s * swing * 0.45);
+  if (bones.upperarm_r) rotateBoneWorld(bones.upperarm_r, _rightAxis,  s * swing * 0.45);
+  charModel.position.y = baseModelY + Math.abs(Math.cos(walkPhase)) * 0.045 * k;
+}
+
+// ─────────────────────────────────────────────────────────────
+// GAME LOOP
+// ─────────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+const vel = new THREE.Vector3();
+const SPEED = 6.0;
+let targetRotY = Math.PI;
+let started = false;
+let lowerFoot = null;
+const _footL = new THREE.Vector3(), _footR = new THREE.Vector3();
+const camTarget = new THREE.Vector3();
+const projV = new THREE.Vector3();
+const camDir = new THREE.Vector3();
+const toLabel = new THREE.Vector3();
+
+function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+function canStand(x, z) {
+  if (drumFloorAt(x, z) === 'blocked') return false;   // gap cell / spinning cube
+  if (Math.hypot(x - RAS_POS.x, z - RAS_POS.z) < 0.9) return false;   // Ras has a body
+  // invisible collision on every edge: you can only stand where floor
+  // exists at (roughly) your current height — no falling, anywhere
+  const f = floorHeightAt(x, z);
+  return f !== null && Math.abs(f - player.position.y) <= 0.55;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+
+  // ── movement input ──
+  let ix = 0, iz = 0;
+  if (keys['KeyW'] || keys['ArrowUp'])    iz -= 1;
+  if (keys['KeyS'] || keys['ArrowDown'])  iz += 1;
+  if (keys['KeyA'] || keys['ArrowLeft'])  ix -= 1;
+  if (keys['KeyD'] || keys['ArrowRight']) ix += 1;
+  ix += stickVec.x; iz += stickVec.y;
+  const inLen = Math.hypot(ix, iz);
+  if (inLen > 1) { ix /= inLen; iz /= inLen; }
+  const sinY = Math.sin(camYaw), cosY = Math.cos(camYaw);
+  const mx = ix * cosY + iz * sinY;
+  const mz = iz * cosY - ix * sinY;
+  vel.x += (mx * SPEED - vel.x) * Math.min(1, dt * 8);
+  vel.z += (mz * SPEED - vel.z) * Math.min(1, dt * 8);
+
+  if (started) {
+    const px = player.position.x, pz = player.position.z;
+    const nx = px + vel.x * dt, nz = pz + vel.z * dt;
+    if (canStand(nx, nz)) { player.position.x = nx; player.position.z = nz; }
+    else if (canStand(nx, pz)) player.position.x = nx;
+    else if (canStand(px, nz)) player.position.z = nz;
+
+    // glue to the floor (stairs etc.) — falling is impossible
+    const f = floorHeightAt(player.position.x, player.position.z);
+    if (f !== null) player.position.y += (f - player.position.y) * Math.min(1, dt * 14);
+
+    // ── switches: step on to turn the ice ──
+    for (const sw of switches) {
+      const d = Math.hypot(player.position.x - sw.x, player.position.z - sw.z);
+      if (d < 1.1 && !sw.on && !sw.section.anim && player.position.y < 0.4) {
+        sw.on = true;
+        pressSection(sw.section);
+      }
+      if (d > 1.6) sw.on = false;
+      sw.padMat.emissiveIntensity = 0.45 + 0.25 * Math.sin(t * 3 + sw.x);
+    }
+  }
+
+  // ── cube spin animation (90° about the travel axis) ──
+  for (const sec of sections) {
+    if (sec.anim) {
+      sec.anim.t += dt / 1.35;
+      const e = easeInOutCubic(Math.min(1, sec.anim.t));
+      sec.group.rotation.z = sec.anim.from - e * Math.PI / 2;
+      if (sec.anim.t >= 1) {
+        sec.group.rotation.z = sec.anim.from - Math.PI / 2;
+        sec.k = (sec.k + 1) % 4;
+        sec.anim = null;
+        if (sec.k === sec.solvedK) { playChime(); sec.flash = 1; }
+      }
+    }
+    if (sec.flash > 0) {
+      sec.flash = Math.max(0, sec.flash - dt * 0.7);
+      sec.tileMat.emissiveIntensity = 0.12 + sec.flash * 0.6;
+    }
+  }
+
+  // ── character facing + animation ──
+  const speed = Math.hypot(vel.x, vel.z);
+  if (speed > 0.3) targetRotY = Math.atan2(vel.x, vel.z);
+  let dr = targetRotY - player.rotation.y;
+  while (dr > Math.PI) dr -= Math.PI * 2;
+  while (dr < -Math.PI) dr += Math.PI * 2;
+  player.rotation.y += dr * Math.min(1, dt * 10);
+
+  const moveK = Math.min(speed / SPEED, 1);
+  if (mixer) {
+    if (walkAction) {
+      walkAction.setEffectiveWeight(moveK);
+      if (idleAction) idleAction.setEffectiveWeight(1 - moveK);
+      walkAction.timeScale = 0.6 + moveK * 0.6;
+    }
+    mixer.update(dt);
+    if (!walkAction && charModel && moveK > 0.03) proceduralWalk(moveK, dt);
+    else if (!walkAction && charModel) charModel.position.y = baseModelY;
+    for (let i = 0; i < mirrorPairs.length; i++) {
+      const src = mirrorPairs[i][0], dst = mirrorPairs[i][1];
+      dst.position.copy(src.position);
+      dst.quaternion.copy(src.quaternion);
+      dst.scale.copy(src.scale);
+    }
+  }
+  if (rasMixer) rasMixer.update(dt);
+
+  // footsteps
+  if (started && moveK > 0.12 && bones.foot_l && bones.foot_r) {
+    bones.foot_l.getWorldPosition(_footL);
+    bones.foot_r.getWorldPosition(_footR);
+    if (_footL.y < _footR.y - 0.012 && lowerFoot !== 'l') { lowerFoot = 'l'; playFootstep(moveK); }
+    else if (_footR.y < _footL.y - 0.012 && lowerFoot !== 'r') { lowerFoot = 'r'; playFootstep(moveK); }
+  } else lowerFoot = null;
+
+  // ── camera — fixed distance behind the player ──
+  camTarget.set(player.position.x, player.position.y + 1.5, player.position.z);
+  camera.position.lerp(new THREE.Vector3(
+    camTarget.x + Math.sin(camYaw) * Math.cos(camPitch) * camDist,
+    camTarget.y + Math.sin(camPitch) * camDist,
+    camTarget.z + Math.cos(camYaw) * Math.cos(camPitch) * camDist
+  ), Math.min(1, dt * 5));
+  camera.lookAt(camTarget);
+
+  sun.position.set(player.position.x + 16, 30, player.position.z - 12);
+  sun.target.position.copy(player.position);
+
+  // ── snowfall ──
+  const sp = snowGeo.attributes.position.array;
+  for (let i = 0; i < snowCount; i++) {
+    sp[i * 3 + 1] -= dt * (1.0 + (i % 5) * 0.18);
+    sp[i * 3] += Math.sin(t * 0.7 + i) * dt * 0.25;
+    if (sp[i * 3 + 1] < -6) sp[i * 3 + 1] = 18;
+  }
+  snowGeo.attributes.position.needsUpdate = true;
+
+  // ── labels ──
+  camera.getWorldDirection(camDir);
+  for (const lb of labels) {
+    toLabel.copy(lb.pos).sub(camera.position);
+    const dist = toLabel.length();
+    const hidden = toLabel.dot(camDir) < 0.1 || dist > 42;
+    if (hidden) {
+      lb.pill.style.opacity = '0';
+      lb.pill.style.pointerEvents = 'none';
+    } else {
+      projV.copy(lb.pos).project(camera);
+      const sx = (projV.x * 0.5 + 0.5) * window.innerWidth;
+      const sy = (-projV.y * 0.5 + 0.5) * window.innerHeight;
+      const fade = dist < 8 ? 1 : Math.max(0, 1 - (dist - 8) / 34);
+      lb.pill.style.opacity = String(0.15 + fade * 0.85);
+      lb.pill.style.pointerEvents = 'auto';
+      const sc = 0.65 + fade * 0.35;
+      lb.pill.style.transform = `translate(-50%,-50%) translate(${sx}px,${sy}px) scale(${sc})`;
+      const pd = Math.hypot(player.position.x - lb.pos.x, player.position.z - lb.pos.z);
+      lb.pill.classList.toggle('near', pd < 4);
+    }
+  }
+
+  // interact button lights up within talking range of Ras
+  const rasD = Math.hypot(player.position.x - RAS_POS.x, player.position.z - RAS_POS.z);
+  interactBtn.classList.toggle('on', rasD < 4.2 && Math.abs(player.position.y - RAS_POS.y) < 1);
+
+  // song progress + time
+  if (songAudio && isFinite(songAudio.duration) && songAudio.duration > 0) {
+    pFill.style.width = (songAudio.currentTime / songAudio.duration * 100) + '%';
+    pTimeEl.textContent = fmtT(songAudio.currentTime) + ' / ' + fmtT(songAudio.duration);
+  }
+
+  postPass.uniforms.time.value = t;
+  composer.render();
+}
+animate();
+
+// ─────────────────────────────────────────────────────────────
+// START
+// ─────────────────────────────────────────────────────────────
+document.getElementById('enterBtn').addEventListener('click', () => {
+  document.getElementById('start').classList.add('hidden');
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  startWind();
+  started = true;
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
