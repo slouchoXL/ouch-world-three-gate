@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Sloucho — Fake · The Ice Gym</title>
+<title>OUCH™</title>
 <link rel="icon" href="../brokenspirit/favicon.ico">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
@@ -59,7 +59,7 @@
     pointer-events: none;
   }
   body.touch3d #ctl3d { display: flex; }
-  body.player-open #ctl3d { bottom: calc(118px + env(safe-area-inset-bottom)); }
+  body.player-open #ctl3d { bottom: calc(86px + env(safe-area-inset-bottom)); }
   #ctlMove, #ctlCam, #ctlInteract { pointer-events: auto; touch-action: none; }
   #ctlMove, #ctlCam {
     position: relative;
@@ -98,38 +98,31 @@
   }
   #ctlInteract.on { opacity: 1; border-color: rgba(0,0,0,0.45); color: #000; background: rgba(255,255,255,0.92); }
 
-  /* dialogue */
-  #dlg {
-    position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%);
-    width: min(480px, calc(100vw - 40px));
-    background: rgba(255,255,255,0.94);
-    border: 1px solid rgba(20,40,60,0.16);
+  /* speech bubble over Ras — the E/Interact pill morphs into this */
+  .pill3d.bubble {
+    white-space: normal;
+    width: min(300px, 72vw);
+    display: block;
+    text-align: left;
     border-radius: 14px;
-    padding: 16px 20px 12px;
-    z-index: 8; cursor: pointer;
-    backdrop-filter: blur(14px);
-    display: none;
+    padding: 12px 15px 9px;
+    cursor: pointer;
   }
-  #dlg.open { display: block; }
-  #dlgName { font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: rgba(20,40,60,0.4); margin-bottom: 6px; }
-  #dlgText { font-size: 14px; line-height: 1.45; color: #14283c; min-height: 40px; }
-  #dlgMore { font-size: 10px; color: rgba(20,40,60,0.35); text-align: right; margin-top: 8px; }
+  .pill3d.bubble .b-name { font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase; color: rgba(20,40,60,0.4); margin-bottom: 5px; }
+  .pill3d.bubble .b-text { font-size: 13px; line-height: 1.45; color: #14283c; }
+  .pill3d.bubble .b-more { font-size: 10px; color: rgba(20,40,60,0.35); text-align: right; margin-top: 6px; }
 
-  /* song player pill — matches the /brokenspirit track pills */
+  /* bottom waveform player — like /portal: play | waveform | time */
   #player {
-    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
-    width: min(440px, calc(100vw - 32px));
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 7;
+    display: none; align-items: center; gap: 12px;
+    padding: 10px 18px calc(12px + env(safe-area-inset-bottom));
     background: rgba(255,255,255,0.92);
-    border: 1px solid rgba(0,0,0,0.12);
-    border-radius: 14px;
-    padding: 9px 12px 11px;
-    z-index: 7;
+    border-top: 1px solid rgba(0,0,0,0.12);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    display: none;
   }
-  #player.visible { display: block; }
-  .p-row { display: flex; gap: 10px; align-items: center; }
+  #player.visible { display: flex; }
   .circ-btn {
     width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
     border: 1px solid rgba(0,0,0,0.12); background: rgba(0,0,0,0.05);
@@ -143,26 +136,10 @@
   .pause-icon::before { left: 0; } .pause-icon::after { right: 0; }
   #player.playing .play-icon { display: none; }
   #player.playing .pause-icon { display: block; }
-  .p-meta { min-width: 0; flex: 1; }
-  .p-title { font-size: 14px; font-weight: 450; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
-  .p-title .p-feat { font-size: 12px; font-weight: 400; color: rgba(0,0,0,0.45); }
-  .p-title a { color: inherit; text-decoration: none; border-bottom: 1px solid rgba(0,0,0,0.2); }
-  .p-title a:hover { border-color: rgba(0,0,0,0.5); }
-  .p-sub { font-size: 12px; color: rgba(0,0,0,0.45); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #waveWrap { position: relative; flex: 1; height: 40px; cursor: pointer; touch-action: none; }
+  #waveCanvas { width: 100%; height: 100%; display: block; }
   #pTime { font-size: 11px; color: rgba(0,0,0,0.45); white-space: nowrap; text-align: right; min-width: 76px; }
-  #pInfo .info-icon { font-size: 14px; font-style: italic; font-family: Georgia, serif; color: rgba(0,0,0,0.45); line-height: 1; }
-  #pInfo.active { background: rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.2); }
-  #pInfo.active .info-icon { color: #000; }
-  #pDesc {
-    max-height: 0; overflow: hidden;
-    transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1);
-    font-size: 12px; line-height: 1.5; color: rgba(0,0,0,0.45);
-  }
-  #player.info-open #pDesc { max-height: 240px; margin-top: 10px; }
-  #pBar { height: 16px; display: flex; align-items: center; margin-top: 6px; cursor: pointer; touch-action: none; }
-  #pTrack { height: 3px; flex: 1; background: rgba(0,0,0,0.1); border-radius: 2px; }
-  #pFill { height: 100%; width: 0%; background: #000; border-radius: 2px; }
-  #pMissing { display: none; font-size: 11px; color: #a04040; margin-top: 8px; }
+  #pMissing { display: none; font-size: 11px; color: #a04040; }
   #player.missing #pMissing { display: block; }
 
   /* start overlay */
@@ -208,25 +185,11 @@
   <div id="ctlCam"><div id="ctlCamKnob"></div><span class="ctl-label">Camera</span></div>
 </div>
 
-<div id="dlg">
-  <div id="dlgName">Ras</div>
-  <div id="dlgText"></div>
-  <div id="dlgMore">click to continue</div>
-</div>
-
 <div id="player">
-  <div class="p-row">
-    <button class="circ-btn" id="pPlay" aria-label="Play/Pause"><span class="play-icon"></span><span class="pause-icon"></span></button>
-    <div class="p-meta">
-      <div class="p-title">Fake <span class="p-feat"><a href="https://instagram.com/gemmadunleavy_" target="_blank" rel="noopener">ft. Gemma Dunleavy</a></span></div>
-      <div class="p-sub">133 BPM · 3:24</div>
-    </div>
-    <div id="pTime">0:00 / 3:24</div>
-    <button class="circ-btn" id="pInfo" aria-label="Info"><span class="info-icon">i</span></button>
-  </div>
-  <div id="pDesc">Created in Dublin in September 2025. I made the instrumental from my bed a few weeks prior (one of the best places to produce btw) and sent it to Gemma to write to. She came to my home studio and we drank tea, talked about life, got sidetracked, lost track of time, then made the best song ever.</div>
+  <button class="circ-btn" id="pPlay" aria-label="Play/Pause"><span class="play-icon"></span><span class="pause-icon"></span></button>
+  <div id="waveWrap"><canvas id="waveCanvas"></canvas></div>
+  <div id="pTime">0:00 / 3:24</div>
   <div id="pMissing">Audio file not found</div>
-  <div id="pBar"><div id="pTrack"><div id="pFill"></div></div></div>
 </div>
 
 <div id="start">
@@ -759,30 +722,33 @@ const RAS_LINES = [
   'Ah you have made it to the end, congratulations. For your hard work you surely deserve a reward',
   'This song will be released publicly on July 17th, but you can listen to it right now, enjoy!',
 ];
-const dlgEl = document.getElementById('dlg');
-const dlgText = document.getElementById('dlgText');
-const dlgMore = document.getElementById('dlgMore');
 let dlgIdx = -1;
-let songUnlocked = localStorage.getItem('bsgym_fake_done') === '1';
+let rasDone = false;   // Ras only speaks once — after that, no interaction
 
+function renderBubble() {
+  rasLabel.pill.classList.add('bubble');
+  rasLabel.pill.innerHTML =
+    '<div class="b-name">Ras</div>' +
+    `<div class="b-text">${RAS_LINES[dlgIdx]}</div>` +
+    '<div class="b-more">click to continue</div>';
+}
 function startDialogue() {
   dlgIdx = 0;
-  dlgText.textContent = RAS_LINES[0];
-  dlgMore.textContent = 'click to continue';
-  dlgEl.classList.add('open');
+  renderBubble();
 }
 function advanceDialogue() {
   dlgIdx++;
   if (dlgIdx < RAS_LINES.length) {
-    dlgText.textContent = RAS_LINES[dlgIdx];
-    if (dlgIdx === RAS_LINES.length - 1) dlgMore.textContent = 'click';
+    renderBubble();
   } else {
-    dlgEl.classList.remove('open');
     dlgIdx = -1;
+    rasDone = true;
+    rasLabel.pill.remove();
+    const li = labels.indexOf(rasLabel);
+    if (li >= 0) labels.splice(li, 1);
     unlockSong();
   }
 }
-dlgEl.addEventListener('click', advanceDialogue);
 
 // audio
 const SONG_PATHS = [
@@ -792,7 +758,6 @@ const SONG_PATHS = [
 ];
 let songAudio = null, songPathIdx = 0;
 const playerEl = document.getElementById('player');
-const pFill = document.getElementById('pFill');
 function makeSongAudio() {
   const a = new Audio(encodeURI(SONG_PATHS[songPathIdx]));
   a.preload = 'auto';
@@ -809,7 +774,6 @@ function makeSongAudio() {
   return a;
 }
 function unlockSong() {
-  songUnlocked = true;
   localStorage.setItem('bsgym_fake_done', '1');
   if (!songAudio) songAudio = makeSongAudio();
   songAudio.currentTime = 0;
@@ -823,35 +787,62 @@ document.getElementById('pPlay').addEventListener('click', () => {
   if (songAudio.paused) { songAudio.play().catch(() => {}); playerEl.classList.add('playing'); stopWind(); }
   else { songAudio.pause(); playerEl.classList.remove('playing'); }
 });
-const pInfoBtn = document.getElementById('pInfo');
-pInfoBtn.addEventListener('click', () => {
-  playerEl.classList.toggle('info-open');
-  pInfoBtn.classList.toggle('active');
-});
-// scrubbing — click or drag anywhere on the bar
-const pBarEl = document.getElementById('pBar');
+// scrubbable waveform, /portal style — 80 seeded smoothed bars
+const waveWrap = document.getElementById('waveWrap');
+const waveCanvas = document.getElementById('waveCanvas');
 const pTimeEl = document.getElementById('pTime');
+const BAR_COUNT = 80;
+const waveBars = (() => {
+  let s = 20260717;
+  const rnd = () => { s ^= s << 13; s ^= s >> 17; s ^= s << 5; return ((s >>> 0) / 0xffffffff); };
+  const raw = Array.from({ length: BAR_COUNT }, () => 0.15 + rnd() * 0.85);
+  return raw.map((v, i) => ((raw[i - 1] ?? v) * 0.25 + v * 0.5 + (raw[i + 1] ?? v) * 0.25));
+})();
+function drawWave(progress) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = waveWrap.offsetWidth, H = waveWrap.offsetHeight;
+  if (!W) return;
+  if (waveCanvas.width !== Math.round(W * dpr)) {
+    waveCanvas.width = Math.round(W * dpr);
+    waveCanvas.height = Math.round(H * dpr);
+  }
+  const c2 = waveCanvas.getContext('2d');
+  c2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c2.clearRect(0, 0, W, H);
+  const barW = (W / BAR_COUNT) * 0.55, gapW = (W / BAR_COUNT) * 0.45;
+  const radius = Math.min(barW / 2, 2);
+  waveBars.forEach((h, i) => {
+    const barH = h * H * 0.9;
+    const x = i * (barW + gapW), y = (H - barH) / 2;
+    c2.fillStyle = (i / BAR_COUNT) <= progress ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.12)';
+    c2.beginPath();
+    if (c2.roundRect) c2.roundRect(x, y, barW, barH, radius);
+    else c2.rect(x, y, barW, barH);
+    c2.fill();
+  });
+}
 let scrubbing = false;
 function seekTo(clientX) {
   if (!songAudio || !isFinite(songAudio.duration) || songAudio.duration <= 0) return;
-  const r = pBarEl.getBoundingClientRect();
+  const r = waveWrap.getBoundingClientRect();
   const f = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
   songAudio.currentTime = f * songAudio.duration;
 }
-pBarEl.addEventListener('pointerdown', (e) => { scrubbing = true; pBarEl.setPointerCapture(e.pointerId); seekTo(e.clientX); });
-pBarEl.addEventListener('pointermove', (e) => { if (scrubbing) seekTo(e.clientX); });
-pBarEl.addEventListener('pointerup', () => { scrubbing = false; });
-pBarEl.addEventListener('pointercancel', () => { scrubbing = false; });
+waveWrap.addEventListener('pointerdown', (e) => { scrubbing = true; waveWrap.setPointerCapture(e.pointerId); seekTo(e.clientX); });
+waveWrap.addEventListener('pointermove', (e) => { if (scrubbing) seekTo(e.clientX); });
+waveWrap.addEventListener('pointerup', () => { scrubbing = false; });
+waveWrap.addEventListener('pointercancel', () => { scrubbing = false; });
 function fmtT(s) {
   s = Math.max(0, Math.floor(s || 0));
   return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
 function tryTalk() {
-  if (dlgEl.classList.contains('open')) { advanceDialogue(); return; }
+  if (rasDone) return;   // one conversation, one song — that's it
+  if (dlgIdx >= 0) { advanceDialogue(); return; }
   const d = Math.hypot(player.position.x - RAS_POS.x, player.position.z - RAS_POS.z);
   const sameLevel = Math.abs(player.position.y - RAS_POS.y) < 1;
-  if (d < 3.6 && sameLevel) startDialogue();   // Ras always speaks, then the song plays
+  if (d < 3.6 && sameLevel) startDialogue();
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -878,7 +869,7 @@ function playFootstep(k) {
 }
 
 // ── low ambient wind, silenced once the track plays ──
-let windGain = null, windStopped = false;
+let windGain = null, windSrc = null, windStopped = false;
 function startWind() {
   if (!audioCtx || windGain || windStopped) return;
   const len = audioCtx.sampleRate * 5;
@@ -893,6 +884,7 @@ function startWind() {
   const src = audioCtx.createBufferSource();
   src.buffer = buf;
   src.loop = true;
+  windSrc = src;
   const filt = audioCtx.createBiquadFilter();
   filt.type = 'lowpass';
   filt.frequency.value = 300;
@@ -907,7 +899,9 @@ function stopWind() {
   windStopped = true;
   windGain.gain.cancelScheduledValues(audioCtx.currentTime);
   windGain.gain.setValueAtTime(windGain.gain.value, audioCtx.currentTime);
-  windGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 2);
+  windGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
+  const src = windSrc;
+  setTimeout(() => { try { src.stop(); } catch (e) {} }, 1700);   // gone for good
 }
 function playRumble() {
   if (!audioCtx) return;
@@ -922,7 +916,7 @@ function playRumble() {
   filt.frequency.value = 110;
   const g = audioCtx.createGain();
   g.gain.setValueAtTime(0.001, audioCtx.currentTime);
-  g.gain.linearRampToValueAtTime(0.22, audioCtx.currentTime + 0.15);
+  g.gain.linearRampToValueAtTime(0.42, audioCtx.currentTime + 0.15);
   g.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
   src.connect(filt); filt.connect(g); g.connect(audioCtx.destination);
   src.start();
@@ -1227,12 +1221,13 @@ function animate() {
 
   // interact button lights up within talking range of Ras
   const rasD = Math.hypot(player.position.x - RAS_POS.x, player.position.z - RAS_POS.z);
-  interactBtn.classList.toggle('on', rasD < 4.2 && Math.abs(player.position.y - RAS_POS.y) < 1);
+  interactBtn.classList.toggle('on', !rasDone && rasD < 4.2 && Math.abs(player.position.y - RAS_POS.y) < 1);
 
-  // song progress + time
-  if (songAudio && isFinite(songAudio.duration) && songAudio.duration > 0) {
-    pFill.style.width = (songAudio.currentTime / songAudio.duration * 100) + '%';
-    pTimeEl.textContent = fmtT(songAudio.currentTime) + ' / ' + fmtT(songAudio.duration);
+  // waveform + time
+  if (playerEl.classList.contains('visible') && songAudio) {
+    const dur = (isFinite(songAudio.duration) && songAudio.duration > 0) ? songAudio.duration : 0;
+    drawWave(dur ? songAudio.currentTime / dur : 0);
+    if (dur) pTimeEl.textContent = fmtT(songAudio.currentTime) + ' / ' + fmtT(dur);
   }
 
   postPass.uniforms.time.value = t;
