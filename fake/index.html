@@ -5,6 +5,12 @@
 <title>OUCH™</title>
 <link rel="icon" href="../brokenspirit/favicon.ico">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- fast load: warm up the CDN + start fetching the heavy assets immediately -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js">
+<link rel="preload" href="/assets/sloucho.glb" as="fetch" crossorigin="anonymous">
+<link rel="preload" href="/assets/walk.glb" as="fetch" crossorigin="anonymous">
+<link rel="preload" href="/assets/ras.glb" as="fetch" crossorigin="anonymous">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   @font-face {
@@ -50,7 +56,7 @@
   /* fixed touch controls — Move / Interact / Camera, touch devices only */
   #ctl3d {
     position: fixed; left: 0; right: 0;
-    bottom: calc(24px + env(safe-area-inset-bottom));
+    bottom: calc(86px + env(safe-area-inset-bottom));   /* clear of the player bar, like /portal */
     display: none;
     z-index: 7;
     padding: 0 22px;
@@ -59,7 +65,6 @@
     pointer-events: none;
   }
   body.touch3d #ctl3d { display: flex; }
-  body.player-open #ctl3d { bottom: calc(86px + env(safe-area-inset-bottom)); }
   #ctlMove, #ctlCam, #ctlInteract { pointer-events: auto; touch-action: none; }
   #ctlMove, #ctlCam {
     position: relative;
@@ -112,17 +117,29 @@
   .pill3d.bubble .b-text { font-size: 13px; line-height: 1.45; color: #14283c; }
   .pill3d.bubble .b-more { font-size: 10px; color: rgba(20,40,60,0.35); text-align: right; margin-top: 6px; }
 
-  /* bottom waveform player — like /portal: play | waveform | time */
+  /* bottom waveform player — exact /portal now-playing-bar design */
   #player {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 7;
-    display: none; align-items: center; gap: 12px;
-    padding: 10px 18px calc(12px + env(safe-area-inset-bottom));
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
     background: rgba(255,255,255,0.92);
-    border-top: 1px solid rgba(0,0,0,0.12);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(0,0,0,0.12);
+    padding: 10px 0 calc(14px + env(safe-area-inset-bottom, 0px));
+    display: none;
+    justify-content: center;
+    z-index: 500;
   }
   #player.visible { display: flex; }
+  .np-inner {
+    width: 100%;
+    max-width: 740px;
+    padding: 0 24px 0 34px;
+    display: grid;
+    grid-template-columns: 40px minmax(0, 160px) 1fr auto;
+    align-items: center;
+    gap: 10px;
+  }
   .circ-btn {
     width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
     border: 1px solid rgba(0,0,0,0.12); background: rgba(0,0,0,0.05);
@@ -136,11 +153,23 @@
   .pause-icon::before { left: 0; } .pause-icon::after { right: 0; }
   #player.playing .play-icon { display: none; }
   #player.playing .pause-icon { display: block; }
-  #waveWrap { position: relative; flex: 1; height: 40px; cursor: pointer; touch-action: none; }
+  .np-info { min-width: 0; }
+  .np-title { font-size: 13px; font-weight: 450; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .np-artist { font-size: 11px; color: rgba(0,0,0,0.45); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #waveWrap { position: relative; height: 40px; cursor: pointer; display: flex; align-items: center; touch-action: none; }
   #waveCanvas { width: 100%; height: 100%; display: block; }
-  #pTime { font-size: 11px; color: rgba(0,0,0,0.45); white-space: nowrap; text-align: right; min-width: 76px; }
-  #pMissing { display: none; font-size: 11px; color: #a04040; }
+  #pTime { font-size: 11px; color: rgba(0,0,0,0.45); white-space: nowrap; text-align: right; min-width: 72px; }
+  #pMissing {
+    display: none; position: absolute; top: -26px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; color: #a04040;
+    background: rgba(255,255,255,0.9); padding: 3px 12px; border-radius: 999px;
+  }
   #player.missing #pMissing { display: block; }
+  @media (max-width: 600px) {
+    .np-inner { grid-template-columns: 40px 1fr auto; padding-left: 34px; }
+    .np-info { display: none; }
+    #pTime { min-width: 60px; font-size: 10px; }
+  }
 
   /* start overlay */
   #start {
@@ -186,9 +215,15 @@
 </div>
 
 <div id="player">
-  <button class="circ-btn" id="pPlay" aria-label="Play/Pause"><span class="play-icon"></span><span class="pause-icon"></span></button>
-  <div id="waveWrap"><canvas id="waveCanvas"></canvas></div>
-  <div id="pTime">0:00 / 3:24</div>
+  <div class="np-inner">
+    <button class="circ-btn" id="pPlay" aria-label="Play/Pause"><span class="play-icon"></span><span class="pause-icon"></span></button>
+    <div class="np-info">
+      <div class="np-title">Fake</div>
+      <div class="np-artist">Sloucho ft. Gemma Dunleavy</div>
+    </div>
+    <div id="waveWrap"><canvas id="waveCanvas"></canvas></div>
+    <div id="pTime">0:00 / 3:24</div>
+  </div>
   <div id="pMissing">Audio file not found</div>
 </div>
 
@@ -779,7 +814,6 @@ function unlockSong() {
   songAudio.currentTime = 0;
   songAudio.play().catch(() => {});
   playerEl.classList.add('visible', 'playing');
-  document.body.classList.add('player-open');
   stopWind();
 }
 document.getElementById('pPlay').addEventListener('click', () => {
@@ -1213,7 +1247,9 @@ function animate() {
       lb.pill.style.opacity = String(0.15 + fade * 0.85);
       lb.pill.style.pointerEvents = 'auto';
       const sc = 0.65 + fade * 0.35;
-      lb.pill.style.transform = `translate(-50%,-50%) translate(${sx}px,${sy}px) scale(${sc})`;
+      // speech bubble sits fully above the anchor so it clears Ras's head
+      const vy = lb.pill.classList.contains('bubble') ? '-118%' : '-50%';
+      lb.pill.style.transform = `translate(-50%,${vy}) translate(${sx}px,${sy}px) scale(${sc})`;
       const pd = Math.hypot(player.position.x - lb.pos.x, player.position.z - lb.pos.z);
       lb.pill.classList.toggle('near', pd < 4);
     }
