@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gig Ledger</title>
+<title>Life Planner</title>
 <style>
 :root{
   color-scheme: light;
@@ -184,6 +184,18 @@ table.fin tr.now td:first-child{font-weight:700}
 .todo-item .ti-amt{font-weight:700;font-size:15px}
 .empty{color:var(--muted);padding:24px 14px;text-align:center}
 
+.week-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.task-item{display:flex;align-items:center;gap:13px;padding:11px 14px;border-bottom:1px solid var(--line)}
+.task-item:last-child{border-bottom:0}
+.task-item .tt{font-weight:500}
+.task-item.done .tt{color:var(--muted);text-decoration:line-through}
+.check{width:22px;height:22px;border-radius:7px;border:2px solid var(--line-strong);display:grid;place-items:center;cursor:pointer;flex:none;color:#fff;font-size:13px;font-weight:700;transition:background .12s,border-color .12s}
+.check:hover{border-color:var(--muted)}
+.check.on{background:var(--good);border-color:var(--good)}
+.task-item .del-task{opacity:0;border:0;background:transparent}
+.task-item:hover .del-task{opacity:1}
+.task-item .del-task:hover{color:var(--bad)}
+
 .bars{display:flex;flex-direction:column;gap:10px;padding:4px 2px}
 .bar-row{display:grid;grid-template-columns:130px 1fr auto;align-items:center;gap:12px}
 .bar-lab{font-weight:600;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -242,6 +254,7 @@ table.fin tr.now td:first-child{font-weight:700}
   <nav class="tabs" id="tabs">
     <button data-tab="calendar" class="active">Calendar</button>
     <button data-tab="finances">Finances</button>
+    <button data-tab="tasks">Tasks</button>
     <button data-tab="settings">Settings</button>
   </nav>
   <div class="spacer"></div>
@@ -280,6 +293,12 @@ function mkeyOf(y,m){ return `${y}-${pad(m+1)}`; }
 function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
 function firstDow(y,m){ return (new Date(y,m,1).getDay()+6)%7; }      // Mon=0
 function fmtDayLabel(iso){ const [y,m,d]=iso.split("-").map(Number); return `${d} ${MONTHS_SHORT[m-1]} ${y}`; }
+function addDays(iso,n){ const [y,m,d]=iso.split("-").map(Number); const dt=new Date(y,m-1,d); dt.setDate(dt.getDate()+n); return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`; }
+function weekMonday(iso){ const [y,m,d]=iso.split("-").map(Number); const dt=new Date(y,m-1,d); const dow=(dt.getDay()+6)%7; dt.setDate(dt.getDate()-dow); return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`; }
+function daysBetween(a,b){ const pa=a.split("-").map(Number),pb=b.split("-").map(Number); return Math.round((Date.UTC(pb[0],pb[1]-1,pb[2])-Date.UTC(pa[0],pa[1]-1,pa[2]))/86400000); }
+function weekLabel(mon){ const end=addDays(mon,6); const a=mon.split("-").map(Number),z=end.split("-").map(Number);
+  const left=`${a[2]} ${MONTHS_SHORT[a[1]-1]}`, right=`${z[2]} ${MONTHS_SHORT[z[1]-1]} ${z[0]}`;
+  return a[1]===z[1]?`${a[2]} – ${z[2]} ${MONTHS_SHORT[z[1]-1]} ${z[0]}`:`${left} – ${right}`; }
 
 /* ---------- money ---------- */
 const eur = new Intl.NumberFormat("en-IE",{style:"currency",currency:"EUR",maximumFractionDigits:2,minimumFractionDigits:0});
@@ -291,7 +310,7 @@ const uid = () => Math.random().toString(36).slice(2,10);
 
 /* ---------- state ---------- */
 let S = load();
-let ui = { tab:"calendar", calMode:"year", year:(new Date()).getFullYear(), month:(new Date()).getMonth() };
+let ui = { tab:"calendar", calMode:"year", year:(new Date()).getFullYear(), month:(new Date()).getMonth(), weekStart:weekMonday(todayISO()) };
 
 function blank(){
   return {
@@ -305,7 +324,8 @@ function blank(){
     fixedCosts:[], // {id,name,amount,accountId,category,startMonth,endMonth}
     costPayments:{}, // "costId|YYYY-MM" -> {paid,paidDate,amount}
     oneOffs:[],    // {id,name,amount,type,date,accountId,sourceId,category,paid,paidDate}
-    reconciliations:[] // {id,accountId,date,balance}
+    reconciliations:[], // {id,accountId,date,balance}
+    tasks:{}       // "YYYY-MM-DD"(Monday) -> [{id,text,done,doneDate}]
   };
 }
 function load(){
@@ -318,6 +338,7 @@ function normalize(d){
   d=Object.assign(b,d||{});
   ["accounts","sources","bookings","fixedCosts","oneOffs","reconciliations"].forEach(k=>{ if(!Array.isArray(d[k])) d[k]=b[k]; });
   if(typeof d.costPayments!=="object"||!d.costPayments) d.costPayments={};
+  if(typeof d.tasks!=="object"||!d.tasks) d.tasks={};
   if(d.accounts.length===0) d.accounts=b.accounts;
   return d;
 }
@@ -441,6 +462,7 @@ function render(){
   document.getElementById("yr-label").textContent=ui.year;
   if(ui.tab==="calendar") renderCalendar();
   else if(ui.tab==="finances") renderFinances();
+  else if(ui.tab==="tasks") renderTasks();
   else renderSettings();
 }
 
@@ -508,6 +530,69 @@ function renderCalendar(){
     html+=`</div>`;
   }
   view.innerHTML=html;
+}
+
+/* ----- tasks (weekly checklist) ----- */
+function weekTasks(mon){ return S.tasks[mon] || []; }
+function renderTasks(){
+  const mon=ui.weekStart, end=addDays(mon,6), today=todayISO();
+  const list=weekTasks(mon);
+  const done=list.filter(t=>t.done).length, total=list.length;
+  const pct=total?Math.round(done/total*100):0;
+  const isThisWeek=(today>=mon && today<=end);
+  let statusLine;
+  if(today<mon){ statusLine=`starts in ${daysBetween(today,mon)} day${daysBetween(today,mon)===1?'':'s'}`; }
+  else if(today>end){ statusLine=`past week`; }
+  else { const left=daysBetween(today,end)+1; statusLine=`${left} day${left===1?'':'s'} left this week`; }
+  const remaining=total-done;
+  const urgent=isThisWeek && remaining>0 && daysBetween(today,end)<=1;
+
+  let html=`<div class="week-head">
+    <div class="navbtns"><button class="iconbtn" id="wk-prev">‹</button>
+      <button class="btn sm" style="min-width:170px;justify-content:center" id="wk-today">${weekLabel(mon)}</button>
+      <button class="iconbtn" id="wk-next">›</button></div>
+    <div class="spacer"></div>
+    <div style="text-align:right"><div style="font-weight:700;font-size:15px" class="${urgent?'neg':''}">${done}/${total||0} done</div>
+      <div class="muted-note ${urgent?'neg':''}">${statusLine}</div></div>
+  </div>`;
+
+  html+=`<div class="card" style="padding:14px 16px;margin-bottom:16px">
+    <div style="height:8px;background:var(--surface-2);border-radius:5px;overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:${pct===100?'var(--good)':'var(--accent)'};border-radius:5px;transition:width .25s"></div>
+    </div>
+    ${total&&done===total?'<div class="muted-note pos" style="margin-top:9px">✓ All done — nice one.</div>':''}
+  </div>`;
+
+  html+=`<div class="card card-pad" style="margin-bottom:16px">
+    <label style="font-size:12px;font-weight:600;color:var(--ink-2)">Tasks</label>
+    <textarea id="task-input" rows="3" placeholder="Type here" style="margin-top:7px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);padding:10px 12px;border-radius:10px;width:100%;resize:vertical"></textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+      <button class="btn primary" id="task-add">+ Add</button>
+    </div>
+  </div>`;
+
+  const sorted=[...list].sort((a,b)=>(a.done?1:0)-(b.done?1:0));
+  html+=`<div class="card todo">`;
+  if(total===0){ html+=`<div class="empty">No tasks added</div>`; }
+  else{
+    sorted.forEach(t=>{
+      html+=`<div class="task-item ${t.done?'done':''}">
+        <div class="check ${t.done?'on':''}" data-toggle="${t.id}" title="Toggle done">${t.done?'✓':''}</div>
+        <div class="tt" style="flex:1;min-width:0">${esc(t.text)}</div>
+        <button class="iconbtn del-task" data-del-task="${t.id}" title="Delete" style="width:28px;height:28px;font-size:13px">✕</button>
+      </div>`;
+    });
+  }
+  html+=`</div>`;
+  view.innerHTML=html;
+  const ta=document.getElementById("task-input"); if(ta && isThisWeek) ta.focus();
+}
+function addTasksFromText(text){
+  const parts=(text.includes("\n")?text.split("\n"):text.split(",")).map(s=>s.trim()).filter(Boolean);
+  if(parts.length===0) return 0;
+  if(!S.tasks[ui.weekStart]) S.tasks[ui.weekStart]=[];
+  parts.forEach(txt=>S.tasks[ui.weekStart].push({id:uid(),text:txt,done:false,doneDate:null}));
+  save(); return parts.length;
 }
 
 /* ----- finances ----- */
@@ -966,6 +1051,12 @@ view.addEventListener("click",e=>{
   if(el=t.closest("[data-edit]")){ editGig(el.dataset.edit); return; }
   if(el=t.closest(".mc-head[data-month], .mc-more[data-month]")){ ui.month=Number(el.dataset.month); ui.calMode="month"; render(); return; }
   if(el=t.closest(".day[data-day]")){ if(!t.closest("[data-edit]")) editGig(null, el.dataset.day); return; }
+  if(t.id==="wk-prev"){ ui.weekStart=addDays(ui.weekStart,-7); render(); return; }
+  if(t.id==="wk-next"){ ui.weekStart=addDays(ui.weekStart,7); render(); return; }
+  if(t.id==="wk-today"){ ui.weekStart=weekMonday(todayISO()); render(); return; }
+  if(t.id==="task-add"){ const ta=document.getElementById("task-input"); const n=addTasksFromText(ta.value); if(n){ render(); toast(n+" task"+(n===1?'':'s')+" added"); } return; }
+  if(el=t.closest("[data-toggle]")){ const arr=weekTasks(ui.weekStart); const tk=arr.find(x=>x.id===el.dataset.toggle); if(tk){ tk.done=!tk.done; tk.doneDate=tk.done?todayISO():null; save(); render(); } return; }
+  if(el=t.closest("[data-del-task]")){ if(S.tasks[ui.weekStart]) S.tasks[ui.weekStart]=S.tasks[ui.weekStart].filter(x=>x.id!==el.dataset.delTask); save(); render(); return; }
   if(el=t.closest("[data-reconcile]")){ reconcileAcct(el.dataset.reconcile); return; }
   if(el=t.closest("[data-markpaid]")){ markPaidByKey(el.dataset.markpaid); return; }
   if(el=t.closest("[data-edit-acct]")){ editAccount(el.dataset.editAcct); return; }
@@ -979,6 +1070,11 @@ view.addEventListener("click",e=>{
 });
 view.addEventListener("change",e=>{
   if(e.target.id==="restore-file" && e.target.files[0]) restore(e.target.files[0]);
+});
+view.addEventListener("keydown",e=>{
+  if(e.target.id==="task-input" && (e.metaKey||e.ctrlKey) && e.key==="Enter"){
+    const n=addTasksFromText(e.target.value); if(n){ render(); toast(n+" task"+(n===1?'':'s')+" added"); }
+  }
 });
 
 // delegated clicks inside modal (close + deletes)
