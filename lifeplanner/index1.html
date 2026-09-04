@@ -242,17 +242,6 @@ table.fin tr.now td:first-child{font-weight:700}
 .paidbox{border:1px dashed var(--line-strong);border-radius:10px;padding:11px;display:flex;flex-direction:column;gap:11px}
 .muted-note{font-size:12px;color:var(--muted)}
 .pill{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
-.exp-head{display:flex;justify-content:space-between;align-items:baseline;margin-top:2px}
-.g-net-wrap{font-size:12px;color:var(--ink-2)}
-.g-net-wrap b{font-variant-numeric:tabular-nums}
-#g-exps{display:flex;flex-direction:column;gap:9px}
-.exp-item{border:1px solid var(--line);border-radius:10px;padding:9px;display:flex;flex-direction:column;gap:8px;background:var(--surface-2)}
-.exp-top{display:grid;grid-template-columns:1fr 92px 32px;gap:8px;align-items:center}
-.exp-bot{display:flex;align-items:center;gap:14px}
-.exp-item input,.exp-item select{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);padding:7px 9px;border-radius:8px;width:100%}
-.exp-item .checkline{white-space:nowrap}
-.exp-item .checkline input{width:auto}
-.exp-bot select{max-width:150px}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--page);padding:10px 18px;border-radius:10px;font-weight:600;z-index:80;box-shadow:var(--shadow);opacity:0;transition:opacity .2s, transform .2s;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
@@ -265,7 +254,7 @@ table.fin tr.now td:first-child{font-weight:700}
   <nav class="tabs" id="tabs">
     <button data-tab="calendar" class="active">Calendar</button>
     <button data-tab="finances">Finances</button>
-    <button data-tab="tasks">This week</button>
+    <button data-tab="tasks">Tasks</button>
     <button data-tab="settings">Settings</button>
   </nav>
   <div class="spacer"></div>
@@ -350,7 +339,6 @@ function normalize(d){
   ["accounts","sources","bookings","fixedCosts","oneOffs","reconciliations"].forEach(k=>{ if(!Array.isArray(d[k])) d[k]=b[k]; });
   if(typeof d.costPayments!=="object"||!d.costPayments) d.costPayments={};
   if(typeof d.tasks!=="object"||!d.tasks) d.tasks={};
-  d.bookings.forEach(bk=>{ if(!Array.isArray(bk.expenses)) bk.expenses=[]; });
   if(d.accounts.length===0) d.accounts=b.accounts;
   return d;
 }
@@ -405,10 +393,8 @@ function monthPnL(mk){
   const fixed = costsForMonth(mk);
   const fixedTotal = fixed.reduce((s,c)=>s+c.amount,0);
   const ooExTotal  = ooEx.reduce((s,o)=>s+num(o.amount),0);
-  const gigExp = bks.filter(b=>b.status==="confirmed"||b.status==="fulfilled")
-                    .reduce((s,b)=>s+(b.expenses||[]).reduce((x,e)=>x+num(e.amount),0),0);
-  const expenses = fixedTotal + ooExTotal + gigExp;
-  return { mk, potential, committed, received, expenses, fixedTotal, ooExTotal, gigExp,
+  const expenses = fixedTotal + ooExTotal;
+  return { mk, potential, committed, received, expenses, fixedTotal, ooExTotal,
            net: committed-expenses, netPotential:(committed+potential)-expenses };
 }
 
@@ -421,7 +407,6 @@ function accountBalance(accId){
     if(r.date>=anchorDate){ anchorDate=r.date; bal=num(r.balance); }
   });
   S.bookings.forEach(b=>{ if(b.paid && b.accountId===accId){ const pd=b.paidDate||b.date; if(pd>anchorDate && pd<=today) bal+=num(b.fee); }});
-  S.bookings.forEach(b=>{ (b.expenses||[]).forEach(e=>{ if(e.paid && e.accountId===accId){ const pd=e.paidDate||b.date; if(pd>anchorDate && pd<=today) bal-=num(e.amount); }}); });
   S.oneOffs.forEach(o=>{ if(o.paid && o.accountId===accId){ const pd=o.paidDate||o.date; if(pd>anchorDate && pd<=today) bal+=(o.type==="income"?num(o.amount):-num(o.amount)); }});
   Object.entries(S.costPayments).forEach(([k,p])=>{
     if(!p.paid) return;
@@ -453,12 +438,8 @@ function projectedYearEnd(year){
   if(year < (new Date()).getFullYear()) return combinedBalance();
   let bal=combinedBalance();
   S.bookings.forEach(b=>{
-    if(b.status==="confirmed"||b.status==="fulfilled"){
-      const mk=mkey(b.date);
-      if(mk>=curMk && mk<=yEnd){
-        if(!b.paid) bal+=num(b.fee);
-        (b.expenses||[]).forEach(e=>{ if(!e.paid) bal-=num(e.amount); });
-      }
+    if((b.status==="confirmed"||b.status==="fulfilled") && !b.paid){
+      const mk=mkey(b.date); if(mk>=curMk && mk<=yEnd) bal+=num(b.fee);
     }
   });
   S.oneOffs.forEach(o=>{
@@ -505,7 +486,7 @@ function renderCalendar(){
       <button class="btn sm" style="min-width:120px;justify-content:center" id="m-label">${MONTHS[ui.month]} ${ui.year}</button>
       <button class="iconbtn" id="m-next">›</button></div>`;
   }
-  html+=`<div class="spacer"></div><button class="btn primary" id="add-gig">+ Add gig</button></div>`;
+  html+=`<div class="spacer"></div><button class="btn primary" id="add-gig">+ Add</button></div>`;
 
   if(modeYear){
     html+=`<div class="year-grid">`;
@@ -522,7 +503,7 @@ function renderCalendar(){
           <span class="mc-net ${netClass}">${bks.length||pnl.expenses?signed(pnl.net):''}</span>
         </div>
         <div class="mc-body">
-          ${shown.map(chipHTML).join("") || '<div class="mc-empty">None</div>'}
+          ${shown.map(chipHTML).join("") || '<div class="mc-empty">No gigs</div>'}
           ${more>0?`<div class="mc-more" data-month="${m}">+${more} more…</div>`:''}
         </div>
         <div class="mc-foot"><span>${bks.length} gig${bks.length===1?'':'s'}</span><span>${pnl.committed?money(pnl.committed)+' in':''}</span></div>
@@ -583,17 +564,16 @@ function renderTasks(){
   </div>`;
 
   html+=`<div class="card card-pad" style="margin-bottom:16px">
-    <label style="font-size:12px;font-weight:600;color:var(--ink-2)">Brain-dump your list for the week</label>
-    <textarea id="task-input" rows="3" placeholder="One per line, or comma-separated —&#10;Email John, Send artwork, pay Mary, Update CV" style="margin-top:7px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);padding:10px 12px;border-radius:10px;width:100%;resize:vertical"></textarea>
+    <label style="font-size:12px;font-weight:600;color:var(--ink-2)">Tasks</label>
+    <textarea id="task-input" rows="3" placeholder="Type here" style="margin-top:7px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);padding:10px 12px;border-radius:10px;width:100%;resize:vertical"></textarea>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
-      <span class="muted-note">Tip: ⌘/Ctrl + Enter to add</span>
-      <button class="btn primary" id="task-add">Add to this week</button>
+      <button class="btn primary" id="task-add">+ Add</button>
     </div>
   </div>`;
 
   const sorted=[...list].sort((a,b)=>(a.done?1:0)-(b.done?1:0));
   html+=`<div class="card todo">`;
-  if(total===0){ html+=`<div class="empty">Nothing yet for this week — dump your list above and tick it off as you go.</div>`; }
+  if(total===0){ html+=`<div class="empty">No tasks added</div>`; }
   else{
     sorted.forEach(t=>{
       html+=`<div class="task-item ${t.done?'done':''}">
@@ -718,13 +698,6 @@ function buildOwedList(){
         title:`${b.title||"(gig)"} — ${money(b.fee)}`,
         sub:`${b.status} · ${fmtDayLabel(b.date)}${b.date<=today?' · due':''}`});
     }
-    if(b.status==="confirmed"||b.status==="fulfilled"){
-      (b.expenses||[]).forEach(e=>{ if(!e.paid && num(e.amount)>0){
-        items.push({key:"ge|"+b.id+"|"+e.id, sortDate:b.date, dir:-1, amount:num(e.amount),
-          title:`${e.name||"Gig cost"} — ${money(e.amount)}`,
-          sub:`cost for ${b.title||"gig"} · ${fmtDayLabel(b.date)}`});
-      }});
-    }
   });
   S.oneOffs.forEach(o=>{
     if(!o.paid){
@@ -829,22 +802,21 @@ function acctOptions(sel){ return S.accounts.map(a=>`<option value="${a.id}" ${a
 /* ----- gig editor ----- */
 function editGig(id, presetDate){
   const isNew=!id;
-  const b = isNew ? {id:uid(),title:"",venue:"",date:presetDate||todayISO(),fee:"",sourceId:"",status:"inquiry",paid:false,paidDate:todayISO(),accountId:(S.accounts[0]||{}).id,notes:"",expenses:[]}
+  const b = isNew ? {id:uid(),title:"",venue:"",date:presetDate||todayISO(),fee:"",sourceId:"",status:"inquiry",paid:false,paidDate:todayISO(),accountId:(S.accounts[0]||{}).id,notes:""}
                   : Object.assign({},S.bookings.find(x=>x.id===id));
-  if(!Array.isArray(b.expenses)) b.expenses=[];
   const srcList=`<datalist id="srcs">${S.sources.map(s=>`<option value="${esc(s.name)}">`).join("")}</datalist>`;
   const curSrcName = b.sourceId ? ((source(b.sourceId)||{}).name||"") : "";
   openModal(`
-    <div class="modal-head"><h3>${isNew?'Add':'Edit'}</h3><button class="iconbtn" data-close>✕</button></div>
+    <div class="modal-head"><h3>${isNew?'Add gig':'Edit gig'}</h3><button class="iconbtn" data-close>✕</button></div>
     <div class="modal-body">
-      <div class="field"><label>Title</label><input id="g-title" value="${esc(b.title)}" placeholder="..." autofocus></div>
+      <div class="field"><label>Gig / title</label><input id="g-title" value="${esc(b.title)}" placeholder="e.g. Warehouse set" autofocus></div>
       <div class="row2">
         <div class="field"><label>Date</label><input id="g-date" type="date" value="${b.date}"></div>
         <div class="field"><label>Fee (€)</label><input id="g-fee" type="number" step="0.01" value="${b.fee}" placeholder="0"></div>
       </div>
       <div class="row2">
-       
-        <div class="field"><label>Income source</label><input id="g-source" list="srcs" value="${esc(curSrcName)}" placeholder="...">${srcList}</div>
+        <div class="field"><label>Venue / client</label><input id="g-venue" value="${esc(b.venue||'')}" placeholder="optional"></div>
+        <div class="field"><label>Income source</label><input id="g-source" list="srcs" value="${esc(curSrcName)}" placeholder="e.g. Live shows">${srcList}</div>
       </div>
       <div class="field"><label>Status</label>
         <div class="statusseg" id="g-status">
@@ -855,19 +827,16 @@ function editGig(id, presetDate){
         <div class="muted-note" id="g-status-note"></div>
       </div>
       <div class="paidbox">
-        <div class="checkline"><input type="checkbox" id="g-paid" ${b.paid?'checked':''}><label for="g-paid" style="font-weight:600">Paid</label></div>
+        <div class="checkline"><input type="checkbox" id="g-paid" ${b.paid?'checked':''}><label for="g-paid" style="font-weight:600">Paid — money is in the bank</label></div>
         <div class="row2" id="g-paid-fields">
           <div class="field"><label>Paid into</label><select id="g-account">${acctOptions(b.accountId)}</select></div>
           <div class="field"><label>Date received</label><input id="g-paiddate" type="date" value="${b.paidDate||todayISO()}"></div>
         </div>
       </div>
-      <div class="exp-head"><label style="font-size:12px;font-weight:600;color:var(--ink-2)">Expenses on this gig</label><span class="g-net-wrap">Net to you: <b id="g-net">—</b></span></div>
-      <div id="g-exps"></div>
-      <button class="btn sm" id="g-addexp" style="align-self:flex-start">+ Add expense</button>
     </div>
     <div class="modal-foot">
       ${isNew?'<span></span>':'<button class="btn danger" data-del-gig="'+b.id+'">Delete</button>'}
-      <div style="display:flex;gap:8px"><button class="btn" data-close>Cancel</button><button class="btn primary" id="g-save">Save</button></div>
+      <div style="display:flex;gap:8px"><button class="btn" data-close>Cancel</button><button class="btn primary" id="g-save">Save gig</button></div>
     </div>`);
 
   let status=b.status;
@@ -880,42 +849,6 @@ function editGig(id, presetDate){
   }
   function syncPaid(){ paidFields.style.opacity=modal.querySelector("#g-paid").checked?1:.45; }
   syncStatusNote(); syncPaid();
-
-  // ---- per-gig expenses ----
-  let exps = b.expenses.map(e=>Object.assign({},e));
-  function expRowHTML(e,idx){
-    return `<div class="exp-item" data-idx="${idx}">
-      <div class="exp-top">
-        <input class="exp-f" data-field="name" value="${esc(e.name||'')}" placeholder="e.g. Videographer">
-        <input class="exp-f" data-field="amount" type="number" step="0.01" value="${e.amount??''}" placeholder="0">
-        <button class="iconbtn" data-delexp="${idx}" title="Remove" style="width:32px;height:32px;font-size:13px">✕</button>
-      </div>
-      <div class="exp-bot">
-        <label class="checkline" style="margin:0"><input type="checkbox" class="exp-f" data-field="paid" ${e.paid?'checked':''}> paid</label>
-        <select class="exp-f" data-field="accountId">${acctOptions(e.accountId||(S.accounts[0]||{}).id)}</select>
-      </div>
-    </div>`;
-  }
-  function updateNet(){
-    const fee=num(modal.querySelector("#g-fee").value);
-    const sum=exps.reduce((s,e)=>s+num(e.amount),0);
-    const net=fee-sum; const el=modal.querySelector("#g-net");
-    el.textContent=money(net); el.style.color=net>=0?'var(--good)':'var(--bad)';
-  }
-  function renderExps(){
-    const c=modal.querySelector("#g-exps");
-    c.innerHTML = exps.length? exps.map(expRowHTML).join("") : '<div class="muted-note">No extra costs — the full fee is yours.</div>';
-    updateNet();
-  }
-  function readExp(el){ const item=el.closest(".exp-item"); if(!item)return; const idx=+item.dataset.idx,f=el.dataset.field; exps[idx][f]=el.type==="checkbox"?el.checked:el.value; if(f==="amount")updateNet(); }
-  const expc=modal.querySelector("#g-exps");
-  expc.addEventListener("input",e=>{ if(e.target.classList.contains("exp-f")) readExp(e.target); });
-  expc.addEventListener("change",e=>{ if(e.target.classList.contains("exp-f")) readExp(e.target); });
-  expc.addEventListener("click",e=>{ const d=e.target.closest("[data-delexp]"); if(d){ exps.splice(+d.dataset.delexp,1); renderExps(); }});
-  modal.querySelector("#g-addexp").addEventListener("click",()=>{ exps.push({id:uid(),name:"",amount:"",paid:false,paidDate:null,accountId:(S.accounts[0]||{}).id}); renderExps(); const items=modal.querySelectorAll("#g-exps .exp-item"); const last=items[items.length-1]; if(last) last.querySelector("input").focus(); });
-  modal.querySelector("#g-fee").addEventListener("input",updateNet);
-  renderExps();
-
   modal.querySelector("#g-status").addEventListener("click",e=>{
     const btn=e.target.closest("button[data-st]"); if(!btn) return;
     status=btn.dataset.st;
@@ -932,8 +865,8 @@ function editGig(id, presetDate){
     b.status=status;
     b.paid=modal.querySelector("#g-paid").checked;
     b.accountId=modal.querySelector("#g-account").value;
+    b.paiddate=null;
     b.paidDate=modal.querySelector("#g-paiddate").value||todayISO();
-    b.expenses=exps.map(e=>({id:e.id||uid(),name:(e.name||"").trim(),amount:num(e.amount),paid:!!e.paid,paidDate:e.paid?(e.paidDate||b.date):null,accountId:e.accountId||(S.accounts[0]||{}).id})).filter(e=>e.name||e.amount>0);
     if(!b.title){ toast("Give the gig a title"); return; }
     const i=S.bookings.findIndex(x=>x.id===b.id);
     if(i<0) S.bookings.push(b); else S.bookings[i]=b;
@@ -1046,7 +979,6 @@ function markPaidByKey(key){
   const parts=key.split("|");
   const today=todayISO();
   if(parts[0]==="b"){ const b=S.bookings.find(x=>x.id===parts[1]); if(b){ b.paid=true; if(!b.paidDate)b.paidDate=today; if(!b.accountId)b.accountId=(S.accounts[0]||{}).id; } }
-  else if(parts[0]==="ge"){ const b=S.bookings.find(x=>x.id===parts[1]); if(b){ const e=(b.expenses||[]).find(x=>x.id===parts[2]); if(e){ e.paid=true; if(!e.paidDate)e.paidDate=today; if(!e.accountId)e.accountId=(S.accounts[0]||{}).id; } } }
   else if(parts[0]==="o"){ const o=S.oneOffs.find(x=>x.id===parts[1]); if(o){ o.paid=true; if(!o.paidDate)o.paidDate=today; } }
   else if(parts[0]==="c"){ const cid=parts[1], mk=parts[2]; const k=`${cid}|${mk}`; const p=S.costPayments[k]||{}; p.paid=true; p.paidDate=today; S.costPayments[k]=p; }
   save(); render(); toast("Marked paid ✓");
