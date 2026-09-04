@@ -522,37 +522,31 @@ function awaitingPayment(){
   return t;
 }
 
-// income you still expect to receive this year (unpaid, from this month on)
-function incomeToCome(year){
-  const today=todayISO(), curMk=mkey(today), yEnd=`${year}-12`;
-  let t=0;
-  S.bookings.forEach(b=>{ if((b.status==="confirmed"||b.status==="fulfilled") && !b.paid){ const mk=mkey(b.date); if(mk>=curMk && mk<=yEnd) t+=num(b.fee); }});
-  S.oneOffs.forEach(o=>{ if(o.type==="income" && !o.paid){ const mk=mkey(o.date); if(mk>=curMk && mk<=yEnd) t+=num(o.amount); }});
-  return t;
-}
-// outgoings you still have to pay this year (unpaid, from this month on)
-function stillToPay(year){
-  const today=todayISO(), curMk=mkey(today), yEnd=`${year}-12`;
-  let t=0;
-  S.bookings.forEach(b=>{ if(b.status==="confirmed"||b.status==="fulfilled"){ const mk=mkey(b.date); if(mk>=curMk && mk<=yEnd)(b.expenses||[]).forEach(e=>{ if(!e.paid) t+=num(e.amount); }); }});
-  S.oneOffs.forEach(o=>{ if(o.type==="expense" && !o.paid){ const mk=mkey(o.date); if(mk>=curMk && mk<=yEnd) t+=num(o.amount); }});
-  for(let m=0;m<12;m++){ const mk=mkeyOf(year,m); if(mk<curMk) continue; costsForMonth(mk).forEach(c=>{ if(!c.paid) t+=c.amount; }); }
-  return t;
-}
-// net cash expected to move in one month (unpaid income − unpaid outgoings)
-function monthCashDelta(mk){
-  let inc=0, exp=0;
-  S.bookings.forEach(b=>{ if(mkey(b.date)!==mk) return;
-    if(b.status==="confirmed"||b.status==="fulfilled"){ if(!b.paid) inc+=num(b.fee); (b.expenses||[]).forEach(e=>{ if(!e.paid) exp+=num(e.amount); }); }
-  });
-  S.oneOffs.forEach(o=>{ if(mkey(o.date)!==mk||o.paid) return; if(o.type==="income") inc+=num(o.amount); else exp+=num(o.amount); });
-  costsForMonth(mk).forEach(c=>{ if(!c.paid) exp+=c.amount; });
-  return inc-exp;
-}
-// projected combined bank balance at end of selected year
+// projected combined balance at end of selected year:
+// balance now + unpaid committed income (dated within year, not before today's month)
+//            − unpaid expenses for current..Dec of the year
 function projectedYearEnd(year){
+  const today=todayISO(), curMk=mkey(today), yEnd=`${year}-12`;
   if(year < (new Date()).getFullYear()) return combinedBalance();
-  return combinedBalance() + incomeToCome(year) - stillToPay(year);
+  let bal=combinedBalance();
+  S.bookings.forEach(b=>{
+    if(b.status==="confirmed"||b.status==="fulfilled"){
+      const mk=mkey(b.date);
+      if(mk>=curMk && mk<=yEnd){
+        if(!b.paid) bal+=num(b.fee);
+        (b.expenses||[]).forEach(e=>{ if(!e.paid) bal-=num(e.amount); });
+      }
+    }
+  });
+  S.oneOffs.forEach(o=>{
+    if(o.type==="income" && !o.paid){ const mk=mkey(o.date); if(mk>=curMk && mk<=yEnd) bal+=num(o.amount); }
+    if(o.type==="expense" && !o.paid){ const mk=mkey(o.date); if(mk>=curMk && mk<=yEnd) bal-=num(o.amount); }
+  });
+  for(let m=0;m<12;m++){
+    const mk=mkeyOf(year,m); if(mk<curMk) continue;
+    costsForMonth(mk).forEach(c=>{ if(!c.paid) bal-=c.amount; });
+  }
+  return bal;
 }
 
 /* ============================================================
@@ -705,25 +699,21 @@ function renderFinances(){
   const combined=combinedBalance();
   const projected=projectedYearEnd(ui.year);
   const owed=awaitingPayment();
-  const stp=stillToPay(ui.year);
 
-  // year totals + projected running bank balance
-  let ytdIncome=0,ytdExp=0,ytdNet=0,bal=combined;
+  // year totals
+  let ytdIncome=0,ytdExp=0,ytdNet=0,cum=0;
   const rows=[];
   for(let m=0;m<12;m++){
-    const mk=mkeyOf(ui.year,m);
-    const p=monthPnL(mk);
-    ytdIncome+=p.committed; ytdExp+=p.expenses; ytdNet+=p.net;
-    let balCell=null;
-    if(mk>=curMk){ bal+=monthCashDelta(mk); balCell=bal; }
-    rows.push({m,p,balCell});
+    const p=monthPnL(mkeyOf(ui.year,m));
+    cum+=p.net; ytdIncome+=p.committed; ytdExp+=p.expenses; ytdNet+=p.net;
+    rows.push({m,p,cum});
   }
 
   let html=`<div class="tiles">
     <div class="card tile"><div class="lab">💶 In the bank now</div><div class="val tnum">${money(combined)}</div><div class="sub">across ${S.accounts.length} account${S.accounts.length===1?'':'s'}</div></div>
-    <div class="card tile"><div class="lab">⏳ Awaiting payment</div><div class="val tnum pos">+${money(owed)}</div><div class="sub">confirmed income to come</div></div>
-    <div class="card tile"><div class="lab">🧾 Still to pay</div><div class="val tnum neg">−${money(stp)}</div><div class="sub">bills + job costs to come</div></div>
-    <div class="card tile"><div class="lab">📈 Projected · end ${ui.year}</div><div class="val tnum ${projected>=0?'pos':'neg'}">${money(projected)}</div><div class="sub">bank + awaiting − still to pay</div></div>
+    <div class="card tile"><div class="lab">📅 ${MONTHS[(new Date()).getMonth()]} net</div><div class="val tnum ${nowPnL.net>=0?'pos':'neg'}">${signed(nowPnL.net)}</div><div class="sub">${money(nowPnL.committed)} in · ${money(nowPnL.expenses)} out</div></div>
+    <div class="card tile"><div class="lab">⏳ Awaiting payment</div><div class="val tnum">${money(owed)}</div><div class="sub">confirmed, not yet in bank</div></div>
+    <div class="card tile"><div class="lab">📈 Projected · end ${ui.year}</div><div class="val tnum ${projected>=0?'pos':'neg'}">${money(projected)}</div><div class="sub">if all confirmed clears</div></div>
   </div>`;
 
   // accounts
@@ -757,10 +747,10 @@ function renderFinances(){
   // monthly table
   html+=`<h2 class="section">${ui.year} — month by month</h2>
   <div class="card" style="padding:6px 10px;overflow-x:auto"><table class="fin"><thead><tr>
-    <th>Month</th><th>Potential</th><th>Income</th><th>Costs</th><th>Net</th><th>Balance</th>
+    <th>Month</th><th>Potential</th><th>Income</th><th>Costs</th><th>Net</th><th>Running</th>
   </tr></thead><tbody>`;
   const now=new Date();
-  rows.forEach(({m,p,balCell})=>{
+  rows.forEach(({m,p,cum})=>{
     const isNow=now.getFullYear()===ui.year&&now.getMonth()===m;
     html+=`<tr class="${isNow?'now':''}">
       <td>${MONTHS_SHORT[m]}</td>
@@ -768,15 +758,13 @@ function renderFinances(){
       <td class="tnum">${p.committed?money(p.committed):'·'}</td>
       <td class="tnum">${p.expenses?money(p.expenses):'·'}</td>
       <td class="tnum ${p.net>0?'pos':p.net<0?'neg':''}">${(p.committed||p.expenses)?signed(p.net):'·'}</td>
-      <td class="tnum ${balCell!=null&&balCell<0?'neg':''}"><b>${balCell!=null?money(balCell):'·'}</b></td>
+      <td class="tnum ${cum>0?'pos':cum<0?'neg':''}"><b>${signed(cum)}</b></td>
     </tr>`;
   });
   html+=`<tr style="border-top:2px solid var(--line-strong)"><td><b>Total ${ui.year}</b></td><td></td>
     <td class="tnum"><b>${money(ytdIncome)}</b></td><td class="tnum"><b>${money(ytdExp)}</b></td>
-    <td class="tnum ${ytdNet>=0?'pos':'neg'}"><b>${signed(ytdNet)}</b></td>
-    <td class="tnum ${projected<0?'neg':''}"><b>${money(projected)}</b></td></tr>`;
+    <td class="tnum ${ytdNet>=0?'pos':'neg'}"><b>${signed(ytdNet)}</b></td><td></td></tr>`;
   html+=`</tbody></table></div>`;
-  html+=`<div class="muted-note" style="margin:8px 2px 0">Income / Costs / Net are your profit view (starts from €0 each year). <b>Balance</b> is your projected bank going forward — the last row equals “Projected · end ${ui.year}”.</div>`;
 
   // source performance
   const perf=sourcePerformance(ui.year);
@@ -824,7 +812,7 @@ function buildOwedList(){
   const curMk=mkey(today);
   S.fixedCosts.forEach(c=>{
     for(let y=ui.year-1;y<=ui.year;y++) for(let m=0;m<12;m++){
-      const mk=mkeyOf(y,m); const oneOff=c.startMonth&&c.endMonth&&c.startMonth===c.endMonth; if(mk>curMk && !oneOff) continue;
+      const mk=mkeyOf(y,m); if(mk>curMk) continue;
       if(c.startMonth&&mk<c.startMonth) continue; if(c.endMonth&&mk>c.endMonth) continue;
       const p=S.costPayments[`${c.id}|${mk}`]||{};
       if(!p.paid){
@@ -1287,7 +1275,7 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;"
 })();
 
 // expose for testing
-window.GL={get S(){return S;}, set S(v){S=v;}, monthPnL, accountBalance, combinedBalance, projectedYearEnd, stillToPay, incomeToCome, monthCashDelta, buildOwedList, awaitingPayment, blank, normalize, save, load, ui};
+window.GL={get S(){return S;}, set S(v){S=v;}, monthPnL, accountBalance, combinedBalance, projectedYearEnd, awaitingPayment, blank, normalize, save, load, ui};
 </script>
 </body>
 </html>
