@@ -256,10 +256,6 @@ table.fin tr.now td:first-child{font-weight:700}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--page);padding:10px 18px;border-radius:10px;font-weight:600;z-index:80;box-shadow:var(--shadow);opacity:0;transition:opacity .2s, transform .2s;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
-.fs-box{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--line-strong);border-radius:10px;padding:11px 12px}
-.fs-box .lr-s{margin-top:3px;color:var(--muted)}
-.fs-box.ok{border-color:var(--good);background:var(--good-bg)}
-.fs-box.warn{border-color:var(--inquiry);background:var(--inquiry-bg)}
 .hidden{display:none !important}
 </style>
 </head>
@@ -361,75 +357,6 @@ function normalize(d){
 function save(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(S)); }
   catch(e){ toast("⚠ Could not save — storage blocked"); }
-  fileAutosave();
-}
-
-/* ---------- optional: auto-save to a real file (Chrome/Edge) ---------- */
-const FS_OK = (typeof window!=="undefined") && ("showSaveFilePicker" in window);
-let fileHandle=null;      // connected file handle (this session)
-let fileStatus="none";    // none | connected | reconnect
-let fileName="";
-let fsTimer=null;
-const IDB_NAME="gigledger-fs", IDB_STORE="handles";
-function idbOpen(){ return new Promise((res,rej)=>{ const r=indexedDB.open(IDB_NAME,1); r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
-async function idbSet(k,v){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,"readwrite"); tx.objectStore(IDB_STORE).put(v,k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
-async function idbGet(k){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,"readonly"); const rq=tx.objectStore(IDB_STORE).get(k); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error); }); }
-async function idbDel(k){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,"readwrite"); tx.objectStore(IDB_STORE).delete(k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
-async function writeToFile(handle){ const w=await handle.createWritable(); await w.write(JSON.stringify(S,null,2)); await w.close(); }
-async function ensureRW(handle){
-  if((await handle.queryPermission({mode:"readwrite"}))==="granted") return true;
-  return (await handle.requestPermission({mode:"readwrite"}))==="granted";
-}
-function fileAutosave(){
-  if(!fileHandle || fileStatus!=="connected") return;
-  clearTimeout(fsTimer);
-  fsTimer=setTimeout(async()=>{
-    try{ await writeToFile(fileHandle); }
-    catch(e){ fileStatus="reconnect"; if(ui.tab==="settings") render(); toast("⚠ Lost the data file — reconnect in Settings"); }
-  },500);
-}
-async function connectNewFile(){
-  if(!FS_OK) return;
-  try{
-    const handle=await window.showSaveFilePicker({suggestedName:"life-planner-data.json",types:[{description:"JSON data",accept:{"application/json":[".json"]}}]});
-    fileHandle=handle; fileName=handle.name; await writeToFile(handle);
-    await idbSet("dataFile",handle); fileStatus="connected";
-    render(); toast("Auto-saving to "+handle.name);
-  }catch(e){ if(e && e.name!=="AbortError") toast("⚠ Couldn't create the file"); }
-}
-async function connectExistingFile(){
-  if(!FS_OK) return;
-  try{
-    const [handle]=await window.showOpenFilePicker({types:[{description:"JSON data",accept:{"application/json":[".json"]}}]});
-    if(!(await ensureRW(handle))){ toast("Write permission needed"); return; }
-    const file=await handle.getFile(); const text=await file.text();
-    if(text.trim() && confirm("Load data from this file? It replaces what's currently in this browser.")){ S=normalize(JSON.parse(text)); }
-    fileHandle=handle; fileName=handle.name; fileStatus="connected";
-    save(); render(); toast("Connected — auto-saving to "+handle.name);
-  }catch(e){ if(e && e.name!=="AbortError") toast("⚠ Couldn't open the file"); }
-}
-async function reconnectFile(){
-  if(!fileHandle) return;
-  try{
-    if(!(await ensureRW(fileHandle))){ toast("Permission needed to resume auto-save"); return; }
-    const file=await fileHandle.getFile(); const text=await file.text();
-    if(text.trim()){ S=normalize(JSON.parse(text)); }
-    fileStatus="connected"; save(); render(); toast("Reconnected — auto-saving to "+fileName);
-  }catch(e){ toast("⚠ Couldn't reconnect"); }
-}
-async function disconnectFile(){ fileHandle=null; fileStatus="none"; fileName=""; try{ await idbDel("dataFile"); }catch(e){} render(); toast("Auto-save file disconnected"); }
-async function restoreFileHandleOnBoot(){
-  if(!FS_OK) return;
-  try{
-    const handle=await idbGet("dataFile");
-    if(!handle) return;
-    fileHandle=handle; fileName=handle.name||"data file";
-    if((await handle.queryPermission({mode:"readwrite"}))==="granted"){
-      try{ const file=await handle.getFile(); const text=await file.text(); if(text.trim()){ S=normalize(JSON.parse(text)); save(); } fileStatus="connected"; }
-      catch(e){ fileStatus="reconnect"; }
-    } else { fileStatus="reconnect"; }
-    render();
-  }catch(e){}
 }
 
 /* ---------- lookups ---------- */
@@ -876,28 +803,11 @@ function renderSettings(){
   html+=`<div style="margin-top:12px"><button class="btn sm" data-edit-source="new">+ Add source</button></div></div>`;
 
   // data
-  let fileUI="";
-  if(FS_OK){
-    if(fileStatus==="connected"){
-      fileUI=`<div class="fs-box ok"><div><b>✓ Auto-saving to a file</b><div class="lr-s">${esc(fileName)} — every change is written here automatically.</div></div>
-        <button class="btn sm ghost" id="fs-disconnect">Disconnect</button></div>`;
-    } else if(fileStatus==="reconnect"){
-      fileUI=`<div class="fs-box warn"><div><b>⏸ Data file needs reconnecting</b><div class="lr-s">Resume auto-save and pull your latest data from ${esc(fileName)}.</div></div>
-        <button class="btn sm primary" id="fs-reconnect">Reconnect</button></div>`;
-    } else {
-      fileUI=`<div class="fs-box"><div><b>Auto-save to a file (recommended)</b><div class="lr-s">Pick a file once — the app then writes a copy on every change. Your safety net across pushes, browsers and machines.</div></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm primary" id="fs-new">Create file</button><button class="btn sm" id="fs-open">Use existing</button></div></div>`;
-    }
-  } else {
-    fileUI=`<p class="hint" style="margin:0 0 10px">Auto-save to a file is available in Chrome or Edge. In this browser, use Backup / Restore to keep a copy.</p>`;
-  }
-  html+=`<div class="card card-pad"><h3>Data</h3>
-    <p class="hint">Your data lives in this browser, tied to this exact web address. Keep opening your one bookmarked site URL and it stays put across pushes.</p>
-    ${fileUI}
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px">
+  html+=`<div class="card card-pad"><h3>Data</h3><p class="hint">Everything is stored in this browser only. Back up regularly — clearing site data will erase it.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
       <button class="btn sm" id="backup">⬇ Backup (JSON)</button>
       <button class="btn sm" id="restore">⬆ Restore</button>
-      <button class="btn sm" id="demo">Load demo</button>
+      <button class="btn sm" id="demo">Load demo data</button>
       <button class="btn sm danger" id="wipe">Clear everything</button>
     </div><input type="file" id="restore-file" accept="application/json" class="hidden"></div>`;
 
@@ -1017,7 +927,7 @@ function editGig(id, presetDate){
     b.title=modal.querySelector("#g-title").value.trim();
     b.date=modal.querySelector("#g-date").value||todayISO();
     b.fee=num(modal.querySelector("#g-fee").value);
-    { const gv=modal.querySelector("#g-venue"); if(gv) b.venue=gv.value.trim(); }
+    b.venue=modal.querySelector("#g-venue").value.trim();
     b.sourceId=ensureSource(modal.querySelector("#g-source").value)||"";
     b.status=status;
     b.paid=modal.querySelector("#g-paid").checked;
@@ -1221,10 +1131,6 @@ view.addEventListener("click",e=>{
   if(el=t.closest("[data-edit-cost]")){ editCost(el.dataset.editCost); return; }
   if(el=t.closest("[data-edit-source]")){ editSource(el.dataset.editSource); return; }
   if(el=t.closest("[data-del-source]")){ const id=el.dataset.delSource; if(confirm("Delete this source? Gigs keep their fee but lose the tag.")){ S.sources=S.sources.filter(s=>s.id!==id); S.bookings.forEach(b=>{ if(b.sourceId===id)b.sourceId=""; }); save(); render(); } return; }
-  if(t.id==="fs-new"){ connectNewFile(); return; }
-  if(t.id==="fs-open"){ connectExistingFile(); return; }
-  if(t.id==="fs-reconnect"){ reconnectFile(); return; }
-  if(t.id==="fs-disconnect"){ disconnectFile(); return; }
   if(t.id==="backup"){ backup(); return; }
   if(t.id==="restore"){ document.getElementById("restore-file").click(); return; }
   if(t.id==="demo"){ if(confirm("Load demo data? This replaces everything currently stored.")) loadDemo(); return; }
@@ -1259,7 +1165,6 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;"
 (function boot(){
   try{ const th=localStorage.getItem("gigledger.theme"); if(th) document.documentElement.setAttribute("data-theme",th); }catch(e){}
   render();
-  restoreFileHandleOnBoot();
 })();
 
 // expose for testing
