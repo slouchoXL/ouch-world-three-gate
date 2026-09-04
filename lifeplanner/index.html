@@ -602,7 +602,7 @@ function renderCalendar(){
           ${shown.map(chipHTML).join("") || '<div class="mc-empty">None</div>'}
           ${more>0?`<div class="mc-more" data-month="${m}">+${more} more…</div>`:''}
         </div>
-        <div class="mc-foot"><span>${bks.length} gig${bks.length===1?'':'s'}</span><span>${pnl.committed?money(pnl.committed)+' in':''}</span></div>
+        <div class="mc-foot"><span>${bks.length} Job${bks.length===1?'':'s'}</span><span>${pnl.committed?money(pnl.committed)+' in':''}</span></div>
       </div>`;
     }
     html+=`</div>`;
@@ -792,14 +792,14 @@ function buildOwedList(){
   S.bookings.forEach(b=>{
     if((b.status==="confirmed"||b.status==="fulfilled") && !b.paid){
       items.push({key:"b|"+b.id, sortDate:b.date, dir:1, amount:num(b.fee),
-        title:`${b.title||"(gig)"} — ${money(b.fee)}`,
+        title:`${b.title||"(Job)"} — ${money(b.fee)}`,
         sub:`${b.status} · ${fmtDayLabel(b.date)}${b.date<=today?' · due':''}`});
     }
     if(b.status==="confirmed"||b.status==="fulfilled"){
       (b.expenses||[]).forEach(e=>{ if(!e.paid && num(e.amount)>0){
         items.push({key:"ge|"+b.id+"|"+e.id, sortDate:b.date, dir:-1, amount:num(e.amount),
-          title:`${e.name||"Gig cost"} — ${money(e.amount)}`,
-          sub:`cost for ${b.title||"gig"} · ${fmtDayLabel(b.date)}`});
+          title:`${e.name||"Job cost"} — ${money(e.amount)}`,
+          sub:`cost for ${b.title||"job"} · ${fmtDayLabel(b.date)}`});
       }});
     }
   });
@@ -870,7 +870,7 @@ function renderSettings(){
   html+=`<div style="margin-top:12px"><button class="btn sm" data-edit-cost="new">+ Add fixed cost</button></div></div>`;
 
   // sources
-  html+=`<div class="card card-pad"><h3>Income sources</h3><p class="hint">Tag each gig with a source to see what's performing. New names are also created automatically when you type them on a gig.</p>`;
+  html+=`<div class="card card-pad"><h3>Income sources</h3><p class="hint">Tag each job with a source to see what's performing. New names are also created automatically when you type them on a job.</p>`;
   if(S.sources.length===0) html+=`<div class="lr-s">None yet.</div>`;
   S.sources.forEach(s=>{
     html+=`<div class="list-row"><div class="lr-main"><div class="lr-t"><span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${sourceColor(s.id)};margin-right:7px"></span>${esc(s.name)}</div></div>
@@ -970,7 +970,7 @@ function editGig(id, presetDate){
   function syncStatusNote(){
     noteEl.textContent = status==="inquiry" ? "Pending — counts as potential only, not in your committed totals."
       : status==="confirmed" ? "Locked in — counts as expected income for its month."
-      : "Gig completed — still tick ‘Paid’ once the cash actually lands.";
+      : "Job completed — still tick ‘Paid’ once the cash actually lands.";
   }
   function syncPaid(){ paidFields.style.opacity=modal.querySelector("#g-paid").checked?1:.45; }
   syncStatusNote(); syncPaid();
@@ -1036,10 +1036,10 @@ function editGig(id, presetDate){
     b.accountId=modal.querySelector("#g-account").value;
     b.paidDate=modal.querySelector("#g-paiddate").value||todayISO();
     b.expenses=exps.map(e=>({id:e.id||uid(),name:(e.name||"").trim(),amount:num(e.amount),paid:!!e.paid,paidDate:e.paid?(e.paidDate||b.date):null,accountId:e.accountId||(S.accounts[0]||{}).id})).filter(e=>e.name||e.amount>0);
-    if(!b.title){ toast("Give the gig a title"); return; }
+    if(!b.title){ toast("Give the job a title"); return; }
     const i=S.bookings.findIndex(x=>x.id===b.id);
     if(i<0) S.bookings.push(b); else S.bookings[i]=b;
-    save(); closeModal(); render(); toast(isNew?"Added":"Saved");
+    save(); closeModal(); render(); toast(isNew?"Job added":"Job saved");
   });
 }
 
@@ -1048,7 +1048,7 @@ function reconcileAcct(id){
   const a=acct(id); const cur=accountBalance(id);
   openModal(`<div class="modal-head"><h3>Reconcile ${esc(a.name)}</h3><button class="iconbtn" data-close>✕</button></div>
     <div class="modal-body">
-      <div class="muted-note">Gig Ledger currently thinks this account holds <b>${money(cur)}</b>. Open your ${esc(a.name)} app, read the real balance, and set it here to re-anchor the running total to reality.</div>
+      <div class="muted-note">Life Planner currently thinks this account holds <b>${money(cur)}</b>. Open your ${esc(a.name)} app, read the real balance, and set it here to re-anchor the running total to reality.</div>
       <div class="row2">
         <div class="field"><label>Actual balance (€)</label><input id="rc-bal" type="number" step="0.01" value="${cur}" autofocus></div>
         <div class="field"><label>As of</label><input id="rc-date" type="date" value="${todayISO()}"></div>
@@ -1072,7 +1072,7 @@ function editAccount(id){
         <div class="field"><label>Opening balance (€)</label><input id="a-bal" type="number" step="0.01" value="${a.startBalance}"></div>
         <div class="field"><label>As of date</label><input id="a-date" type="date" value="${a.startDate}"></div>
       </div>
-      <div class="muted-note">Set the opening balance to what's really in the account today; every paid gig/cost moves it from here.</div>
+      <div class="muted-note">Set the opening balance to what's really in the account today; every paid job/cost moves it from here.</div>
     </div>
     <div class="modal-foot">
       ${isNew||S.accounts.length<=1?'<span></span>':'<button class="btn danger" data-del-acct="'+a.id+'">Delete</button>'}
@@ -1104,8 +1104,8 @@ function editCost(id){
         <div class="field"><label>Paid from</label><select id="c-acct">${acctOptions(c.accountId)}</select></div>
       </div>
       <div class="row2">
-        <div class="field"><label>Starts (month)</label><input id="c-start" type="month" value="${c.startMonth||''}"></div>
-        <div class="field"><label>Ends (optional)</label><input id="c-end" type="month" value="${c.endMonth||''}"></div>
+        <div class="field"><label>Starts</label><input id="c-start" type="date" value="${c.startMonth?c.startMonth+'-01':''}"></div>
+        <div class="field"><label>Ends (optional)</label><input id="c-end" type="date" value="${c.endMonth?c.endMonth+'-01':''}"></div>
       </div>
       <div class="muted-note">Applies to every month in range. Leave “ends” empty for ongoing costs.</div>
     </div>
@@ -1118,8 +1118,8 @@ function editCost(id){
     c.amount=num(modal.querySelector("#c-amt").value);
     c.category=modal.querySelector("#c-cat").value.trim();
     c.accountId=modal.querySelector("#c-acct").value;
-    c.startMonth=modal.querySelector("#c-start").value||mkeyOf(ui.year,0);
-    c.endMonth=modal.querySelector("#c-end").value||"";
+    c.startMonth=(modal.querySelector("#c-start").value||"").slice(0,7)||mkeyOf(ui.year,0);
+    c.endMonth=(modal.querySelector("#c-end").value||"").slice(0,7);
     const i=S.fixedCosts.findIndex(x=>x.id===c.id);
     if(i<0) S.fixedCosts.push(c); else S.fixedCosts[i]=c;
     save(); closeModal(); render(); toast("Fixed cost saved");
@@ -1158,7 +1158,7 @@ function markPaidByKey(key){
 function backup(){
   const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-  a.download=`gig-ledger-backup-${todayISO()}.json`; a.click();
+  a.download=`life-planner-backup-${todayISO()}.json`; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 function restore(file){
@@ -1232,7 +1232,7 @@ view.addEventListener("click",e=>{
   if(el=t.closest("[data-edit-acct]")){ editAccount(el.dataset.editAcct); return; }
   if(el=t.closest("[data-edit-cost]")){ editCost(el.dataset.editCost); return; }
   if(el=t.closest("[data-edit-source]")){ editSource(el.dataset.editSource); return; }
-  if(el=t.closest("[data-del-source]")){ const id=el.dataset.delSource; if(confirm("Delete this source? Gigs keep their fee but lose the tag.")){ S.sources=S.sources.filter(s=>s.id!==id); S.bookings.forEach(b=>{ if(b.sourceId===id)b.sourceId=""; }); save(); render(); } return; }
+  if(el=t.closest("[data-del-source]")){ const id=el.dataset.delSource; if(confirm("Delete this source? Jobs keep their fee but lose the tag.")){ S.sources=S.sources.filter(s=>s.id!==id); S.bookings.forEach(b=>{ if(b.sourceId===id)b.sourceId=""; }); save(); render(); } return; }
   if(t.id==="fs-new"){ connectNewFile(); return; }
   if(t.id==="fs-open"){ connectExistingFile(); return; }
   if(t.id==="fs-reconnect"){ reconnectFile(); return; }
@@ -1255,7 +1255,7 @@ view.addEventListener("keydown",e=>{
 modal.addEventListener("click",e=>{
   const t=e.target; let el;
   if(t.closest("[data-close]")){ closeModal(); return; }
-  if(el=t.closest("[data-del-gig]")){ if(confirm("Delete this gig?")){ S.bookings=S.bookings.filter(b=>b.id!==el.dataset.delGig); save(); closeModal(); render(); toast("Gig deleted"); } return; }
+  if(el=t.closest("[data-del-gig]")){ if(confirm("Delete this Job?")){ S.bookings=S.bookings.filter(b=>b.id!==el.dataset.delGig); save(); closeModal(); render(); toast("Job deleted"); } return; }
   if(el=t.closest("[data-del-acct]")){ if(confirm("Delete this account?")){ S.accounts=S.accounts.filter(a=>a.id!==el.dataset.delAcct); save(); closeModal(); render(); } return; }
   if(el=t.closest("[data-del-cost]")){ if(confirm("Delete this fixed cost?")){ S.fixedCosts=S.fixedCosts.filter(c=>c.id!==el.dataset.delCost); save(); closeModal(); render(); } return; }
 });
