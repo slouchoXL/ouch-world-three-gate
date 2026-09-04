@@ -253,10 +253,6 @@ table.fin tr.now td:first-child{font-weight:700}
 .exp-item .checkline{white-space:nowrap}
 .exp-item .checkline input{width:auto}
 .exp-bot select{max-width:150px}
-.src-quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.src-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink-2);padding:4px 9px;border-radius:20px;font-size:12px;font-weight:600}
-.src-chip:hover{color:var(--ink);border-color:var(--muted)}
-.src-chip .sw{width:9px;height:9px;border-radius:3px;flex:none}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--page);padding:10px 18px;border-radius:10px;font-weight:600;z-index:80;box-shadow:var(--shadow);opacity:0;transition:opacity .2s, transform .2s;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
@@ -938,7 +934,7 @@ function editGig(id, presetDate){
       </div>
       <div class="row2">
        
-        <div class="field" style="grid-column:1/-1"><label>Income source</label><input id="g-source" list="srcs" value="${esc(curSrcName)}" placeholder="Type a source, e.g. DJ sets" autocomplete="off">${srcList}<div id="src-quick" class="src-quick"></div></div>
+        <div class="field"><label>Income source</label><input id="g-source" list="srcs" value="${esc(curSrcName)}" placeholder="">${srcList}</div>
       </div>
       <div class="field"><label>Status</label>
         <div class="statusseg" id="g-status">
@@ -1009,14 +1005,6 @@ function editGig(id, presetDate){
   modal.querySelector("#g-addexp").addEventListener("click",()=>{ exps.push({id:uid(),name:"",amount:"",paid:false,paidDate:null,accountId:(S.accounts[0]||{}).id}); renderExps(); const items=modal.querySelectorAll("#g-exps .exp-item"); const last=items[items.length-1]; if(last) last.querySelector("input").focus(); });
   modal.querySelector("#g-fee").addEventListener("input",updateNet);
   renderExps();
-
-  // ---- income-source quick pick ----
-  (function(){
-    const q=modal.querySelector("#src-quick"); if(!q) return;
-    if(S.sources.length===0){ q.innerHTML='<span class="muted-note">No sources yet — type one above to start tracking it.</span>'; return; }
-    q.innerHTML = S.sources.map(so=>`<button type="button" class="src-chip" data-src="${esc(so.name)}"><span class="sw" style="background:${sourceColor(so.id)}"></span>${esc(so.name)}</button>`).join("");
-    q.addEventListener("click",e=>{ const bt=e.target.closest("[data-src]"); if(bt) modal.querySelector("#g-source").value=bt.dataset.src; });
-  })();
 
   modal.querySelector("#g-status").addEventListener("click",e=>{
     const btn=e.target.closest("button[data-st]"); if(!btn) return;
