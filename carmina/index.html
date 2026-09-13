@@ -297,7 +297,7 @@ table.fin tr.now td:first-child{font-weight:700}
    Data lives in localStorage. Back up via Settings → Data.
    ============================================================ */
 
-const STORE_KEY = "gigledger.v1";
+const STORE_KEY = "gigledger.carmina.v1";
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -374,7 +374,7 @@ let fileHandle=null;      // connected file handle (this session)
 let fileStatus="none";    // none | connected | reconnect
 let fileName="";
 let fsTimer=null;
-const IDB_NAME="gigledger-fs", IDB_STORE="handles";
+const IDB_NAME="gigledger-carmina-fs", IDB_STORE="handles";
 function idbOpen(){ return new Promise((res,rej)=>{ const r=indexedDB.open(IDB_NAME,1); r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
 async function idbSet(k,v){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,"readwrite"); tx.objectStore(IDB_STORE).put(v,k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
 async function idbGet(k){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,"readonly"); const rq=tx.objectStore(IDB_STORE).get(k); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error); }); }
@@ -1219,7 +1219,7 @@ document.getElementById("theme-toggle").addEventListener("click",()=>{
   const cur=document.documentElement.getAttribute("data-theme");
   const next=cur==="dark"?"light":cur==="light"?"":"dark";
   if(next) document.documentElement.setAttribute("data-theme",next); else document.documentElement.removeAttribute("data-theme");
-  try{ localStorage.setItem("gigledger.theme",next); }catch(e){}
+  try{ localStorage.setItem("gigledger.carmina.theme",next); }catch(e){}
 });
 
 // delegated clicks in the main view
@@ -1281,7 +1281,7 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;"
 
 /* ---------- boot ---------- */
 (function boot(){
-  try{ const th=localStorage.getItem("gigledger.theme"); if(th) document.documentElement.setAttribute("data-theme",th); }catch(e){}
+  try{ const th=localStorage.getItem("gigledger.carmina.theme"); if(th) document.documentElement.setAttribute("data-theme",th); }catch(e){}
   render();
   restoreFileHandleOnBoot();
 })();
