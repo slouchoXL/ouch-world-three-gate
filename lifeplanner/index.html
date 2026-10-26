@@ -106,9 +106,9 @@ h2.section{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:va
 .title-lg{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0}
 
 /* ---------- calendar: year ---------- */
-.year-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-@media(max-width:980px){.year-grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:720px){.year-grid{grid-template-columns:repeat(2,1fr)}}
+.year-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media(max-width:980px){.year-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:720px){.year-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.year-grid{grid-template-columns:1fr}}
 .month-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;min-height:150px}
 .month-card.now{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
@@ -123,7 +123,8 @@ h2.section{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:va
 }
 .chip:hover{filter:brightness(.98);border-color:var(--line-strong)}
 .chip .cdate{font-weight:700;width:22px;flex:none;color:var(--ink-2)}
-.chip .ctitle{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{min-width:0}
+.chip .ctitle{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chip .cfee{font-weight:700;flex:none}
 .chip.inquiry{background:var(--inquiry-bg);color:var(--inquiry)}
 .chip.confirmed{background:var(--confirmed-bg);color:var(--confirmed)}
@@ -134,9 +135,9 @@ h2.section{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:va
 .mc-foot{border-top:1px solid var(--line);padding:6px 12px;display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
 
 /* ---------- calendar: month grid ---------- */
-.dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+.dow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:6px}
 .dow span{font-size:11px;font-weight:700;color:var(--muted);text-align:left;padding-left:4px;text-transform:uppercase;letter-spacing:.04em}
-.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.mgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .day{background:var(--surface);border:1px solid var(--line);border-radius:9px;min-height:104px;padding:5px 6px;display:flex;flex-direction:column;gap:3px;cursor:pointer;position:relative}
 .day:hover{border-color:var(--line-strong)}
 .day.out{background:var(--surface-2);opacity:.55}
