@@ -1080,12 +1080,16 @@ audio.addEventListener('ended', () => {
   }
 });
 
-window.addEventListener('resize', () => {
-  if (currentTrack !== null) {
-    const pct = isFinite(audio.duration) ? audio.currentTime / audio.duration : 0;
-    drawWaveform(currentTrack, pct);
-  }
-});
+    window.addEventListener('resize', () => {
+      if (currentTrack !== null) {
+        const pct = isFinite(audio.duration) ? audio.currentTime / audio.duration : 0;
+        drawWaveform(currentTrack, pct);
+      }
+      if (openInfoId !== null) {
+        const p = getExpanded(openInfoId);
+        if (p) p.style.maxHeight = p.scrollHeight + 'px';
+      }
+    });
 
 // ─────────────────────────────────────────────────────────────
 // INFO EXPAND
@@ -1096,11 +1100,15 @@ function toggleInfo(id) {
   const isOpen  = panel?.classList.contains('open');
 
   if (openInfoId !== null && openInfoId !== id) {
-    getExpanded(openInfoId)?.classList.remove('open');
+    const prev = getExpanded(openInfoId);
+    if (prev) { prev.classList.remove('open'); prev.style.maxHeight = '0px'; }
     getPill(openInfoId)?.querySelector('.info-btn')?.classList.remove('active');
   }
 
-  panel?.classList.toggle('open', !isOpen);
+  if (panel) {
+    panel.classList.toggle('open', !isOpen);
+    panel.style.maxHeight = isOpen ? '0px' : panel.scrollHeight + 'px';
+  }
   infoBtn?.classList.toggle('active', !isOpen);
   openInfoId = isOpen ? null : id;
 }
