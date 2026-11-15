@@ -186,7 +186,7 @@
 
     /* ── Release date — portal .bs-copy p ── */
     .release-date {
-      max-width: 640px;
+      text-align: center;
       font-size: 13px;
       line-height: 1.3;
       color: var(--muted);
@@ -224,7 +224,6 @@
       text-decoration: none;
       transition: border-color 0.15s, background 0.15s, color 0.15s;
     }
-    a.circ-btn:hover { border-color: var(--border-hover); background: var(--btn-bg-hover); color: var(--text); }
     span.circ-btn { cursor: default; }
     .circ-btn svg { width: 14px; height: 14px; }
 
@@ -240,7 +239,29 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .track-pill.locked .pill-title { color: var(--muted); }
-    .pill-links { display: flex; gap: 10px; }
+    a.circ-btn:hover, button.circ-btn:hover { border-color: var(--border-hover); background: var(--btn-bg-hover); color: var(--text); }
+    button.circ-btn.active { border-color: var(--border-hover); background: var(--btn-bg-hover); color: var(--text); }
+
+    /* ── Per-track link tray (same style as the socials .social-tray) ── */
+    .pill-row { position: relative; }
+    .track-tray {
+      position: absolute;
+      right: 59px; top: 50%;
+      display: flex;
+      gap: 8px;
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 10px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      transform: translate(8px, -50%);
+      opacity: 0;
+      visibility: hidden;
+      transition: transform .25s ease, opacity .25s ease, visibility .25s ease;
+    }
+    .track-tray.open { transform: translate(0, -50%); opacity: 1; visibility: visible; }
 
     @media (max-width: 600px) {
       .page { padding-top: 180px; }
@@ -530,11 +551,12 @@
       apple:    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>',
       youtube:  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 7.2a2.7 2.7 0 00-1.9-1.9C18 5 12 5 12 5s-6 0-7.7.3A2.7 2.7 0 002.4 7.2C2 8.9 2 12 2 12s0 3.1.4 4.8a2.7 2.7 0 001.9 1.9C6 19 12 19 12 19s6 0 7.7-.3a2.7 2.7 0 001.9-1.9C22 15.1 22 12 22 12s0-3.1-.4-4.8zM10 15V9l5.5 3L10 15z"/></svg>',
       bandcamp: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 17.5L8.6 6.5H23l-7.6 11z"/></svg>',
+      link:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>',
       lock:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>',
     };
 
     function link(href, platform, label, icon) {
-      return `<a class="circ-btn" href="${href}" target="_blank" rel="noopener" data-platform="${platform}" aria-label="${label}">${icon}</a>`;
+      return `<a class="social-btn" href="${href}" target="_blank" rel="noopener" data-platform="${platform}" aria-label="${label}">${icon}</a>`;
     }
 
     document.getElementById('trackList').innerHTML = TRACKS.map(t => t.out ? `
@@ -544,12 +566,13 @@
             <div class="pill-title">${t.title}</div>
             <div class="pill-sub">Sloucho${t.feat ? ' · ' + t.feat : ''}</div>
           </div>
-          <div class="pill-links">
+          <div class="track-tray">
             ${link(t.spotify,  'spotify',  t.title + ' on Spotify',     ICON.spotify)}
             ${link(t.apple,    'apple',    t.title + ' on Apple Music', ICON.apple)}
             ${link(t.youtube,  'youtube',  t.title + ' on YouTube',     ICON.youtube)}
             ${link(t.bandcamp, 'bandcamp', t.title + ' on Bandcamp',    ICON.bandcamp)}
           </div>
+          <button type="button" class="circ-btn track-toggle" onclick="toggleTrackTray(this)" aria-label="${t.title} links">${ICON.link}</button>
         </div>
       </div>` : `
       <div class="track-pill locked">
@@ -563,6 +586,21 @@
 
     // ── Menu ──
     function toggleMenu() { document.getElementById('menuTray')?.classList.toggle('open'); }
+
+    // ── Per-track link tray ──
+    function closeTrackTrays(except) {
+      document.querySelectorAll('.track-tray.open').forEach(tray => {
+        if (tray === except) return;
+        tray.classList.remove('open');
+        tray.parentElement.querySelector('.track-toggle')?.classList.remove('active');
+      });
+    }
+    function toggleTrackTray(btn) {
+      const tray = btn.parentElement.querySelector('.track-tray');
+      closeTrackTrays(tray);
+      const isOpen = tray.classList.toggle('open');
+      btn.classList.toggle('active', isOpen);
+    }
 
     // ── Social tray ──
     function toggleSocial() {
@@ -585,6 +623,8 @@
         socialTray.classList.remove('open');
         socialToggle.classList.remove('active');
       }
+
+      if (!e.target.closest('.track-tray, .track-toggle')) closeTrackTrays();
     });
 
     // ── Auth ──
