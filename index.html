@@ -181,7 +181,7 @@
     .page {
       max-width: 740px;
       margin: 0 auto;
-      padding: 195px 24px 60px;
+      padding: 195px 24px calc(60px + 54px + env(safe-area-inset-bottom, 0px));
     }
 
     /* ── Release date — portal .bs-copy p ── */
@@ -240,28 +240,24 @@
     }
     .track-pill.locked .pill-title { color: var(--muted); }
     a.circ-btn:hover, button.circ-btn:hover { border-color: var(--border-hover); background: var(--btn-bg-hover); color: var(--text); }
-    button.circ-btn.active { border-color: var(--border-hover); background: var(--btn-bg-hover); color: var(--text); }
 
-    /* ── Per-track link tray (same style as the socials .social-tray) ── */
-    .pill-row { position: relative; }
-    .track-tray {
-      position: absolute;
-      right: 59px; top: 50%;
-      display: flex;
-      gap: 8px;
-      background: rgba(255,255,255,0.97);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+    /* ── Expanded panel (portal .pill-expanded / .pill-action-btn) ── */
+    .info-btn.active { background: rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.2); color: var(--text); }
+    .pill-expanded { max-height: 0; overflow: hidden; transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1); }
+    .pill-expanded.open { max-height: 360px; }
+    .pill-expanded-inner { padding: 14px 49px 18px 19px; border-top: 1px solid var(--border); }
+    .pill-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+    .pill-action-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; padding: 5px 14px;
+      border-radius: var(--radius-pill);
       border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 7px 10px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-      transform: translate(8px, -50%);
-      opacity: 0;
-      visibility: hidden;
-      transition: transform .25s ease, opacity .25s ease, visibility .25s ease;
+      background: transparent; color: var(--muted);
+      cursor: pointer; text-decoration: none;
+      transition: border-color 0.15s, color 0.15s;
     }
-    .track-tray.open { transform: translate(0, -50%); opacity: 1; visibility: visible; }
+    .pill-action-btn:hover { border-color: var(--border-hover); color: var(--text); }
+    .pill-action-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
 
     @media (max-width: 600px) {
       .page { padding-top: 180px; }
@@ -285,16 +281,20 @@
     /* ── Social link button + tray (index.html) ── */
     .social-wrap {
       position: fixed;
-      bottom: max(28px, env(safe-area-inset-bottom) + 20px);
-      left: 50%;
-      transform: translateX(-50%);
+      bottom: 0; left: 0; right: 0;
       z-index: 100;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
+      justify-content: center;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-top: 1px solid var(--border);
+      padding: 10px 0 calc(14px + env(safe-area-inset-bottom, 0px));
     }
     .social-tray {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
       display: flex;
       gap: 8px;
       background: rgba(255,255,255,0.97);
@@ -304,12 +304,12 @@
       border-radius: 999px;
       padding: 7px 10px;
       box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-      transform: translateY(8px);
+      transform: translate(-50%, 8px);
       opacity: 0;
       visibility: hidden;
       transition: transform .25s ease, opacity .25s ease, visibility .25s ease;
     }
-    .social-tray.open { transform: translateY(0); opacity: 1; visibility: visible; }
+    .social-tray.open { transform: translate(-50%, 0); opacity: 1; visibility: visible; }
 
     .link-button {
       width: 30px; height: 30px;
@@ -556,7 +556,7 @@
     };
 
     function link(href, platform, label, icon) {
-      return `<a class="social-btn" href="${href}" target="_blank" rel="noopener" data-platform="${platform}" aria-label="${label}">${icon}</a>`;
+      return `<a class="pill-action-btn" href="${href}" target="_blank" rel="noopener" data-platform="${platform}">${icon} ${label}</a>`;
     }
 
     document.getElementById('trackList').innerHTML = TRACKS.map(t => t.out ? `
@@ -566,13 +566,17 @@
             <div class="pill-title">${t.title}</div>
             <div class="pill-sub">Sloucho${t.feat ? ' · ' + t.feat : ''}</div>
           </div>
-          <div class="track-tray">
-            ${link(t.spotify,  'spotify',  t.title + ' on Spotify',     ICON.spotify)}
-            ${link(t.apple,    'apple',    t.title + ' on Apple Music', ICON.apple)}
-            ${link(t.youtube,  'youtube',  t.title + ' on YouTube',     ICON.youtube)}
-            ${link(t.bandcamp, 'bandcamp', t.title + ' on Bandcamp',    ICON.bandcamp)}
+          <button type="button" class="circ-btn info-btn" onclick="toggleLinks(this)" aria-label="${t.title} links" aria-expanded="false">${ICON.link}</button>
+        </div>
+        <div class="pill-expanded">
+          <div class="pill-expanded-inner">
+            <div class="pill-actions">
+              ${link(t.spotify,  'spotify',  'Spotify',     ICON.spotify)}
+              ${link(t.apple,    'apple',    'Apple Music', ICON.apple)}
+              ${link(t.youtube,  'youtube',  'YouTube',     ICON.youtube)}
+              ${link(t.bandcamp, 'bandcamp', 'Bandcamp',    ICON.bandcamp)}
+            </div>
           </div>
-          <button type="button" class="circ-btn track-toggle" onclick="toggleTrackTray(this)" aria-label="${t.title} links">${ICON.link}</button>
         </div>
       </div>` : `
       <div class="track-pill locked">
@@ -587,19 +591,25 @@
     // ── Menu ──
     function toggleMenu() { document.getElementById('menuTray')?.classList.toggle('open'); }
 
-    // ── Per-track link tray ──
-    function closeTrackTrays(except) {
-      document.querySelectorAll('.track-tray.open').forEach(tray => {
-        if (tray === except) return;
-        tray.classList.remove('open');
-        tray.parentElement.querySelector('.track-toggle')?.classList.remove('active');
-      });
-    }
-    function toggleTrackTray(btn) {
-      const tray = btn.parentElement.querySelector('.track-tray');
-      closeTrackTrays(tray);
-      const isOpen = tray.classList.toggle('open');
-      btn.classList.toggle('active', isOpen);
+    // ── Link dropdown (portal toggleInfo logic) ──
+    let openPill = null;
+    function toggleLinks(btn) {
+      const pill   = btn.closest('.track-pill');
+      const panel  = pill.querySelector('.pill-expanded');
+      const isOpen = panel.classList.contains('open');
+
+      if (openPill && openPill !== pill) {
+        const prev = openPill.querySelector('.pill-expanded');
+        prev.classList.remove('open'); prev.style.maxHeight = '0px';
+        openPill.querySelector('.info-btn')?.classList.remove('active');
+        openPill.querySelector('.info-btn')?.setAttribute('aria-expanded', 'false');
+      }
+
+      panel.classList.toggle('open', !isOpen);
+      panel.style.maxHeight = isOpen ? '0px' : panel.scrollHeight + 'px';
+      btn.classList.toggle('active', !isOpen);
+      btn.setAttribute('aria-expanded', String(!isOpen));
+      openPill = isOpen ? null : pill;
     }
 
     // ── Social tray ──
@@ -623,8 +633,6 @@
         socialTray.classList.remove('open');
         socialToggle.classList.remove('active');
       }
-
-      if (!e.target.closest('.track-tray, .track-toggle')) closeTrackTrays();
     });
 
     // ── Auth ──
