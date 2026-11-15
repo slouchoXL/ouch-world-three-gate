@@ -67,18 +67,18 @@
       --circle-border-hover: rgba(0,0,0,0.30);
     }
 
-    /* fixed-height page, no scrolling (same as index.html) */
+    /* page layout — matches /portal */
     html, body {
-      height: 100%;
       background: var(--bg);
       color: var(--text);
-      font-family: 'PPMori', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
-        'SF Pro Display', 'Segoe UI', sans-serif;
+      font-family: 'PPMori', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', sans-serif;
       -webkit-font-smoothing: antialiased;
-      overflow: hidden;
-      touch-action: none;
-      -ms-touch-action: none;
+      overflow-x: hidden;
+      overflow-y: auto;
+      touch-action: pan-y;
+      -ms-touch-action: pan-y;
     }
+    body::-webkit-scrollbar { display: none; }
 
     @font-face {
       font-family: 'PPMori';
@@ -157,46 +157,43 @@
     .fixed-header .fh-artist,
     .fixed-header .fh-title {
       font-size: clamp(22px, 4vw, 34px);
-      font-weight: 400;
+      font-weight: 500;
       line-height: 1.0;
       letter-spacing: -0.03em;
     }
     .fixed-header .fh-artist { color: var(--text); }
     .fixed-header .fh-title  { color: var(--muted); }
 
-    /* ── Stage: the space between header and social button ── */
-    .stage {
+    /* ── Top nav fade gradient — covers nav + fixed header (portal) ── */
+    .nav-fade {
       position: fixed;
-      top: 140px;
-      bottom: calc(max(28px, env(safe-area-inset-bottom) + 20px) + 44px);
-      left: 0; right: 0;
-      display: flex; align-items: flex-start; justify-content: center;
-      padding: 0 24px;
-      /* only if the window is too short: scroll the list, scrollbar hidden like the portal */
-      overflow-y: auto;
-      touch-action: pan-y;
-      scrollbar-width: none;
-    }
-    .stage::-webkit-scrollbar { display: none; }
-    .stage-inner {
-      width: 100%;
-      max-width: 692px; /* portal .page: 740px minus 24px padding each side */
-      display: flex; flex-direction: column; align-items: center;
-      padding-bottom: 24px;
+      top: 0; left: 0; right: 0;
+      height: 210px;
+      background: linear-gradient(to bottom,
+        rgba(255,255,255,1) 0%,
+        rgba(255,255,255,1) 72%,
+        rgba(255,255,255,0) 88%);
+      pointer-events: none;
+      z-index: 998;
     }
 
+    /* ── Page layout (portal) ── */
+    .page {
+      max-width: 740px;
+      margin: 0 auto;
+      padding: 195px 24px 60px;
+    }
+
+    /* ── Release date — portal .bs-copy p ── */
     .release-date {
-      font-size: 20px;
-      line-height: 1.2;
-      letter-spacing: -0.01em;
+      max-width: 640px;
+      font-size: 13px;
+      line-height: 1.3;
       color: var(--muted);
-      margin: 37px 0 20px;
+      margin-bottom: 40px;
     }
 
-    /* ── Tracklist: portal .track-pill / .pill-row ── */
-    .bs-column { width: 100%; display: flex; flex-direction: column; align-items: center; }
-    #trackList { width: 100%; }
-
+    /* ── Track pill (portal) ── */
     .track-pill {
       background: var(--pill-bg);
       border: 1px solid var(--border);
@@ -213,6 +210,24 @@
       user-select: none;
     }
 
+    /* ── Circle buttons (portal .circ-btn) ── */
+    .circ-btn {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--btn-bg);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 0;
+      color: var(--muted);
+      text-decoration: none;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    a.circ-btn:hover { border-color: var(--border-hover); background: var(--btn-bg-hover); color: var(--text); }
+    span.circ-btn { cursor: default; }
+    .circ-btn svg { width: 14px; height: 14px; }
+
     .pill-meta { min-width: 0; }
     .pill-title {
       font-size: 14px; font-weight: 450;
@@ -225,7 +240,11 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .track-pill.locked .pill-title { color: var(--muted); }
-    .pill-actions { display: flex; gap: 8px; }
+    .pill-links { display: flex; gap: 10px; }
+
+    @media (max-width: 600px) {
+      .page { padding-top: 180px; }
+    }
 
     /* ── Social buttons (index.html .social-btn) ── */
     .social-btn {
@@ -387,14 +406,13 @@
     <div class="fh-title">Broken Spirit</div>
   </div>
 
-  <!-- Pre-order + tracklist -->
-  <div class="stage" id="stage">
-    <div class="stage-inner" id="stageInner">
-      <div class="bs-column">
-        <p class="release-date">Releases on February 12, 2027</p>
-        <div id="trackList"></div>
-      </div>
-    </div>
+  <!-- Nav fade gradient (portal) -->
+  <div class="nav-fade" aria-hidden="true"></div>
+
+  <!-- Release date + tracklist -->
+  <div class="page">
+    <p class="release-date">Releases on February 12, 2027</p>
+    <div id="trackList"></div>
   </div>
 
   <!-- Social link button + tray (index.html) -->
@@ -516,7 +534,7 @@
     };
 
     function link(href, platform, label, icon) {
-      return `<a class="social-btn" href="${href}" target="_blank" rel="noopener" data-platform="${platform}" aria-label="${label}">${icon}</a>`;
+      return `<a class="circ-btn" href="${href}" target="_blank" rel="noopener" data-platform="${platform}" aria-label="${label}">${icon}</a>`;
     }
 
     document.getElementById('trackList').innerHTML = TRACKS.map(t => t.out ? `
@@ -526,7 +544,7 @@
             <div class="pill-title">${t.title}</div>
             <div class="pill-sub">Sloucho${t.feat ? ' · ' + t.feat : ''}</div>
           </div>
-          <div class="pill-actions">
+          <div class="pill-links">
             ${link(t.spotify,  'spotify',  t.title + ' on Spotify',     ICON.spotify)}
             ${link(t.apple,    'apple',    t.title + ' on Apple Music', ICON.apple)}
             ${link(t.youtube,  'youtube',  t.title + ' on YouTube',     ICON.youtube)}
@@ -539,7 +557,7 @@
           <div class="pill-meta">
             <div class="pill-title">Locked</div>
           </div>
-          <span class="social-btn" role="img" aria-label="Locked until release">${ICON.lock}</span>
+          <span class="circ-btn" role="img" aria-label="Locked until release">${ICON.lock}</span>
         </div>
       </div>`).join('');
 
