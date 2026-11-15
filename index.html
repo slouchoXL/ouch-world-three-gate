@@ -246,7 +246,7 @@
     .pill-expanded { max-height: 0; overflow: hidden; transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1); }
     .pill-expanded.open { max-height: 360px; }
     .pill-expanded-inner { padding: 14px 49px 18px 19px; border-top: 1px solid var(--border); }
-    .pill-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+    .pill-actions { display: flex; gap: 10px; flex-wrap: nowrap; }
     .pill-action-btn {
       display: inline-flex; align-items: center; gap: 5px;
       font-size: 11px; padding: 5px 14px;
@@ -556,7 +556,7 @@
     };
 
     function link(href, platform, label, icon) {
-      return `<a class="pill-action-btn" href="${href}" target="_blank" rel="noopener" data-platform="${platform}">${icon} ${label}</a>`;
+      return `<a class="circ-btn" href="${href}" target="_blank" rel="noopener" data-platform="${platform}" aria-label="${label}">${icon}</a>`;
     }
 
     document.getElementById('trackList').innerHTML = TRACKS.map(t => t.out ? `
@@ -571,10 +571,10 @@
         <div class="pill-expanded">
           <div class="pill-expanded-inner">
             <div class="pill-actions">
-              ${link(t.spotify,  'spotify',  'Spotify',     ICON.spotify)}
-              ${link(t.apple,    'apple',    'Apple Music', ICON.apple)}
-              ${link(t.youtube,  'youtube',  'YouTube',     ICON.youtube)}
-              ${link(t.bandcamp, 'bandcamp', 'Bandcamp',    ICON.bandcamp)}
+              ${link(t.spotify,  'spotify',  t.title + ' on Spotify',     ICON.spotify)}
+              ${link(t.apple,    'apple',    t.title + ' on Apple Music', ICON.apple)}
+              ${link(t.youtube,  'youtube',  t.title + ' on YouTube',     ICON.youtube)}
+              ${link(t.bandcamp, 'bandcamp', t.title + ' on Bandcamp',    ICON.bandcamp)}
             </div>
           </div>
         </div>
