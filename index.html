@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>OUCH™</title>
-  <link rel="icon" href="favicon.ico?v=2" />
-  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>OUCH™ - Broken Spirit</title>
+  <link rel="icon" href="/favicon.ico?v=2" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png?v=2" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -46,15 +46,6 @@
     })();
   </script>
 
-  <!-- Safari class -->
-  <script>
-    (function () {
-      const ua = navigator.userAgent;
-      if (/Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua))
-        document.documentElement.classList.add('safari');
-    })();
-  </script>
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -68,6 +59,7 @@
       --btn-bg: rgba(0,0,0,0.05);
       --btn-bg-hover: rgba(0,0,0,0.10);
       --radius-card: 14px;
+      --radius-pill: 999px;
       --edge-pad-desktop: 28px;
       --edge-pad-mobile: 16px;
       --circle: 30px;
@@ -75,6 +67,7 @@
       --circle-border-hover: rgba(0,0,0,0.30);
     }
 
+    /* fixed-height page, no scrolling (same as index.html) */
     html, body {
       height: 100%;
       background: var(--bg);
@@ -89,22 +82,21 @@
 
     @font-face {
       font-family: 'PPMori';
-      src: url('/assets/fonts/PPMori/PPMori-Regular.woff2') format('woff2');
+      src: url('/assets/fonts/PPMori/PPMori-Regular.woff2') format('woff2'),
+           url('https://ouch.world/assets/fonts/PPMori/PPMori-Regular.woff2') format('woff2');
       font-weight: normal;
       font-style: normal;
       font-display: swap;
     }
 
-    /* ── Top nav ── */
+    /* ── Top nav (index.html) ── */
     .top-nav {
       position: fixed; top: 0; left: 0; right: 0;
       display: flex; justify-content: space-between; align-items: center;
       padding: 20px var(--edge-pad-desktop);
-      z-index: 100;
+      z-index: 1000;
     }
-    @media (max-width: 768px) {
-      .top-nav { padding: 20px var(--edge-pad-mobile); }
-    }
+    @media (max-width: 768px) { .top-nav { padding: 20px var(--edge-pad-mobile); } }
 
     .menu-button, .login-button {
       width: 30px; height: 30px;
@@ -117,23 +109,20 @@
       backdrop-filter: blur(10px);
       transition: border-color .2s ease, background .2s ease;
     }
-    .menu-button:hover, .login-button:hover {
-      border-color: var(--circle-border-hover);
-      background: #fff;
-    }
+    .menu-button:hover, .login-button:hover { border-color: var(--circle-border-hover); background: #fff; }
     .menu-dots { display: flex; gap: 4px; }
     .dot { width: 3px; height: 3px; background: #000; border-radius: 50%; }
     .user-icon { width: 16px; height: 16px; color: #000; }
     .user-icon svg { width: 100%; height: 100%; fill: currentColor; }
 
-    /* ── Menu tray ── */
+    /* ── Menu tray (index.html) ── */
     .menu-tray {
       position: fixed; top: 60px; left: 20px; width: 155px;
       background: rgba(255,255,255,0.97);
       backdrop-filter: blur(20px);
       border: 1px solid var(--border);
       border-radius: 12px;
-      z-index: 200;
+      z-index: 1000;
       transform: translateY(-20px); opacity: 0; visibility: hidden;
       transition: all .3s ease;
       padding: 10px 0;
@@ -155,98 +144,147 @@
     .menu-item:hover::before { opacity: 1; transform: scaleY(1); }
     .menu-item, .menu-item * { position: relative; z-index: 1; }
 
-    /* ── Centred pill ── */
-    .center-pill-wrap {
+    /* ── Fixed album header (portal) ── */
+    .fixed-header {
       position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      top: 68px;
+      left: 0; right: 0;
+      text-align: center;
+      padding: 4px 24px 24px;
+      z-index: 999;
       pointer-events: none;
     }
+    .fixed-header .fh-artist,
+    .fixed-header .fh-title {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 400;
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+    }
+    .fixed-header .fh-artist { color: var(--text); }
+    .fixed-header .fh-title  { color: var(--muted); }
 
-    .now-playing-pill {
-      pointer-events: auto;
+    /* ── Stage: the space between header and social button ── */
+    .stage {
+      position: fixed;
+      top: 140px;
+      bottom: calc(max(28px, env(safe-area-inset-bottom) + 20px) + 44px);
+      left: 0; right: 0;
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 0 24px;
+      /* only if the window is too short: scroll the list, scrollbar hidden like the portal */
+      overflow-y: auto;
+      touch-action: pan-y;
+      scrollbar-width: none;
+    }
+    .stage::-webkit-scrollbar { display: none; }
+    .stage-inner {
+      width: 100%;
+      max-width: 692px; /* portal .page: 740px minus 24px padding each side */
+      display: flex; flex-direction: column; align-items: center;
+      padding-bottom: 24px;
+    }
+
+    .release-date {
+      font-size: 20px;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      color: var(--muted);
+      margin: 37px 0 20px;
+    }
+
+    /* ── Tracklist: portal .track-pill / .pill-row ── */
+    .bs-column { width: 100%; display: flex; flex-direction: column; align-items: center; }
+    #trackList { width: 100%; }
+
+    .track-pill {
       background: var(--pill-bg);
       border: 1px solid var(--border);
       border-radius: var(--radius-card);
+      margin-bottom: 5px;
+      overflow: hidden;
+    }
+    .pill-row {
       display: grid;
-      grid-template-columns: 40px minmax(0, 260px) 40px;
+      grid-template-columns: 1fr auto;
       align-items: center;
       gap: 10px;
-      padding: 9px;
-      width: max-content;
-      max-width: calc(100vw - 48px);
-      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+      padding: 9px 9px 9px 19px;
+      user-select: none;
     }
 
-    /* ── Circular buttons ── */
-    .circ-btn {
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      border: 1px solid var(--border);
-      background: var(--btn-bg);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; flex-shrink: 0; padding: 0;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .circ-btn:hover { border-color: var(--border-hover); background: var(--btn-bg-hover); }
-    .circ-btn svg {
-      width: 16px; height: 16px;
-      stroke: rgba(0,0,0,0.65);
-      fill: none;
-      stroke-width: 1.5;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    /* mute toggle */
-    .mute-btn .icon-sound { display: block; }
-    .mute-btn .icon-muted { display: none; }
-    .mute-btn.is-muted .icon-sound { display: none; }
-    .mute-btn.is-muted .icon-muted { display: block; }
-
-    /* ── Live pulse dot ── */
-    .live-dot-wrap {
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .live-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: #000;
-      opacity: 0.18;
-      animation: livePulse 2.4s ease-in-out infinite;
-    }
-    @keyframes livePulse {
-      0%, 100% { opacity: 0.18; transform: scale(1); }
-      50%       { opacity: 0.55; transform: scale(1.25); }
-    }
-
-    /* ── Track info ── */
     .pill-meta { min-width: 0; }
-    .pill-marquee-wrap {
-      overflow: hidden;
-      white-space: nowrap;
-      line-height: 1.3;
-    }
     .pill-title {
-      font-size: 14px;
-      font-weight: 450;
-      white-space: nowrap;
+      font-size: 14px; font-weight: 450;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       line-height: 1.3;
-      color: var(--text);
-      display: inline-block;
-      will-change: transform;
     }
     .pill-sub {
-      font-size: 12px;
-      color: var(--muted);
+      font-size: 12px; color: var(--muted);
       margin-top: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
+    .track-pill.locked .pill-title { color: var(--muted); }
+    .pill-actions { display: flex; gap: 8px; }
+
+    /* ── Social buttons (index.html .social-btn) ── */
+    .social-btn {
+      width: 30px; height: 30px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      border: 1px solid var(--circle-border);
+      background: var(--btn-bg);
+      color: var(--muted);
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      flex-shrink: 0;
+    }
+    a.social-btn:hover { border-color: var(--circle-border-hover); background: var(--btn-bg-hover); color: var(--text); }
+    .social-btn svg { width: 13px; height: 13px; }
+
+    /* ── Social link button + tray (index.html) ── */
+    .social-wrap {
+      position: fixed;
+      bottom: max(28px, env(safe-area-inset-bottom) + 20px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .social-tray {
+      display: flex;
+      gap: 8px;
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 10px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      transform: translateY(8px);
+      opacity: 0;
+      visibility: hidden;
+      transition: transform .25s ease, opacity .25s ease, visibility .25s ease;
+    }
+    .social-tray.open { transform: translateY(0); opacity: 1; visibility: visible; }
+
+    .link-button {
+      width: 30px; height: 30px;
+      background: rgba(255,255,255,0.88);
+      border: 1px solid var(--circle-border);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+      backdrop-filter: blur(10px);
+      color: var(--muted);
+      transition: border-color .2s ease, background .2s ease, color .2s ease;
+    }
+    .link-button:hover, .link-button.active { border-color: var(--circle-border-hover); background: #fff; color: var(--text); }
+    .link-button svg { width: 13px; height: 13px; }
 
     /* ── Shared icon-circle (modal) ── */
     .icon-circle {
@@ -319,97 +357,18 @@
       font-family: inherit;
     }
     .form-button:hover { background: #222; }
-
-    /* ── Social link button + tray ── */
-    .social-wrap {
-      position: fixed;
-      bottom: max(28px, env(safe-area-inset-bottom) + 20px);
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .social-tray {
-      display: flex;
-      gap: 8px;
-      background: rgba(255,255,255,0.97);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 7px 10px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-      transform: translateY(8px);
-      opacity: 0;
-      visibility: hidden;
-      transition: transform .25s ease, opacity .25s ease, visibility .25s ease;
-    }
-    .social-tray.open {
-      transform: translateY(0);
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .social-btn {
-      width: 30px; height: 30px;
-      display: inline-flex; align-items: center; justify-content: center;
-      border-radius: 50%;
-      border: 1px solid var(--circle-border);
-      background: var(--btn-bg);
-      color: var(--muted);
-      text-decoration: none;
-      transition: border-color 0.15s, color 0.15s, background 0.15s;
-      flex-shrink: 0;
-    }
-    .social-btn:hover { border-color: var(--circle-border-hover); background: var(--btn-bg-hover); color: var(--text); }
-    .social-btn svg { width: 13px; height: 13px; }
-
-    .link-button {
-      width: 30px; height: 30px;
-      background: rgba(255,255,255,0.88);
-      border: 1px solid var(--circle-border);
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      padding: 0;
-      backdrop-filter: blur(10px);
-      color: var(--muted);
-      transition: border-color .2s ease, background .2s ease, color .2s ease;
-    }
-    .link-button:hover, .link-button.active {
-      border-color: var(--circle-border-hover);
-      background: #fff;
-      color: var(--text);
-    }
-    .link-button svg { width: 13px; height: 13px; }
-
-    .sr-only {
-      position: absolute !important; width: 1px !important; height: 1px !important;
-      padding: 0 !important; margin: -1px !important; overflow: hidden !important;
-      clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important;
-    }
   </style>
 </head>
 <body>
 
   <!-- Top Navigation -->
   <nav class="top-nav">
-    <button class="menu-button" onclick="toggleMenu()">
-      <div class="menu-dots">
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-      </div>
+    <button class="menu-button" onclick="toggleMenu()" aria-label="Menu">
+      <div class="menu-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
     </button>
-    <button class="login-button" onclick="handleLogin()">
+    <button class="login-button" onclick="handleLogin()" aria-label="Account">
       <div class="user-icon">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-        </svg>
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
       </div>
     </button>
   </nav>
@@ -417,91 +376,50 @@
   <!-- Menu Tray -->
   <div class="menu-tray" id="menuTray">
     <a href="/" class="menu-item">Home</a>
-    <a href="/portal" class="menu-item">Broken Spirit</a>
-    
+    <a href="/portal" class="menu-item">NFC Card</a>
+    <a href="/radio" class="menu-item">Radio</a>
   </div>
 
-  <!-- Hidden audio element -->
-  <audio
-    id="mysteryGiftAudio"
-    preload="auto"
-    autoplay
-    muted
-    playsinline
-    style="position:absolute; left:-9999px; width:0; height:0; opacity:0;"
-  ></audio>
 
-  <!-- Centred Now Playing Pill -->
-  <div class="center-pill-wrap">
-    <div class="now-playing-pill">
+  <!-- Fixed album header -->
+  <div class="fixed-header">
+    <div class="fh-artist">Sloucho</div>
+    <div class="fh-title">Broken Spirit</div>
+  </div>
 
-      <!-- Live pulse dot -->
-      <div class="live-dot-wrap" title="Live">
-        <div class="live-dot"></div>
+  <!-- Pre-order + tracklist -->
+  <div class="stage" id="stage">
+    <div class="stage-inner" id="stageInner">
+      <div class="bs-column">
+        <p class="release-date">Releases on February 12, 2027</p>
+        <div id="trackList"></div>
       </div>
-
-      <!-- Track info -->
-      <div class="pill-meta">
-        <div class="pill-marquee-wrap" id="marqueeWrap">
-          <span class="pill-title" id="nowPlayingTitle">Loading…</span>
-        </div>
-        <div class="pill-sub" id="nowPlayingArtist">Sloucho</div>
-      </div>
-
-      <!-- Mute / Unmute -->
-      <button id="audioMuteBtn" class="circ-btn mute-btn is-muted" type="button" aria-label="Unmute audio">
-        <svg class="icon-sound" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M11 5L6 9H3v6h3l5 4V5z" />
-          <path d="M15.5 8.5a5 5 0 010 7" />
-          <path d="M18 6a9 9 0 010 12" />
-        </svg>
-        <svg class="icon-muted" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M11 5L6 9H3v6h3l5 4V5z" />
-          <line x1="22" y1="9" x2="16" y2="15" />
-          <line x1="16" y1="9" x2="22" y2="15" />
-        </svg>
-      </button>
-
     </div>
   </div>
 
-  <!-- Social link button + tray -->
+  <!-- Social link button + tray (index.html) -->
   <div class="social-wrap">
     <div class="social-tray" id="socialTray">
-      <!-- Instagram -->
-      <a class="social-btn" href="https://www.instagram.com/sloucho/" target="_blank" rel="noopener" aria-label="Instagram">
+      <a class="social-btn" href="https://www.instagram.com/sloucho/" target="_blank" rel="noopener" aria-label="Instagram" data-platform="social_instagram">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
           <circle cx="12" cy="12" r="5"/>
           <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
         </svg>
       </a>
-      <!-- YouTube -->
-      <a class="social-btn" href="https://www.youtube.com/@slouchomusic" target="_blank" rel="noopener" aria-label="YouTube">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M21.6 7.2a2.7 2.7 0 00-1.9-1.9C18 5 12 5 12 5s-6 0-7.7.3A2.7 2.7 0 002.4 7.2C2 8.9 2 12 2 12s0 3.1.4 4.8a2.7 2.7 0 001.9 1.9C6 19 12 19 12 19s6 0 7.7-.3a2.7 2.7 0 001.9-1.9C22 15.1 22 12 22 12s0-3.1-.4-4.8zM10 15V9l5.5 3L10 15z"/>
-        </svg>
+      <a class="social-btn" href="https://www.youtube.com/@slouchomusic" target="_blank" rel="noopener" aria-label="YouTube" data-platform="social_youtube">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 7.2a2.7 2.7 0 00-1.9-1.9C18 5 12 5 12 5s-6 0-7.7.3A2.7 2.7 0 002.4 7.2C2 8.9 2 12 2 12s0 3.1.4 4.8a2.7 2.7 0 001.9 1.9C6 19 12 19 12 19s6 0 7.7-.3a2.7 2.7 0 001.9-1.9C22 15.1 22 12 22 12s0-3.1-.4-4.8zM10 15V9l5.5 3L10 15z"/></svg>
       </a>
-      <!-- Bandcamp -->
-      <a class="social-btn" href="https://sloucho.bandcamp.com" target="_blank" rel="noopener" aria-label="Bandcamp">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M1 17.5L8.6 6.5H23l-7.6 11z"/>
-        </svg>
+      <a class="social-btn" href="https://sloucho.bandcamp.com" target="_blank" rel="noopener" aria-label="Bandcamp" data-platform="social_bandcamp">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 17.5L8.6 6.5H23l-7.6 11z"/></svg>
       </a>
-      <!-- Spotify -->
-      <a class="social-btn" href="https://open.spotify.com/artist/0tra0xmq3lbJkWbXGf2da6?si=jIjVjZTrT7mTpwmPkh5Wvw" target="_blank" rel="noopener" aria-label="Spotify">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 11-.277-1.215c3.809-.87 7.077-.496 9.712 1.115a.623.623 0 01.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.973c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 11-.543-1.793c3.525-1.07 9.381-.863 13.081 1.345a.937.937 0 01-.921 1.605z"/>
-        </svg>
+      <a class="social-btn" href="https://open.spotify.com/artist/0tra0xmq3lbJkWbXGf2da6?si=jIjVjZTrT7mTpwmPkh5Wvw" target="_blank" rel="noopener" aria-label="Spotify" data-platform="social_spotify">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 11-.277-1.215c3.809-.87 7.077-.496 9.712 1.115a.623.623 0 01.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.973c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 11-.543-1.793c3.525-1.07 9.381-.863 13.081 1.345a.937.937 0 01-.921 1.605z"/></svg>
       </a>
-      <!-- TikTok -->
-      <a class="social-btn" href="https://www.tiktok.com/@slouchomusic" target="_blank" rel="noopener" aria-label="TikTok">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.75a4.85 4.85 0 01-1.01-.06z"/>
-        </svg>
+      <a class="social-btn" href="https://www.tiktok.com/@slouchomusic" target="_blank" rel="noopener" aria-label="TikTok" data-platform="social_tiktok">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.75a4.85 4.85 0 01-1.01-.06z"/></svg>
       </a>
-      <!-- Vault.fm -->
-      <a class="social-btn" href="https://www.vault.fm/sloucho" target="_blank" rel="noopener" aria-label="Vault.fm">
+      <a class="social-btn" href="https://www.vault.fm/sloucho" target="_blank" rel="noopener" aria-label="Vault.fm" data-platform="social_vaultfm">
         <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
           <circle cx="2" cy="12" r="1.2"/>
           <circle cx="22" cy="12" r="1.2"/>
@@ -514,7 +432,6 @@
       </a>
     </div>
 
-    <!-- Link toggle button -->
     <button class="link-button" id="socialToggle" onclick="toggleSocial()" aria-label="Links">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
         <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
@@ -553,10 +470,81 @@
   </div>
 
   <script>
-    // ── Menu ──
-    function toggleMenu() {
-      document.getElementById('menuTray')?.classList.toggle('open');
+    // ── Tracks — fill in links for released tracks ──
+    const TRACKS = [
+      { title: 'fall4me' },
+      { title: 'Nothing Like Me' },
+      { title: 'Angel (Need You)', feat: null, out: true,
+        spotify:  'https://open.spotify.com/album/66dOOdRtocUGVPqR7hmyqf',
+        apple:    'https://music.apple.com/album/angel-need-you-single/6821024081',
+        youtube:  'https://music.youtube.com/watch?v=7sWCyl6QriI',
+        bandcamp: 'https://sloucho.bandcamp.com/track/angel-need-you' },
+      { title: 'Something Else', feat: 'Kibo', out: true,
+        spotify:  'https://open.spotify.com/album/3FlCWoWNo9sSV0GmOzqsyh',
+        apple:    'https://music.apple.com/album/something-else-feat-kibo-single/6795630432',
+        youtube:  'https://www.youtube.com/watch?v=IzhMSLQbnXM',
+        bandcamp: 'https://sloucho.bandcamp.com/album/something-else-ft-kibo' },
+      { title: 'Goodbye' },
+      { title: 'Wiggidy Woo' },
+      { title: 'Don’t Panic!' },
+      { title: 'All Night' },
+      { title: 'Catfished V2', feat: 'Crutch', out: true,
+        spotify:  'https://open.spotify.com/album/4PKdWpqhzzDJPApqoN3FV6',
+        apple:    'https://music.apple.com/album/wondering-catfished-v2-single/1896132020',
+        youtube:  'https://music.youtube.com/watch?v=4oPI7V_i0f8',
+        bandcamp: 'https://sloucho.bandcamp.com/album/wondering-catfished-v2' },
+      { title: 'Fake', feat: 'Gemma Dunleavy', out: true,
+        spotify:  'https://open.spotify.com/album/0pUqf3yaHSWtkcgdIJU1yf',
+        apple:    'https://music.apple.com/album/fake-single/6780259367',
+        youtube:  'https://www.youtube.com/watch?v=2cFgs6cc1BU',
+        bandcamp: 'https://sloucho.bandcamp.com/track/fake-ft-gemma-dunleavy' },
+      { title: 'Love is Fear', feat: null, out: true,
+        spotify:  'https://open.spotify.com/album/7yTaU52PQrOjVud6BgLMtv',
+        apple:    'https://music.apple.com/album/love-is-fear-single/1875394359',
+        youtube:  'https://www.youtube.com/watch?v=cci9Bfajs3o',
+        bandcamp: 'https://sloucho.bandcamp.com/track/love-is-fear' },
+      { title: 'Weightless' },
+    ];
+
+    // icons from index.html (Spotify, YouTube, Bandcamp) + portal music-note (Apple Music)
+    const ICON = {
+      spotify:  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 11-.277-1.215c3.809-.87 7.077-.496 9.712 1.115a.623.623 0 01.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.973c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 11-.543-1.793c3.525-1.07 9.381-.863 13.081 1.345a.937.937 0 01-.921 1.605z"/></svg>',
+      apple:    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>',
+      youtube:  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 7.2a2.7 2.7 0 00-1.9-1.9C18 5 12 5 12 5s-6 0-7.7.3A2.7 2.7 0 002.4 7.2C2 8.9 2 12 2 12s0 3.1.4 4.8a2.7 2.7 0 001.9 1.9C6 19 12 19 12 19s6 0 7.7-.3a2.7 2.7 0 001.9-1.9C22 15.1 22 12 22 12s0-3.1-.4-4.8zM10 15V9l5.5 3L10 15z"/></svg>',
+      bandcamp: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 17.5L8.6 6.5H23l-7.6 11z"/></svg>',
+      lock:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>',
+    };
+
+    function link(href, platform, label, icon) {
+      return `<a class="social-btn" href="${href}" target="_blank" rel="noopener" data-platform="${platform}" aria-label="${label}">${icon}</a>`;
     }
+
+    document.getElementById('trackList').innerHTML = TRACKS.map(t => t.out ? `
+      <div class="track-pill">
+        <div class="pill-row">
+          <div class="pill-meta">
+            <div class="pill-title">${t.title}</div>
+            <div class="pill-sub">Sloucho${t.feat ? ' · ' + t.feat : ''}</div>
+          </div>
+          <div class="pill-actions">
+            ${link(t.spotify,  'spotify',  t.title + ' on Spotify',     ICON.spotify)}
+            ${link(t.apple,    'apple',    t.title + ' on Apple Music', ICON.apple)}
+            ${link(t.youtube,  'youtube',  t.title + ' on YouTube',     ICON.youtube)}
+            ${link(t.bandcamp, 'bandcamp', t.title + ' on Bandcamp',    ICON.bandcamp)}
+          </div>
+        </div>
+      </div>` : `
+      <div class="track-pill locked">
+        <div class="pill-row">
+          <div class="pill-meta">
+            <div class="pill-title">Locked</div>
+          </div>
+          <span class="social-btn" role="img" aria-label="Locked until release">${ICON.lock}</span>
+        </div>
+      </div>`).join('');
+
+    // ── Menu ──
+    function toggleMenu() { document.getElementById('menuTray')?.classList.toggle('open'); }
 
     // ── Social tray ──
     function toggleSocial() {
@@ -656,334 +644,6 @@
         loginBtn.textContent = old;
         if (error) alert(error.message);
         else showCheckEmailUI(email);
-      });
-    })();
-
-    // ── Mobile zoom suppression ──
-    (function () {
-      let lastTouchEnd = 0;
-      document.addEventListener('touchend', function (e) {
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) e.preventDefault();
-        lastTouchEnd = now;
-      }, { passive: false });
-    })();
-    document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
-    document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
-    document.addEventListener('gestureend',    e => e.preventDefault(), { passive: false });
-    document.addEventListener('touchstart',  e => { if (e.touches?.length > 1) e.preventDefault(); }, { passive: false });
-    document.addEventListener('touchmove',   e => { if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault(); }, { passive: false });
-
-    // ── normalizeTrack — splits "Artist - Title", swaps & for · ──
-    function normalizeTrack(raw) {
-      const full = (raw?.title || '').trim();
-      const m    = full.match(/\s[-–—]\s/);
-      if (!m) {
-        return {
-          ...raw,
-          artist: (raw?.artist || 'Sloucho').replace(/\s*&\s*/g, ' · '),
-          title:  full || 'OUCH™',
-        };
-      }
-      const parsedArtist = full.slice(0, m.index).trim().replace(/\s*&\s*/g, ' · ');
-      const parsedTitle  = full.slice(m.index + m[0].length).trim();
-      return {
-        ...raw,
-        artist: (raw?.artist ? raw.artist.replace(/\s*&\s*/g, ' · ') : parsedArtist) || 'Sloucho',
-        title:  parsedTitle || 'OUCH™',
-      };
-    }
-
-    // ── MediaSession ──
-    function updateMediaSessionMetadata(rawTrack) {
-      if (!('mediaSession' in navigator)) return;
-      const track  = normalizeTrack(rawTrack);
-      const art    = `${location.origin}/assets/slouchometa.png`;
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title:   track?.title  || 'OUCH™',
-        artist:  track?.artist || 'Sloucho',
-        album:   'Discography',
-        artwork: [
-          { src: art, sizes: '96x96',   type: 'image/png' },
-          { src: art, sizes: '192x192', type: 'image/png' },
-          { src: art, sizes: '512x512', type: 'image/png' },
-        ]
-      });
-    }
-
-    // ── Marquee ──
-    let marqueeTimers = [];
-    function clearMarqueeTimers() {
-      marqueeTimers.forEach(t => clearTimeout(t));
-      marqueeTimers = [];
-    }
-    function startMarquee() {
-      const wrap = document.getElementById('marqueeWrap');
-      const text = document.getElementById('nowPlayingTitle');
-      if (!wrap || !text) return;
-      clearMarqueeTimers();
-      text.style.transition = 'none';
-      text.style.transform  = 'translateX(0)';
-      requestAnimationFrame(() => {
-        const wrapW = wrap.clientWidth;
-        const textW = text.scrollWidth;
-        if (textW <= wrapW) return;
-        const distance = textW - wrapW;
-        const duration = distance / 45;
-        const loop = () => {
-          text.style.transition = 'transform 380ms cubic-bezier(0.22,0.61,0.36,1)';
-          text.style.transform  = 'translateX(0)';
-          marqueeTimers.push(setTimeout(() => {
-            text.style.transition = `transform ${duration}s linear`;
-            text.style.transform  = `translateX(-${distance}px)`;
-          }, 900));
-          marqueeTimers.push(setTimeout(loop, 900 + duration * 1000 + 900));
-        };
-        loop();
-      });
-    }
-
-    function updateNowPlaying(track) {
-      const t = normalizeTrack(track);
-      const titleEl  = document.getElementById('nowPlayingTitle');
-      const artistEl = document.getElementById('nowPlayingArtist');
-      if (titleEl)  titleEl.textContent  = t.title  || 'OUCH™';
-      if (artistEl) artistEl.textContent = t.artist || 'Sloucho';
-      startMarquee();
-    }
-
-    // ── HOME AUDIO — LIVE STATION ──
-    (function () {
-      const audioEl = document.getElementById('mysteryGiftAudio');
-      const btn     = document.getElementById('audioMuteBtn');
-      if (!audioEl || !btn) return;
-
-      const PLAYLIST = [
-        { title: "Sloucho & Rory Sweeney - Watching Us",                        dur: 266, src: "/assets/music/Sloucho_RorySweeney_WatchingUs.mp3" },
-        { title: "Sloucho & Spooklet - Casse-Toi",                              dur: 200, src: "/assets/music/Sloucho_Spooklet_CasseToi.mp3" },
-        { title: "Ultra Marinu 4000 - Sky Path",                                dur: 209, src: "/assets/music/UltraMarinu4000_SkyPath.mp3" },
-        { title: "Sloucho - Power Plant",                                        dur: 272, src: "/assets/music/Sloucho_PowerPlant.mp3" },
-        { title: "Sloucho - Rhinestones (ft. Lil Skag & Ahmed, with Love)",     dur: 178, src: "/assets/music/Sloucho_Rhinestones.mp3" },
-        { title: "Sloucho - Rocks (ft. Zack Oke + Vatican Jail)",               dur: 171, src: "/assets/music/Sloucho_Rocks.mp3" },
-        { title: "Sloucho - Slow Feet",                                          dur: 246, src: "/assets/music/Sloucho_SlowFeet.mp3" },
-        { title: "Sloucho - Super Maramu 2000",                                  dur: 264, src: "/assets/music/Sloucho_SuperMaramu2000.mp3" },
-        { title: "Sloucho - techno party",                                       dur: 177, src: "/assets/music/Sloucho_TechnoParty.mp3" },
-        { title: "Sloucho - the end",                                            dur: 219, src: "/assets/music/Sloucho_TheEnd.mp3" },
-        { title: "Sloucho - The Power of the Plant",                             dur: 44,  src: "/assets/music/Sloucho_ThePowerOfThePlant.mp3" },
-        { title: "Sloucho - TMD my DMS",                                         dur: 200, src: "/assets/music/Sloucho_TMDmyDMS.mp3" },
-        { title: "Sloucho - Two Thousands (ft. Emby + Curtisy)",                 dur: 194, src: "/assets/music/Sloucho_TwoThousands.mp3" },
-        { title: "Sloucho - when inches became miles",                           dur: 251, src: "/assets/music/Sloucho_WhenInchesBecameMiles.mp3" },
-        { title: "Sloucho & Brawni - Silver Veil",                               dur: 208, src: "/assets/music/Sloucho_Brawni_SilverVeil.mp3" },
-        { title: "Sloucho & Curtisy - gimme it",                                 dur: 212, src: "/assets/music/Sloucho_GimmeIt.mp3" },
-        { title: "Sloucho & Rhoshi - Mutant",                                    dur: 240, src: "/assets/music/Sloucho_Rhoshi_Mutant.mp3" },
-        { title: "Sloucho & Rory Sweeney - 150K (Rhoshi's Monster Mix)",        dur: 77,  src: "/assets/music/Sloucho_RorySweeney_150K_MonsterMix.mp3" },
-        { title: "Sloucho & Rory Sweeney - 150K",                               dur: 220, src: "/assets/music/Sloucho_RorySweeney_150K.mp3" },
-        { title: "Sloucho & Rory Sweeney - Come Around",                        dur: 244, src: "/assets/music/Sloucho_RorySweeney_ComeAround.mp3" },
-        { title: "Isabella Lovestory - Telenovela (Sloucho Edit)",               dur: 153, src: "/assets/music/IsabellaLovestory_Telenovela_SlouchoEdit.mp3" },
-        { title: "Llainwire - Trust Fund (Sloucho Edit)",                        dur: 239, src: "/assets/music/Llainwire_TrustFund_SlouchoEdit.mp3" },
-        { title: "Skillibeng - Coke (Sloucho Edit)",                             dur: 207, src: "/assets/music/Skillibeng_Coke_SlouchoEdit.mp3" },
-        { title: "Sloucho - always remember",                                    dur: 173, src: "/assets/music/Sloucho_AlwaysRemember.mp3" },
-        { title: "Sloucho - Brand New (ft. Zack Oke + Emby)",                   dur: 219, src: "/assets/music/Sloucho_BrandNew.mp3" },
-        { title: "Sloucho - Bronze Age (Bing's Malfunction Mix)",                dur: 63,  src: "/assets/music/Sloucho_BronzeAge_BingsMix.mp3" },
-        { title: "Sloucho - Bronze Age",                                         dur: 191, src: "/assets/music/Sloucho_BronzeAge.mp3" },
-        { title: "Sloucho - Hold It Down",                                       dur: 389, src: "/assets/music/Sloucho_HoldItDown.mp3" },
-        { title: "Sloucho - i found u",                                          dur: 200, src: "/assets/music/Sloucho_IFoundU.mp3" },
-        { title: "Sloucho - just u",                                             dur: 201, src: "/assets/music/Sloucho_JustU.mp3" },
-        { title: "Sloucho - Lights On (ft. Yamagōchi)",                          dur: 203, src: "/assets/music/Sloucho_LightsOn.mp3" },
-        { title: "Sloucho - Make it Work",                                       dur: 209, src: "/assets/music/Sloucho_MakeItWork.mp3" },
-        { title: "Sloucho - Memory Walk",                                        dur: 344, src: "/assets/music/Sloucho_MemoryWalk.mp3" },
-        { title: "Sloucho - Mind Traveller",                                     dur: 90,  src: "/assets/music/Sloucho_MindTraveller.mp3" },
-        { title: "Sloucho - Over & Out",                                         dur: 298, src: "/assets/music/Sloucho_OverAndOut.mp3" },
-        { title: "Sloucho - Power Plant (Sloucho's Memory Mix)",                 dur: 62,  src: "/assets/music/Sloucho_PowerPlant_MemoryMix.mp3" },
-      ];
-
-      const TZ         = 'Europe/Dublin';
-      const START_HOUR = 6;
-      const totalDur   = PLAYLIST.reduce((s, t) => s + (t.dur || 0), 0);
-      if (!totalDur) return;
-
-      // ── Seeded RNG ──
-      function xmur3(str) {
-        let h = 1779033703 ^ str.length;
-        for (let i = 0; i < str.length; i++) {
-          h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
-          h = (h << 13) | (h >>> 19);
-        }
-        return function () {
-          h = Math.imul(h ^ (h >>> 16), 2246822507);
-          h = Math.imul(h ^ (h >>> 13), 3266489909);
-          return (h ^= h >>> 16) >>> 0;
-        };
-      }
-      function mulberry32(seed) {
-        return function () {
-          let t = (seed += 0x6D2B79F5);
-          t = Math.imul(t ^ (t >>> 15), t | 1);
-          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        };
-      }
-      function seededShuffle(arr, seedStr) {
-        const seedFn = xmur3(seedStr);
-        const rand   = mulberry32(seedFn());
-        const a      = arr.slice();
-        for (let i = a.length - 1; i > 0; i--) {
-          const j = Math.floor(rand() * (i + 1));
-          [a[i], a[j]] = [a[j], a[i]];
-        }
-        return a;
-      }
-
-      // ── Timezone helpers ──
-      function getTZParts(date, timeZone) {
-        const dtf   = new Intl.DateTimeFormat('en-GB', {
-          timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
-          hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-        });
-        const parts = dtf.formatToParts(date);
-        const get   = t => parts.find(p => p.type === t)?.value;
-        return {
-          year: +get('year'), month: +get('month'), day: +get('day'),
-          hour: +get('hour'), minute: +get('minute'), second: +get('second'),
-        };
-      }
-      function tzLocalToUTCms({ year, month, day, hour, minute, second }, timeZone) {
-        const guess    = Date.UTC(year, month - 1, day, hour, minute, second);
-        const parts    = getTZParts(new Date(guess), timeZone);
-        const rendered = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
-        return guess + (Date.UTC(year, month - 1, day, hour, minute, second) - rendered);
-      }
-      function mostRecent6amUTCms(now = new Date()) {
-        const p      = getTZParts(now, TZ);
-        const today6 = { year: p.year, month: p.month, day: p.day, hour: START_HOUR, minute: 0, second: 0 };
-        let startMs  = tzLocalToUTCms(today6, TZ);
-        if (now.getTime() < startMs) {
-          const yesterday = new Date(startMs - 3600 * 1000);
-          const yp        = getTZParts(yesterday, TZ);
-          startMs         = tzLocalToUTCms({ year: yp.year, month: yp.month, day: yp.day, hour: START_HOUR, minute: 0, second: 0 }, TZ);
-        }
-        return startMs;
-      }
-      function dayKeyForSeed(startMs) {
-        const p = getTZParts(new Date(startMs), TZ);
-        return `${p.year}-${String(p.month).padStart(2,'0')}-${String(p.day).padStart(2,'0')}`;
-      }
-
-      let station = { cycleIndex: 0, order: [], trackIndex: 0 };
-
-      async function loadAndSeek(track, offsetSec) {
-        if (!track?.src) return;
-        audioEl.src = track.src;
-        audioEl.load();
-        updateNowPlaying(track);
-        updateMediaSessionMetadata(track);
-        await new Promise(resolve => {
-          const onMeta = () => { audioEl.removeEventListener('loadedmetadata', onMeta); resolve(); };
-          audioEl.addEventListener('loadedmetadata', onMeta);
-        });
-        const dur  = audioEl.duration || track.dur || 0;
-        const safe = dur ? Math.min(Math.max(0, offsetSec), Math.max(0, dur - 0.25)) : Math.max(0, offsetSec);
-        try { audioEl.currentTime = safe; } catch (_) {}
-      }
-
-      function computeLivePosition() {
-        const now        = Date.now();
-        const startMs    = mostRecent6amUTCms(new Date(now));
-        const dayKey     = dayKeyForSeed(startMs);
-        const elapsedSec = Math.floor((now - startMs) / 1000);
-        const cycleIndex = Math.floor(elapsedSec / totalDur);
-        let cycleOffset  = elapsedSec % totalDur;
-        if (cycleOffset < 0) cycleOffset += totalDur;
-        const order = seededShuffle(PLAYLIST, `${dayKey}|cycle:${cycleIndex}`);
-        let i = 0;
-        while (i < order.length && cycleOffset >= order[i].dur) { cycleOffset -= order[i].dur; i++; }
-        if (i >= order.length) i = 0;
-        return { cycleIndex, order, trackIndex: i, offset: cycleOffset };
-      }
-
-      async function syncToLive() {
-        const pos = computeLivePosition();
-        station   = { cycleIndex: pos.cycleIndex, order: pos.order, trackIndex: pos.trackIndex };
-        await loadAndSeek(station.order[station.trackIndex], pos.offset);
-      }
-
-      async function playNext() {
-        station.trackIndex++;
-        if (station.trackIndex >= station.order.length) {
-          station.cycleIndex++;
-          const startMs     = mostRecent6amUTCms(new Date());
-          const dayKey      = dayKeyForSeed(startMs);
-          station.order     = seededShuffle(PLAYLIST, `${dayKey}|cycle:${station.cycleIndex}`);
-          station.trackIndex = 0;
-        }
-        await loadAndSeek(station.order[station.trackIndex], 0);
-        try { await audioEl.play(); } catch (_) {}
-      }
-
-      audioEl.addEventListener('ended', playNext);
-
-      audioEl.addEventListener('play', () => {
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-        updateMediaSessionMetadata(normalizeTrack(station?.order?.[station?.trackIndex]));
-      });
-      audioEl.addEventListener('playing', () => {
-        updateMediaSessionMetadata(normalizeTrack(station?.order?.[station?.trackIndex]));
-        if ('mediaSession' in navigator && typeof navigator.mediaSession.setPositionState === 'function') {
-          const t   = station?.order?.[station?.trackIndex];
-          const dur = audioEl.duration || t?.dur || 0;
-          if (dur) navigator.mediaSession.setPositionState({
-            duration: dur, playbackRate: audioEl.playbackRate || 1, position: audioEl.currentTime || 0
-          });
-        }
-      });
-      audioEl.addEventListener('pause', () => {
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
-      });
-
-      // ── Autoplay muted unlock ──
-      audioEl.muted = true;
-      audioEl.setAttribute('muted', '');
-      btn.classList.add('is-muted');
-      btn.setAttribute('aria-label', 'Unmute audio');
-
-      let started = false;
-      async function tryPlayMuted() {
-        if (started || !audioEl.paused) { started = true; return; }
-        try { await audioEl.play(); started = true; removeUnlockers(); } catch (_) {}
-      }
-      function unlock() { tryPlayMuted(); }
-      function addUnlockers() {
-        ['pointerdown','mousedown','touchstart','keydown','wheel','scroll'].forEach(ev =>
-          window.addEventListener(ev, unlock, { capture: true, once: true })
-        );
-      }
-      function removeUnlockers() {
-        ['pointerdown','mousedown','touchstart','keydown','wheel','scroll'].forEach(ev =>
-          window.removeEventListener(ev, unlock, { capture: true })
-        );
-      }
-
-      syncToLive().then(() => {
-        tryPlayMuted();
-        audioEl.addEventListener('canplay', tryPlayMuted);
-        window.addEventListener('load', tryPlayMuted, { once: true });
-        addUnlockers();
-      });
-
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) syncToLive();
-      });
-
-      // ── Mute button ──
-      btn.addEventListener('click', async () => {
-        const willMute = !audioEl.muted;
-        audioEl.muted  = willMute;
-        btn.classList.toggle('is-muted', willMute);
-        btn.setAttribute('aria-label', willMute ? 'Unmute audio' : 'Mute audio');
-        if (!willMute) {
-          updateMediaSessionMetadata(normalizeTrack(station?.order?.[station?.trackIndex]));
-          try { await audioEl.play(); } catch (_) {}
-        }
       });
     })();
   </script>
