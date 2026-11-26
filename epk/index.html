@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OUCH™ - Sloucho EPK</title>
+  <link rel="icon" href="/favicon.ico?v=2" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png?v=2" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <!-- Unlisted page: keep it out of search results -->
+  <meta name="robots" content="noindex, nofollow" />
+
+  <!--
+    CSS NOTE: every rule below is copied verbatim from your existing pages.
+    Source of each block is marked: [index] = index.html (tracklist page),
+    [portal] = index (1).html, [player] = index (2).html.
+    Where two pages define the same selector differently, the [index] version is used.
+    Changes: .fh-title font-weight 500 -> 400; one NEW rule: .pill-thumb (marked below).
+  -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* [index] */
+    :root {
+      --bg: #fff;
+      --text: #000;
+      --muted: rgba(0,0,0,0.45);
+      --border: rgba(0,0,0,0.12);
+      --border-hover: rgba(0,0,0,0.28);
+      --pill-bg: rgba(255,255,255,0.92);
+      --btn-bg: rgba(0,0,0,0.05);
+      --btn-bg-hover: rgba(0,0,0,0.10);
+      --radius-card: 14px;
+      --radius-pill: 999px;
+      --edge-pad-desktop: 28px;
+      --edge-pad-mobile: 16px;
+      --circle: 30px;
+      --circle-border: rgba(0,0,0,0.15);
+      --circle-border-hover: rgba(0,0,0,0.30);
+    }
+
+    /* [index] */
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'PPMori', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      overflow-y: auto;
+      touch-action: pan-y;
+      -ms-touch-action: pan-y;
+    }
+    body::-webkit-scrollbar { display: none; }
+
+    /* [index] */
+    @font-face {
+      font-family: 'PPMori';
+      src: url('/assets/fonts/PPMori/PPMori-Regular.woff2') format('woff2'),
+           url('https://ouch.world/assets/fonts/PPMori/PPMori-Regular.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    /* ── Top nav [index] ── */
+    .top-nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px var(--edge-pad-desktop);
+      z-index: 1000;
+    }
+    @media (max-width: 768px) { .top-nav { padding: 20px var(--edge-pad-mobile); } }
+
+    .menu-button, .login-button {
+      width: 30px; height: 30px;
+      background: rgba(255,255,255,0.88);
+      border: 1px solid var(--circle-border);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+      backdrop-filter: blur(10px);
+      transition: border-color .2s ease, background .2s ease;
+    }
+    .menu-button:hover, .login-button:hover { border-color: var(--circle-border-hover); background: #fff; }
+    .menu-dots { display: flex; gap: 4px; }
+    .dot { width: 3px; height: 3px; background: #000; border-radius: 50%; }
+
+    /* ── Menu tray [index] ── */
+    .menu-tray {
+      position: fixed; top: 60px; left: 20px; width: 155px;
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      z-index: 1000;
+      transform: translateY(-20px); opacity: 0; visibility: hidden;
+      transition: all .3s ease;
+      padding: 10px 0;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    }
+    .menu-tray.open { transform: translateY(0); opacity: 1; visibility: visible; }
+    .menu-item {
+      position: relative; display: block; width: 100%;
+      padding: 6px 15px; color: #000; text-decoration: none;
+      font-size: 14px; font-weight: 400;
+      cursor: pointer; background: none; border: 0;
+    }
+    .menu-item::before {
+      content: ""; position: absolute; inset: 1px; left: 8px; right: 8px;
+      border-radius: 8px; background: rgba(0,0,0,0.06);
+      opacity: 0; transform: scaleY(0.96);
+      transition: opacity .15s ease, transform .2s ease; pointer-events: none;
+    }
+    .menu-item:hover::before { opacity: 1; transform: scaleY(1); }
+    .menu-item, .menu-item * { position: relative; z-index: 1; }
+
+    /* ── Fixed header [index] ── */
+    .fixed-header {
+      position: fixed;
+      top: 68px;
+      left: 0; right: 0;
+      text-align: center;
+      padding: 4px 24px 24px;
+      z-index: 999;
+      pointer-events: none;
+    }
+    .fixed-header .fh-artist,
+    .fixed-header .fh-title {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 400; /* CHANGED: was 500 (you asked for regular, not bold) */
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+    }
+    .fixed-header .fh-artist { color: var(--text); }
+    .fixed-header .fh-title  { color: var(--muted); }
+
+    /* ── Nav fade [index] ── */
+    .nav-fade {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 210px;
+      background: linear-gradient(to bottom,
+        rgba(255,255,255,1) 0%,
+        rgba(255,255,255,1) 72%,
+        rgba(255,255,255,0) 88%);
+      pointer-events: none;
+      z-index: 998;
+    }
+
+    /* ── Page [index] ── */
+    .page {
+      max-width: 740px;
+      margin: 0 auto;
+      padding: 195px 24px calc(60px + 54px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* ── Sections [portal] ── */
+    .track-section { margin-bottom: 48px; }
+    .section-label {
+      font-size: 10px;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.28);
+      margin-bottom: 10px;
+      padding-left: 2px;
+    }
+
+    /* ── Pills [index] ── */
+    .track-pill {
+      background: var(--pill-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      margin-bottom: 5px;
+      overflow: hidden;
+    }
+    .pill-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 9px 9px 19px;
+      user-select: none;
+    }
+
+    /* ── Circle buttons [index] ── */
+    .circ-btn {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--btn-bg);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 0;
+      color: var(--muted);
+      text-decoration: none;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    span.circ-btn { cursor: default; }
+    .circ-btn svg { width: 14px; height: 14px; }
+
+    /* ── Play icon [portal] ── */
+    .play-icon {
+      width: 0; height: 0;
+      border-left: 8px solid #000;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      transform: translateX(1px);
+    }
+
+    /* [index] */
+    .pill-meta { min-width: 0; }
+    .pill-title {
+      font-size: 14px; font-weight: 450;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.3;
+    }
+    .pill-sub {
+      font-size: 12px; color: var(--muted);
+      margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .track-pill.locked .pill-title { color: var(--muted); }
+    a.circ-btn:hover, button.circ-btn:hover { border-color: var(--border-hover); background: var(--btn-bg-hover); color: var(--text); }
+
+    /* ── NEW RULE (not from your pages): thumbnail at the top of a pill ── */
+    .pill-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-bottom: 1px solid var(--border); }
+
+    @media (max-width: 600px) {
+      .page { padding-top: 180px; }
+    }
+
+    /* ── Social bar [index] ── */
+    .social-btn {
+      width: 30px; height: 30px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      border: 1px solid var(--circle-border);
+      background: var(--btn-bg);
+      color: var(--muted);
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      flex-shrink: 0;
+    }
+    a.social-btn:hover { border-color: var(--circle-border-hover); background: var(--btn-bg-hover); color: var(--text); }
+    .social-btn svg { width: 13px; height: 13px; }
+
+    .social-wrap {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-top: 1px solid var(--border);
+      padding: 10px 0 calc(14px + env(safe-area-inset-bottom, 0px));
+    }
+    @media (min-width: 769px) {
+      .social-wrap { padding: 14px 0 28px; }
+      .page { padding-bottom: calc(60px + 72px); }
+    }
+    .social-tray {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      display: flex;
+      gap: 8px;
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 10px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      transform: translate(-50%, 8px);
+      opacity: 0;
+      visibility: hidden;
+      transition: transform .25s ease, opacity .25s ease, visibility .25s ease;
+    }
+    .social-tray.open { transform: translate(-50%, 0); opacity: 1; visibility: visible; }
+
+    .link-button {
+      width: 30px; height: 30px;
+      background: rgba(255,255,255,0.88);
+      border: 1px solid var(--circle-border);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+      backdrop-filter: blur(10px);
+      color: var(--muted);
+      transition: border-color .2s ease, background .2s ease, color .2s ease;
+    }
+    .link-button:hover, .link-button.active { border-color: var(--circle-border-hover); background: #fff; color: var(--text); }
+    .link-button svg { width: 13px; height: 13px; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation (menu only: no login needed on the EPK) -->
+  <nav class="top-nav">
+    <button class="menu-button" onclick="toggleMenu()" aria-label="Menu">
+      <div class="menu-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    </button>
+  </nav>
+
+  <!-- Menu Tray -->
+  <div class="menu-tray" id="menuTray">
+    <a href="/" class="menu-item">Home</a>
+    <a href="/portal" class="menu-item">NFC Card</a>
+    <a href="/radio" class="menu-item">Radio</a>
+  </div>
+
+  <!-- Fixed header -->
+  <div class="fixed-header">
+    <div class="fh-title">Press Kit</div>
+  </div>
+
+  <div class="nav-fade" aria-hidden="true"></div>
+
+  <div class="page">
+    <section class="track-section"><p class="section-label">DJ</p><div id="djList"></div></section>
+    <section class="track-section"><p class="section-label">Live</p><div id="liveList"></div></section>
+    <section class="track-section"><p class="section-label">Releases</p><div id="releaseList"></div></section>
+    <section class="track-section"><p class="section-label">Press</p><div id="pressList"></div></section>
+    <section class="track-section"><p class="section-label">Downloads</p><div id="downloadList"></div></section>
+    <section class="track-section"><p class="section-label">Bookings</p><div id="bookingList"></div></section>
+  </div>
+
+  <!-- Social link button + tray [index] -->
+  <div class="social-wrap">
+    <div class="social-tray" id="socialTray">
+      <a class="social-btn" href="https://www.instagram.com/sloucho/" target="_blank" rel="noopener" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+          <circle cx="12" cy="12" r="5"/>
+          <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+      </a>
+      <a class="social-btn" href="https://www.youtube.com/@slouchomusic" target="_blank" rel="noopener" aria-label="YouTube">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 7.2a2.7 2.7 0 00-1.9-1.9C18 5 12 5 12 5s-6 0-7.7.3A2.7 2.7 0 002.4 7.2C2 8.9 2 12 2 12s0 3.1.4 4.8a2.7 2.7 0 001.9 1.9C6 19 12 19 12 19s6 0 7.7-.3a2.7 2.7 0 001.9-1.9C22 15.1 22 12 22 12s0-3.1-.4-4.8zM10 15V9l5.5 3L10 15z"/></svg>
+      </a>
+      <a class="social-btn" href="https://sloucho.bandcamp.com" target="_blank" rel="noopener" aria-label="Bandcamp">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 17.5L8.6 6.5H23l-7.6 11z"/></svg>
+      </a>
+      <a class="social-btn" href="https://open.spotify.com/artist/0tra0xmq3lbJkWbXGf2da6?si=jIjVjZTrT7mTpwmPkh5Wvw" target="_blank" rel="noopener" aria-label="Spotify">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 11-.277-1.215c3.809-.87 7.077-.496 9.712 1.115a.623.623 0 01.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.973c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 11-.543-1.793c3.525-1.07 9.381-.863 13.081 1.345a.937.937 0 01-.921 1.605z"/></svg>
+      </a>
+      <a class="social-btn" href="https://www.tiktok.com/@slouchomusic" target="_blank" rel="noopener" aria-label="TikTok">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.75a4.85 4.85 0 01-1.01-.06z"/></svg>
+      </a>
+    </div>
+    <button class="link-button" id="socialToggle" onclick="toggleSocial()" aria-label="Links">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+        <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+      </svg>
+    </button>
+  </div>
+
+  <script>
+    // ─────────────────────────────────────────────────────────────
+    // CONTENT — edit these. Empty url ('') shows a locked pill.
+    // thumb: image URL. If it fails to load, /assets/spiral.png is shown instead.
+    // ─────────────────────────────────────────────────────────────
+    const yt = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+
+    const DJ = [
+      { title: 'All Together Now', sub: 'DJ set', url: '', thumb: '/assets/epk/atn.jpg' },  // [EDIT] video URL + thumb
+    ];
+
+    const LIVE = [
+      { title: 'AVA Festival', sub: 'Live · Boiler Room, Belfast', url: 'https://youtu.be/iooLy1Zcy8Y', thumb: yt('iooLy1Zcy8Y') },
+    ];
+
+    const RELEASES = [
+      { title: 'Love is Fear', sub: 'Music video', url: 'https://www.youtube.com/watch?v=cci9Bfajs3o', thumb: yt('cci9Bfajs3o') },
+      { title: 'Fake', sub: 'Music video · Gemma Dunleavy', url: 'https://www.youtube.com/watch?v=2cFgs6cc1BU', thumb: yt('2cFgs6cc1BU') },
+      { title: 'Something Else', sub: 'Music video · Kibo', url: 'https://www.youtube.com/watch?v=IzhMSLQbnXM', thumb: yt('IzhMSLQbnXM') },
+    ];
+
+    const PRESS = [
+      { title: 'Dazed', sub: '‘AI isn’t the issue – we are’', url: 'https://www.dazeddigital.com/music/article/66503/1/irish-hyperpop-artist-sloucho-ai-isnt-the-issue-we-are',
+        thumb: 'https://images-prod.dazeddigital.com/1068/0-155-1068-712/azure/dazed-prod/1400/7/1407978.jpg' },
+      { title: 'DJ Mag', sub: 'Six emerging artists you need to hear', url: 'https://djmag.com/features/six-emerging-artists-you-need-hear-may-2025', thumb: '/assets/epk/djmag.jpg' },  // [EDIT] thumb
+    ];
+
+    const DOWNLOADS = [
+      { title: 'Press Photos', sub: 'High-res · ZIP', url: '', thumb: '/assets/epk/press.jpg' },        // [EDIT]
+      { title: 'Tech Rider · Live', sub: 'PDF', url: '', thumb: '/assets/epk/rider-live.jpg' },        // [EDIT]
+      { title: 'Tech Rider · DJ', sub: 'PDF', url: '', thumb: '/assets/epk/rider-dj.jpg' },            // [EDIT]
+    ];
+
+    const BOOKINGS = [
+      { title: 'Bookings', sub: 'cameron@ouch.world', url: 'mailto:cameron@ouch.world', thumb: '/assets/spiral.png' },
+    ];
+
+    // ─────────────────────────────────────────────────────────────
+    // ICONS (from your pages)
+    // ─────────────────────────────────────────────────────────────
+    const ICON = {
+      link:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>',
+      lock:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>',
+      // download arrow drawn in the same stroke style as your link/lock icons
+      download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><polyline points="7 10 12 15 17 10"/><path d="M5 20h14"/></svg>',
+      mail:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>',
+    };
+
+    // ─────────────────────────────────────────────────────────────
+    // RENDER
+    // ─────────────────────────────────────────────────────────────
+    // Site-relative paths (/assets/...) only exist on ouch.world. When the file is
+    // opened straight from disk, point them at the live site instead.
+    const SITE = location.protocol === 'file:' ? 'https://ouch.world' : '';
+    const src = p => p.startsWith('/') ? SITE + p : p;
+
+    // If a thumbnail fails: try the spiral, and if that fails too, drop the image
+    // so the pill shows cleanly without a broken-image icon.
+    function thumbFail(img) {
+      if (!img.dataset.fallback) { img.dataset.fallback = '1'; img.src = src('/assets/spiral.png'); }
+      else img.remove();
+    }
+
+    // Pill with thumbnail on top, title + sub, one circle button on the right
+    function pill(item, iconHtml, isDownload) {
+      const locked = !item.url;
+      const target = !locked && item.url.startsWith('mailto:') ? '' : ' target="_blank" rel="noopener"';
+      const dl = isDownload ? ' download' : '';
+      const img = `<img class="pill-thumb" src="${src(item.thumb)}" alt="" loading="lazy" onerror="thumbFail(this)">`;
+      return `
+      <div class="track-pill${locked ? ' locked' : ''}">
+        ${locked ? img : `<a href="${item.url}"${target}${dl} aria-label="${item.title}">${img}</a>`}
+        <div class="pill-row">
+          <div class="pill-meta">
+            <div class="pill-title">${item.title}</div>
+            <div class="pill-sub">${item.sub}</div>
+          </div>
+          ${locked
+            ? `<span class="circ-btn" role="img" aria-label="Coming soon">${ICON.lock}</span>`
+            : `<a class="circ-btn" href="${item.url}"${target}${dl} aria-label="${item.title}">${iconHtml}</a>`}
+        </div>
+      </div>`;
+    }
+
+    const PLAY = '<span class="play-icon"></span>';
+    const render = (id, list, icon, dl) => document.getElementById(id).innerHTML = list.map(x => pill(x, icon, dl)).join('');
+    render('djList',       DJ,        PLAY);
+    render('liveList',     LIVE,      PLAY);
+    render('releaseList',  RELEASES,  PLAY);
+    render('pressList',    PRESS,     ICON.link);
+    render('downloadList', DOWNLOADS, ICON.download, true);
+    render('bookingList',  BOOKINGS,  ICON.mail);
+
+    // ─────────────────────────────────────────────────────────────
+    // BEHAVIOUR (from your pages)
+    // ─────────────────────────────────────────────────────────────
+    function toggleMenu() { document.getElementById('menuTray')?.classList.toggle('open'); }
+
+    function toggleSocial() {
+      const tray = document.getElementById('socialTray');
+      const btn  = document.getElementById('socialToggle');
+      const isOpen = tray.classList.toggle('open');
+      btn.classList.toggle('active', isOpen);
+    }
+
+    document.addEventListener('click', function (e) {
+      const menuTray = document.getElementById('menuTray');
+      const menuBtn  = document.querySelector('.menu-button');
+      if (menuTray && menuBtn && !menuTray.contains(e.target) && !menuBtn.contains(e.target))
+        menuTray.classList.remove('open');
+
+      const socialTray   = document.getElementById('socialTray');
+      const socialToggle = document.getElementById('socialToggle');
+      if (socialTray && socialToggle && !socialTray.contains(e.target) && !socialToggle.contains(e.target)) {
+        socialTray.classList.remove('open');
+        socialToggle.classList.remove('active');
+      }
+    });
+  </script>
+</body>
+</html>
