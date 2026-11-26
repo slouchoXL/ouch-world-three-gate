@@ -14,7 +14,7 @@
     Source of each block is marked: [index] = index.html (tracklist page),
     [portal] = index (1).html, [player] = index (2).html.
     Where two pages define the same selector differently, the [index] version is used.
-    Changes: .fh-title font-weight 500 -> 400; one NEW rule: .pill-thumb (marked below).
+    Changes: .fh-title font-weight 500 -> 400; .nav-fade height 210 -> 150px; .page padding-top 195 -> 150px (mobile 180 -> 140px); one NEW rule: .pill-thumb. All marked CHANGED/NEW below.
   -->
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -138,7 +138,7 @@
     .nav-fade {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 210px;
+      height: 150px; /* CHANGED: was 210px (shorter blur, one-line header) */
       background: linear-gradient(to bottom,
         rgba(255,255,255,1) 0%,
         rgba(255,255,255,1) 72%,
@@ -151,7 +151,7 @@
     .page {
       max-width: 740px;
       margin: 0 auto;
-      padding: 195px 24px calc(60px + 54px + env(safe-area-inset-bottom, 0px));
+      padding: 150px 24px calc(60px + 54px + env(safe-area-inset-bottom, 0px)); /* CHANGED: top was 195px */
     }
 
     /* ── Sections [portal] ── */
@@ -227,7 +227,7 @@
     .pill-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-bottom: 1px solid var(--border); }
 
     @media (max-width: 600px) {
-      .page { padding-top: 180px; }
+      .page { padding-top: 140px; } /* CHANGED: was 180px */
     }
 
     /* ── Social bar [index] ── */
@@ -368,11 +368,11 @@
     const yt = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 
     const DJ = [
-      { title: 'All Together Now', sub: 'DJ set', url: '', thumb: '/assets/epk/atn.jpg' },  // [EDIT] video URL + thumb
+      { title: 'All Together Now', sub: 'DJ set · AVA Immerse stage', url: 'https://www.youtube.com/watch?v=iooLy1Zcy8Y', thumb: yt('iooLy1Zcy8Y') },
     ];
 
     const LIVE = [
-      { title: 'AVA Festival', sub: 'Live · Boiler Room, Belfast', url: 'https://youtu.be/iooLy1Zcy8Y', thumb: yt('iooLy1Zcy8Y') },
+      { title: 'AVA Festival', sub: 'Live set · Belfast', url: 'https://www.youtube.com/watch?v=vetBXKDeJ7g', thumb: yt('vetBXKDeJ7g') },
     ];
 
     const RELEASES = [
@@ -388,13 +388,13 @@
     ];
 
     const DOWNLOADS = [
-      { title: 'Press Photos', sub: 'High-res · ZIP', url: '', thumb: '/assets/epk/press.jpg' },        // [EDIT]
-      { title: 'Tech Rider · Live', sub: 'PDF', url: '', thumb: '/assets/epk/rider-live.jpg' },        // [EDIT]
-      { title: 'Tech Rider · DJ', sub: 'PDF', url: '', thumb: '/assets/epk/rider-dj.jpg' },            // [EDIT]
+      { title: 'Press Photos', sub: 'High-res · ZIP', url: '' },        // [EDIT]
+      { title: 'Tech Rider · Live', sub: 'PDF', url: '' },        // [EDIT]
+      { title: 'Tech Rider · DJ', sub: 'PDF', url: '' },            // [EDIT]
     ];
 
     const BOOKINGS = [
-      { title: 'Bookings', sub: 'cameron@ouch.world', url: 'mailto:cameron@ouch.world', thumb: '/assets/spiral.png' },
+      { title: 'Bookings', sub: 'cameron@ouch.world', url: 'mailto:cameron@ouch.world' },
     ];
 
     // ─────────────────────────────────────────────────────────────
@@ -424,14 +424,20 @@
     }
 
     // Pill with thumbnail on top, title + sub, one circle button on the right
+    // YouTube ID from a watch?v= or youtu.be link (null for anything else)
+    const ytId = url => (url.match(/(?:v=|youtu\.be\/)([\w-]{11})/) || [])[1] || null;
+
     function pill(item, iconHtml, isDownload) {
       const locked = !item.url;
+      const id = locked ? null : ytId(item.url);
       const target = !locked && item.url.startsWith('mailto:') ? '' : ' target="_blank" rel="noopener"';
       const dl = isDownload ? ' download' : '';
-      const img = `<img class="pill-thumb" src="${src(item.thumb)}" alt="" loading="lazy" onerror="thumbFail(this)">`;
+      // YouTube links play inline on the page; the href stays as a fallback
+      const play = id ? ` data-yt="${id}" onclick="return playInline(event, this)"` : '';
+      const img = item.thumb ? `<img class="pill-thumb" src="${src(item.thumb)}" alt="" loading="lazy" onerror="thumbFail(this)">` : '';
       return `
       <div class="track-pill${locked ? ' locked' : ''}">
-        ${locked ? img : `<a href="${item.url}"${target}${dl} aria-label="${item.title}">${img}</a>`}
+        <div class="thumb-slot">${locked || !img ? img : `<a href="${item.url}"${target}${dl}${play} aria-label="${item.title}">${img}</a>`}</div>
         <div class="pill-row">
           <div class="pill-meta">
             <div class="pill-title">${item.title}</div>
@@ -439,10 +445,26 @@
           </div>
           ${locked
             ? `<span class="circ-btn" role="img" aria-label="Coming soon">${ICON.lock}</span>`
-            : `<a class="circ-btn" href="${item.url}"${target}${dl} aria-label="${item.title}">${iconHtml}</a>`}
+            : `<a class="circ-btn" href="${item.url}"${target}${dl}${play} aria-label="${item.title}">${iconHtml}</a>`}
         </div>
       </div>`;
     }
+
+    // Swap the thumbnail for a YouTube player inside the pill.
+    // Only one video plays at a time: the previous one goes back to its thumbnail.
+    let playingSlot = null, playingSlotHtml = '';
+    function playInline(e, el) {
+      e.preventDefault();
+      const slot = el.closest('.track-pill').querySelector('.thumb-slot');
+      if (slot === playingSlot) return false;
+      if (playingSlot) playingSlot.innerHTML = playingSlotHtml;
+      playingSlot = slot;
+      playingSlotHtml = slot.innerHTML;
+      slot.innerHTML = `<iframe class="pill-thumb" src="https://www.youtube-nocookie.com/embed/${el.dataset.yt}?autoplay=1&rel=0&playsinline=1"
+        frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="Video"></iframe>`;
+      return false;
+    }
+
 
     const PLAY = '<span class="play-icon"></span>';
     const render = (id, list, icon, dl) => document.getElementById(id).innerHTML = list.map(x => pill(x, icon, dl)).join('');
