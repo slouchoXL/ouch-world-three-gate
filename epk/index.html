@@ -14,7 +14,7 @@
     Source of each block is marked: [index] = index.html (tracklist page),
     [portal] = index (1).html, [player] = index (2).html.
     Where two pages define the same selector differently, the [index] version is used.
-    Changes: .fh-title font-weight 500 -> 400; .nav-fade height 210 -> 150px; .page padding-top 195 -> 150px (mobile 180 -> 140px); one NEW rule: .pill-thumb. All marked CHANGED/NEW below.
+    Changes: .fh-title font-weight 500 -> 400; .nav-fade height 210 -> 150px; .page padding-top 195 -> 150px (mobile 180 -> 140px); NEW rules: .pill-thumb, .bs-copy a (+ :hover). All marked CHANGED/NEW below.
   -->
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -153,6 +153,22 @@
       margin: 0 auto;
       padding: 150px 24px calc(60px + 54px + env(safe-area-inset-bottom, 0px)); /* CHANGED: top was 195px */
     }
+
+    /* ── Bio copy [portal] ── */
+    .bs-copy { max-width: 640px; margin: 0 0 0; }
+    .bs-copy p {
+      font-size: 13px;
+      line-height: 1.3;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    /* NEW RULE: link in the bio. Declarations copied from your .pill-sub a [portal] */
+    .bs-copy a {
+      color: inherit; text-decoration: none;
+      border-bottom: 1px solid rgba(0,0,0,0.2);
+      transition: border-color 0.15s;
+    }
+    .bs-copy a:hover { border-color: rgba(0,0,0,0.5); }
 
     /* ── Sections [portal] ── */
     .track-section { margin-bottom: 48px; }
@@ -321,6 +337,11 @@
   <div class="nav-fade" aria-hidden="true"></div>
 
   <div class="page">
+    <section class="track-section">
+      <div class="bs-copy">
+        <p><a href="https://www.instagram.com/sloucho/" target="_blank" rel="noopener">Sloucho</a> is an anonymous producer, live act, DJ, and visual artist from Ireland. As part of a wave of artists using new technologies to create art that reflects our fragmented, data-driven world, Sloucho has become renowned for immersive live shows, genre-melting electronic music, and world-building that connects Ireland’s tradition of myth-making with global electronic music culture.</p>
+      </div>
+    </section>
     <section class="track-section"><p class="section-label">DJ</p><div id="djList"></div></section>
     <section class="track-section"><p class="section-label">Live</p><div id="liveList"></div></section>
     <section class="track-section"><p class="section-label">Releases</p><div id="releaseList"></div></section>
@@ -383,8 +404,8 @@
 
     const PRESS = [
       { title: 'Dazed', sub: '‘AI isn’t the issue – we are’', url: 'https://www.dazeddigital.com/music/article/66503/1/irish-hyperpop-artist-sloucho-ai-isnt-the-issue-we-are',
-        thumb: 'https://images-prod.dazeddigital.com/1068/0-155-1068-712/azure/dazed-prod/1400/7/1407978.jpg' },
-      { title: 'DJ Mag', sub: 'Six emerging artists you need to hear', url: 'https://djmag.com/features/six-emerging-artists-you-need-hear-may-2025', thumb: '/assets/epk/djmag.jpg' },  // [EDIT] thumb
+        thumb: '/assets/epk/dazed.jpg' },
+      { title: 'DJ Mag', sub: 'Six emerging artists you need to hear', url: 'https://djmag.com/features/six-emerging-artists-you-need-hear-may-2025', thumb: '/assets/epk/djmag.jpg' },
     ];
 
     const DOWNLOADS = [
@@ -460,8 +481,11 @@
       if (playingSlot) playingSlot.innerHTML = playingSlotHtml;
       playingSlot = slot;
       playingSlotHtml = slot.innerHTML;
-      slot.innerHTML = `<iframe class="pill-thumb" src="https://www.youtube-nocookie.com/embed/${el.dataset.yt}?autoplay=1&rel=0&playsinline=1"
-        frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="Video"></iframe>`;
+      // Same attributes as YouTube's own "Share > Embed" code
+      slot.innerHTML = `<iframe class="pill-thumb" src="https://www.youtube.com/embed/${el.dataset.yt}?autoplay=1&rel=0&playsinline=1"
+        title="YouTube video player" frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
       return false;
     }
 
