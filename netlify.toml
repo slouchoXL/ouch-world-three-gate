@@ -2,35 +2,6 @@
   publish = "."
   functions = "netlify/functions"
 
-# Global: keep isolation for the rest of the site
-[[headers]]
-for = "/*"
-  [headers.values]
-  Cross-Origin-Opener-Policy = "same-origin"
-  Cross-Origin-Embedder-Policy = "require-corp"
-
-# OVERRIDE: no COEP/COOP on landing page (no iframe there anyway)
-[[headers]]
-for = "/landing-page/*"
-  [headers.values]
-  Cross-Origin-Opener-Policy = "unsafe-none"
-  Cross-Origin-Embedder-Policy = "unsafe-none"
-
-# OVERRIDE: no COEP/COOP on packs (this page embeds the widget iframe)
-[[headers]]
-for = "/packs/*"
-  [headers.values]
-  Cross-Origin-Opener-Policy = "unsafe-none"
-  Cross-Origin-Embedder-Policy = "unsafe-none"
-
-# OVERRIDE: allow third-party scripts (Shopify Buy Button) on shop page
-[[headers]]
-for = "/shop/*"
-  [headers.values]
-  Cross-Origin-Opener-Policy = "unsafe-none"
-  Cross-Origin-Embedder-Policy = "unsafe-none"
-
-
 # (Optional) You can keep this long-cache header for widget assets
 [[headers]]
 for = "/assets/widget/*"
