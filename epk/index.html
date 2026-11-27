@@ -14,7 +14,7 @@
     Source of each block is marked: [index] = index.html (tracklist page),
     [portal] = index (1).html, [player] = index (2).html.
     Where two pages define the same selector differently, the [index] version is used.
-    Changes: .fh-title font-weight 500 -> 400; .track-pill margin-bottom 5 -> 10px; .nav-fade height 210 -> 150px; .page padding-top 195 -> 150px (mobile 180 -> 140px); NEW rules: .pill-thumb, .bs-copy a (+ :hover). All marked CHANGED/NEW below.
+    Changes: .fh-title font-weight 500 -> 400; .bs-copy p font-size 13 -> 14px; .track-pill margin-bottom 5 -> 10px; .nav-fade height 210 -> 150px; .page padding-top 195 -> 150px (mobile 180 -> 140px); NEW rules: .pill-thumb, .bs-copy a (+ :hover). All marked CHANGED/NEW below.
   -->
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -157,7 +157,7 @@
     /* ── Bio copy [portal] ── */
     .bs-copy { max-width: 640px; margin: 0 0 0; }
     .bs-copy p {
-      font-size: 13px;
+      font-size: 14px; /* CHANGED: was 13px */
       line-height: 1.3;
       color: var(--muted);
       margin-bottom: 12px;
@@ -397,9 +397,9 @@
     ];
 
     const RELEASES = [
-      { title: 'Something Else', sub: 'Music video · Kibo', url: 'https://www.youtube.com/watch?v=IzhMSLQbnXM', thumb: yt('IzhMSLQbnXM') },
+      { title: 'Something Else', sub: 'Music video · ft. Kibo', url: 'https://www.youtube.com/watch?v=IzhMSLQbnXM', thumb: yt('IzhMSLQbnXM') },
       { title: 'Love is Fear', sub: 'Music video', url: 'https://www.youtube.com/watch?v=cci9Bfajs3o', thumb: yt('cci9Bfajs3o') },
-      { title: 'Fake', sub: 'Music video · Gemma Dunleavy', url: 'https://www.youtube.com/watch?v=2cFgs6cc1BU', thumb: yt('2cFgs6cc1BU') },
+      { title: 'Fake', sub: 'Music video · ft. Gemma Dunleavy', url: 'https://www.youtube.com/watch?v=2cFgs6cc1BU', thumb: yt('2cFgs6cc1BU') },
     ];
 
     const PRESS = [
@@ -464,7 +464,7 @@
             <div class="pill-title">${item.title}</div>
             <div class="pill-sub">${item.sub}</div>
           </div>
-          ${locked
+          ${id ? '' : locked
             ? `<span class="circ-btn" role="img" aria-label="Coming soon">${ICON.lock}</span>`
             : `<a class="circ-btn" href="${item.url}"${target}${dl}${play} aria-label="${item.title}">${iconHtml}</a>`}
         </div>
