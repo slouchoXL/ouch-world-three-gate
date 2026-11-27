@@ -14,7 +14,7 @@
     Source of each block is marked: [index] = index.html (tracklist page),
     [portal] = index (1).html, [player] = index (2).html.
     Where two pages define the same selector differently, the [index] version is used.
-    Changes: .fh-title font-weight 500 -> 400; .nav-fade height 210 -> 150px; .page padding-top 195 -> 150px (mobile 180 -> 140px); NEW rules: .pill-thumb, .bs-copy a (+ :hover). All marked CHANGED/NEW below.
+    Changes: .fh-title font-weight 500 -> 400; .track-pill margin-bottom 5 -> 10px; .nav-fade height 210 -> 150px; .page padding-top 195 -> 150px (mobile 180 -> 140px); NEW rules: .pill-thumb, .bs-copy a (+ :hover). All marked CHANGED/NEW below.
   -->
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -186,7 +186,7 @@
       background: var(--pill-bg);
       border: 1px solid var(--border);
       border-radius: var(--radius-card);
-      margin-bottom: 5px;
+      margin-bottom: 10px; /* CHANGED: was 5px */
       overflow: hidden;
     }
     .pill-row {
@@ -397,9 +397,9 @@
     ];
 
     const RELEASES = [
+      { title: 'Something Else', sub: 'Music video · Kibo', url: 'https://www.youtube.com/watch?v=IzhMSLQbnXM', thumb: yt('IzhMSLQbnXM') },
       { title: 'Love is Fear', sub: 'Music video', url: 'https://www.youtube.com/watch?v=cci9Bfajs3o', thumb: yt('cci9Bfajs3o') },
       { title: 'Fake', sub: 'Music video · Gemma Dunleavy', url: 'https://www.youtube.com/watch?v=2cFgs6cc1BU', thumb: yt('2cFgs6cc1BU') },
-      { title: 'Something Else', sub: 'Music video · Kibo', url: 'https://www.youtube.com/watch?v=IzhMSLQbnXM', thumb: yt('IzhMSLQbnXM') },
     ];
 
     const PRESS = [
@@ -409,9 +409,9 @@
     ];
 
     const DOWNLOADS = [
-      { title: 'Press Photos', sub: 'High-res · ZIP', url: '' },        // [EDIT]
-      { title: 'Tech Rider · Live', sub: 'PDF', url: '' },        // [EDIT]
-      { title: 'Tech Rider · DJ', sub: 'PDF', url: '' },            // [EDIT]
+      { title: 'Press Photos', sub: 'High-res · ZIP', url: '/assets/epk/PressPhotos.zip' },
+      { title: 'Tech Rider · Live', sub: 'PDF', url: '/assets/epk/Sloucho_Tech_Rider_Live.pdf' },
+      { title: 'Tech Rider · DJ', sub: 'PDF', url: '/assets/epk/Sloucho_Tech_Rider_DJ.pdf' },
     ];
 
     const BOOKINGS = [
